@@ -59,6 +59,35 @@ class MealPlansController < ApplicationController
     render layout: "print"
   end
 
+  def sync_calendar
+    set_meal_plan
+    if current_household.google_calendar_enabled? && current_household.google_calendar_id.present?
+      service = GoogleCalendarService.new(current_household)
+      synced_count = service.sync_meal_plan(@meal_plan)
+
+      respond_to do |format|
+        format.json do
+          render json: {
+            success: true,
+            synced_count: synced_count,
+            message: "Successfully synced #{synced_count} meal #{'slot'.pluralize(synced_count)} to Google Calendar!"
+          }
+        end
+        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), notice: "Weekly meal plan synced to Google Calendar! 📅" }
+      end
+    else
+      respond_to do |format|
+        format.json do
+          render json: {
+            success: false,
+            error: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center."
+          }, status: :unprocessable_entity
+        end
+        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), alert: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center." }
+      end
+    end
+  end
+
   private
 
   def set_meal_plan

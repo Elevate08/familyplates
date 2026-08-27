@@ -109,4 +109,20 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Monthly kitchen menu"
     assert_not_includes response.body, "FamilyPlates Balanced Schedule"
   end
+
+  test "should sync calendar when enabled" do
+    @user.household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
+
+    post sync_calendar_meal_plan_url(@meal_plan)
+    assert_redirected_to meal_plan_url(@meal_plan)
+    assert_equal "Weekly meal plan synced to Google Calendar! 📅", flash[:notice]
+  end
+
+  test "should alert when syncing calendar but not enabled" do
+    @user.household.update!(google_calendar_enabled: false)
+
+    post sync_calendar_meal_plan_url(@meal_plan)
+    assert_redirected_to meal_plan_url(@meal_plan)
+    assert_equal "Google Calendar sync is not configured yet. Set it up in the Admin Control Center.", flash[:alert]
+  end
 end

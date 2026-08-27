@@ -30,7 +30,8 @@ Rails.application.routes.draw do
     end
     resource :account, only: %i[edit update]
     resource :household, only: %i[edit update] do
-      post :regenerate_calendar_token
+      post :test_google_calendar
+      post :sync_google_calendar
     end
   end
 
@@ -60,6 +61,7 @@ Rails.application.routes.draw do
     resources :meal_plan_slots, only: %i[create update destroy]
     member do
       get :print
+      post :sync_calendar
     end
   end
   resources :meal_plan_slots, only: %i[create update destroy]
@@ -67,9 +69,6 @@ Rails.application.routes.draw do
   # Grocery List (current active or specific plan)
   get "grocery_list" => "grocery_lists#show", as: :grocery_list
   get "grocery_list/:meal_plan_id" => "grocery_lists#show", as: :plan_grocery_list
-
-  # Feeds
-  get "feeds/:token/meals.ics" => "feeds#calendar", as: :calendar_feed
 
   # Dashboard & Landing
   root "home#index"

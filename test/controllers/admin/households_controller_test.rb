@@ -38,14 +38,51 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "The Spencer Gourmet Kitchen", @household.reload.name
   end
 
-  test "should regenerate calendar feed token" do
+  test "should update google calendar settings and meal times" do
     sign_in_as(@user)
     post set_profile_url(@admin, params: { pin: "1234" })
 
-    old_token = @household.calendar_token
-    post regenerate_calendar_token_admin_household_url
+    patch admin_household_url, params: {
+      household: {
+        google_calendar_id: "family-meals@group.calendar.google.com",
+        google_calendar_enabled: "1",
+        breakfast_time: "07:45",
+        lunch_time: "12:15",
+        dinner_time: "18:30"
+      }
+    }
 
     assert_redirected_to admin_root_url
-    assert_not_equal old_token, @household.reload.calendar_token
+    @household.reload
+    assert_equal "family-meals@group.calendar.google.com", @household.google_calendar_id
+    assert_equal true, @household.google_calendar_enabled
+    assert_equal "07:45", @household.breakfast_time
+    assert_equal "12:15", @household.lunch_time
+    assert_equal "18:30", @household.dinner_time
+  end
+
+  test "should test google calendar connection" do
+    sign_in_as(@user)
+    post set_profile_url(@admin, params: { pin: "1234" })
+
+    post test_google_calendar_admin_household_url, params: {
+      google_calendar_id: "family-meals@group.calendar.google.com"
+    }
+
+    assert_redirected_to edit_admin_household_url
+  end
+
+  test "should sync google calendar full week" do
+    sign_in_as(@user)
+    post set_profile_url(@admin, params: { pin: "1234" })
+
+    post sync_google_calendar_admin_household_url
+    assert_redirected_to edit_admin_household_url
+    assert_equal "Full meal plan sync to Google Calendar completed! 📅", flash[:notice]
+
+    post sync_google_calendar_admin_household_url, as: :json
+    assert_response :success
+    json = JSON.parse(response.body)
+    assert_equal true, json["success"]
   end
 end

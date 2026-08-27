@@ -1,0 +1,38 @@
+# 📖 FamilyPlates Wiki & Documentation
+
+Welcome to the **FamilyPlates** documentation repository. FamilyPlates is a self-hosted family meal planning, recipe curation, fridge calendar printing, and real-time Google Calendar synchronization application.
+
+---
+
+## 🗂️ Documentation Index
+
+| Guide | Description |
+| :--- | :--- |
+| [🚀 Getting Started](./getting-started.md) | Initial setup, environment requirements, database setup, and local run guide. |
+| [📅 Google Calendar Sync](./google-calendar-integration.md) | Step-by-step setup for real-time meal sync via Google Cloud Service Accounts. |
+| [🛡️ Admin & User Preferences](./admin-and-user-preferences.md) | Admin Control Center, 4-digit PIN security, member customization (colors & icons). |
+| [🗓️ Weekly & Monthly Meal Planning](./weekly-meal-planning.md) | Interactive weekly/monthly planner, cook assignments, cravings, and fridge printouts. |
+| [🍳 Recipes & Pantry Management](./recipes-and-pantry.md) | Recipe scraper, ingredient aisle categorization, and the Pantry Shield grocery list. |
+| [🏗️ System Architecture](./architecture.md) | Technical stack, data models, Solid Queue workers, and security model. |
+
+---
+
+## 🌟 Core System Highlights
+
+```mermaid
+graph TD
+    A[Primary User / Household] --> B[Roster: Organizers & Family Members]
+    B --> C[Recipe Collection & URL Importer]
+    B --> D[Weekly / Monthly Meal Planner]
+    C --> D
+    D --> E[1-Page Fridge Sheet Printout]
+    D --> F[Aisle-Organized Grocery List]
+    D --> G[Real-Time Google Calendar Sync]
+    B --> H[User Preferences: Icons & Colors]
+    B --> I[Admin Control Center: PINs & Settings]
+```
+
+* **Single Household Focus:** Tailored for a single family with multiple shared cook profiles.
+* **Instant Google Calendar Sync:** Direct write sync to shared family Google Calendars via Service Account with zero OAuth popup friction.
+* **Printable Fridge Calendars:** Optimized landscape 1-page weekly & monthly refrigerator prints.
+* **Smart Grocery Checklist:** Aisle-sorted ingredient aggregation with automatic Pantry Shield staple deduplication.

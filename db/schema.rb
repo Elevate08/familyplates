@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_213338) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_232223) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -52,11 +52,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_213338) do
   end
 
   create_table "households", force: :cascade do |t|
-    t.string "calendar_token", null: false
+    t.string "breakfast_time", default: "08:00", null: false
     t.datetime "created_at", null: false
+    t.string "dinner_time", default: "18:00", null: false
+    t.boolean "google_calendar_enabled", default: false, null: false
+    t.string "google_calendar_id"
+    t.text "google_service_account_json"
+    t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
-    t.index ["calendar_token"], name: "index_households_on_calendar_token", unique: true
   end
 
   create_table "meal_plan_slots", force: :cascade do |t|
@@ -64,12 +68,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_213338) do
     t.string "custom_title"
     t.date "date", null: false
     t.integer "family_member_id"
+    t.string "google_event_id"
     t.integer "meal_plan_id", null: false
     t.string "meal_type", default: "dinner", null: false
     t.text "notes"
     t.integer "recipe_id"
     t.datetime "updated_at", null: false
     t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
+    t.index ["google_event_id"], name: "index_meal_plan_slots_on_google_event_id"
     t.index ["meal_plan_id", "date", "meal_type"], name: "index_meal_plan_slots_on_meal_plan_id_and_date_and_meal_type"
     t.index ["meal_plan_id"], name: "index_meal_plan_slots_on_meal_plan_id"
     t.index ["recipe_id"], name: "index_meal_plan_slots_on_recipe_id"

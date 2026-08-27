@@ -59,30 +59,55 @@
         </button>
 
         <div data-dropdown-target="menu" 
+             data-controller="calendar-sync"
+             data-calendar-sync-sync-url-value="<%= sync_calendar_meal_plan_path(@meal_plan) %>"
              class="hidden absolute right-0 mt-2 w-80 rounded-3xl bg-white shadow-2xl border border-slate-200 p-5 z-50 animate-in fade-in zoom-in-95 duration-100">
           <div class="flex items-center gap-2.5 mb-3">
             <div class="w-8 h-8 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
               <%= icon_tag("calendar", css_class: "w-4 h-4") %>
             </div>
             <div>
-              <h4 class="text-sm font-bold text-slate-900">Live Calendar Feed</h4>
-              <p class="text-[11px] text-slate-500">Auto-syncs meals to your phones</p>
+              <h4 class="text-sm font-bold text-slate-900">Google Calendar Sync</h4>
+              <p class="text-[11px] text-slate-500">Sync meals to your existing calendar</p>
             </div>
           </div>
 
-          <p class="text-xs text-slate-600 mb-3 leading-relaxed">
-            Subscribe in Google Calendar, Apple Calendar, or Outlook to see what's planned directly on your calendar.
-          </p>
+          <% if current_household.google_calendar_enabled? && current_household.google_calendar_id.present? %>
+            <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs mb-3 space-y-2">
+              <div class="flex items-center gap-1.5 font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Direct Sync Active</span>
+              </div>
+              <p class="text-[11px] text-emerald-800 font-mono truncate">
+                <%= current_household.google_calendar_id %>
+              </p>
+            </div>
 
-          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 mb-3">
-            <input type="text" readonly value="<%= calendar_feed_url(current_household.calendar_token) %>" 
-                   class="w-full text-[11px] font-mono bg-transparent text-slate-700 select-all border-none focus:outline-none focus:ring-0">
-          </div>
+            <button type="button"
+                    data-calendar-sync-target="syncButton"
+                    data-action="click->calendar-sync#syncPlan"
+                    class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer">
+              <span>🔄 Sync This Week Now</span>
+            </button>
 
-          <a href="webcal://<%= request.host_with_port %>/feeds/<%= current_household.calendar_token %>/meals.ics" 
-             class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-colors">
-            <span>1-Click Subscribe (webcal://)</span>
-          </a>
+            <!-- Animated Progress Bar for Sync -->
+            <div data-calendar-sync-target="syncContainer" class="hidden mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 animate-in fade-in">
+              <div class="text-[11px] font-semibold text-slate-700" data-calendar-sync-target="progressText">
+                Syncing meal slots to Google Calendar...
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div data-calendar-sync-target="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          <% else %>
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+              <p class="font-bold text-slate-700">Direct sync is not enabled</p>
+              <p class="text-[11px] text-slate-500">Share your existing Google Calendar with FamilyPlates in Admin Settings to enable instant sync.</p>
+              <% if current_family_member&.admin? %>
+                <%= link_to "⚙️ Configure in Admin Settings", edit_admin_household_path, class: "text-[11px] font-bold text-primary-600 hover:underline block pt-1" %>
+              <% end %>
+            </div>
+          <% end %>
         </div>
       </div>
 

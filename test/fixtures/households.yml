@@ -1,7 +1,7 @@
 one:
   name: "Spencer Family"
-  calendar_token: "token_abc123_one"
+  google_calendar_enabled: false
 
 two:
   name: "Miller Family"
-  calendar_token: "token_abc123_two"
+  google_calendar_enabled: false

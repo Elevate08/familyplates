@@ -1,6 +1,4 @@
 class Household < ApplicationRecord
-  has_secure_token :calendar_token
-
   has_many :users, dependent: :destroy
   has_many :family_members, dependent: :destroy
   has_many :pantry_items, dependent: :destroy

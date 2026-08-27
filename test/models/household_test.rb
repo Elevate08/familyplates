@@ -1,10 +1,12 @@
 require "test_helper"
 
 class HouseholdTest < ActiveSupport::TestCase
-  test "generates calendar_token on creation" do
+  test "initializes with default meal schedule times" do
     household = Household.create!(name: "Test Family")
-    assert_not_nil household.calendar_token
-    assert_predicate household.calendar_token, :present?
+    assert_equal "08:00", household.breakfast_time
+    assert_equal "12:30", household.lunch_time
+    assert_equal "18:00", household.dinner_time
+    assert_equal false, household.google_calendar_enabled
   end
 
   test "validates name presence" do
