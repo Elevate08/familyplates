@@ -13,7 +13,7 @@ class IcalGenerator
     lines = []
     lines << "BEGIN:VCALENDAR"
     lines << "VERSION:2.0"
-    lines << "PRODID:-//MealHub//Family Meal Planner//EN"
+    lines << "PRODID:-//FamilyPlates//Family Meal Planner//EN"
     lines << "CALSCALE:GREGORIAN"
     lines << "METHOD:PUBLISH"
     lines << "X-WR-CALNAME:#{escape_ical_text(household.name)} - Meal Plan"

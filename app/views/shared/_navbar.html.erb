@@ -10,7 +10,7 @@
             <%= icon_tag("chef-hat", css_class: "w-6 h-6") %>
           </div>
           <div>
-            <span class="font-black text-xl tracking-tight text-slate-900">Table<span style="color: <%= current_family_member&.avatar_color || '#ea580c' %>">Craft</span></span>
+            <span class="font-black text-xl tracking-tight text-slate-900">Family<span style="color: <%= current_family_member&.avatar_color || '#ea580c' %>">Plates</span></span>
             <% if authenticated? && current_household %>
               <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                 <%= current_household.name %>

@@ -1,4 +1,4 @@
-puts "🌱 Seeding TableCraft demo kitchen..."
+puts "🌱 Seeding FamilyPlates demo kitchen..."
 
 household = Household.find_or_create_by!(name: "The Spencer Family")
 

@@ -25,7 +25,7 @@ class RegistrationsController < ApplicationController
       )
 
       start_new_session_for(@user)
-      redirect_to onboarding_recipes_path, notice: "Welcome to MealHub! Let's get your family kitchen set up."
+      redirect_to onboarding_recipes_path, notice: "Welcome to FamilyPlates! Let's get your family kitchen set up."
     end
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence

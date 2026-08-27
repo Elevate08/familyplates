@@ -35,7 +35,7 @@ class RecipeScraper
 
   def fetch_html
     URI.parse(url).open(
-      "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 MealHub/1.0",
+      "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0",
       read_timeout: 10
     ).read
   rescue StandardError => e

@@ -5,7 +5,7 @@ export default class extends Controller {
   static values = { planId: String }
 
   connect() {
-    this.storageKey = `tablecraft_checklist_${this.planIdValue || "current"}`
+    this.storageKey = `familyplates_checklist_${this.planIdValue || "current"}`
     this.restoreCheckedState()
     this.updateProgress()
   }
