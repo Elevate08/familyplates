@@ -31,6 +31,11 @@ class FamilyMembersController < ApplicationController
       return
     end
 
+    if @family_member.admin? && current_household.family_members.where(role: "admin").count <= 1
+      redirect_to family_members_path, alert: "Your household must have at least one organizer/admin."
+      return
+    end
+
     name = @family_member.name
     was_active = (cookies.signed[:active_family_member_id] == @family_member.id)
     @family_member.destroy
@@ -45,7 +50,7 @@ class FamilyMembersController < ApplicationController
 
   def switch
     if @family_member.requires_pin? && !@family_member.verify_pin(params[:pin])
-      redirect_back fallback_location: root_path, alert: "Incorrect PIN for #{@family_member.name}."
+      redirect_to select_profile_path(pin_member_id: @family_member.id), alert: "Please enter the 4-digit PIN for #{@family_member.name}."
       return
     end
 

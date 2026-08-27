@@ -54,9 +54,13 @@
       </div>
     <% end %>
 
-    <!-- Manage Profiles Link -->
-    <div class="w-full text-center mt-6">
-      <%= link_to "Manage Family Profiles →", family_members_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors" %>
+    <!-- Profile Settings & Admin Links -->
+    <div class="w-full text-center mt-6 flex items-center justify-center gap-4">
+      <%= link_to "🎨 My Preferences", preferences_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors" %>
+      <% if current_family_member&.admin? %>
+        <span class="text-slate-300">&bull;</span>
+        <%= link_to "⚙️ Admin Control Center", admin_root_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors" %>
+      <% end %>
     </div>
   </div>
 
@@ -108,4 +112,10 @@
   function closePinModal() {
     document.getElementById('pin-modal').classList.add('hidden');
   }
+
+  <% if params[:pin_member_id].present? && (pin_member = @family_members.find_by(id: params[:pin_member_id])) %>
+    document.addEventListener("DOMContentLoaded", function() {
+      openPinModal('<%= pin_member.id %>', '<%= j pin_member.name %>');
+    });
+  <% end %>
 </script>

@@ -21,7 +21,8 @@ class FamilyMember < ApplicationRecord
   AVATAR_ICONS = %w[chef-hat utensils heart star smile flame sparkles award].freeze
 
   validates :name, presence: true
-  validates :pin, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, allow_blank: true
+  validates :pin, presence: true, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, if: :admin?
+  before_validation :clear_pin_unless_admin
 
   def initial
     name.to_s.strip[0]&.upcase || "?"
@@ -32,10 +33,16 @@ class FamilyMember < ApplicationRecord
   end
 
   def requires_pin?
-    admin? && pin.present?
+    admin?
   end
 
   def verify_pin(input)
     pin.to_s == input.to_s.strip
+  end
+
+  private
+
+  def clear_pin_unless_admin
+    self.pin = nil unless admin?
   end
 end

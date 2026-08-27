@@ -4,12 +4,14 @@ module Authentication
   included do
     before_action :require_authentication
     before_action :set_current_family_member
+    before_action :require_active_family_member
     helper_method :authenticated?, :current_user, :current_household, :current_family_member
   end
 
   class_methods do
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
+      skip_before_action :require_active_family_member, **options
     end
   end
 
@@ -42,8 +44,20 @@ module Authentication
       return unless authenticated? && current_household
 
       member_id = cookies.signed[:active_family_member_id]
-      Current.family_member = current_household.family_members.find_by(id: member_id) if member_id.present?
-      Current.family_member ||= current_household.family_members.first
+      if member_id.present?
+        Current.family_member = current_household.family_members.find_by(id: member_id)
+      else
+        Current.family_member = nil
+      end
+    end
+
+    def require_active_family_member
+      return unless authenticated?
+      return if controller_name.in?(%w[profiles sessions registrations]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
+
+      if Current.family_member.nil?
+        redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
+      end
     end
 
     def find_session_by_cookie

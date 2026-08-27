@@ -4,6 +4,7 @@ one:
   avatar_color: "#3B82F6"
   avatar_icon: "chef-hat"
   role: "admin"
+  pin: "1234"
 
 two:
   household: one

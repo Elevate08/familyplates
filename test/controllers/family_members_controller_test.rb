@@ -36,4 +36,17 @@ class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to family_members_url
   end
+
+  test "should require PIN when switching to admin member" do
+    admin = family_members(:one)
+    # Attempt switch without PIN
+    post switch_family_member_url(admin)
+    assert_redirected_to select_profile_url(pin_member_id: admin.id)
+    assert_equal "Please enter the 4-digit PIN for #{admin.name}.", flash[:alert]
+
+    # Switch with valid PIN
+    post switch_family_member_url(admin), params: { pin: "1234" }
+    assert_response :redirect
+    assert cookies[:active_family_member_id]
+  end
 end

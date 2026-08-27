@@ -16,6 +16,24 @@ Rails.application.routes.draw do
     end
   end
 
+  # User Preferences (for active family member)
+  resource :preferences, only: %i[edit update]
+  get "preferences" => "preferences#edit"
+
+  # Admin Control Center (parents/organizers)
+  namespace :admin do
+    root to: "dashboard#index"
+    resources :family_members, only: %i[index create edit update destroy] do
+      member do
+        patch :reset_pin
+      end
+    end
+    resource :account, only: %i[edit update]
+    resource :household, only: %i[edit update] do
+      post :regenerate_calendar_token
+    end
+  end
+
   # Onboarding Wizard
   namespace :onboarding do
     get :recipes

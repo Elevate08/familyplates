@@ -10,7 +10,7 @@ class ThemeTest < ActionDispatch::IntegrationTest
   end
 
   test "theme color adapts to active family member" do
-    post switch_family_member_url(@member_one)
+    post switch_family_member_url(@member_one), params: { pin: "1234" }
     get recipes_url
     assert_response :success
     assert_includes response.body, "--user-accent: #{@member_one.avatar_color}"
