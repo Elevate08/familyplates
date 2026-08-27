@@ -1,0 +1,84 @@
+<% if authenticated? %>
+  <div id="nav-pin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen overflow-y-auto">
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 my-auto">
+      <div class="text-center mb-5">
+        <div id="nav-pin-avatar" class="relative w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold shadow-md mx-auto mb-3 transition-colors"
+             style="background-color: #3B82F6;">
+          <span id="nav-pin-avatar-initial">?</span>
+          <span class="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm border-2 border-white">🔒</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-slate-900" id="nav-pin-modal-title">Enter Admin PIN</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Enter the 4-digit security PIN for this profile</p>
+      </div>
+
+      <form id="nav-pin-form" method="post" action="">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="mb-5">
+          <input type="password" name="pin" id="nav-pin-input" maxlength="4" autofocus pattern="[0-9]*" inputmode="numeric" placeholder="••••" required
+                 class="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 rounded-xl border border-slate-300 focus:outline-none transition-all">
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="closeNavPinModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" id="nav-pin-submit" class="w-1/2 py-2.5 rounded-xl text-white text-xs font-bold shadow-md transition-all hover:brightness-110 cursor-pointer"
+                  style="background-color: #3B82F6;">
+            Unlock Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openNavPinModal(memberId, memberName, memberColor, memberInitial) {
+      document.querySelectorAll('[data-dropdown-target="menu"]').forEach(el => el.classList.add('hidden'));
+
+      const modal = document.getElementById('nav-pin-modal');
+      const form = document.getElementById('nav-pin-form');
+      const title = document.getElementById('nav-pin-modal-title');
+      const input = document.getElementById('nav-pin-input');
+      const avatar = document.getElementById('nav-pin-avatar');
+      const avatarInitial = document.getElementById('nav-pin-avatar-initial');
+      const submitBtn = document.getElementById('nav-pin-submit');
+
+      const color = memberColor || '#3B82F6';
+      const initial = memberInitial || (memberName ? memberName.trim()[0].toUpperCase() : '?');
+
+      if (form && modal && title && input) {
+        form.action = '/family_members/' + memberId + '/switch';
+        title.textContent = 'Enter PIN for ' + memberName;
+        
+        if (avatar) avatar.style.backgroundColor = color;
+        if (avatarInitial) avatarInitial.textContent = initial;
+        if (submitBtn) {
+          submitBtn.style.backgroundColor = color;
+          submitBtn.style.boxShadow = '0 4px 14px ' + color + '40';
+        }
+        if (input) {
+          input.style.borderColor = color;
+          input.onfocus = () => { input.style.boxShadow = '0 0 0 3px ' + color + '33'; };
+          input.onblur = () => { input.style.boxShadow = 'none'; };
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
+    }
+
+    function closeNavPinModal() {
+      const modal = document.getElementById('nav-pin-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeNavPinModal();
+    });
+  </script>
+<% end %>

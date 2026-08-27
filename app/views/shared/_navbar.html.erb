@@ -47,57 +47,8 @@
       <!-- Right Nav / User Controls -->
       <div class="flex items-center gap-3">
         <% if authenticated? %>
-          <!-- 1-Tap Family Member Switcher -->
+          <!-- Single Active Profile & Kitchen Menu -->
           <%= render "family_members/switcher" %>
-
-          <!-- User Menu Dropdown -->
-          <div class="relative" data-controller="dropdown">
-            <button type="button" 
-                    data-action="click->dropdown#toggle click@window->dropdown#hide"
-                    class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer">
-              <%= icon_tag("user", css_class: "w-5 h-5") %>
-            </button>
-            <div data-dropdown-target="menu" 
-                 class="hidden absolute right-0 mt-2 w-56 rounded-3xl bg-white shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div class="px-4 py-2 border-b border-slate-100">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Kitchen Cook</p>
-                <div class="flex items-center gap-2 mt-0.5">
-                  <span class="w-2.5 h-2.5 rounded-full" style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>"></span>
-                  <p class="text-xs font-bold text-slate-800 truncate"><%= current_family_member&.name || "Default" %></p>
-                  <% if current_family_member&.admin? %>
-                    <span class="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.2 rounded-md">Admin</span>
-                  <% end %>
-                </div>
-                <p class="text-[11px] text-slate-400 truncate mt-0.5"><%= current_user.email_address %></p>
-              </div>
-
-              <%= link_to preferences_path, class: "flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
-                <%= icon_tag("sparkles", css_class: "w-4 h-4 text-primary-500") %>
-                <span>My Preferences</span>
-              <% end %>
-
-              <% if current_family_member&.admin? %>
-                <%= link_to admin_root_path, class: "flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
-                  <%= icon_tag("cog", css_class: "w-4 h-4 text-slate-500") %>
-                  <span>Admin Control Center</span>
-                <% end %>
-              <% end %>
-
-              <div class="border-t border-slate-100 my-1"></div>
-
-              <%= link_to select_profile_path, class: "flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
-                <%= icon_tag("users", css_class: "w-4 h-4 text-slate-400") %>
-                <span>Switch Cook Profile</span>
-              <% end %>
-
-              <div class="border-t border-slate-100 my-1"></div>
-
-              <%= button_to session_path, method: :delete, class: "w-full text-left flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" do %>
-                <%= icon_tag("trash", css_class: "w-4 h-4 text-rose-500") %>
-                <span>Sign Out</span>
-              <% end %>
-            </div>
-          </div>
         <% else %>
           <%= link_to "Sign In", new_session_path, class: "text-sm font-semibold text-slate-700 hover:text-slate-900 px-4 py-2 rounded-xl transition-colors" %>
           <%= link_to "Start Your Kitchen", new_registration_path, class: "text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-xl shadow-md shadow-primary-500/20 transition-all hover:scale-105" %>
