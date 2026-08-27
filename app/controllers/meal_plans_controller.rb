@@ -22,9 +22,10 @@ class MealPlansController < ApplicationController
 
     if @view == "month"
       @month_date = (params[:month].present? ? Date.parse(params[:month]) : @week_start).beginning_of_month
-      @month_start = @month_date.beginning_of_week
-      @month_end = @month_date.end_of_month.end_of_week
+      @month_start = @month_date.beginning_of_month
+      @month_end = @month_date.end_of_month
       @month_days = (@month_start..@month_end).to_a
+      @leading_blank_days = @month_start.cwday - 1
       @prev_month = @month_date.prev_month
       @next_month = @month_date.next_month
 
@@ -43,9 +44,10 @@ class MealPlansController < ApplicationController
 
     if @view == "month"
       @month_date = (params[:month].present? ? Date.parse(params[:month]) : @week_start).beginning_of_month
-      @month_start = @month_date.beginning_of_week
-      @month_end = @month_date.end_of_month.end_of_week
+      @month_start = @month_date.beginning_of_month
+      @month_end = @month_date.end_of_month
       @month_days = (@month_start..@month_end).to_a
+      @leading_blank_days = @month_start.cwday - 1
 
       @month_slots_by_date = MealPlanSlot.joins(:meal_plan)
                                          .where(meal_plans: { household_id: current_household.id })

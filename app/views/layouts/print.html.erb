@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="h-full bg-white text-slate-900 antialiased">
+<html class="h-full bg-slate-100 text-slate-900 antialiased">
   <head>
     <title><%= content_for(:title) || "FamilyPlates | Fridge Calendar" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,30 +10,39 @@
     
     <style>
       @page {
-        size: letter portrait;
-        margin: 0.4in;
+        size: letter landscape;
+        margin: 0.3in;
       }
       @media print {
-        body {
+        html, body {
+          background: white !important;
+          color: #0f172a !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          background: white !important;
-          color: black !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
         }
         .no-print {
           display: none !important;
         }
         .page-container {
-          page-break-inside: avoid;
-          height: 100vh;
-          max-height: 10in;
+          max-width: 100% !important;
+          width: 100% !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          page-break-inside: avoid !important;
+          page-break-after: avoid !important;
         }
       }
     </style>
   </head>
 
-  <body class="bg-white p-4 sm:p-6 font-sans">
-    <div class="page-container max-w-4xl mx-auto flex flex-col justify-between">
+  <body class="bg-slate-100 p-4 sm:p-6 font-sans">
+    <div class="page-container max-w-6xl w-full mx-auto flex flex-col justify-between">
       <%= yield %>
     </div>
   </body>

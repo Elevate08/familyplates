@@ -113,17 +113,20 @@
 
       <!-- Month Grid -->
       <div class="grid grid-cols-7 gap-2">
+        <% @leading_blank_days.to_i.times do %>
+          <div class="min-h-[125px] p-2.5 rounded-2xl border border-dashed border-slate-100 bg-slate-50/20"></div>
+        <% end %>
+
         <% @month_days.each do |day| %>
-          <% in_current_month = (day.month == @month_date.month) %>
           <% is_today = (day == Date.current) %>
           <% b_slot = @month_slots_by_date[[day, "breakfast"]]&.first %>
           <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
           <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
 
-          <%= link_to meal_plans_path(week: day.beginning_of_week), class: "min-h-[125px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all group cursor-pointer #{is_today ? 'border-primary-400 bg-primary-50/20 ring-2 ring-primary-200 shadow-xs hover:border-primary-500' : in_current_month ? 'border-slate-200/70 bg-white hover:border-primary-400 hover:shadow-md hover:scale-[1.02]' : 'border-slate-100 bg-slate-50/40 text-slate-300 hover:bg-white hover:border-slate-300'}" do %>
+          <%= link_to meal_plans_path(week: day.beginning_of_week), class: "min-h-[125px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all group cursor-pointer #{is_today ? 'border-primary-400 bg-primary-50/20 ring-2 ring-primary-200 shadow-xs hover:border-primary-500' : 'border-slate-200/70 bg-white hover:border-primary-400 hover:shadow-md hover:scale-[1.02]'}" do %>
             <!-- Day Number -->
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold <%= is_today ? 'text-primary-600 font-black' : in_current_month ? 'text-slate-700 group-hover:text-primary-600' : 'text-slate-300' %>">
+              <span class="text-xs font-extrabold <%= is_today ? 'text-primary-600 font-black' : 'text-slate-700 group-hover:text-primary-600' %>">
                 <%= day.strftime("%-d") %>
               </span>
               <% if is_today %>
@@ -134,22 +137,52 @@
             <!-- Scheduled Meals Mini Cards -->
             <div class="space-y-1 my-1 flex-1">
               <% if b_slot %>
-                <div class="p-1 rounded-lg bg-amber-50 border border-amber-200/80 text-[10px] leading-tight">
-                  <span class="font-bold text-amber-900 block truncate">☀️ <%= b_slot.display_title %></span>
+                <div class="p-1.5 rounded-lg bg-white border border-slate-200 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-slate-500 uppercase tracking-wider text-center">Breakfast</div>
+                  <div class="font-bold text-slate-900 break-words mt-0.5"><%= b_slot.display_title %></div>
+                  <% if b_slot.family_member || (b_slot.recipe && b_slot.recipe.total_time.to_i > 0) %>
+                    <div class="mt-1 text-[8.5px] text-slate-600 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100">
+                      <% if b_slot.family_member %>
+                        <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong><%= b_slot.family_member.name %></strong></span>
+                      <% end %>
+                      <% if b_slot.recipe && b_slot.recipe.total_time.to_i > 0 %>
+                        <span><span class="text-amber-700 font-extrabold">Time:</span> <strong><%= b_slot.recipe.total_time %>m</strong></span>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
 
               <% if l_slot %>
-                <div class="p-1 rounded-lg bg-teal-50 border border-teal-200/80 text-[10px] leading-tight">
-                  <span class="font-bold text-teal-900 block truncate">🥪 <%= l_slot.display_title %></span>
+                <div class="p-1.5 rounded-lg bg-white border border-slate-200 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-slate-500 uppercase tracking-wider text-center">Lunch</div>
+                  <div class="font-bold text-slate-900 break-words mt-0.5"><%= l_slot.display_title %></div>
+                  <% if l_slot.family_member || (l_slot.recipe && l_slot.recipe.total_time.to_i > 0) %>
+                    <div class="mt-1 text-[8.5px] text-slate-600 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100">
+                      <% if l_slot.family_member %>
+                        <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong><%= l_slot.family_member.name %></strong></span>
+                      <% end %>
+                      <% if l_slot.recipe && l_slot.recipe.total_time.to_i > 0 %>
+                        <span><span class="text-amber-700 font-extrabold">Time:</span> <strong><%= l_slot.recipe.total_time %>m</strong></span>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
 
               <% if d_slot %>
-                <div class="p-1 rounded-lg bg-primary-50 border border-primary-200/80 text-[10px] leading-tight">
-                  <span class="font-extrabold text-primary-900 block truncate">🍽️ <%= d_slot.display_title %></span>
-                  <% if d_slot.family_member %>
-                    <span class="text-[9px] text-primary-700">👨‍🍳 <%= d_slot.family_member.name %></span>
+                <div class="p-1.5 rounded-lg bg-white border border-slate-200 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-slate-500 uppercase tracking-wider text-center">Dinner</div>
+                  <div class="font-extrabold text-slate-900 break-words mt-0.5"><%= d_slot.display_title %></div>
+                  <% if d_slot.family_member || (d_slot.recipe && d_slot.recipe.total_time.to_i > 0) %>
+                    <div class="mt-1 text-[8.5px] text-slate-600 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100">
+                      <% if d_slot.family_member %>
+                        <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong><%= d_slot.family_member.name %></strong></span>
+                      <% end %>
+                      <% if d_slot.recipe && d_slot.recipe.total_time.to_i > 0 %>
+                        <span><span class="text-amber-700 font-extrabold">Time:</span> <strong><%= d_slot.recipe.total_time %>m</strong></span>
+                      <% end %>
+                    </div>
                   <% end %>
                 </div>
               <% end %>
