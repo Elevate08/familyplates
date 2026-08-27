@@ -1,0 +1,53 @@
+<div class="max-w-4xl mx-auto py-8">
+  <!-- Progress Bar -->
+  <div class="mb-10 text-center">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-bold uppercase tracking-wider mb-3">
+      Step 1 of 2: Starter Recipes
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Populate Your Recipe Vault</h1>
+    <p class="mt-2 text-slate-600 text-base max-w-xl mx-auto">
+      Select your family's favorite dishes below to jump-start your recipe collection. You can customize or add your own anytime!
+    </p>
+  </div>
+
+  <%= form_with url: onboarding_save_recipes_path, method: :post do |f| %>
+    <!-- Selection Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+      <% @starter_recipes.each do |recipe| %>
+        <label class="group relative flex flex-col p-5 rounded-3xl bg-white border-2 border-slate-200 hover:border-orange-300 has-checked:border-orange-500 has-checked:bg-orange-50/20 shadow-xs cursor-pointer transition-all">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex-1">
+              <h3 class="font-bold text-slate-900 text-base group-hover:text-orange-600 transition-colors">
+                <%= recipe["title"] %>
+              </h3>
+              <div class="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                <span>⏱️ <%= (recipe["prep_time"] || 0) + (recipe["cook_time"] || 0) %> mins</span>
+                <span>🍽️ Serves <%= recipe["servings"] || 4 %></span>
+              </div>
+            </div>
+            <%= check_box_tag "recipe_ids[]", recipe["id"], true, 
+                  class: "w-5 h-5 rounded-md text-orange-600 focus:ring-orange-500 border-slate-300 transition-colors" %>
+          </div>
+
+          <p class="text-xs text-slate-600 line-clamp-2 mt-1">
+            <%= recipe["description"] %>
+          </p>
+
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            <% Array(recipe["tags"]).each do |tag| %>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                <%= tag %>
+              </span>
+            <% end %>
+          </div>
+        </label>
+      <% end %>
+    </div>
+
+    <!-- Actions -->
+    <div class="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl max-w-2xl mx-auto">
+      <span class="text-xs font-medium text-slate-500">Uncheck any recipes you don't cook.</span>
+      <%= f.submit "Next: Pantry Staples →", class: "py-3 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md shadow-orange-500/20 cursor-pointer transition-all hover:scale-105" %>
+    </div>
+  <% end %>
+</div>

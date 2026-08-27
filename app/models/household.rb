@@ -1,0 +1,15 @@
+class Household < ApplicationRecord
+  has_secure_token :calendar_token
+
+  has_many :users, dependent: :destroy
+  has_many :family_members, dependent: :destroy
+  has_many :pantry_items, dependent: :destroy
+  has_many :recipes, dependent: :destroy
+  has_many :meal_plans, dependent: :destroy
+
+  validates :name, presence: true
+
+  def current_meal_plan(week_date = Date.current.beginning_of_week)
+    meal_plans.find_or_create_by!(week_start_date: week_date)
+  end
+end

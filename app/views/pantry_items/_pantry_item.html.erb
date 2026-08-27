@@ -1,0 +1,24 @@
+<div id="<%= dom_id(pantry_item) %>" class="flex items-center justify-between p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-colors">
+  <div class="flex items-center gap-3">
+    <%= button_to toggle_staple_pantry_item_path(pantry_item), method: :patch,
+          class: "flex items-center justify-center w-6 h-6 rounded-lg transition-colors #{pantry_item.is_staple? ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}",
+          title: pantry_item.is_staple? ? "Always in stock (Pantry Shield on)" : "Not marked as always in stock" do %>
+      <%= icon_tag(pantry_item.is_staple? ? "check" : "plus", css_class: "w-3.5 h-3.5") %>
+    <% end %>
+    
+    <span class="text-xl shrink-0"><%= pantry_item.display_emoji %></span>
+    <div>
+      <span class="text-sm font-bold text-slate-800"><%= pantry_item.name %></span>
+      <% if pantry_item.is_staple? %>
+        <span class="inline-block ml-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+          Staple
+        </span>
+      <% end %>
+    </div>
+  </div>
+
+  <%= button_to pantry_item_path(pantry_item), method: :delete, data: { turbo_confirm: "Remove #{pantry_item.name} from pantry?" },
+        class: "p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" do %>
+    <%= icon_tag("trash", css_class: "w-4 h-4") %>
+  <% end %>
+</div>

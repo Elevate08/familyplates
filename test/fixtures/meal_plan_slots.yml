@@ -1,0 +1,17 @@
+one:
+  meal_plan: one
+  date: <%= Date.current.beginning_of_week %>
+  meal_type: "dinner"
+  recipe: one
+  family_member: one
+  custom_title: nil
+  notes: "Taco night"
+
+two:
+  meal_plan: one
+  date: <%= Date.current.beginning_of_week + 1.day %>
+  meal_type: "dinner"
+  recipe: two
+  family_member: two
+  custom_title: nil
+  notes: "Pasta night"

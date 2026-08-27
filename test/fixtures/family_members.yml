@@ -1,0 +1,13 @@
+one:
+  household: one
+  name: "Dad"
+  avatar_color: "#3B82F6"
+  avatar_icon: "chef-hat"
+  role: "admin"
+
+two:
+  household: one
+  name: "Mom"
+  avatar_color: "#EC4899"
+  avatar_icon: "utensils"
+  role: "member"

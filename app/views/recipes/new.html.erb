@@ -1,0 +1,9 @@
+<div class="max-w-4xl mx-auto py-6">
+  <div class="mb-8">
+    <%= link_to "← Back to Recipes", recipes_path, class: "text-xs font-semibold text-slate-500 hover:text-slate-800" %>
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mt-2">Add New Recipe</h1>
+    <p class="text-sm text-slate-500 mt-1">Enter your custom or family heirloom recipe.</p>
+  </div>
+
+  <%= render "form", recipe: @recipe %>
+</div>

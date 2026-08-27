@@ -1,0 +1,9 @@
+one:
+  household: one
+  week_start_date: <%= Date.current.beginning_of_week %>
+  notes: "Week 1 meal plan"
+
+two:
+  household: two
+  week_start_date: <%= Date.current.beginning_of_week %>
+  notes: "Week 2 meal plan"

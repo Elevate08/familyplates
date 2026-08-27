@@ -1,0 +1,57 @@
+Rails.application.routes.draw do
+  # Health check
+  get "up" => "rails/health#show", as: :rails_health_check
+
+  # Authentication & Registration
+  resource :registration, only: %i[new create]
+  resource :session, only: %i[new create destroy]
+  resources :passwords, param: :token
+
+  # Family Member Profiles & Switcher
+  get "select_profile" => "profiles#select", as: :select_profile
+  post "set_profile/:id" => "profiles#set", as: :set_profile
+  resources :family_members, only: %i[index create update destroy] do
+    member do
+      post :switch
+    end
+  end
+
+  # Onboarding Wizard
+  namespace :onboarding do
+    get :recipes
+    post :save_recipes
+    get :pantry
+    post :save_pantry
+  end
+
+  # Pantry Items
+  resources :pantry_items, only: %i[index create update destroy] do
+    member do
+      patch :toggle_staple
+    end
+  end
+
+  # Recipes & Scraper
+  resources :recipes do
+    resources :recipe_requests, only: %i[create destroy]
+  end
+  resources :recipe_imports, only: %i[new create]
+
+  # Weekly Meal Plans & Outputs
+  resources :meal_plans do
+    resources :meal_plan_slots, only: %i[create update destroy]
+    member do
+      get :print
+    end
+  end
+
+  # Grocery List (current active or specific plan)
+  get "grocery_list" => "grocery_lists#show", as: :grocery_list
+  get "grocery_list/:meal_plan_id" => "grocery_lists#show", as: :plan_grocery_list
+
+  # Feeds
+  get "feeds/:token/meals.ics" => "feeds#calendar", as: :calendar_feed
+
+  # Dashboard & Landing
+  root "home#index"
+end

@@ -1,0 +1,19 @@
+one:
+  household: one
+  title: "Taco Tuesday"
+  description: "Delicious beef tacos"
+  prep_time: 10
+  cook_time: 15
+  servings: 4
+  instructions: "Cook meat, warm shells, assemble."
+  tags: "Quick, Mexican"
+
+two:
+  household: one
+  title: "Spaghetti Bolognese"
+  description: "Pasta with rich meat sauce"
+  prep_time: 15
+  cook_time: 30
+  servings: 4
+  instructions: "Boil pasta, simmer sauce, serve."
+  tags: "Italian, Pasta"

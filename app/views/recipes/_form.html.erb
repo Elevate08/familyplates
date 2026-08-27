@@ -1,0 +1,130 @@
+<%= form_with model: recipe, class: "space-y-8" do |f| %>
+  <% if recipe.errors.any? %>
+    <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
+      <p class="font-bold mb-1"><%= pluralize(recipe.errors.count, "error") %> prohibited this recipe from being saved:</p>
+      <ul class="list-disc list-inside text-xs">
+        <% recipe.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Basic Info -->
+  <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
+    <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Recipe Details</h2>
+
+    <div>
+      <%= f.label :title, "Recipe Title", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+      <%= f.text_field :title, placeholder: "e.g. Crispy Honey Garlic Chicken", required: true,
+            class: "w-full px-4 py-3 rounded-xl border border-slate-200 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500" %>
+    </div>
+
+    <div>
+      <%= f.label :description, "Short Description", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+      <%= f.text_area :description, rows: 2, placeholder: "Why your family loves this dish...",
+            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500" %>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <%= f.label :prep_time, "Prep Time (mins)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.number_field :prep_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+      </div>
+      <div>
+        <%= f.label :cook_time, "Cook Time (mins)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.number_field :cook_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+      </div>
+      <div>
+        <%= f.label :servings, "Servings", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.number_field :servings, min: 1, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :image_url, "Recipe Photo URL (optional)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.url_field :image_url, placeholder: "https://images.unsplash.com/... or blog photo URL",
+              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+      </div>
+      <div>
+        <%= f.label :source_url, "Original Web Link (optional)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.url_field :source_url, placeholder: "https://example.com/recipe",
+              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+      </div>
+    </div>
+
+    <!-- Clickable Tag Picker -->
+    <div data-controller="tag-picker" class="space-y-2">
+      <div class="flex items-center justify-between">
+        <%= f.label :tags, "Recipe Tags", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider" %>
+        <span class="text-xs text-slate-400">Click pills below or type custom tags</span>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 pt-1">
+        <% Recipe::POPULAR_TAGS.each do |tag| %>
+          <button type="button" 
+                  data-tag-picker-target="tag"
+                  data-tag-value="<%= tag %>"
+                  data-action="click->tag-picker#toggle"
+                  class="text-xs font-semibold px-2.5 py-1 rounded-full border border-slate-200 bg-slate-100 text-slate-700 hover:border-orange-300 transition-colors cursor-pointer">
+            + <%= tag %>
+          </button>
+        <% end %>
+      </div>
+
+      <%= f.text_field :tags, 
+            data: { "tag-picker-target": "input", action: "input->tag-picker#inputChanged" },
+            placeholder: "Quick (<30m), Mexican, Kid Friendly",
+            class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 mt-2" %>
+    </div>
+  </div>
+
+  <!-- Ingredients Section -->
+  <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h2 class="text-lg font-bold text-slate-900">Ingredients</h2>
+      <span class="text-xs text-slate-400">Include quantity and unit for shopping list consolidation</span>
+    </div>
+
+    <div class="space-y-3">
+      <%= f.fields_for :recipe_ingredients do |ing_f| %>
+        <div class="flex flex-col sm:flex-row items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/60">
+          <div class="flex-1 w-full">
+            <%= ing_f.text_field :raw_text, placeholder: "Full line (e.g. 2 lbs chicken breasts, diced)",
+                  class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+          </div>
+          <div class="w-full sm:w-44">
+            <%= ing_f.text_field :name, placeholder: "Item name (e.g. Chicken)",
+                  class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+          </div>
+          <div class="w-full sm:w-40">
+            <%= ing_f.select :aisle_category, RecipeIngredient::AISLE_CATEGORIES.map { |c| [c, c] }, {},
+                  class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+          </div>
+          <% if ing_f.object.persisted? %>
+            <label class="flex items-center gap-1 text-xs text-rose-500">
+              <%= ing_f.check_box :_destroy %>
+              <span>Delete</span>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Instructions Section -->
+  <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+    <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Cooking Instructions</h2>
+    <div>
+      <%= f.text_area :instructions, rows: 6, placeholder: "1. Heat oil in skillet...\n2. Add garlic and onions...\n3. Simmer for 15 minutes.",
+            class: "w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" %>
+    </div>
+  </div>
+
+  <!-- Submit Buttons -->
+  <div class="flex items-center justify-end gap-3 pt-4">
+    <%= link_to "Cancel", recipes_path, class: "px-5 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900" %>
+    <%= f.submit "Save Recipe to Vault", class: "py-3 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md shadow-orange-500/20 cursor-pointer transition-all hover:scale-105" %>
+  </div>
+<% end %>

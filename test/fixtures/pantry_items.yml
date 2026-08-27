@@ -1,0 +1,11 @@
+one:
+  household: one
+  name: "Olive Oil"
+  aisle_category: "Pantry & Grains"
+  is_staple: true
+
+two:
+  household: one
+  name: "Garlic"
+  aisle_category: "Produce"
+  is_staple: true

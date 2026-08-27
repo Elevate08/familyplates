@@ -1,0 +1,7 @@
+<%= turbo_stream.replace "recipe_#{@recipe.id}_heart" do %>
+  <%= render "recipe_requests/heart_button", recipe: @recipe %>
+<% end %>
+
+<%= turbo_stream.replace "recipe_#{@recipe.id}_show_craving" do %>
+  <%= render "recipe_requests/show_widget", recipe: @recipe %>
+<% end %>

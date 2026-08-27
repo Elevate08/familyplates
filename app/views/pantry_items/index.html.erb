@@ -1,0 +1,64 @@
+<div class="max-w-4xl mx-auto py-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+        <span>Pantry & Staples</span>
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+          <%= @pantry_items.where(is_staple: true).count %> active staples
+        </span>
+      </h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Items marked with a checkmark are excluded from your weekly grocery shopping list automatically ("Pantry Shield").
+      </p>
+    </div>
+  </div>
+
+  <!-- Add Item Form -->
+  <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs mb-8">
+    <%= form_with model: @new_item, url: pantry_items_path, class: "flex flex-col sm:flex-row items-center gap-3" do |f| %>
+      <div class="flex-1 w-full">
+        <%= f.text_field :name, placeholder: "Add ingredient or staple (e.g. Sriracha, Honey, Canned Tomatoes)...", required: true,
+              class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-slate-900" %>
+      </div>
+      <div class="w-full sm:w-56">
+        <%= f.select :aisle_category, PantryItem::CATEGORIES.map { |c| [c, c] }, {},
+              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-slate-700" %>
+      </div>
+      <div class="w-full sm:w-auto flex items-center gap-2">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer">
+          <%= f.check_box :is_staple, checked: true, class: "rounded text-orange-600 focus:ring-orange-500" %>
+          <span>Always Stocked</span>
+        </label>
+        <%= f.submit "Add Item", class: "w-full sm:w-auto py-2.5 px-5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm shadow-xs cursor-pointer transition-colors" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Aisle Categories Display -->
+  <div class="space-y-6">
+    <% PantryItem::CATEGORIES.each do |category| %>
+      <% items = @items_by_category[category] || [] %>
+      <% if items.any? %>
+        <div>
+          <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span><%= category %></span>
+            <span class="text-xs font-normal text-slate-400">(<%= items.count %>)</span>
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <% items.each do |item| %>
+              <%= render "pantry_items/pantry_item", pantry_item: item %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if @pantry_items.empty? %>
+      <div class="text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300 p-8">
+        <p class="text-slate-500 font-medium">No pantry items yet.</p>
+        <p class="text-slate-400 text-xs mt-1">Add items above or configure default staples through onboarding.</p>
+      </div>
+    <% end %>
+  </div>
+</div>

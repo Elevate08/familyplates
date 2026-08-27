@@ -1,0 +1,23 @@
+<% week_start = Date.current.beginning_of_week %>
+<% requested = recipe.requested_by?(current_family_member, week_start) %>
+<% total = recipe.request_count_for_week(week_start) %>
+
+<div id="recipe_<%= recipe.id %>_show_craving" class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 text-center min-w-[180px]">
+  <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Family Craving</div>
+  <% if requested %>
+    <%= button_to recipe_recipe_request_path(recipe, "current"), method: :delete,
+          class: "w-full py-2.5 px-4 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer" do %>
+      <%= icon_tag("heart-solid", css_class: "w-4 h-4") %>
+      <span>Requested!</span>
+    <% end %>
+  <% else %>
+    <%= button_to recipe_recipe_requests_path(recipe), method: :post,
+          class: "w-full py-2.5 px-4 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer" do %>
+      <%= icon_tag("heart", css_class: "w-4 h-4") %>
+      <span>I Crave This</span>
+    <% end %>
+  <% end %>
+  <p class="text-[11px] text-slate-500 mt-2">
+    <%= total %> <%= "vote".pluralize(total) %> this week
+  </p>
+</div>

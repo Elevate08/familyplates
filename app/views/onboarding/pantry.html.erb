@@ -1,0 +1,35 @@
+<div class="max-w-3xl mx-auto py-8">
+  <!-- Progress Bar -->
+  <div class="mb-10 text-center">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider mb-3">
+      Step 2 of 2: Pantry Shield
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Confirm Your Pantry Staples</h1>
+    <p class="mt-2 text-slate-600 text-base max-w-xl mx-auto">
+      These ingredients are checked by default so they won't clutter your grocery store shopping list. You can change these anytime!
+    </p>
+  </div>
+
+  <%= form_with url: onboarding_save_pantry_path, method: :post do |f| %>
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-10">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <% @default_staples.each do |staple| %>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 has-checked:border-amber-400 has-checked:bg-amber-50/30 cursor-pointer transition-colors">
+            <%= check_box_tag "staple_names[]", staple[:name], true, 
+                  class: "w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 transition-colors" %>
+            <div class="flex flex-col">
+              <span class="text-sm font-semibold text-slate-800"><%= staple[:name] %></span>
+              <span class="text-[10px] text-slate-400"><%= staple[:aisle_category] %></span>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-between p-4 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl max-w-2xl mx-auto">
+      <%= link_to "← Back to Recipes", onboarding_recipes_path, class: "text-sm font-semibold text-slate-600 hover:text-slate-900" %>
+      <%= f.submit "Finish & Start Planning 🎉", class: "py-3 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm shadow-md shadow-orange-500/20 cursor-pointer transition-all hover:scale-105" %>
+    </div>
+  <% end %>
+</div>

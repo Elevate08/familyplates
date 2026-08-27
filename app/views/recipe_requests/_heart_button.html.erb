@@ -1,0 +1,21 @@
+<% is_requested = recipe.requested_by?(current_family_member) %>
+<% total_requests = recipe.request_count_for_week %>
+
+<div id="recipe_<%= recipe.id %>_heart" class="flex items-center gap-1">
+  <% if total_requests > 0 %>
+    <span class="text-xs font-bold text-rose-500"><%= total_requests %></span>
+  <% end %>
+  <% if is_requested %>
+    <%= button_to recipe_recipe_request_path(recipe, "current"), method: :delete,
+          class: "p-1.5 rounded-full text-rose-500 hover:bg-rose-50 transition-transform hover:scale-110 cursor-pointer",
+          title: "Requested for this week! Click to remove" do %>
+      <%= icon_tag("heart-solid", css_class: "w-5 h-5") %>
+    <% end %>
+  <% else %>
+    <%= button_to recipe_recipe_requests_path(recipe), method: :post,
+          class: "p-1.5 rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-transform hover:scale-110 cursor-pointer",
+          title: "Vote / Request for this week" do %>
+      <%= icon_tag("heart", css_class: "w-5 h-5") %>
+    <% end %>
+  <% end %>
+</div>

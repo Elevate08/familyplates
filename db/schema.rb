@@ -1,0 +1,144 @@
+# This file is auto-generated from the current state of the database. Instead
+# of editing this file, please use the migrations feature of Active Record to
+# incrementally modify your database, and then regenerate this schema definition.
+#
+# This file is the source Rails uses to define your schema when running `bin/rails
+# db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
+# be faster and is potentially less error prone than running all of your
+# migrations from scratch. Old migrations may fail to apply correctly if those
+# migrations use external dependencies or application code.
+#
+# It's strongly recommended that you check this file into your version control system.
+
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_210002) do
+  create_table "family_members", force: :cascade do |t|
+    t.string "avatar_color", default: "#3B82F6"
+    t.string "avatar_icon", default: "chef-hat"
+    t.datetime "created_at", null: false
+    t.integer "household_id", null: false
+    t.string "name", null: false
+    t.string "pin"
+    t.string "role", default: "member"
+    t.datetime "updated_at", null: false
+    t.index ["household_id"], name: "index_family_members_on_household_id"
+  end
+
+  create_table "households", force: :cascade do |t|
+    t.string "calendar_token", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["calendar_token"], name: "index_households_on_calendar_token", unique: true
+  end
+
+  create_table "meal_plan_slots", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "custom_title"
+    t.date "date", null: false
+    t.integer "family_member_id"
+    t.integer "meal_plan_id", null: false
+    t.string "meal_type", default: "dinner", null: false
+    t.text "notes"
+    t.integer "recipe_id"
+    t.datetime "updated_at", null: false
+    t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
+    t.index ["meal_plan_id", "date", "meal_type"], name: "index_meal_plan_slots_on_meal_plan_id_and_date_and_meal_type"
+    t.index ["meal_plan_id"], name: "index_meal_plan_slots_on_meal_plan_id"
+    t.index ["recipe_id"], name: "index_meal_plan_slots_on_recipe_id"
+  end
+
+  create_table "meal_plans", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "household_id", null: false
+    t.text "notes"
+    t.datetime "updated_at", null: false
+    t.date "week_start_date", null: false
+    t.index ["household_id", "week_start_date"], name: "index_meal_plans_on_household_id_and_week_start_date", unique: true
+    t.index ["household_id"], name: "index_meal_plans_on_household_id"
+  end
+
+  create_table "pantry_items", force: :cascade do |t|
+    t.string "aisle_category", default: "Pantry & Grains", null: false
+    t.datetime "created_at", null: false
+    t.string "emoji"
+    t.integer "household_id", null: false
+    t.boolean "is_staple", default: true, null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "name"], name: "index_pantry_items_on_household_id_and_name", unique: true
+    t.index ["household_id"], name: "index_pantry_items_on_household_id"
+  end
+
+  create_table "recipe_ingredients", force: :cascade do |t|
+    t.string "aisle_category", default: "Other", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.decimal "quantity"
+    t.string "raw_text"
+    t.integer "recipe_id", null: false
+    t.string "unit"
+    t.datetime "updated_at", null: false
+    t.index ["recipe_id", "name"], name: "index_recipe_ingredients_on_recipe_id_and_name"
+    t.index ["recipe_id"], name: "index_recipe_ingredients_on_recipe_id"
+  end
+
+  create_table "recipe_requests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "family_member_id", null: false
+    t.integer "recipe_id", null: false
+    t.datetime "updated_at", null: false
+    t.date "week_start_date", null: false
+    t.index ["family_member_id"], name: "index_recipe_requests_on_family_member_id"
+    t.index ["recipe_id", "family_member_id", "week_start_date"], name: "index_recipe_requests_unique_per_week", unique: true
+    t.index ["recipe_id"], name: "index_recipe_requests_on_recipe_id"
+  end
+
+  create_table "recipes", force: :cascade do |t|
+    t.integer "cook_time", default: 20
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "household_id", null: false
+    t.string "image_url"
+    t.text "instructions"
+    t.integer "prep_time", default: 15
+    t.integer "servings", default: 4
+    t.string "source_url"
+    t.string "tags"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "title"], name: "index_recipes_on_household_id_and_title"
+    t.index ["household_id"], name: "index_recipes_on_household_id"
+  end
+
+  create_table "sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email_address", null: false
+    t.integer "household_id", null: false
+    t.string "password_digest", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["household_id"], name: "index_users_on_household_id"
+  end
+
+  add_foreign_key "family_members", "households"
+  add_foreign_key "meal_plan_slots", "family_members"
+  add_foreign_key "meal_plan_slots", "meal_plans"
+  add_foreign_key "meal_plan_slots", "recipes"
+  add_foreign_key "meal_plans", "households"
+  add_foreign_key "pantry_items", "households"
+  add_foreign_key "recipe_ingredients", "recipes"
+  add_foreign_key "recipe_requests", "family_members"
+  add_foreign_key "recipe_requests", "recipes"
+  add_foreign_key "recipes", "households"
+  add_foreign_key "sessions", "users"
+  add_foreign_key "users", "households"
+end

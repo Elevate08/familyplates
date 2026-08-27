@@ -1,0 +1,4 @@
+one:
+  recipe: one
+  family_member: one
+  week_start_date: <%= Date.current.beginning_of_week %>

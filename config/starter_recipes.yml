@@ -1,0 +1,439 @@
+starter_recipes:
+  - id: "sheet-pan-fajitas"
+    title: "Sheet Pan Chicken Fajitas"
+    description: "Tender seasoned chicken strips, crisp bell peppers, and caramelized onions roasted on a single baking sheet."
+    prep_time: 15
+    cook_time: 20
+    servings: 4
+    tags: ["Quick (<30m)", "Family Favorite", "One Pan", "Mexican"]
+    image_url: "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Preheat oven to 425°F (220°C).
+      2. Slice chicken breast, bell peppers, and onion into thin strips.
+      3. Place on large sheet pan, drizzle with olive oil, and toss with chili powder, cumin, garlic powder, salt, and black pepper.
+      4. Spread in a single layer and roast for 20-25 minutes until chicken is cooked through and veggies are browned at edges.
+      5. Squeeze fresh lime juice over top and serve warm with flour tortillas and salsa.
+    ingredients:
+      - name: "Chicken Breast"
+        quantity: 1.5
+        unit: "lbs"
+        raw_text: "1.5 lbs boneless chicken breasts, sliced"
+        aisle_category: "Meat & Seafood"
+      - name: "Bell Peppers"
+        quantity: 3
+        unit: "count"
+        raw_text: "3 bell peppers, mixed colors sliced"
+        aisle_category: "Produce"
+      - name: "Yellow Onion"
+        quantity: 1
+        unit: "count"
+        raw_text: "1 medium yellow onion, sliced"
+        aisle_category: "Produce"
+      - name: "Flour Tortillas"
+        quantity: 8
+        unit: "count"
+        raw_text: "8 medium flour tortillas"
+        aisle_category: "Bakery"
+      - name: "Limes"
+        quantity: 2
+        unit: "count"
+        raw_text: "2 limes, cut into wedges"
+        aisle_category: "Produce"
+      - name: "Olive Oil"
+        quantity: 2
+        unit: "tbsp"
+        raw_text: "2 tbsp olive oil"
+        aisle_category: "Pantry & Grains"
+      - name: "Chili Powder"
+        quantity: 1
+        unit: "tbsp"
+        raw_text: "1 tbsp chili powder"
+        aisle_category: "Spices & Baking"
+      - name: "Cumin"
+        quantity: 1
+        unit: "tsp"
+        raw_text: "1 tsp ground cumin"
+        aisle_category: "Spices & Baking"
+
+  - id: "spaghetti-bolognese"
+    title: "Classic Spaghetti Bolognese"
+    description: "Rich, hearty meat sauce simmered with garlic, tomatoes, and herbs over tender pasta."
+    prep_time: 15
+    cook_time: 30
+    servings: 4
+    tags: ["Comfort Food", "Kid Friendly", "Pasta", "Italian"]
+    image_url: "https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Heat olive oil in a large pot over medium-high heat. Add diced onion and minced garlic, sauté 3 minutes.
+      2. Add ground beef, breaking it up until browned. Drain excess fat if needed.
+      3. Stir in crushed tomatoes, tomato paste, Italian seasoning, salt, and black pepper. Simmer on low for 20 minutes.
+      4. Meanwhile, cook spaghetti in boiling salted water until al dente. Drain.
+      5. Toss pasta with sauce and top with grated parmesan cheese.
+    ingredients:
+      - name: "Ground Beef"
+        quantity: 1
+        unit: "lb"
+        raw_text: "1 lb lean ground beef"
+        aisle_category: "Meat & Seafood"
+      - name: "Spaghetti"
+        quantity: 1
+        unit: "lb"
+        raw_text: "1 lb dry spaghetti pasta"
+        aisle_category: "Pantry & Grains"
+      - name: "Crushed Tomatoes"
+        quantity: 28
+        unit: "oz"
+        raw_text: "1 can (28 oz) crushed tomatoes"
+        aisle_category: "Pantry & Grains"
+      - name: "Tomato Paste"
+        quantity: 2
+        unit: "tbsp"
+        raw_text: "2 tbsp tomato paste"
+        aisle_category: "Pantry & Grains"
+      - name: "Garlic"
+        quantity: 4
+        unit: "cloves"
+        raw_text: "4 cloves garlic, minced"
+        aisle_category: "Produce"
+      - name: "Yellow Onion"
+        quantity: 1
+        unit: "count"
+        raw_text: "1 yellow onion, finely diced"
+        aisle_category: "Produce"
+      - name: "Parmesan Cheese"
+        quantity: 0.5
+        unit: "cup"
+        raw_text: "1/2 cup grated parmesan cheese"
+        aisle_category: "Dairy & Refrigerated"
+
+  - id: "crispy-tacos"
+    title: "15-Minute Weeknight Beef Tacos"
+    description: "Crispy taco shells loaded with seasoned beef, shredded lettuce, cheddar, and salsa."
+    prep_time: 5
+    cook_time: 10
+    servings: 4
+    tags: ["Quick (<30m)", "Kid Friendly", "Mexican"]
+    image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Brown ground beef in a skillet over medium heat. Drain grease.
+      2. Add taco seasoning and 1/3 cup water. Simmer for 3 minutes until thickened.
+      3. Warm taco shells in the oven at 350°F for 5 minutes.
+      4. Assemble tacos with meat, shredded cheddar, diced tomato, lettuce, and sour cream.
+    ingredients:
+      - name: "Ground Beef"
+        quantity: 1
+        unit: "lb"
+        raw_text: "1 lb ground beef"
+        aisle_category: "Meat & Seafood"
+      - name: "Taco Shells"
+        quantity: 12
+        unit: "count"
+        raw_text: "12 hard taco shells"
+        aisle_category: "Pantry & Grains"
+      - name: "Cheddar Cheese"
+        quantity: 1.5
+        unit: "cups"
+        raw_text: "1.5 cups shredded cheddar cheese"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Shredded Lettuce"
+        quantity: 2
+        unit: "cups"
+        raw_text: "2 cups shredded romaine lettuce"
+        aisle_category: "Produce"
+      - name: "Roma Tomatoes"
+        quantity: 2
+        unit: "count"
+        raw_text: "2 roma tomatoes, diced"
+        aisle_category: "Produce"
+      - name: "Sour Cream"
+        quantity: 0.5
+        unit: "cup"
+        raw_text: "1/2 cup sour cream"
+        aisle_category: "Dairy & Refrigerated"
+
+  - id: "salmon-and-veggies"
+    title: "Garlic Butter Baked Salmon & Asparagus"
+    description: "Flaky salmon fillets roasted with fresh asparagus, lemon juice, and rich melted garlic butter."
+    prep_time: 10
+    cook_time: 15
+    servings: 4
+    tags: ["Healthy", "Quick (<30m)", "Seafood"]
+    image_url: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Preheat oven to 400°F (200°C). Line baking sheet with parchment paper.
+      2. Place salmon fillets and trimmed asparagus spears on baking sheet.
+      3. Whisk melted butter, minced garlic, lemon juice, salt, and pepper. Spoon generously over salmon and asparagus.
+      4. Bake for 12-15 minutes until salmon flakes easily with a fork.
+    ingredients:
+      - name: "Salmon Fillets"
+        quantity: 4
+        unit: "fillets"
+        raw_text: "4 salmon fillets (approx 6 oz each)"
+        aisle_category: "Meat & Seafood"
+      - name: "Asparagus"
+        quantity: 1
+        unit: "bunch"
+        raw_text: "1 bunch fresh asparagus, woody ends trimmed"
+        aisle_category: "Produce"
+      - name: "Butter"
+        quantity: 4
+        unit: "tbsp"
+        raw_text: "4 tbsp melted butter"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Garlic"
+        quantity: 3
+        unit: "cloves"
+        raw_text: "3 cloves garlic, minced"
+        aisle_category: "Produce"
+      - name: "Lemon"
+        quantity: 1
+        unit: "count"
+        raw_text: "1 fresh lemon, halved"
+        aisle_category: "Produce"
+
+  - id: "chicken-stir-fry"
+    title: "Quick Chicken & Veggie Stir-Fry Noodles"
+    description: "Savory stir-fried noodles with chicken, broccoli florets, and bell peppers in a quick soy-ginger glaze."
+    prep_time: 15
+    cook_time: 10
+    servings: 4
+    tags: ["Quick (<30m)", "Asian"]
+    image_url: "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Cook ramen or lo mein noodles according to package, rinse with cold water and set aside.
+      2. Whisk soy sauce, sesame oil, honey, minced garlic, and cornstarch with 3 tbsp water.
+      3. Sear bite-sized chicken breast chunks in a hot skillet with oil for 5 minutes. Remove.
+      4. Add broccoli florets and sliced peppers to same skillet; stir fry for 3-4 minutes until tender-crisp.
+      5. Return chicken, noodles, and sauce to skillet. Toss continuously for 2 minutes until glossy and coated.
+    ingredients:
+      - name: "Chicken Breast"
+        quantity: 1
+        unit: "lb"
+        raw_text: "1 lb boneless chicken breasts, bite-sized"
+        aisle_category: "Meat & Seafood"
+      - name: "Stir Fry Noodles"
+        quantity: 10
+        unit: "oz"
+        raw_text: "10 oz fresh lo mein or ramen noodles"
+        aisle_category: "Pantry & Grains"
+      - name: "Broccoli"
+        quantity: 2
+        unit: "heads"
+        raw_text: "2 small heads broccoli, cut into florets"
+        aisle_category: "Produce"
+      - name: "Soy Sauce"
+        quantity: 4
+        unit: "tbsp"
+        raw_text: "4 tbsp low-sodium soy sauce"
+        aisle_category: "Pantry & Grains"
+      - name: "Sesame Oil"
+        quantity: 1
+        unit: "tbsp"
+        raw_text: "1 tbsp toasted sesame oil"
+        aisle_category: "Pantry & Grains"
+      - name: "Honey"
+        quantity: 2
+        unit: "tbsp"
+        raw_text: "2 tbsp honey"
+        aisle_category: "Pantry & Grains"
+
+  - id: "friday-pizza-night"
+    title: "Homemade Friday Pizza Night"
+    description: "Crispy crust loaded with bubbly mozzarella, rich marinara, and your favorite toppings."
+    prep_time: 15
+    cook_time: 15
+    servings: 4
+    tags: ["Kid Friendly", "Family Favorite", "Italian"]
+    image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Preheat oven to 475°F (245°C).
+      2. Stretch prepared pizza dough onto a round pizza pan or baking sheet.
+      3. Spread pizza sauce evenly, leaving a 1/2-inch border for crust.
+      4. Top with shredded mozzarella and pepperoni slices.
+      5. Bake for 12-15 minutes until cheese is bubbly and crust is golden brown.
+    ingredients:
+      - name: "Pizza Dough"
+        quantity: 1
+        unit: "lb"
+        raw_text: "1 lb fresh prepared pizza dough"
+        aisle_category: "Bakery"
+      - name: "Pizza Sauce"
+        quantity: 1
+        unit: "cup"
+        raw_text: "1 cup pizza sauce / marinara"
+        aisle_category: "Pantry & Grains"
+      - name: "Mozzarella Cheese"
+        quantity: 2
+        unit: "cups"
+        raw_text: "2 cups shredded whole milk mozzarella"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Pepperoni"
+        quantity: 4
+        unit: "oz"
+        raw_text: "4 oz sliced pepperoni"
+        aisle_category: "Meat & Seafood"
+
+  - id: "tomato-soup-grilled-cheese"
+    title: "Creamy Tomato Soup & Sourdough Grilled Cheese"
+    description: "Rich roasted tomato basil soup paired with golden buttery cheddar grilled cheese sandwiches."
+    prep_time: 10
+    cook_time: 20
+    servings: 4
+    tags: ["Comfort Food", "Quick (<30m)", "Vegetarian"]
+    image_url: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Sauté diced onion and garlic in butter in a medium pot. Add canned whole peeled tomatoes and vegetable broth.
+      2. Simmer for 15 minutes. Puree with immersion blender until smooth. Stir in heavy cream and fresh basil.
+      3. Butter slices of sourdough bread on the outside, layer sharp cheddar cheese inside.
+      4. Toast in skillet on medium heat until golden brown on both sides and cheese is melted.
+    ingredients:
+      - name: "Canned Whole Tomatoes"
+        quantity: 28
+        unit: "oz"
+        raw_text: "1 can (28 oz) whole peeled tomatoes"
+        aisle_category: "Pantry & Grains"
+      - name: "Heavy Cream"
+        quantity: 0.5
+        unit: "cup"
+        raw_text: "1/2 cup heavy cream"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Sourdough Bread"
+        quantity: 8
+        unit: "slices"
+        raw_text: "8 slices sourdough bread"
+        aisle_category: "Bakery"
+      - name: "Sharp Cheddar"
+        quantity: 8
+        unit: "oz"
+        raw_text: "8 oz sharp cheddar cheese, sliced"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Vegetable Broth"
+        quantity: 2
+        unit: "cups"
+        raw_text: "2 cups vegetable broth"
+        aisle_category: "Pantry & Grains"
+
+  - id: "sausage-peppers-potatoes"
+    title: "Sheet Pan Sausage, Peppers & Crispy Potatoes"
+    description: "Smoky kielbasa or Italian sausage roasted with baby potatoes and sweet bell peppers."
+    prep_time: 10
+    cook_time: 30
+    servings: 4
+    tags: ["One Pan", "Family Favorite", "Comfort Food"]
+    image_url: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Preheat oven to 400°F (200°C).
+      2. Halve baby potatoes. Toss with 1 tbsp olive oil, salt, and pepper on sheet pan and roast for 15 minutes.
+      3. Add sliced sausage coins, sliced bell peppers, and red onion to the sheet pan.
+      4. Toss everything together and roast another 15-20 minutes until potatoes are fork-tender and sausage is browned.
+    ingredients:
+      - name: "Smoked Sausage / Kielbasa"
+        quantity: 14
+        unit: "oz"
+        raw_text: "14 oz smoked sausage or kielbasa, sliced into rounds"
+        aisle_category: "Meat & Seafood"
+      - name: "Baby Potatoes"
+        quantity: 1.5
+        unit: "lbs"
+        raw_text: "1.5 lbs baby yellow potatoes, halved"
+        aisle_category: "Produce"
+      - name: "Bell Peppers"
+        quantity: 2
+        unit: "count"
+        raw_text: "2 bell peppers, chopped into 1-inch chunks"
+        aisle_category: "Produce"
+      - name: "Red Onion"
+        quantity: 1
+        unit: "count"
+        raw_text: "1 red onion, chopped into chunks"
+        aisle_category: "Produce"
+
+  - id: "greek-chicken-bowls"
+    title: "Greek Lemon Herb Chicken & Rice Bowls"
+    description: "Marinated grilled lemon-herb chicken over fluffy rice with diced cucumbers, tomatoes, feta, and tzatziki."
+    prep_time: 15
+    cook_time: 20
+    servings: 4
+    tags: ["Healthy", "Family Favorite", "Mediterranean"]
+    image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Cook jasmine or white rice.
+      2. Toss chicken breast chunks with lemon juice, oregano, garlic powder, olive oil, salt, and pepper. Cook in skillet for 6-8 minutes until golden.
+      3. Dice cucumber and cherry tomatoes; toss with a little olive oil and salt.
+      4. Assemble bowls: warm rice base, grilled lemon chicken, diced cucumber/tomato salad, crumbled feta cheese, and a scoop of tzatziki sauce.
+    ingredients:
+      - name: "Chicken Breast"
+        quantity: 1.5
+        unit: "lbs"
+        raw_text: "1.5 lbs boneless chicken breasts, cubed"
+        aisle_category: "Meat & Seafood"
+      - name: "White Rice"
+        quantity: 1.5
+        unit: "cups"
+        raw_text: "1.5 cups dry white rice"
+        aisle_category: "Pantry & Grains"
+      - name: "English Cucumber"
+        quantity: 1
+        unit: "count"
+        raw_text: "1 English cucumber, diced"
+        aisle_category: "Produce"
+      - name: "Cherry Tomatoes"
+        quantity: 1
+        unit: "pint"
+        raw_text: "1 pint cherry tomatoes, halved"
+        aisle_category: "Produce"
+      - name: "Feta Cheese"
+        quantity: 0.5
+        unit: "cup"
+        raw_text: "1/2 cup crumbled feta cheese"
+        aisle_category: "Dairy & Refrigerated"
+      - name: "Tzatziki Sauce"
+        quantity: 0.75
+        unit: "cup"
+        raw_text: "3/4 cup prepared tzatziki sauce"
+        aisle_category: "Dairy & Refrigerated"
+
+  - id: "slow-cooker-chili"
+    title: "Hearty Beef & Bean Slow-Cooker Chili"
+    description: "Classic rich chili simmered with ground beef, kidney beans, sweet corn, and warm chili spices."
+    prep_time: 15
+    cook_time: 240
+    servings: 6
+    tags: ["Slow Cooker", "Comfort Food", "Family Favorite"]
+    image_url: "https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80"
+    instructions: |
+      1. Brown ground beef and diced onion in a skillet. Drain grease and transfer to slow cooker.
+      2. Add crushed tomatoes, drained kidney beans, black beans, corn, chili powder, cumin, and garlic.
+      3. Stir well, cover, and cook on LOW for 4-6 hours (or HIGH for 2-3 hours).
+      4. Serve hot with shredded cheddar cheese, green onions, and warm cornbread or tortilla chips.
+    ingredients:
+      - name: "Ground Beef"
+        quantity: 1.5
+        unit: "lbs"
+        raw_text: "1.5 lbs ground beef"
+        aisle_category: "Meat & Seafood"
+      - name: "Kidney Beans"
+        quantity: 1
+        unit: "can"
+        raw_text: "1 can (15 oz) red kidney beans, rinsed"
+        aisle_category: "Pantry & Grains"
+      - name: "Black Beans"
+        quantity: 1
+        unit: "can"
+        raw_text: "1 can (15 oz) black beans, rinsed"
+        aisle_category: "Pantry & Grains"
+      - name: "Crushed Tomatoes"
+        quantity: 28
+        unit: "oz"
+        raw_text: "1 can (28 oz) crushed tomatoes"
+        aisle_category: "Pantry & Grains"
+      - name: "Frozen Corn"
+        quantity: 1
+        unit: "cup"
+        raw_text: "1 cup sweet frozen corn"
+        aisle_category: "Frozen"
+      - name: "Chili Powder"
+        quantity: 2
+        unit: "tbsp"
+        raw_text: "2 tbsp chili powder"
+        aisle_category: "Spices & Baking"

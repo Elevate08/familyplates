@@ -1,0 +1,110 @@
+<nav class="bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      
+      <!-- Brand & Primary Nav -->
+      <div class="flex items-center gap-8">
+        <%= link_to root_path, class: "flex items-center gap-2.5 group" do %>
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105"
+               style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>">
+            <%= icon_tag("chef-hat", css_class: "w-6 h-6") %>
+          </div>
+          <div>
+            <span class="font-black text-xl tracking-tight text-slate-900">Table<span style="color: <%= current_family_member&.avatar_color || '#ea580c' %>">Craft</span></span>
+            <% if authenticated? && current_household %>
+              <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                <%= current_household.name %>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if authenticated? %>
+          <div class="hidden md:flex items-center gap-1">
+            <%= link_to root_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+              <%= icon_tag("calendar", css_class: "w-4 h-4") %>
+              <span>Planner</span>
+            <% end %>
+
+            <%= link_to recipes_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/recipes') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+              <%= icon_tag("book-open", css_class: "w-4 h-4") %>
+              <span>Recipe Box</span>
+            <% end %>
+
+            <%= link_to grocery_list_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/grocery_list') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+              <%= icon_tag("shopping-cart", css_class: "w-4 h-4") %>
+              <span>Grocery List</span>
+            <% end %>
+
+            <%= link_to pantry_items_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/pantry_items') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+              <%= icon_tag("archive", css_class: "w-4 h-4") %>
+              <span>Pantry</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Right Nav / User Controls -->
+      <div class="flex items-center gap-3">
+        <% if authenticated? %>
+          <!-- 1-Tap Family Member Switcher -->
+          <%= render "family_members/switcher" %>
+
+          <!-- User Menu Dropdown -->
+          <div class="relative" data-controller="dropdown">
+            <button type="button" 
+                    data-action="click->dropdown#toggle click@window->dropdown#hide"
+                    class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer">
+              <%= icon_tag("user", css_class: "w-5 h-5") %>
+            </button>
+            <div data-dropdown-target="menu" 
+                 class="hidden absolute right-0 mt-2 w-52 rounded-3xl bg-white shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div class="px-4 py-2 border-b border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Account</p>
+                <p class="text-xs font-semibold text-slate-800 truncate"><%= current_user.email_address %></p>
+              </div>
+              <%= link_to select_profile_path, class: "flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
+                <span>👥 Switch Cook Profile</span>
+              <% end %>
+              <%= link_to family_members_path, class: "flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
+                <%= icon_tag("users", css_class: "w-4 h-4 text-slate-400") %>
+                <span>Family Members</span>
+              <% end %>
+              <div class="border-t border-slate-100 my-1"></div>
+              <%= button_to session_path, method: :delete, class: "w-full text-left flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" do %>
+                <%= icon_tag("trash", css_class: "w-4 h-4 text-rose-500") %>
+                <span>Sign Out</span>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <%= link_to "Sign In", new_session_path, class: "text-sm font-semibold text-slate-700 hover:text-slate-900 px-4 py-2 rounded-xl transition-colors" %>
+          <%= link_to "Start Your Kitchen", new_registration_path, class: "text-sm font-semibold bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl shadow-md shadow-orange-500/20 transition-all hover:scale-105" %>
+        <% end %>
+      </div>
+
+    </div>
+  </div>
+
+  <% if authenticated? %>
+    <!-- Mobile bottom tab bar for mobile view -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 py-2 px-4 flex justify-around items-center">
+      <%= link_to root_path, class: "flex flex-col items-center gap-1 text-xs #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+        <%= icon_tag("calendar", css_class: "w-5 h-5") %>
+        <span>Planner</span>
+      <% end %>
+      <%= link_to recipes_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/recipes') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+        <%= icon_tag("book-open", css_class: "w-5 h-5") %>
+        <span>Recipes</span>
+      <% end %>
+      <%= link_to grocery_list_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/grocery_list') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+        <%= icon_tag("shopping-cart", css_class: "w-5 h-5") %>
+        <span>Groceries</span>
+      <% end %>
+      <%= link_to pantry_items_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/pantry_items') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+        <%= icon_tag("archive", css_class: "w-5 h-5") %>
+        <span>Pantry</span>
+      <% end %>
+    </div>
+  <% end %>
+</nav>

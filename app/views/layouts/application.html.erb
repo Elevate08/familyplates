@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="h-full bg-slate-50 antialiased">
+  <head>
+    <title><%= content_for(:title) || "TableCraft | 5-Minute Family Meal Planner" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="TableCraft">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="<%= current_family_member&.avatar_color || '#ea580c' %>">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+
+    <% if current_family_member %>
+      <style>
+        :root {
+          --user-accent: <%= current_family_member.avatar_color %>;
+        }
+      </style>
+    <% end %>
+  </head>
+
+  <body class="min-h-full flex flex-col font-sans text-slate-900 bg-slate-50 selection:bg-orange-500 selection:text-white pb-20 md:pb-8">
+    <%= render "shared/navbar" %>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <%= render "shared/flash" %>
+      <%= yield %>
+    </main>
+  </body>
+</html>

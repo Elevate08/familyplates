@@ -1,0 +1,15 @@
+one:
+  recipe: one
+  name: "Ground Beef"
+  raw_text: "1 lb ground beef"
+  quantity: 1.0
+  unit: "lb"
+  aisle_category: "Meat & Seafood"
+
+two:
+  recipe: one
+  name: "Taco Shells"
+  raw_text: "12 taco shells"
+  quantity: 12.0
+  unit: "count"
+  aisle_category: "Pantry & Grains"

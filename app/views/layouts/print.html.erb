@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="h-full bg-white text-slate-900 antialiased">
+  <head>
+    <title><%= content_for(:title) || "MealHub | Fridge Calendar" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    
+    <style>
+      @page {
+        size: letter portrait;
+        margin: 0.4in;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          background: white !important;
+          color: black !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .page-container {
+          page-break-inside: avoid;
+          height: 100vh;
+          max-height: 10in;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="bg-white p-4 sm:p-6 font-sans">
+    <div class="page-container max-w-4xl mx-auto flex flex-col justify-between">
+      <%= yield %>
+    </div>
+  </body>
+</html>

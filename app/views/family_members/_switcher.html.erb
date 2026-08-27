@@ -1,0 +1,59 @@
+<div class="relative" data-controller="dropdown">
+  <button type="button" 
+          data-action="click->dropdown#toggle click@window->dropdown#hide"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium transition-colors border border-slate-200 cursor-pointer">
+    <% if current_family_member %>
+      <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white shadow-xs"
+            style="background-color: <%= current_family_member.avatar_color %>">
+        <%= current_family_member.initial %>
+      </span>
+      <span class="max-w-[120px] truncate font-semibold"><%= current_family_member.name %></span>
+    <% else %>
+      <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-xs font-bold text-white">
+        ?
+      </span>
+      <span>Pick Profile</span>
+    <% end %>
+    <%= icon_tag("chevron-down", css_class: "w-4 h-4 text-slate-500") %>
+  </button>
+
+  <div data-dropdown-target="menu" 
+       class="hidden absolute right-0 mt-2 w-64 rounded-3xl bg-white shadow-2xl border border-slate-100 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+    <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Cook Profile</span>
+      <%= link_to "Change", select_profile_path, class: "text-[11px] font-bold text-orange-600 hover:underline" %>
+    </div>
+    
+    <div class="max-h-60 overflow-y-auto py-1">
+      <% current_household.family_members.order(:created_at).each do |member| %>
+        <%= button_to switch_family_member_path(member), 
+                      method: :post,
+                      class: "w-full text-left flex items-center justify-between px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors #{'bg-orange-50/50 font-bold' if member == current_family_member}" do %>
+          <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white shadow-2xs"
+                  style="background-color: <%= member.avatar_color %>">
+              <%= member.initial %>
+            </span>
+            <span><%= member.name %></span>
+            <% if member.requires_pin? %>
+              <span class="text-xs">🔒</span>
+            <% end %>
+          </div>
+          <% if member == current_family_member %>
+            <span class="text-orange-600"><%= icon_tag("check", css_class: "w-4 h-4") %></span>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="border-t border-slate-100 mt-2 pt-2 px-3">
+      <%= link_to select_profile_path, class: "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-orange-700 hover:bg-orange-50 transition-colors" do %>
+        <span>👥 Switch Profile Screen</span>
+      <% end %>
+      <%= link_to family_members_path, class: "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" do %>
+        <%= icon_tag("users", css_class: "w-4 h-4 text-slate-400") %>
+        <span>Manage Profiles & Colors</span>
+      <% end %>
+    </div>
+  </div>
+</div>
