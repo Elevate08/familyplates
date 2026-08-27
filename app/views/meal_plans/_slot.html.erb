@@ -13,120 +13,270 @@
      "dinner" => "🍽️"
    } %>
 
+<% default_time = case meal_type
+                  when "breakfast" then meal_plan.household.breakfast_time.presence || "08:00"
+                  when "lunch"     then meal_plan.household.lunch_time.presence || "12:30"
+                  else                  meal_plan.household.dinner_time.presence || "18:00"
+                  end %>
+
+<% current_time = slot&.scheduled_time.presence || default_time %>
+
+<% recipes = meal_plan.household.recipes.alphabetical %>
+<% recipes_map = recipes.each_with_object({}) do |r, hash|
+     hash[r.id] = {
+       title: r.title,
+       image_url: r.display_image_url,
+       tags: r.tag_list,
+       total_time: r.total_time
+     }
+   end %>
+
 <%= turbo_frame_tag frame_id do %>
-  <div class="relative group/slot rounded-2xl p-3 transition-all min-h-[95px] flex flex-col justify-between <%= slot&.recipe.present? || slot&.custom_title.present? ? 'bg-primary-50/40 border-2 border-primary-200 hover:border-primary-300 shadow-2xs' : 'bg-slate-50/70 border-2 border-dashed border-slate-200 hover:border-primary-300 hover:bg-primary-50/10' %>">
-    
-    <% if slot&.recipe.present? || slot&.custom_title.present? %>
-      <div>
-        <div class="flex items-start justify-between gap-1.5 mb-1">
-          <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border <%= badge_colors[meal_type] %>">
+  <div data-controller="slot-modal"
+       data-slot-modal-breakfast-time-value="<%= meal_plan.household.breakfast_time.presence || '08:00' %>"
+       data-slot-modal-lunch-time-value="<%= meal_plan.household.lunch_time.presence || '12:30' %>"
+       data-slot-modal-dinner-time-value="<%= meal_plan.household.dinner_time.presence || '18:00' %>"
+       data-slot-modal-recipes-value="<%= recipes_map.to_json %>"
+       data-action="click@window->slot-modal#closeRecipeDropdownOnOutside"
+       class="h-full">
+
+    <!-- Card Trigger (Click anywhere on card to open modal) -->
+    <div data-action="click->slot-modal#open"
+         class="relative group/slot rounded-2xl p-3 transition-all min-h-[105px] flex flex-col justify-between cursor-pointer <%= slot&.recipe.present? || slot&.custom_title.present? ? 'bg-white hover:bg-primary-50/20 border-2 border-primary-200 hover:border-primary-400 hover:shadow-md' : 'bg-slate-50/70 border-2 border-dashed border-slate-200 hover:border-primary-300 hover:bg-primary-50/10' %>">
+      
+      <% if slot&.recipe.present? || slot&.custom_title.present? %>
+        <div>
+          <!-- Header: Meal Badge + Time Badge + Delete Button -->
+          <div class="flex items-start justify-between gap-1.5 mb-2">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border <%= badge_colors[meal_type] %>">
+                <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
+              </span>
+              <% if slot.scheduled_time.present? %>
+                <span class="text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
+                  ⏰ <%= slot.scheduled_time %>
+                </span>
+              <% end %>
+            </div>
+
+            <!-- Delete Slot Button (Stop propagation so click doesn't open modal) -->
+            <%= button_to meal_plan_meal_plan_slot_path(meal_plan, slot), method: :delete,
+                  title: "Remove from Plan",
+                  class: "text-slate-300 hover:text-rose-600 opacity-0 group-hover/slot:opacity-100 transition-opacity p-0.5 cursor-pointer rounded hover:bg-rose-50" do %>
+              <%= icon_tag("trash", css_class: "w-3.5 h-3.5") %>
+            <% end %>
+          </div>
+
+          <!-- Recipe / Meal Title (No image, no tags in planner view) -->
+          <div class="mt-1 font-extrabold text-xs text-slate-900 line-clamp-2 leading-snug group-hover/slot:text-primary-700 transition-colors">
+            <%= slot.display_title %>
+          </div>
+
+          <% if slot.notes.present? %>
+            <p class="text-[10.5px] text-slate-500 line-clamp-1 mt-1 italic">
+              💬 <%= slot.notes %>
+            </p>
+          <% end %>
+        </div>
+
+        <!-- Footer: Cook Badge & Total Duration -->
+        <div class="mt-2.5 pt-1.5 border-t border-slate-100 flex items-center justify-between">
+          <% if slot.family_member %>
+            <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
+                    style="background-color: <%= slot.family_member.avatar_color %>">
+                <%= slot.family_member.initial %>
+              </span>
+              <span class="text-[11px] font-semibold text-slate-700 truncate max-w-[85px]"><%= slot.family_member.name %></span>
+            </div>
+          <% else %>
+            <span class="text-[10px] text-slate-400">👤 Unassigned</span>
+          <% end %>
+
+          <% if slot.recipe %>
+            <span class="text-[10px] font-semibold text-slate-500">⏱️ <%= slot.recipe.total_time %>m</span>
+          <% end %>
+        </div>
+
+      <% else %>
+        <!-- Empty Slot State -->
+        <div class="flex flex-col items-center justify-center h-full py-4 text-center">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
             <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
           </span>
 
-          <!-- Delete Slot Button -->
-          <%= button_to meal_plan_meal_plan_slot_path(meal_plan, slot), method: :delete,
-                class: "text-slate-300 hover:text-rose-600 opacity-0 group-hover/slot:opacity-100 transition-opacity p-0.5 cursor-pointer" do %>
-            <%= icon_tag("trash", css_class: "w-3.5 h-3.5") %>
-          <% end %>
+          <div class="inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-xs font-bold text-primary-600 bg-white border border-slate-200 group-hover/slot:border-primary-400 group-hover/slot:bg-primary-50/50 shadow-2xs transition-all">
+            <%= icon_tag("plus", css_class: "w-3.5 h-3.5") %>
+            <span>Plan <%= meal_type.capitalize %></span>
+          </div>
+        </div>
+      <% end %>
+
+    </div>
+
+    <!-- Centered Responsive Modal Dialog -->
+    <div data-slot-modal-target="modal"
+         data-action="click->slot-modal#closeBackground"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150">
+      
+      <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 sm:p-7 max-h-[90vh] overflow-y-auto space-y-5 animate-in zoom-in-95 duration-150 text-left">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold text-sm">
+              <%= slot ? "✏️" : "📅" %>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">
+                <%= slot ? "Modify Planned Meal" : "Schedule Meal" %>
+              </h3>
+              <p class="text-xs text-slate-500">
+                <%= date.strftime("%A, %B %-d") %> • <%= meal_type.capitalize %>
+              </p>
+            </div>
+          </div>
+
+          <button type="button" 
+                  data-action="click->slot-modal#close"
+                  class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold">
+            ✕
+          </button>
         </div>
 
-        <% if slot.recipe %>
-          <%= link_to recipe_path(slot.recipe), target: "_top", class: "block font-bold text-xs text-slate-900 hover:text-primary-600 transition-colors line-clamp-2 leading-snug mt-1" do %>
-            <%= slot.recipe.title %>
+        <!-- Form (Handles Create or Update) -->
+        <% form_url = slot ? meal_plan_meal_plan_slot_path(meal_plan, slot) : meal_plan_meal_plan_slots_path(meal_plan) %>
+        <% form_method = slot ? :patch : :post %>
+
+        <%= form_with url: form_url, method: form_method, class: "space-y-4" do |f| %>
+          <% unless slot %>
+            <%= f.hidden_field "meal_plan_slot[date]", value: date %>
+            <%= f.hidden_field "meal_plan_slot[meal_type]", value: meal_type %>
           <% end %>
-        <% else %>
-          <div class="font-bold text-xs text-slate-900 line-clamp-2 leading-snug mt-1">
-            <%= slot.custom_title %>
+
+          <!-- Hidden Recipe ID Input -->
+          <input type="hidden"
+                 name="meal_plan_slot[recipe_id]"
+                 value="<%= slot&.recipe_id %>"
+                 data-slot-modal-target="recipeInput">
+
+          <!-- Detailed Recipe Dropdown Selector -->
+          <div class="relative">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Pick Recipe from Collection
+            </label>
+
+            <!-- Dropdown Trigger Button (Shows selected recipe in rich card format) -->
+            <button type="button"
+                    data-slot-modal-target="recipeDropdownButton"
+                    data-action="click->slot-modal#toggleRecipeDropdown"
+                    class="w-full p-2.5 rounded-2xl border-2 border-slate-200 hover:border-primary-400 bg-white text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-2xs cursor-pointer">
+              <div data-slot-modal-target="recipeSelectedDisplay">
+                <!-- Populated dynamically by Stimulus syncSelectedRecipeDisplay -->
+              </div>
+            </button>
+
+            <!-- Dropdown Menu List of Detailed Recipe Options -->
+            <div data-slot-modal-target="recipeDropdownMenu"
+                 class="hidden absolute left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-60 max-h-64 overflow-y-auto space-y-1 animate-in fade-in zoom-in-95 duration-100">
+              
+              <!-- None / Custom Dish Option -->
+              <button type="button"
+                      data-action="click->slot-modal#selectRecipe"
+                      data-recipe-id=""
+                      class="w-full p-2 rounded-xl text-left hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer text-xs font-bold text-slate-600 border border-transparent hover:border-slate-200">
+                <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs">🍽️</span>
+                <span>-- None (Use Custom Meal Below) --</span>
+              </button>
+
+              <!-- List of Recipes with Thumbnails, Tags, Prep Times -->
+              <% recipes.each do |recipe| %>
+                <button type="button"
+                        data-action="click->slot-modal#selectRecipe"
+                        data-recipe-id="<%= recipe.id %>"
+                        class="w-full p-2 rounded-xl text-left hover:bg-primary-50/50 flex items-center gap-3 transition-colors cursor-pointer border border-transparent hover:border-primary-200 group/item">
+                  <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>"
+                       class="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 bg-slate-100">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-extrabold text-xs text-slate-900 truncate group-hover/item:text-primary-700">
+                      <%= recipe.title %>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span class="text-[9.5px] font-bold text-slate-500">⏱️ <%= recipe.total_time %>m</span>
+                      <% recipe.tag_list.first(2).each do |tag| %>
+                        <span class="text-[8.5px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200/80">
+                          <%= tag %>
+                        </span>
+                      <% end %>
+                    </div>
+                  </div>
+                </button>
+              <% end %>
+            </div>
           </div>
-        <% end %>
 
-        <% if slot.notes.present? %>
-          <p class="text-[11px] text-slate-500 line-clamp-1 mt-0.5 italic">
-            <%= slot.notes %>
-          </p>
-        <% end %>
-      </div>
-
-      <!-- Cook Badge & Time -->
-      <div class="mt-2 pt-1.5 border-t border-primary-100 flex items-center justify-between">
-        <% if slot.family_member %>
-          <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
-            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
-                  style="background-color: <%= slot.family_member.avatar_color %>">
-              <%= slot.family_member.initial %>
-            </span>
-            <span class="text-[11px] font-semibold text-slate-700 truncate max-w-[80px]"><%= slot.family_member.name %></span>
+          <!-- Custom Dish Alternative -->
+          <div>
+            <%= f.label "meal_plan_slot[custom_title]", "Or Custom Meal Name", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5" %>
+            <%= f.text_field "meal_plan_slot[custom_title]", value: slot&.custom_title, placeholder: "e.g. Scrambled Eggs & Toast, Leftovers, Dining Out",
+                  data: { "slot-modal-target": "customTitleInput" },
+                  class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
           </div>
-        <% else %>
-          <span class="text-[10px] text-slate-400">Unassigned</span>
-        <% end %>
 
-        <% if slot.recipe %>
-          <span class="text-[10px] text-slate-400">⏱️ <%= slot.recipe.total_time %>m</span>
-        <% end %>
-      </div>
-
-    <% else %>
-      <!-- Empty Slot -->
-      <div class="flex flex-col items-center justify-center h-full py-2.5 text-center">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-          <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
-        </span>
-
-        <!-- Quick Slot Trigger Form / Dropdown -->
-        <div class="relative w-full" data-controller="dropdown">
-          <button type="button" 
-                  data-action="click->dropdown#toggle click@window->dropdown#hide"
-                  class="inline-flex items-center justify-center gap-1 w-full py-1 px-2 rounded-xl text-xs font-semibold text-primary-600 bg-white border border-slate-200 hover:border-primary-300 shadow-2xs transition-colors cursor-pointer">
-            <%= icon_tag("plus", css_class: "w-3 h-3") %>
-            <span>Plan</span>
-          </button>
-
-          <div data-dropdown-target="menu" 
-               class="hidden absolute left-0 right-0 sm:left-auto sm:right-auto sm:w-80 mt-1 bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-in fade-in zoom-in-95">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
-              <span class="text-xs font-extrabold text-slate-900">
-                Plan <%= meal_type.capitalize %> (<%= date.strftime("%a, %b %-d") %>)
-              </span>
+          <!-- Date, Meal Type & Specific Meal Time -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <%= f.label "meal_plan_slot[date]", "Date", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" %>
+              <%= f.date_field "meal_plan_slot[date]", value: (slot&.date || date),
+                    class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
             </div>
 
-            <%= form_with url: meal_plan_meal_plan_slots_path(meal_plan), method: :post, class: "space-y-3" do |f| %>
-              <%= f.hidden_field "meal_plan_slot[date]", value: date %>
-              <%= f.hidden_field "meal_plan_slot[meal_type]", value: meal_type %>
+            <div>
+              <%= f.label "meal_plan_slot[meal_type]", "Meal Period", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" %>
+              <%= f.select "meal_plan_slot[meal_type]", [["Breakfast", "breakfast"], ["Lunch", "lunch"], ["Dinner", "dinner"]],
+                    { selected: (slot&.meal_type || meal_type) },
+                    data: { "slot-modal-target": "mealTypeSelect", action: "change->slot-modal#mealTypeChanged" },
+                    class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+            </div>
 
-              <div>
-                <%= f.label "meal_plan_slot[recipe_id]", "Pick from Vault", class: "block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" %>
-                <%= f.collection_select "meal_plan_slot[recipe_id]", meal_plan.household.recipes.for_meal_type(meal_type).alphabetical, :id, :title, { prompt: "-- Or enter custom dish below --" },
-                      class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
-              </div>
-
-              <div>
-                <%= f.label "meal_plan_slot[custom_title]", "Custom Meal Name", class: "block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" %>
-                <%= f.text_field "meal_plan_slot[custom_title]", placeholder: "e.g. Scrambled Eggs & Toast, Leftovers, Dining Out",
-                      class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <%= f.label "meal_plan_slot[family_member_id]", "Chef", class: "block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" %>
-                  <%= f.collection_select "meal_plan_slot[family_member_id]", meal_plan.household.family_members.order(:name), :id, :name, { prompt: "-- Anyone --" },
-                        class: "w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
-                </div>
-                <div>
-                  <%= f.label "meal_plan_slot[notes]", "Note", class: "block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" %>
-                  <%= f.text_field "meal_plan_slot[notes]", placeholder: "e.g. 6:30 PM",
-                        class: "w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
-                </div>
-              </div>
-
-              <div class="pt-1">
-                <%= f.submit "Schedule Meal", class: "w-full py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer transition-colors shadow-sm" %>
-              </div>
-            <% end %>
+            <div>
+              <%= f.label "meal_plan_slot[scheduled_time]", "Scheduled Time", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" %>
+              <%= f.time_field "meal_plan_slot[scheduled_time]", value: current_time,
+                    data: { "slot-modal-target": "timeInput" },
+                    class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+            </div>
           </div>
-        </div>
+
+          <!-- Chef Assignment & Notes -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <%= f.label "meal_plan_slot[family_member_id]", "Chef / Cook", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" %>
+              <%= f.collection_select "meal_plan_slot[family_member_id]", meal_plan.household.family_members.order(:name), :id, :name,
+                    { prompt: "-- Anyone --", selected: slot&.family_member_id },
+                    class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+            </div>
+
+            <div>
+              <%= f.label "meal_plan_slot[notes]", "Notes / Sides", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1" %>
+              <%= f.text_field "meal_plan_slot[notes]", value: slot&.notes, placeholder: "e.g. Side salad, garlic bread",
+                    class: "w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+            </div>
+          </div>
+
+          <!-- Form Buttons -->
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" 
+                    data-action="click->slot-modal#close"
+                    class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs cursor-pointer transition-colors">
+              Cancel
+            </button>
+            <%= f.submit (slot ? "Save Changes" : "Schedule Meal"),
+                  class: "px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer transition-colors shadow-sm" %>
+          </div>
+        <% end %>
+
       </div>
-    <% end %>
+    </div>
 
   </div>
 <% end %>

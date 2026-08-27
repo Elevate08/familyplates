@@ -134,7 +134,7 @@ class GoogleCalendarService
   end
 
   def calculate_slot_times(slot)
-    time_str = case slot.meal_type
+    time_str = slot.scheduled_time.presence || case slot.meal_type
                when "breakfast" then household.breakfast_time.presence || "08:00"
                when "lunch"     then household.lunch_time.presence || "12:30"
                else                  household.dinner_time.presence || "18:00"

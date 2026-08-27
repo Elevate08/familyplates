@@ -51,13 +51,61 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to recipe_url(recipe)
   end
 
-  test "should update meal plan slot" do
+  test "should update meal plan slot notes" do
     slot = meal_plan_slots(:one)
     patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
       meal_plan_slot: { notes: "Extra spicy" }
     }
     assert_redirected_to meal_plan_url(@meal_plan)
     assert_equal "Extra spicy", slot.reload.notes
+  end
+
+  test "should modify planned meal scheduled_time override" do
+    slot = meal_plan_slots(:one)
+    patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
+      meal_plan_slot: { scheduled_time: "19:45" }
+    }
+    assert_redirected_to meal_plan_url(@meal_plan)
+    assert_equal "19:45", slot.reload.scheduled_time
+  end
+
+  test "should modify planned meal recipe, custom title, and cook" do
+    slot = meal_plan_slots(:one)
+    other_member = family_members(:two)
+
+    patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
+      meal_plan_slot: {
+        recipe_id: "",
+        custom_title: "Taco Tuesday Night",
+        family_member_id: other_member.id,
+        notes: "Serve with guacamole"
+      }
+    }
+
+    assert_redirected_to meal_plan_url(@meal_plan)
+    slot.reload
+    assert_nil slot.recipe_id
+    assert_equal "Taco Tuesday Night", slot.custom_title
+    assert_equal other_member.id, slot.family_member_id
+    assert_equal "Serve with guacamole", slot.notes
+  end
+
+  test "should reschedule meal plan slot to different date and meal type" do
+    slot = meal_plan_slots(:one)
+    new_date = @meal_plan.week_start_date + 4.days
+
+    patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
+      meal_plan_slot: {
+        date: new_date,
+        meal_type: "breakfast"
+      }
+    }, as: :turbo_stream
+
+    assert_response :success
+    assert_match(/turbo-stream/, response.media_type)
+    slot.reload
+    assert_equal new_date, slot.date
+    assert_equal "breakfast", slot.meal_type
   end
 
   test "should destroy meal plan slot via turbo stream" do

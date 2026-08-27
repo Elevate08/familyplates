@@ -12,6 +12,7 @@ The Meal Planner supports both a **Weekly Grid** and a **Monthly Calendar Matrix
 * **1-Tap Recipe Assignment:** Pick from your household recipe collection or enter a custom meal (e.g. *"Leftovers"* or *"Dining Out"*).
 * **Chef / Cook Assignment:** Assign who is cooking each meal with their personal avatar badge and initial.
 * **Notes & Sides:** Add notes like *"Defrost chicken morning of"* or side dishes.
+* **Edit & Reschedule Meals:** Hover over any planned meal and click the ✏️ pencil icon to modify the dish, reassign the cook, change notes/times, or reschedule to a different date or meal time with instant Hotwire Turbo Stream updates. Real-time Google Calendar events automatically adjust to the new scheduled times.
 
 ---
 

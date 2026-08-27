@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_232223) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_234353) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -73,6 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_232223) do
     t.string "meal_type", default: "dinner", null: false
     t.text "notes"
     t.integer "recipe_id"
+    t.string "scheduled_time"
     t.datetime "updated_at", null: false
     t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
     t.index ["google_event_id"], name: "index_meal_plan_slots_on_google_event_id"

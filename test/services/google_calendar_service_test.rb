@@ -26,6 +26,16 @@ class GoogleCalendarServiceTest < ActiveSupport::TestCase
     assert_equal 30, end_time.min # 60 min duration for dinner
   end
 
+  test "uses custom scheduled_time override when present on slot" do
+    @slot.scheduled_time = "19:15"
+    start_time, end_time = @service.calculate_slot_times(@slot)
+
+    assert_equal 19, start_time.hour
+    assert_equal 15, start_time.min
+    assert_equal 20, end_time.hour
+    assert_equal 15, end_time.min
+  end
+
   test "builds correct event summary and description" do
     event_data = @service.build_event_data(@slot)
 

@@ -1,3 +1,9 @@
+<% if @old_date && @old_meal_type && (@old_date != @slot.date || @old_meal_type != @slot.meal_type) %>
+  <%= turbo_stream.replace "slot_#{@old_date}_#{@old_meal_type}" do %>
+    <%= render "meal_plans/slot", meal_plan: @meal_plan, date: @old_date, meal_type: @old_meal_type %>
+  <% end %>
+<% end %>
+
 <%= turbo_stream.replace "slot_#{@slot.date}_#{@slot.meal_type}" do %>
-  <%= render "meal_plans/slot", meal_plan: @meal_plan, date: @slot.date, meal_type: @slot.meal_type %>
+  <%= render "meal_plans/slot", meal_plan: @slot.meal_plan, date: @slot.date, meal_type: @slot.meal_type %>
 <% end %>
