@@ -18,6 +18,8 @@ class RecipesController < ApplicationController
       @recipes = @recipes.where(id: recipe_ids)
     when "quick"
       @recipes = @recipes.quick
+    when "breakfast", "lunch", "dinner"
+      @recipes = @recipes.for_meal_type(params[:filter])
     end
   end
 
@@ -66,10 +68,16 @@ class RecipesController < ApplicationController
   end
 
   def recipe_params
-    params.require(:recipe).permit(
+    cleaned_params = params.require(:recipe).permit(
       :title, :description, :prep_time, :cook_time, :servings,
-      :source_url, :image_url, :instructions, :tags,
+      :source_url, :image_url, :image, :instructions, :tags, :meal_types,
+      meal_types: [],
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
     )
+
+    if cleaned_params[:meal_types].is_a?(Array)
+      cleaned_params[:meal_types] = cleaned_params[:meal_types].reject(&:blank?).join(",")
+    end
+    cleaned_params
   end
 end

@@ -7,9 +7,9 @@
       <!-- Week / Month View Mode Toggle -->
       <div class="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
         <%= link_to "Week View", meal_plan_path(@meal_plan, view: "week"), 
-              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}" %>
+              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white text-primary-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}" %>
         <%= link_to "Month View", meal_plan_path(@meal_plan, view: "month", month: @week_start.beginning_of_month), 
-              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}" %>
+              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white text-primary-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}" %>
       </div>
 
       <!-- Prev / Next Navigation -->
@@ -20,7 +20,7 @@
           <% end %>
 
           <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
-                class: "px-3 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}" %>
+                class: "px-3 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white text-primary-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}" %>
 
           <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-white transition-colors", title: "Next Month" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -31,7 +31,7 @@
           <% end %>
 
           <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
-                class: "px-3 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}" %>
+                class: "px-3 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white text-primary-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}" %>
 
           <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-white transition-colors", title: "Next Week" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -94,7 +94,7 @@
 
       <!-- Fridge Print Sheet -->
       <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month]), target: "_blank", 
-            class: "inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-sm shadow-orange-500/20 transition-all hover:scale-105" do %>
+            class: "inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
         <%= icon_tag("printer", css_class: "w-4 h-4") %>
         <span>Print Fridge Sheet (<%= @view.capitalize %>)</span>
       <% end %>
@@ -120,25 +120,22 @@
           <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
           <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
 
-          <div class="min-h-[120px] p-2 rounded-2xl border flex flex-col justify-between transition-all <%= is_today ? 'border-orange-400 bg-orange-50/20 ring-2 ring-orange-200 shadow-xs' : in_current_month ? 'border-slate-200/70 bg-white hover:border-slate-300' : 'border-slate-100 bg-slate-50/40 text-slate-300' %>">
+          <%= link_to meal_plans_path(week: day.beginning_of_week), class: "min-h-[125px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all group cursor-pointer #{is_today ? 'border-primary-400 bg-primary-50/20 ring-2 ring-primary-200 shadow-xs hover:border-primary-500' : in_current_month ? 'border-slate-200/70 bg-white hover:border-primary-400 hover:shadow-md hover:scale-[1.02]' : 'border-slate-100 bg-slate-50/40 text-slate-300 hover:bg-white hover:border-slate-300'}" do %>
             <!-- Day Number -->
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold <%= is_today ? 'text-orange-600 font-black' : in_current_month ? 'text-slate-700' : 'text-slate-300' %>">
+              <span class="text-xs font-extrabold <%= is_today ? 'text-primary-600 font-black' : in_current_month ? 'text-slate-700 group-hover:text-primary-600' : 'text-slate-300' %>">
                 <%= day.strftime("%-d") %>
               </span>
               <% if is_today %>
-                <span class="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-orange-500 text-white">Today</span>
+                <span class="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-primary-500 text-white">Today</span>
               <% end %>
             </div>
 
             <!-- Scheduled Meals Mini Cards -->
             <div class="space-y-1 my-1 flex-1">
-              <% if d_slot %>
-                <div class="p-1 rounded-lg bg-orange-50 border border-orange-200/80 text-[10px] leading-tight">
-                  <span class="font-extrabold text-orange-900 block truncate">🍽️ <%= d_slot.display_title %></span>
-                  <% if d_slot.family_member %>
-                    <span class="text-[9px] text-orange-700">👨‍🍳 <%= d_slot.family_member.name %></span>
-                  <% end %>
+              <% if b_slot %>
+                <div class="p-1 rounded-lg bg-amber-50 border border-amber-200/80 text-[10px] leading-tight">
+                  <span class="font-bold text-amber-900 block truncate">☀️ <%= b_slot.display_title %></span>
                 </div>
               <% end %>
 
@@ -148,18 +145,30 @@
                 </div>
               <% end %>
 
-              <% if b_slot %>
-                <div class="p-1 rounded-lg bg-amber-50 border border-amber-200/80 text-[10px] leading-tight">
-                  <span class="font-bold text-amber-900 block truncate">☀️ <%= b_slot.display_title %></span>
+              <% if d_slot %>
+                <div class="p-1 rounded-lg bg-primary-50 border border-primary-200/80 text-[10px] leading-tight">
+                  <span class="font-extrabold text-primary-900 block truncate">🍽️ <%= d_slot.display_title %></span>
+                  <% if d_slot.family_member %>
+                    <span class="text-[9px] text-primary-700">👨‍🍳 <%= d_slot.family_member.name %></span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <% unless b_slot || l_slot || d_slot %>
+                <div class="h-full flex items-center justify-center text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity font-semibold py-2">
+                  + Plan Day
                 </div>
               <% end %>
             </div>
 
-            <!-- Jump to Week Link -->
+            <!-- Click affordance -->
             <div class="text-right">
-              <%= link_to "Plan →", meal_plans_path(week: day.beginning_of_week), class: "text-[10px] font-bold text-slate-400 hover:text-orange-600" %>
+              <span class="text-[10px] font-bold text-slate-400 group-hover:text-primary-600 transition-colors flex items-center justify-end gap-0.5">
+                <span>Plan</span>
+                <span>→</span>
+              </span>
             </div>
-          </div>
+          <% end %>
         <% end %>
       </div>
     </div>
@@ -169,12 +178,12 @@
     <div class="grid grid-cols-1 md:grid-cols-7 gap-3 mb-10">
       <% @meal_plan.days.each do |day| %>
         <% is_today = (day == Date.current) %>
-        <div class="flex flex-col gap-2 p-3 rounded-3xl bg-white border <%= is_today ? 'border-orange-400 ring-2 ring-orange-200/50 shadow-md' : 'border-slate-200/80 shadow-2xs' %>">
+        <div class="flex flex-col gap-2 p-3 rounded-3xl bg-white border <%= is_today ? 'border-primary-400 ring-2 ring-primary-200/50 shadow-md' : 'border-slate-200/80 shadow-2xs' %>">
           
           <!-- Day Header -->
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <div>
-              <span class="text-xs font-extrabold uppercase tracking-wider <%= is_today ? 'text-orange-600' : 'text-slate-700' %>">
+              <span class="text-xs font-extrabold uppercase tracking-wider <%= is_today ? 'text-primary-600' : 'text-slate-700' %>">
                 <%= day.strftime("%a") %>
               </span>
               <span class="block text-xs font-bold text-slate-400">
@@ -182,7 +191,7 @@
               </span>
             </div>
             <% if is_today %>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500 text-white">
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-500 text-white">
                 Today
               </span>
             <% end %>
@@ -206,7 +215,7 @@
     <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs mb-8">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <span>💖 Family Cravings This Week</span>
+          <span>❤️ Family Cravings This Week</span>
           <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
             <%= @cravings.count %> requested
           </span>

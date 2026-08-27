@@ -38,10 +38,10 @@ export default class extends Controller {
     this.tagTargets.forEach(pill => {
       const val = pill.dataset.tagValue
       if (currentTags.includes(val)) {
-        pill.classList.add("bg-orange-500", "text-white", "border-orange-500")
+        pill.classList.add("bg-primary-500", "text-white", "border-primary-500")
         pill.classList.remove("bg-slate-100", "text-slate-700", "border-slate-200")
       } else {
-        pill.classList.remove("bg-orange-500", "text-white", "border-orange-500")
+        pill.classList.remove("bg-primary-500", "text-white", "border-primary-500")
         pill.classList.add("bg-slate-100", "text-slate-700", "border-slate-200")
       }
     })

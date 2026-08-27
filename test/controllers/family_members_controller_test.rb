@@ -28,4 +28,12 @@ class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     post switch_family_member_url(target_member)
     assert_response :redirect
   end
+
+  test "should delete family member" do
+    target_member = family_members(:two)
+    assert_difference("FamilyMember.count", -1) do
+      delete family_member_url(target_member)
+    end
+    assert_redirected_to family_members_url
+  end
 end

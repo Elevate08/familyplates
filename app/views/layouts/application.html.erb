@@ -19,16 +19,14 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
 
-    <% if current_family_member %>
-      <style>
-        :root {
-          --user-accent: <%= current_family_member.avatar_color %>;
-        }
-      </style>
-    <% end %>
+    <style>
+      :root {
+        --user-accent: <%= current_family_member&.avatar_color || '#ea580c' %>;
+      }
+    </style>
   </head>
 
-  <body class="min-h-full flex flex-col font-sans text-slate-900 bg-slate-50 selection:bg-orange-500 selection:text-white pb-20 md:pb-8">
+  <body class="min-h-full flex flex-col font-sans text-slate-900 bg-slate-50 selection:bg-primary-500 selection:text-white pb-20 md:pb-8">
     <%= render "shared/navbar" %>
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

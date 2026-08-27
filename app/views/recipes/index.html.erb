@@ -4,7 +4,7 @@
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
         <span>Family Recipe Vault</span>
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-100 text-primary-800">
           <%= @recipes.count %> <%= "recipe".pluralize(@recipes.count) %>
         </span>
       </h1>
@@ -15,11 +15,11 @@
 
     <div class="flex items-center gap-3">
       <%= link_to new_recipe_import_path, class: "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm font-semibold shadow-2xs hover:bg-slate-50 transition-colors" do %>
-        <%= icon_tag("link", css_class: "w-4 h-4 text-orange-500") %>
+        <%= icon_tag("link", css_class: "w-4 h-4 text-primary-500") %>
         <span>Import from Web</span>
       <% end %>
 
-      <%= link_to new_recipe_path, class: "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold shadow-sm shadow-orange-500/20 transition-all hover:scale-105" do %>
+      <%= link_to new_recipe_path, class: "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-sm font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
         <%= icon_tag("plus", css_class: "w-4 h-4") %>
         <span>Add Recipe</span>
       <% end %>
@@ -31,8 +31,14 @@
     <!-- Filter Tabs -->
     <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
       <%= link_to "All Recipes", recipes_path, 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter].blank? && params[:tag].blank? ? 'bg-orange-500 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
-      <%= link_to "💖 Cravings This Week", recipes_path(filter: "requested"), 
+            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter].blank? && params[:tag].blank? ? 'bg-primary-500 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
+      <%= link_to "☀️ Breakfast", recipes_path(filter: "breakfast"), 
+            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'breakfast' ? 'bg-amber-500 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
+      <%= link_to "🥪 Lunch", recipes_path(filter: "lunch"), 
+            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'lunch' ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
+      <%= link_to "🍽️ Dinner", recipes_path(filter: "dinner"), 
+            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'dinner' ? 'bg-primary-600 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
+      <%= link_to "❤️ Cravings This Week", recipes_path(filter: "requested"), 
             class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'requested' ? 'bg-rose-500 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
       <%= link_to "⚡ Quick (<30m)", recipes_path(filter: "quick"), 
             class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'quick' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-100'}" %>
@@ -43,7 +49,7 @@
       <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
       <div class="relative">
         <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
-              class: "w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-800" %>
+              class: "w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800" %>
         <% if params[:query].present? || params[:tag].present? %>
           <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter]), class: "absolute right-2.5 top-1 text-sm text-slate-400 hover:text-slate-600" %>
         <% end %>
@@ -57,7 +63,7 @@
     <% Recipe::POPULAR_TAGS.first(8).each do |tag| %>
       <% is_selected = (params[:query] == tag || params[:tag] == tag) %>
       <%= link_to tag, recipes_path(query: is_selected ? nil : tag), 
-            class: "px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors #{is_selected ? 'bg-orange-600 text-white font-bold' : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-300'}" %>
+            class: "px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors #{is_selected ? 'bg-primary-600 text-white font-bold' : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-300'}" %>
     <% end %>
   </div>
 
@@ -70,15 +76,15 @@
     </div>
   <% else %>
     <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 p-8">
-      <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-3">
+      <div class="w-12 h-12 rounded-2xl bg-primary-50 text-primary-500 flex items-center justify-center mx-auto mb-3">
         <%= icon_tag("book-open", css_class: "w-6 h-6") %>
       </div>
       <h3 class="font-bold text-slate-800 text-lg">No recipes found</h3>
       <p class="text-slate-500 text-xs mt-1">Try adjusting your filters or import a new recipe.</p>
       <div class="mt-4 flex items-center justify-center gap-3">
-        <%= link_to "Import from URL", new_recipe_import_path, class: "text-xs font-bold text-orange-600 hover:underline" %>
+        <%= link_to "Import from URL", new_recipe_import_path, class: "text-xs font-bold text-primary-600 hover:underline" %>
         <span class="text-slate-300">•</span>
-        <%= link_to "Add Manually", new_recipe_path, class: "text-xs font-bold text-orange-600 hover:underline" %>
+        <%= link_to "Add Manually", new_recipe_path, class: "text-xs font-bold text-primary-600 hover:underline" %>
       </div>
     </div>
   <% end %>

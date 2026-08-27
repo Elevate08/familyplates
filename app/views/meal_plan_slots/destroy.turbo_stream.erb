@@ -1,0 +1,3 @@
+<%= turbo_stream.replace "slot_#{@date}_#{@meal_type}" do %>
+  <%= render "meal_plans/slot", meal_plan: @meal_plan, date: @date, meal_type: @meal_type %>
+<% end %>

@@ -44,6 +44,7 @@ Rails.application.routes.draw do
       get :print
     end
   end
+  resources :meal_plan_slots, only: %i[create update destroy]
 
   # Grocery List (current active or specific plan)
   get "grocery_list" => "grocery_lists#show", as: :grocery_list

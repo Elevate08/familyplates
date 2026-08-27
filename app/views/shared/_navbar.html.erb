@@ -21,22 +21,22 @@
 
         <% if authenticated? %>
           <div class="hidden md:flex items-center gap-1">
-            <%= link_to root_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+            <%= link_to root_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'bg-primary-50 text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
               <%= icon_tag("calendar", css_class: "w-4 h-4") %>
               <span>Planner</span>
             <% end %>
 
-            <%= link_to recipes_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/recipes') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+            <%= link_to recipes_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/recipes') ? 'bg-primary-50 text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
               <%= icon_tag("book-open", css_class: "w-4 h-4") %>
               <span>Recipe Box</span>
             <% end %>
 
-            <%= link_to grocery_list_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/grocery_list') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+            <%= link_to grocery_list_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/grocery_list') ? 'bg-primary-50 text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
               <%= icon_tag("shopping-cart", css_class: "w-4 h-4") %>
               <span>Grocery List</span>
             <% end %>
 
-            <%= link_to pantry_items_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/pantry_items') ? 'bg-orange-50 text-orange-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
+            <%= link_to pantry_items_path, class: "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors #{request.path.start_with?('/pantry_items') ? 'bg-primary-50 text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}" do %>
               <%= icon_tag("archive", css_class: "w-4 h-4") %>
               <span>Pantry</span>
             <% end %>
@@ -79,7 +79,7 @@
           </div>
         <% else %>
           <%= link_to "Sign In", new_session_path, class: "text-sm font-semibold text-slate-700 hover:text-slate-900 px-4 py-2 rounded-xl transition-colors" %>
-          <%= link_to "Start Your Kitchen", new_registration_path, class: "text-sm font-semibold bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl shadow-md shadow-orange-500/20 transition-all hover:scale-105" %>
+          <%= link_to "Start Your Kitchen", new_registration_path, class: "text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-xl shadow-md shadow-primary-500/20 transition-all hover:scale-105" %>
         <% end %>
       </div>
 
@@ -89,19 +89,19 @@
   <% if authenticated? %>
     <!-- Mobile bottom tab bar for mobile view -->
     <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 py-2 px-4 flex justify-around items-center">
-      <%= link_to root_path, class: "flex flex-col items-center gap-1 text-xs #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+      <%= link_to root_path, class: "flex flex-col items-center gap-1 text-xs #{current_page?(root_path) || request.path.start_with?('/meal_plans') ? 'text-primary-600 font-bold' : 'text-slate-500'}" do %>
         <%= icon_tag("calendar", css_class: "w-5 h-5") %>
         <span>Planner</span>
       <% end %>
-      <%= link_to recipes_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/recipes') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+      <%= link_to recipes_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/recipes') ? 'text-primary-600 font-bold' : 'text-slate-500'}" do %>
         <%= icon_tag("book-open", css_class: "w-5 h-5") %>
         <span>Recipes</span>
       <% end %>
-      <%= link_to grocery_list_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/grocery_list') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+      <%= link_to grocery_list_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/grocery_list') ? 'text-primary-600 font-bold' : 'text-slate-500'}" do %>
         <%= icon_tag("shopping-cart", css_class: "w-5 h-5") %>
         <span>Groceries</span>
       <% end %>
-      <%= link_to pantry_items_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/pantry_items') ? 'text-orange-600 font-bold' : 'text-slate-500'}" do %>
+      <%= link_to pantry_items_path, class: "flex flex-col items-center gap-1 text-xs #{request.path.start_with?('/pantry_items') ? 'text-primary-600 font-bold' : 'text-slate-500'}" do %>
         <%= icon_tag("archive", css_class: "w-5 h-5") %>
         <span>Pantry</span>
       <% end %>

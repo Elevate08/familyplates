@@ -1,7 +1,7 @@
 <!-- Non-print action bar -->
-<div class="no-print mb-6 flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-2xl">
+<div class="no-print mb-6 flex items-center justify-between p-4 bg-primary-50 border border-primary-200 rounded-2xl">
   <div class="flex items-center gap-3">
-    <span class="text-orange-600"><%= icon_tag("printer", css_class: "w-6 h-6") %></span>
+    <span class="text-primary-600"><%= icon_tag("printer", css_class: "w-6 h-6") %></span>
     <div>
       <h3 class="font-bold text-slate-900 text-sm">Fridge Print Preview (<%= @view == "month" ? "Monthly Calendar" : "Weekly Schedule" %>)</h3>
       <p class="text-xs text-slate-500">Formatted to fit on a single 8.5x11 sheet of paper.</p>
@@ -10,7 +10,7 @@
 
   <div class="flex items-center gap-3">
     <%= link_to "← Back to Planner", meal_plan_path(@meal_plan, view: @view, month: params[:month]), class: "px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50" %>
-    <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all">
+    <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all">
       Print Refrigerator Sheet 🖨️
     </button>
   </div>
@@ -58,20 +58,27 @@
             <span class="text-xs font-black <%= in_current_month ? 'text-slate-900' : 'text-slate-400' %>"><%= day.strftime("%-d") %></span>
           </div>
 
-          <div class="my-auto space-y-0.5">
+          <div class="my-auto space-y-1 overflow-hidden">
+            <% if b_slot %>
+              <div class="text-[9px] leading-tight text-slate-800 truncate" title="<%= b_slot.display_title %>">
+                <span class="font-black text-amber-700 bg-amber-100/70 px-1 py-0.2 rounded text-[8px]">B:</span> <%= b_slot.display_title %>
+              </div>
+            <% end %>
+            <% if l_slot %>
+              <div class="text-[9px] leading-tight text-slate-800 truncate" title="<%= l_slot.display_title %>">
+                <span class="font-black text-teal-700 bg-teal-100/70 px-1 py-0.2 rounded text-[8px]">L:</span> <%= l_slot.display_title %>
+              </div>
+            <% end %>
             <% if d_slot %>
-              <div class="text-[10px] font-black leading-tight text-slate-900 truncate">
-                <%= d_slot.display_title %>
+              <div class="text-[9px] leading-tight text-slate-900 truncate" title="<%= d_slot.display_title %>">
+                <span class="font-black text-primary-700 bg-primary-100/70 px-1 py-0.2 rounded text-[8px]">D:</span> <%= d_slot.display_title %>
+                <% if d_slot.family_member %>
+                  <span class="text-[8px] text-slate-500 font-semibold">(<%= d_slot.family_member.name %>)</span>
+                <% end %>
               </div>
-              <% if d_slot.family_member %>
-                <div class="text-[9px] font-bold text-slate-600 truncate">
-                  👨‍🍳 <%= d_slot.family_member.name %>
-                </div>
-              <% end %>
-            <% elsif l_slot %>
-              <div class="text-[9px] font-semibold text-slate-600 truncate">
-                L: <%= l_slot.display_title %>
-              </div>
+            <% end %>
+            <% unless b_slot || l_slot || d_slot %>
+              <div class="text-[8px] text-slate-300 italic text-center py-1">No meals</div>
             <% end %>
           </div>
         </div>

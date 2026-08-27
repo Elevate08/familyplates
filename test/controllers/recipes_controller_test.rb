@@ -22,9 +22,21 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "should get show" do
+  test "should filter by meal type" do
+    get recipes_url(filter: "breakfast")
+    assert_response :success
+    get recipes_url(filter: "lunch")
+    assert_response :success
+    get recipes_url(filter: "dinner")
+    assert_response :success
+  end
+
+  test "should get show with meal planning form" do
     get recipe_url(@recipe)
     assert_response :success
+    assert_includes response.body, "Schedule"
+    assert_includes response.body, "meal_plan_slot[date]"
+    assert_includes response.body, "meal_plan_slot[meal_type]"
   end
 
   test "should get new" do
@@ -50,6 +62,25 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to recipe_url(Recipe.last)
+  end
+
+  test "should create recipe with meal types and image upload" do
+    file = fixture_file_upload("files/test_image.png", "image/png") rescue Rack::Test::UploadedFile.new(StringIO.new("img content"), "image/png", original_filename: "test.png")
+
+    assert_difference("Recipe.count", 1) do
+      post recipes_url, params: {
+        recipe: {
+          title: "Blueberry French Toast",
+          meal_types: "breakfast",
+          image: file
+        }
+      }
+    end
+
+    created = Recipe.last
+    assert_equal "Blueberry French Toast", created.title
+    assert_equal ["breakfast"], created.meal_types_list
+    assert created.image.attached?
   end
 
   test "should update recipe" do

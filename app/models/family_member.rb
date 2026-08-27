@@ -1,5 +1,7 @@
 class FamilyMember < ApplicationRecord
   belongs_to :household
+  has_many :recipe_requests, dependent: :destroy
+  has_many :meal_plan_slots, dependent: :nullify
 
   AVATAR_COLORS = [
     "#F97316", # Orange (Warm Carrot)
