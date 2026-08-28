@@ -1,83 +1,88 @@
 // Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
-import "@hotwired/turbo-rails"
+import { Turbo } from "@hotwired/turbo-rails"
 import "controllers"
 
-// Custom styled confirmation dialog (replaces browser native confirm)
-// Ensures all popups inherit the active user profile theme and design language
-Turbo.setConfirmMethod((message, element) => {
+window.Turbo = Turbo
+
+// Universal custom confirmation dialog matching the site theme & PIN modal
+window.showConfirmDialog = function(message, options = {}) {
   return new Promise((resolve) => {
-    // Dynamic website theme color from active family profile
+    const modal = document.getElementById("app-confirm-modal")
+    const titleEl = document.getElementById("app-confirm-title")
+    const messageEl = document.getElementById("app-confirm-message")
+    const submitBtn = document.getElementById("app-confirm-submit")
+    const cancelBtn = document.getElementById("app-confirm-cancel")
+    const iconBadge = document.getElementById("app-confirm-icon-badge")
+    const iconEl = document.getElementById("app-confirm-icon")
+
+    if (!modal || !titleEl || !messageEl || !submitBtn || !cancelBtn) {
+      resolve(window.confirm(message))
+      return
+    }
+
     const themeColor = getComputedStyle(document.documentElement).getPropertyValue("--user-accent").trim() || "#ea580c"
 
-    // Create backdrop
-    const backdrop = document.createElement("div")
-    backdrop.className = "fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen overflow-y-auto"
-    backdrop.style.animation = "fadeIn 150ms ease-out"
+    titleEl.textContent = options.title || (message.toLowerCase().includes("delete") || message.toLowerCase().includes("remove") ? "Confirm Deletion" : "Are You Sure?")
+    messageEl.textContent = message
+    submitBtn.textContent = options.confirmText || (message.toLowerCase().includes("delete") || message.toLowerCase().includes("remove") ? "Yes, Delete" : "Confirm")
+    if (iconEl) iconEl.textContent = options.icon || (message.toLowerCase().includes("delete") ? "🗑️" : "⚠️")
 
-    backdrop.innerHTML = `
-      <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 my-auto text-center" style="animation: zoomIn 150ms ease-out">
-        <div class="text-center mb-5">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold shadow-md mx-auto mb-3 transition-colors"
-               style="background-color: ${themeColor}; box-shadow: 0 4px 14px ${themeColor}40">
-            <span>⚠️</span>
-          </div>
-          <h3 class="text-lg font-extrabold text-slate-900">
-            Are You Sure?
-          </h3>
-          <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">${message}</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <button type="button" data-confirm-action="cancel"
-                  class="w-1/2 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-            Cancel
-          </button>
-          <button type="button" data-confirm-action="confirm"
-                  class="w-1/2 py-2.5 rounded-xl text-white text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-110"
-                  style="background-color: ${themeColor}; box-shadow: 0 4px 14px ${themeColor}40">
-            Confirm
-          </button>
-        </div>
-      </div>
-    `
-
-    document.body.appendChild(backdrop)
-    document.body.classList.add("overflow-hidden")
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = themeColor
+      submitBtn.style.boxShadow = `0 4px 14px ${themeColor}40`
+    }
+    if (iconBadge) {
+      iconBadge.style.backgroundColor = themeColor
+      iconBadge.style.boxShadow = `0 4px 14px ${themeColor}40`
+    }
 
     const cleanup = () => {
-      backdrop.remove()
+      modal.classList.add("hidden")
+      modal.classList.remove("flex")
       document.body.classList.remove("overflow-hidden")
+      submitBtn.removeEventListener("click", onConfirm)
+      cancelBtn.removeEventListener("click", onCancel)
+      modal.removeEventListener("click", onBackdrop)
+      document.removeEventListener("keydown", onEsc)
     }
 
-    // Button handlers
-    backdrop.querySelector("[data-confirm-action='confirm']").addEventListener("click", () => {
+    const onConfirm = () => {
       cleanup()
       resolve(true)
-    })
-    backdrop.querySelector("[data-confirm-action='cancel']").addEventListener("click", () => {
+    }
+
+    const onCancel = () => {
       cleanup()
       resolve(false)
-    })
+    }
 
-    // Click outside to cancel
-    backdrop.addEventListener("click", (e) => {
-      if (e.target === backdrop) {
-        cleanup()
-        resolve(false)
-      }
-    })
-
-    // Escape key to cancel
-    const escHandler = (e) => {
-      if (e.key === "Escape") {
-        document.removeEventListener("keydown", escHandler)
+    const onBackdrop = (e) => {
+      if (e.target === modal) {
         cleanup()
         resolve(false)
       }
     }
-    document.addEventListener("keydown", escHandler)
 
-    // Focus the confirm button
-    setTimeout(() => backdrop.querySelector("[data-confirm-action='confirm']")?.focus(), 50)
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        cleanup()
+        resolve(false)
+      }
+    }
+
+    submitBtn.addEventListener("click", onConfirm)
+    cancelBtn.addEventListener("click", onCancel)
+    modal.addEventListener("click", onBackdrop)
+    document.addEventListener("keydown", onEsc)
+
+    modal.classList.remove("hidden")
+    modal.classList.add("flex")
+    document.body.classList.add("overflow-hidden")
+    setTimeout(() => submitBtn.focus(), 50)
   })
+}
+
+// Intercept all Turbo form confirmations across the entire app
+Turbo.setConfirmMethod((message, _element) => {
+  return window.showConfirmDialog(message)
 })

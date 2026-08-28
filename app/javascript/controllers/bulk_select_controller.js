@@ -128,16 +128,15 @@ export default class extends Controller {
     if (count === 0) return
 
     const message = `Are you sure you want to delete ${count} selected ${count === 1 ? 'recipe' : 'recipes'}? This action cannot be undone.`
-    
-    // Use Turbo's confirm method
-    if (window.Turbo && window.Turbo.confirmMethod) {
-      window.Turbo.confirmMethod(message, this.deleteFormTarget).then(confirmed => {
-        if (confirmed && this.hasDeleteFormTarget) {
-          this.deleteFormTarget.requestSubmit()
-        }
-      })
-    } else if (confirm(message)) {
-      if (this.hasDeleteFormTarget) this.deleteFormTarget.requestSubmit()
-    }
+
+    window.showConfirmDialog(message, {
+      title: "Confirm Bulk Deletion",
+      confirmText: `Delete ${count} ${count === 1 ? 'Recipe' : 'Recipes'}`,
+      icon: "🗑️"
+    }).then(confirmed => {
+      if (confirmed && this.hasDeleteFormTarget) {
+        this.deleteFormTarget.requestSubmit()
+      }
+    })
   }
 }
