@@ -110,7 +110,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
     post bulk_update_recipes_url, params: {
       recipe_ids: [r1.id, r2.id],
-      meal_types_mode: "set",
+      update_meal_types: "1",
       meal_types: ["breakfast", "lunch"]
     }
 
@@ -125,7 +125,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
     post bulk_update_recipes_url, params: {
       recipe_ids: [r1.id, r2.id],
-      tags_mode: "add",
+      update_tags: "1",
       tags: "Family Favorite, Weekend Grill"
     }
 

@@ -9,6 +9,8 @@
       <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 backdrop-blur-xs shadow-md border border-white/60 cursor-pointer hover:scale-110 transition-transform">
         <input type="checkbox"
                value="<%= recipe.id %>"
+               data-meal-types="<%= recipe.meal_types_list.join(',') %>"
+               data-tags="<%= recipe.tag_list.join(',') %>"
                data-bulk-select-target="checkbox"
                data-action="change->bulk-select#toggle"
                class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">

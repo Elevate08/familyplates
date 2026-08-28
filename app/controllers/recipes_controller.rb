@@ -71,53 +71,24 @@ class RecipesController < ApplicationController
     end
 
     # Bulk Meal Types Update
-    if params[:meal_types_mode].present?
+    if params[:update_meal_types].present? || params[:meal_types_mode].present?
       selected_meal_types = Array(params[:meal_types]).reject(&:blank?)
-      case params[:meal_types_mode]
-      when "set"
-        recipes.each do |recipe|
-          recipe.update(meal_types: selected_meal_types.join(","))
-        end
-      when "add"
-        recipes.each do |recipe|
-          existing = recipe.meal_types_list
-          combined = (existing + selected_meal_types).uniq
-          recipe.update(meal_types: combined.join(","))
-        end
-      when "remove"
-        recipes.each do |recipe|
-          existing = recipe.meal_types_list
-          remaining = existing - selected_meal_types
-          recipe.update(meal_types: remaining.join(","))
-        end
+      recipes.each do |recipe|
+        recipe.update(meal_types: selected_meal_types.join(","))
       end
     end
 
     # Bulk Tags Update
-    if params[:tags_mode].present?
+    if params[:update_tags].present? || params[:tags_mode].present?
       new_tags = params[:tags].to_s.split(",").map(&:strip).reject(&:blank?)
-      case params[:tags_mode]
-      when "set"
-        recipes.each do |recipe|
-          recipe.update(tags: new_tags.join(", "))
-        end
-      when "add"
-        recipes.each do |recipe|
-          existing = recipe.tag_list
-          combined = (existing + new_tags).uniq
-          recipe.update(tags: combined.join(", "))
-        end
-      when "remove"
-        recipes.each do |recipe|
-          existing = recipe.tag_list
-          remaining = existing.reject { |t| new_tags.map(&:downcase).include?(t.downcase) }
-          recipe.update(tags: remaining.join(", "))
-        end
+      recipes.each do |recipe|
+        recipe.update(tags: new_tags.join(", "))
       end
     end
 
     redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]),
-                notice: "✨ Successfully updated #{recipes.count} #{'recipe'.pluralize(recipes.count)}."
+                notice: "✨ Successfully updated #{recipes.count} #{'recipe'.pluralize(recipes.count)}.",
+                status: :see_other
   end
 
   def bulk_destroy
@@ -125,7 +96,7 @@ class RecipesController < ApplicationController
     recipes = current_household.recipes.where(id: recipe_ids)
 
     if recipes.empty?
-      redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]), alert: "No recipes selected."
+      redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]), alert: "No recipes selected.", status: :see_other
       return
     end
 
@@ -133,7 +104,8 @@ class RecipesController < ApplicationController
     recipes.destroy_all
 
     redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]),
-                notice: "🗑️ Deleted #{count} #{'recipe'.pluralize(count)} from your recipe box."
+                notice: "🗑️ Deleted #{count} #{'recipe'.pluralize(count)} from your recipe box.",
+                status: :see_other
   end
 
   private

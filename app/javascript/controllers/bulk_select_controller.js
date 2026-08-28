@@ -10,7 +10,8 @@ export default class extends Controller {
     "mealTypesModal",
     "deleteForm",
     "tagsForm",
-    "mealTypesForm"
+    "mealTypesForm",
+    "tagsInput"
   ]
 
   connect() {
@@ -40,10 +41,41 @@ export default class extends Controller {
     this.updateState()
   }
 
+  getCheckedCheckboxes() {
+    return this.checkboxTargets.filter(cb => cb.checked)
+  }
+
   getSelectedIds() {
-    return this.checkboxTargets
-      .filter(cb => cb.checked)
-      .map(cb => cb.value)
+    return this.getCheckedCheckboxes().map(cb => cb.value)
+  }
+
+  getCommonMealTypes() {
+    const checked = this.getCheckedCheckboxes()
+    if (checked.length === 0) return []
+
+    const recipeMealTypeLists = checked.map(cb => {
+      const raw = cb.dataset.mealTypes || ""
+      return raw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean)
+    })
+
+    return recipeMealTypeLists.reduce((common, currentList) => {
+      return common.filter(mt => currentList.includes(mt))
+    }, recipeMealTypeLists[0] || [])
+  }
+
+  getCommonTags() {
+    const checked = this.getCheckedCheckboxes()
+    if (checked.length === 0) return []
+
+    const recipeTagLists = checked.map(cb => {
+      const raw = cb.dataset.tags || ""
+      return raw.split(",").map(s => s.trim()).filter(Boolean)
+    })
+
+    return recipeTagLists.reduce((common, currentList) => {
+      const currentLower = currentList.map(t => t.toLowerCase())
+      return common.filter(t => currentLower.includes(t.toLowerCase()))
+    }, recipeTagLists[0] || [])
   }
 
   updateState() {
@@ -67,10 +99,10 @@ export default class extends Controller {
       }
     }
 
-    // Sync selected IDs into hidden forms
-    this.syncHiddenFormInputs(this.tagsFormTarget, selectedIds)
-    this.syncHiddenFormInputs(this.mealTypesFormTarget, selectedIds)
-    this.syncHiddenFormInputs(this.deleteFormTarget, selectedIds)
+    // Sync selected IDs into all available bulk forms
+    if (this.hasTagsFormTarget) this.syncHiddenFormInputs(this.tagsFormTarget, selectedIds)
+    if (this.hasMealTypesFormTarget) this.syncHiddenFormInputs(this.mealTypesFormTarget, selectedIds)
+    if (this.hasDeleteFormTarget) this.syncHiddenFormInputs(this.deleteFormTarget, selectedIds)
   }
 
   syncHiddenFormInputs(form, ids) {
@@ -90,26 +122,40 @@ export default class extends Controller {
     })
   }
 
-  openTagsModal(event) {
-    if (event) event.preventDefault()
-    if (this.hasTagsModalTarget) {
-      this.tagsModalTarget.classList.remove("hidden")
-      document.body.classList.add("overflow-hidden")
+  // Intercept form submit to ensure latest IDs are present
+  beforeFormSubmit(event) {
+    const selectedIds = this.getSelectedIds()
+    if (selectedIds.length === 0) {
+      event.preventDefault()
+      if (window.showConfirmDialog) {
+        window.showConfirmDialog("Please select at least one recipe first.")
+      } else {
+        alert("Please select at least one recipe first.")
+      }
+      return
     }
-  }
-
-  closeTagsModal(event) {
-    if (event) event.preventDefault()
-    if (this.hasTagsModalTarget) {
-      this.tagsModalTarget.classList.add("hidden")
-      document.body.classList.remove("overflow-hidden")
-    }
+    this.syncHiddenFormInputs(event.target, selectedIds)
   }
 
   openMealTypesModal(event) {
     if (event) event.preventDefault()
+    const selectedIds = this.getSelectedIds()
+    if (selectedIds.length === 0) return
+
+    if (this.hasMealTypesFormTarget) {
+      this.syncHiddenFormInputs(this.mealTypesFormTarget, selectedIds)
+
+      // Prepopulate checkboxes with shared/common meal types
+      const commonMealTypes = this.getCommonMealTypes()
+      const checkboxes = this.mealTypesFormTarget.querySelectorAll("input[name='meal_types[]']")
+      checkboxes.forEach(cb => {
+        cb.checked = commonMealTypes.includes(cb.value.toLowerCase())
+      })
+    }
+
     if (this.hasMealTypesModalTarget) {
       this.mealTypesModalTarget.classList.remove("hidden")
+      this.mealTypesModalTarget.classList.add("flex")
       document.body.classList.add("overflow-hidden")
     }
   }
@@ -118,8 +164,70 @@ export default class extends Controller {
     if (event) event.preventDefault()
     if (this.hasMealTypesModalTarget) {
       this.mealTypesModalTarget.classList.add("hidden")
+      this.mealTypesModalTarget.classList.remove("flex")
       document.body.classList.remove("overflow-hidden")
     }
+  }
+
+  openTagsModal(event) {
+    if (event) event.preventDefault()
+    const selectedIds = this.getSelectedIds()
+    if (selectedIds.length === 0) return
+
+    if (this.hasTagsFormTarget) {
+      this.syncHiddenFormInputs(this.tagsFormTarget, selectedIds)
+
+      // Prepopulate tags input with shared/common tags
+      const commonTags = this.getCommonTags()
+      if (this.hasTagsInputTarget) {
+        this.tagsInputTarget.value = commonTags.join(", ")
+      }
+    }
+
+    if (this.hasTagsModalTarget) {
+      this.tagsModalTarget.classList.remove("hidden")
+      this.tagsModalTarget.classList.add("flex")
+      document.body.classList.add("overflow-hidden")
+      setTimeout(() => this.tagsInputTarget?.focus(), 100)
+    }
+  }
+
+  closeTagsModal(event) {
+    if (event) event.preventDefault()
+    if (this.hasTagsModalTarget) {
+      this.tagsModalTarget.classList.add("hidden")
+      this.tagsModalTarget.classList.remove("flex")
+      document.body.classList.remove("overflow-hidden")
+    }
+  }
+
+  closeOnBackdrop(event) {
+    if (event.target === event.currentTarget) {
+      this.closeMealTypesModal()
+      this.closeTagsModal()
+    }
+  }
+
+  addTag(event) {
+    if (event) event.preventDefault()
+    const tag = event.currentTarget.dataset.tag
+    if (!tag || !this.hasTagsInputTarget) return
+
+    const currentTags = this.tagsInputTarget.value
+      .split(",")
+      .map(t => t.trim())
+      .filter(Boolean)
+
+    const tagIndex = currentTags.findIndex(t => t.toLowerCase() === tag.toLowerCase())
+    if (tagIndex >= 0) {
+      // Toggle off if already present
+      currentTags.splice(tagIndex, 1)
+    } else {
+      // Add if not present
+      currentTags.push(tag)
+    }
+
+    this.tagsInputTarget.value = currentTags.join(", ")
   }
 
   confirmBulkDelete(event) {
@@ -135,6 +243,7 @@ export default class extends Controller {
       icon: "🗑️"
     }).then(confirmed => {
       if (confirmed && this.hasDeleteFormTarget) {
+        this.syncHiddenFormInputs(this.deleteFormTarget, this.getSelectedIds())
         this.deleteFormTarget.requestSubmit()
       }
     })
