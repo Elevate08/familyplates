@@ -1,3 +1,7 @@
-<%= turbo_stream.replace "slot_#{@slot.date}_#{@slot.meal_type}" do %>
-  <%= render "meal_plans/slot", meal_plan: @meal_plan, date: @slot.date, meal_type: @slot.meal_type %>
+<% @meal_plan.days.each do |day| %>
+  <% %w[breakfast lunch dinner].each do |meal_type| %>
+    <%= turbo_stream.replace "slot_#{day}_#{meal_type}" do %>
+      <%= render "meal_plans/slot", meal_plan: @meal_plan, date: day, meal_type: meal_type %>
+    <% end %>
+  <% end %>
 <% end %>

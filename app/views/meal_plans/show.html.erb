@@ -143,7 +143,7 @@
       <!-- Month Grid -->
       <div class="grid grid-cols-7 gap-2">
         <% @leading_blank_days.to_i.times do %>
-          <div class="min-h-[125px] p-2.5 rounded-2xl border border-dashed border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/20"></div>
+          <div class="min-h-[125px] p-2.5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40"></div>
         <% end %>
 
         <% @month_days.each do |day| %>
@@ -152,7 +152,7 @@
           <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
           <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
 
-          <%= link_to meal_plans_path(week: day.beginning_of_week), class: "min-h-[125px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all group cursor-pointer #{is_today ? 'border-primary-400 bg-primary-50/20 dark:bg-primary-950/30 ring-2 ring-primary-200 dark:ring-primary-800 shadow-xs hover:border-primary-500' : 'border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-850 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md hover:scale-[1.02]'}" do %>
+          <%= link_to meal_plans_path(week: day.beginning_of_week), class: "min-h-[125px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all group cursor-pointer #{is_today ? 'border-primary-400 dark:border-primary-500 bg-primary-50/20 dark:bg-primary-950/40 ring-2 ring-primary-200 dark:ring-primary-800 shadow-xs hover:border-primary-500' : 'border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md hover:scale-[1.02]'}" do %>
             <!-- Day Number -->
             <div class="flex items-center justify-between">
               <span class="text-xs font-extrabold <%= is_today ? 'text-primary-600 dark:text-primary-400 font-black' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400' %>">
@@ -164,18 +164,18 @@
             </div>
 
             <!-- Scheduled Meals Mini Cards -->
-            <div class="space-y-1 my-1 flex-1">
+            <div class="space-y-1.5 my-1 flex-1">
               <% if b_slot %>
-                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] leading-tight shadow-2xs text-center">
-                  <div class="text-[8.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Breakfast</div>
+                <div class="p-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider text-center">Breakfast</div>
                   <div class="font-bold text-slate-900 dark:text-white break-words mt-0.5"><%= b_slot.display_title %></div>
                   <% if b_slot.family_member || (b_slot.recipe && b_slot.recipe.total_time.to_i > 0) %>
-                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100 dark:border-slate-700">
+                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-200/70 dark:border-slate-700/60">
                       <% if b_slot.family_member %>
-                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong><%= b_slot.family_member.name %></strong></span>
+                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-800 dark:text-slate-200"><%= b_slot.family_member.name %></strong></span>
                       <% end %>
                       <% if b_slot.recipe && b_slot.recipe.total_time.to_i > 0 %>
-                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong><%= b_slot.recipe.total_time %>m</strong></span>
+                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-800 dark:text-slate-200"><%= b_slot.recipe.total_time %>m</strong></span>
                       <% end %>
                     </div>
                   <% end %>
@@ -183,16 +183,16 @@
               <% end %>
 
               <% if l_slot %>
-                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] leading-tight shadow-2xs text-center">
-                  <div class="text-[8.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Lunch</div>
+                <div class="p-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider text-center">Lunch</div>
                   <div class="font-bold text-slate-900 dark:text-white break-words mt-0.5"><%= l_slot.display_title %></div>
                   <% if l_slot.family_member || (l_slot.recipe && l_slot.recipe.total_time.to_i > 0) %>
-                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100 dark:border-slate-700">
+                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-200/70 dark:border-slate-700/60">
                       <% if l_slot.family_member %>
-                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong><%= l_slot.family_member.name %></strong></span>
+                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-800 dark:text-slate-200"><%= l_slot.family_member.name %></strong></span>
                       <% end %>
                       <% if l_slot.recipe && l_slot.recipe.total_time.to_i > 0 %>
-                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong><%= l_slot.recipe.total_time %>m</strong></span>
+                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-800 dark:text-slate-200"><%= l_slot.recipe.total_time %>m</strong></span>
                       <% end %>
                     </div>
                   <% end %>
@@ -200,16 +200,16 @@
               <% end %>
 
               <% if d_slot %>
-                <div class="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] leading-tight shadow-2xs text-center">
-                  <div class="text-[8.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Dinner</div>
+                <div class="p-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-[10px] leading-tight shadow-2xs text-center">
+                  <div class="text-[8.5px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider text-center">Dinner</div>
                   <div class="font-bold text-slate-900 dark:text-white break-words mt-0.5"><%= d_slot.display_title %></div>
                   <% if d_slot.family_member || (d_slot.recipe && d_slot.recipe.total_time.to_i > 0) %>
-                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-100 dark:border-slate-700">
+                    <div class="mt-1 text-[8.5px] text-slate-600 dark:text-slate-400 flex items-center justify-center flex-wrap gap-x-1.5 pt-0.5 border-t border-slate-200/70 dark:border-slate-700/60">
                       <% if d_slot.family_member %>
-                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong><%= d_slot.family_member.name %></strong></span>
+                        <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-800 dark:text-slate-200"><%= d_slot.family_member.name %></strong></span>
                       <% end %>
                       <% if d_slot.recipe && d_slot.recipe.total_time.to_i > 0 %>
-                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong><%= d_slot.recipe.total_time %>m</strong></span>
+                        <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-800 dark:text-slate-200"><%= d_slot.recipe.total_time %>m</strong></span>
                       <% end %>
                     </div>
                   <% end %>
@@ -217,7 +217,7 @@
               <% end %>
 
               <% unless b_slot || l_slot || d_slot %>
-                <div class="h-full flex items-center justify-center text-[10px] text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity font-semibold py-2">
+                <div class="h-full flex items-center justify-center text-[10px] text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity font-semibold py-2">
                   + Plan Day
                 </div>
               <% end %>
