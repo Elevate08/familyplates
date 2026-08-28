@@ -38,10 +38,10 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
         post recipe_imports_url, params: { url: "https://www.allrecipes.com/recipe/22389/french-toast-casserole/" }
       end
       recipe = Recipe.last
-      assert_redirected_to recipe_url(recipe)
+      assert_redirected_to edit_recipe_url(recipe)
       assert_equal "French Toast Casserole", recipe.title
       assert_equal 1, recipe.recipe_ingredients.count
-      assert_includes flash[:notice], "Successfully imported"
+      assert_includes flash[:notice], "Imported"
     ensure
       RecipeScraper.define_singleton_method(:call, original_call)
     end
