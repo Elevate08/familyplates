@@ -1,31 +1,31 @@
 <div class="max-w-3xl mx-auto py-4" data-controller="checklist" data-checklist-plan-id-value="<%= @meal_plan.id %>">
   <!-- Sticky Header Bar -->
-  <div class="bg-white/95 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs mb-6 sticky top-20 z-30">
+  <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 sticky top-20 z-30">
     <div class="flex items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Grocery List
           </h1>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
             <span data-checklist-target="remaining"><%= @total_shopping_count %></span>&nbsp;left to buy
           </span>
-          <span data-checklist-target="offlineBadge" class="hidden items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+          <span data-checklist-target="offlineBadge" class="hidden items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
             <span>⚡ Offline Mode</span>
           </span>
         </div>
-        <p class="text-xs text-slate-500 font-medium mt-0.5">
-          <%= @meal_plan.week_label %> • <span class="text-amber-700 font-semibold"><%= @total_pantry_count %> pantry items marked</span>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+          <%= @meal_plan.week_label %> • <span class="text-amber-700 dark:text-amber-400 font-semibold"><%= @total_pantry_count %> pantry items marked</span>
         </p>
       </div>
 
       <div class="flex items-center gap-2">
         <button type="button" 
                 data-action="click->checklist#resetAll"
-                class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer">
           Reset
         </button>
-        <%= link_to "Planner →", meal_plan_path(@meal_plan), class: "text-xs font-bold px-3.5 py-1.5 rounded-xl bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors" %>
+        <%= link_to "Planner →", meal_plan_path(@meal_plan), class: "text-xs font-bold px-3.5 py-1.5 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors" %>
       </div>
     </div>
   </div>
@@ -34,14 +34,14 @@
   <% if @aisles.present? && @aisles.any? %>
     <div class="space-y-6 mb-10">
       <% @aisles.each do |aisle, items| %>
-        <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-2xs">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-2xs">
           <!-- Aisle Header -->
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
+            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               <span><%= aisle %></span>
             </h2>
-            <span class="text-xs font-semibold text-slate-400">
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">
               <%= items.count %> <%= "item".pluralize(items.count) %>
             </span>
           </div>
@@ -54,7 +54,7 @@
                    data-item-id="<%= item_id %>"
                    data-is-staple="<%= item[:is_staple] %>"
                    data-action="click->checklist#toggle"
-                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer <%= item[:is_staple] ? 'bg-amber-50/30 border-amber-200/80 hover:border-amber-300' : 'bg-white border-slate-200/70 hover:border-slate-300' %>">
+                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer <%= item[:is_staple] ? 'bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/80 hover:border-amber-300 dark:hover:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600' %>">
                 
                 <div class="flex items-center gap-3">
                   <input type="checkbox" 
@@ -62,24 +62,24 @@
                          <%= 'checked' if item[:is_staple] %>
                          data-checklist-target="checkbox"
                          data-is-staple="<%= item[:is_staple] %>"
-                         class="w-5 h-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer">
+                         class="w-5 h-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer">
                   
                   <div class="flex items-center gap-2">
                     <span class="text-lg"><%= item[:emoji] %></span>
                     <div>
                       <div class="flex items-center gap-2">
-                        <span class="item-label text-sm font-bold text-slate-800 <%= 'line-through text-slate-400' if item[:is_staple] %> transition-all">
+                        <span class="item-label text-sm font-bold text-slate-800 dark:text-slate-200 <%= 'line-through text-slate-400 dark:text-slate-500' if item[:is_staple] %> transition-all">
                           <%= item[:name] %>
                         </span>
                         <% if item[:is_staple] %>
-                          <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             In Pantry
                           </span>
                         <% end %>
                       </div>
 
                       <% if item[:quantity].present? && item[:quantity] > 0 %>
-                        <span class="text-xs font-semibold text-slate-500">
+                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">
                           <%= item[:quantity] %><% if item[:unit].present? %> <%= item[:unit] %><% end %>
                         </span>
                       <% end %>
@@ -88,7 +88,7 @@
                 </div>
 
                 <!-- Recipe Source Badge -->
-                <div class="text-[10px] text-slate-400 font-medium truncate max-w-[140px] text-right">
+                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[140px] text-right">
                   <%= item[:sources].first(2).join(", ") %>
                 </div>
               </div>
@@ -98,13 +98,13 @@
       <% end %>
     </div>
   <% else %>
-    <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 p-8 mb-8">
-      <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+    <div class="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-8 mb-8">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
         <%= icon_tag("shopping-cart", css_class: "w-6 h-6") %>
       </div>
-      <h3 class="font-bold text-slate-800 text-lg">No grocery items needed!</h3>
-      <p class="text-slate-500 text-xs mt-1">Schedule breakfast, lunch, or dinner in the planner to automatically compile this list.</p>
-      <%= link_to "Go to Planner", meal_plan_path(@meal_plan), class: "mt-4 inline-block px-5 py-2.5 rounded-xl bg-primary-600 text-white font-bold text-xs shadow-sm hover:bg-primary-500 transition-colors" %>
+      <h3 class="font-bold text-slate-800 dark:text-slate-200 text-lg">No grocery items needed!</h3>
+      <p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Schedule breakfast, lunch, or dinner in the planner to automatically compile this list.</p>
+      <%= link_to "Go to Planner", meal_plan_path(@meal_plan), class: "mt-4 inline-block px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm transition-colors" %>
     </div>
   <% end %>
 </div>

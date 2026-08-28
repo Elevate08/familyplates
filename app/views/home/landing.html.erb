@@ -1,17 +1,17 @@
 <div class="max-w-5xl mx-auto py-12 sm:py-20 text-center">
   <!-- Badge -->
-  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-sm font-semibold mb-8 shadow-xs">
+  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 text-sm font-semibold mb-8 shadow-xs">
     <%= icon_tag("sparkles", css_class: "w-4 h-4 text-orange-500") %>
     <span>Family Meal Planning in Under 5 Minutes</span>
   </div>
 
   <!-- Hero Title -->
-  <h1 class="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight sm:leading-none max-w-4xl mx-auto">
-    Never ask <span class="text-orange-600 underline decoration-orange-300 decoration-wavy decoration-2">"What's for dinner?"</span> again.
+  <h1 class="text-4xl sm:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight sm:leading-none max-w-4xl mx-auto">
+    Never ask <span class="text-orange-600 dark:text-orange-400 underline decoration-orange-300 dark:decoration-orange-600 decoration-wavy decoration-2">"What's for dinner?"</span> again.
   </h1>
 
   <!-- Subtitle -->
-  <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal">
+  <p class="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal">
     Curate family favorite recipes, schedule breakfast, lunch, and dinner in 5 minutes, print 1-page weekly or monthly fridge calendars, and shop with an aisle-organized mobile checklist.
   </p>
 
@@ -21,7 +21,7 @@
       <span>Set Up Your Kitchen Free</span>
       <%= icon_tag("arrow-right", css_class: "w-5 h-5") %>
     <% end %>
-    <%= link_to new_session_path, class: "w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-lg border border-slate-200 shadow-xs transition-all" do %>
+    <%= link_to new_session_path, class: "w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-lg border border-slate-200 dark:border-slate-700 shadow-xs transition-all" do %>
       <span>Sign In</span>
     <% end %>
   </div>
@@ -29,34 +29,34 @@
   <!-- 3 Touchpoints Grid -->
   <div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
     <!-- Card 1: The Fridge Sheet -->
-    <div class="p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-      <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-6">
+    <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-6">
         <%= icon_tag("printer", css_class: "w-6 h-6") %>
       </div>
-      <h3 class="text-xl font-bold text-slate-900 mb-2">1-Page Fridge Sheets</h3>
-      <p class="text-slate-600 text-sm leading-relaxed">
+      <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">1-Page Fridge Sheets</h3>
+      <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
         Single-sheet high contrast weekly and monthly print layouts designed for standard fridge hanging. Daily meals, assigned cooks, and notes.
       </p>
     </div>
 
     <!-- Card 2: Google Calendar Sync -->
-    <div class="p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-      <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mb-6">
+    <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6">
         <%= icon_tag("calendar", css_class: "w-6 h-6") %>
       </div>
-      <h3 class="text-xl font-bold text-slate-900 mb-2">Google Calendar Sync</h3>
-      <p class="text-slate-600 text-sm leading-relaxed">
+      <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Google Calendar Sync</h3>
+      <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
         Real-time direct sync to your existing family Google Calendar. Scheduled meal times, cook assignments, prep times, and full recipe ingredients right on your family's devices.
       </p>
     </div>
 
     <!-- Card 3: Aisle Grocery Checklist -->
-    <div class="p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-      <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-6">
+    <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6">
         <%= icon_tag("shopping-cart", css_class: "w-6 h-6") %>
       </div>
-      <h3 class="text-xl font-bold text-slate-900 mb-2">Aisle-Organized List</h3>
-      <p class="text-slate-600 text-sm leading-relaxed">
+      <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Aisle-Organized List</h3>
+      <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
         Ingredients organized by supermarket aisle with emoji icons and smart Pantry Shield highlighting so you never double-buy staples.
       </p>
     </div>

@@ -14,24 +14,24 @@
      <%= "data-action=\"click->#{backdrop_action}\"" if backdrop_action %>
      class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4 min-h-screen overflow-y-auto">
   
-  <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 <%= max_width %> w-full shadow-2xl animate-in fade-in zoom-in-95 my-auto text-left">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 <%= max_width %> w-full shadow-2xl animate-in fade-in zoom-in-95 my-auto text-left text-slate-900 dark:text-slate-100">
     <!-- Modal Header -->
-    <div class="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-primary-500 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-primary-500/20 shrink-0">
           <%= icon %>
         </div>
         <div>
-          <h3 class="text-base font-extrabold text-slate-900 leading-tight"><%= title %></h3>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight"><%= title %></h3>
           <% if subtitle.present? %>
-            <p class="text-xs text-slate-500 mt-0.5"><%= subtitle %></p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><%= subtitle %></p>
           <% end %>
         </div>
       </div>
 
       <button type="button"
               <%= "data-action=\"#{close_action}\"" if close_action %>
-              class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer text-xs font-bold shrink-0">
+              class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs font-bold shrink-0">
         ✕
       </button>
     </div>

@@ -1,7 +1,7 @@
 <div class="relative" data-controller="dropdown">
   <button type="button" 
           data-action="click->dropdown#toggle click@window->dropdown#hide"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium transition-colors border border-slate-200 cursor-pointer shadow-2xs">
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer shadow-2xs">
     <% if current_family_member %>
       <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white shadow-xs"
             style="background-color: <%= current_family_member.avatar_color %>">
@@ -14,41 +14,41 @@
       </span>
       <span class="font-semibold">Pick Profile</span>
     <% end %>
-    <%= icon_tag("chevron-down", css_class: "w-4 h-4 text-slate-500") %>
+    <%= icon_tag("chevron-down", css_class: "w-4 h-4 text-slate-500 dark:text-slate-400") %>
   </button>
 
   <div data-dropdown-target="menu" 
-       class="hidden absolute right-0 mt-2 w-64 rounded-3xl bg-white shadow-2xl border border-slate-100 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+       class="hidden absolute right-0 mt-2 w-64 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-100 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
     
     <!-- Active Cook & Account Header -->
-    <div class="px-4 pb-3 border-b border-slate-100">
-      <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Cook</p>
+    <div class="px-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+      <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Active Cook</p>
       <div class="flex items-center gap-2 mt-1">
         <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white shadow-2xs"
               style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>">
           <%= current_family_member&.initial || '?' %>
         </span>
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
-          <p class="text-sm font-bold text-slate-900 truncate"><%= current_family_member&.name || "Default" %></p>
+          <p class="text-sm font-bold text-slate-900 dark:text-white truncate"><%= current_family_member&.name || "Default" %></p>
           <% if current_family_member&.admin? %>
-            <span class="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded-md">Admin</span>
+            <span class="text-[10px] bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded-md">Admin</span>
           <% end %>
         </div>
       </div>
-      <p class="text-[11px] text-slate-400 truncate mt-1"><%= current_user.email_address %></p>
+      <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-1"><%= current_user.email_address %></p>
     </div>
 
     <!-- Quick Switcher Roster -->
     <% if current_household && current_household.family_members.count > 1 %>
-      <div class="py-2 border-b border-slate-100">
+      <div class="py-2 border-b border-slate-100 dark:border-slate-700">
         <div class="px-4 pb-1.5 flex items-center justify-between">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Switch Cook</span>
-          <%= link_to "Grid View", select_profile_path, class: "text-[11px] font-bold text-primary-600 hover:underline" %>
+          <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Switch Cook</span>
+          <%= link_to "Grid View", select_profile_path, class: "text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
         </div>
         <div class="max-h-48 overflow-y-auto space-y-0.5">
           <% current_household.family_members.order(:created_at).each do |member| %>
             <% if member == current_family_member %>
-              <div class="w-full flex items-center justify-between px-4 py-1.5 text-xs font-bold text-primary-900 bg-primary-50/50">
+              <div class="w-full flex items-center justify-between px-4 py-1.5 text-xs font-bold text-primary-900 dark:text-primary-300 bg-primary-50/50 dark:bg-primary-950/40">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
@@ -59,12 +59,12 @@
                     <span class="text-[10px]" title="PIN Protected">🔒</span>
                   <% end %>
                 </div>
-                <span class="text-primary-600"><%= icon_tag("check", css_class: "w-3.5 h-3.5") %></span>
+                <span class="text-primary-600 dark:text-primary-400"><%= icon_tag("check", css_class: "w-3.5 h-3.5") %></span>
               </div>
             <% elsif member.requires_pin? %>
               <button type="button"
                       onclick="openNavPinModal('<%= member.id %>', '<%= j member.name %>', '<%= member.avatar_color %>', '<%= member.initial %>')"
-                      class="w-full text-left flex items-center justify-between px-4 py-1.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                      class="w-full text-left flex items-center justify-between px-4 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
@@ -73,12 +73,12 @@
                   <span class="truncate"><%= member.name %></span>
                   <span class="text-[10px]" title="PIN Protected">🔒</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-semibold uppercase">PIN</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">PIN</span>
               </button>
             <% else %>
               <%= button_to switch_family_member_path(member), 
                             method: :post,
-                            class: "w-full text-left flex items-center justify-between px-4 py-1.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer" do %>
+                            class: "w-full text-left flex items-center justify-between px-4 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer" do %>
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
@@ -95,28 +95,28 @@
 
     <!-- Navigation & Settings Links -->
     <div class="pt-2 px-2 space-y-0.5">
-      <%= link_to preferences_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
+      <%= link_to preferences_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
         <%= icon_tag("sparkles", css_class: "w-4 h-4 text-primary-500") %>
         <span>My Preferences</span>
       <% end %>
 
       <% if current_family_member&.admin? %>
-        <%= link_to admin_root_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
-          <%= icon_tag("cog", css_class: "w-4 h-4 text-slate-500") %>
+        <%= link_to admin_root_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
+          <%= icon_tag("cog", css_class: "w-4 h-4 text-slate-500 dark:text-slate-400") %>
           <span>Admin Control Center</span>
         <% end %>
       <% end %>
 
-      <%= link_to select_profile_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" do %>
+      <%= link_to select_profile_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
         <%= icon_tag("users", css_class: "w-4 h-4 text-slate-400") %>
         <span>Switch Cook Profile</span>
       <% end %>
     </div>
 
     <!-- Sign Out -->
-    <div class="border-t border-slate-100 mt-2 pt-1 px-2">
-      <%= button_to session_path, method: :delete, class: "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" do %>
-        <%= icon_tag("trash", css_class: "w-4 h-4 text-rose-500") %>
+    <div class="border-t border-slate-100 dark:border-slate-700 mt-2 pt-1 px-2">
+      <%= button_to session_path, method: :delete, class: "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" do %>
+        <%= icon_tag("trash", css_class: "w-4 h-4 text-rose-500 dark:text-rose-400") %>
         <span>Sign Out</span>
       <% end %>
     </div>

@@ -39,10 +39,10 @@ export default class extends Controller {
       const val = pill.dataset.tagValue
       if (currentTags.includes(val)) {
         pill.classList.add("bg-primary-500", "text-white", "border-primary-500")
-        pill.classList.remove("bg-slate-100", "text-slate-700", "border-slate-200")
+        pill.classList.remove("bg-slate-100", "dark:bg-slate-800", "text-slate-700", "dark:text-slate-300", "border-slate-200", "dark:border-slate-700")
       } else {
         pill.classList.remove("bg-primary-500", "text-white", "border-primary-500")
-        pill.classList.add("bg-slate-100", "text-slate-700", "border-slate-200")
+        pill.classList.add("bg-slate-100", "dark:bg-slate-800", "text-slate-700", "dark:text-slate-300", "border-slate-200", "dark:border-slate-700")
       }
     })
   }

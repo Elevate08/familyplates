@@ -1,23 +1,23 @@
 <div class="max-w-5xl mx-auto py-6 sm:py-8 space-y-8">
   <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
     <div class="flex items-center gap-3.5">
-      <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md">
+      <div class="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shadow-md border border-slate-700">
         <%= icon_tag("cog", css_class: "w-6 h-6") %>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Admin Control Center</h1>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Admin Control Center</h1>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             Organizer Only
           </span>
         </div>
-        <p class="text-xs text-slate-500 mt-0.5">Manage family roster, reset PINs, master account email, and kitchen feeds.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage family roster, reset PINs, master account email, and kitchen feeds.</p>
       </div>
     </div>
 
     <div class="flex items-center gap-2">
-      <%= link_to root_path, class: "flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all shadow-xs" do %>
+      <%= link_to root_path, class: "flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold transition-all shadow-xs" do %>
         <%= icon_tag("arrow-right", css_class: "w-4 h-4 rotate-180") %>
         <span>Back to Kitchen</span>
       <% end %>
@@ -27,68 +27,68 @@
   <!-- Summary Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
     <!-- Household Card -->
-    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Household</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Household</span>
           <span class="text-lg">🏡</span>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-900 truncate"><%= @household.name %></h2>
-        <p class="text-xs text-slate-500 mt-1"><%= @recipes_count %> recipes &bull; <%= @meal_plans_count %> weekly plans</p>
+        <h2 class="text-xl font-extrabold text-slate-900 dark:text-white truncate"><%= @household.name %></h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1"><%= @recipes_count %> recipes &bull; <%= @meal_plans_count %> weekly plans</p>
       </div>
-      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-        <%= link_to "Edit Name →", edit_admin_household_path, class: "text-xs font-bold text-primary-600 hover:text-primary-700" %>
+      <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <%= link_to "Edit Name →", edit_admin_household_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       </div>
     </div>
 
     <!-- Master Login Card -->
-    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Primary Account</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Primary Account</span>
           <span class="text-lg">🔐</span>
         </div>
-        <h2 class="text-base font-extrabold text-slate-900 truncate" title="<%= @user.email_address %>">
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate" title="<%= @user.email_address %>">
           <%= @user.email_address %>
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Master email & password</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Master email & password</p>
       </div>
-      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-        <%= link_to "Change Credentials →", edit_admin_account_path, class: "text-xs font-bold text-primary-600 hover:text-primary-700" %>
+      <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <%= link_to "Change Credentials →", edit_admin_account_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       </div>
     </div>
 
     <!-- Roster Summary Card -->
-    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Kitchen Roster</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Kitchen Roster</span>
           <span class="text-lg">👥</span>
         </div>
-        <h2 class="text-2xl font-black text-slate-900"><%= @family_members.count %> Members</h2>
-        <p class="text-xs text-slate-500 mt-1">
+        <h2 class="text-2xl font-black text-slate-900 dark:text-white"><%= @family_members.count %> Members</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
           <%= @family_members.count(&:admin?) %> Organizer(s), <%= @family_members.count { |m| !m.admin? } %> Regular Member(s)
         </p>
       </div>
-      <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-        <%= link_to "Manage Roster →", admin_family_members_path, class: "text-xs font-bold text-primary-600 hover:text-primary-700" %>
+      <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <%= link_to "Manage Roster →", admin_family_members_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       </div>
     </div>
   </div>
 
   <!-- Family Members & PIN Management Section -->
-  <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Family Members & PIN Security</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Control member roles, reset 4-digit PINs, and update profiles.</p>
+        <h2 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">Family Members & PIN Security</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control member roles, reset 4-digit PINs, and update profiles.</p>
       </div>
-      <%= link_to admin_family_members_path, class: "px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors shadow-xs" do %>
+      <%= link_to admin_family_members_path, class: "px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold transition-colors shadow-xs" do %>
         <span>Manage Roster</span>
       <% end %>
     </div>
 
-    <div class="divide-y divide-slate-100">
+    <div class="divide-y divide-slate-100 dark:divide-slate-800">
       <% @family_members.each do |member| %>
         <div class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="flex items-center gap-3.5">
@@ -98,31 +98,31 @@
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-900 text-sm"><%= member.name %></span>
+                <span class="font-bold text-slate-900 dark:text-white text-sm"><%= member.name %></span>
                 <% if member.admin? %>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">Admin</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">Admin</span>
                 <% else %>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">Member</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Member</span>
                 <% end %>
               </div>
               <div class="flex items-center gap-2 mt-0.5">
                 <% if member.admin? %>
                   <% if member.pin.present? %>
-                    <span class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                    <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                       <span>🔒</span> PIN Protected
                     </span>
                   <% else %>
-                    <span class="text-xs text-slate-400 font-medium">No PIN Set</span>
+                    <span class="text-xs text-slate-400 dark:text-slate-500 font-medium">No PIN Set</span>
                   <% end %>
                 <% else %>
-                  <span class="text-xs text-slate-400">1-Tap Switch (No PIN)</span>
+                  <span class="text-xs text-slate-400 dark:text-slate-500">1-Tap Switch (No PIN)</span>
                 <% end %>
               </div>
             </div>
           </div>
 
           <div class="flex items-center gap-2 self-end sm:self-auto">
-            <%= link_to "Edit Profile", edit_admin_family_member_path(member), class: "px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors" %>
+            <%= link_to "Edit Profile", edit_admin_family_member_path(member), class: "px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors" %>
           </div>
         </div>
       <% end %>
@@ -130,38 +130,38 @@
   </div>
 
   <!-- Google Calendar Direct Sync Card -->
-  <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex items-start justify-between gap-4 mb-4">
       <div>
-        <h2 class="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <%= icon_tag("calendar", css_class: "w-5 h-5 text-blue-600") %>
+        <h2 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <%= icon_tag("calendar", css_class: "w-5 h-5 text-blue-600 dark:text-blue-400") %>
           <span>Google Calendar Direct Sync</span>
         </h2>
-        <p class="text-xs text-slate-500 mt-1">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Automatically create and sync scheduled breakfast, lunch, and dinner events to your family Google Calendar.
         </p>
       </div>
-      <%= link_to "Settings →", edit_admin_household_path, class: "px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors" %>
+      <%= link_to "Settings →", edit_admin_household_path, class: "px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors" %>
     </div>
 
-    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <div class="flex items-center gap-2 mb-1">
           <% if @household.google_calendar_enabled? && @household.google_calendar_id.present? %>
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-xs font-bold text-slate-900">Direct Sync Active</span>
+            <span class="text-xs font-bold text-slate-900 dark:text-white">Direct Sync Active</span>
           <% else %>
-            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-            <span class="text-xs font-bold text-slate-500">Sync Disabled / Unconfigured</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Sync Disabled / Unconfigured</span>
           <% end %>
         </div>
-        <p class="text-xs font-mono text-slate-600 truncate max-w-md">
+        <p class="text-xs font-mono text-slate-600 dark:text-slate-300 truncate max-w-md">
           <%= @household.google_calendar_id.presence || "No Google Calendar ID set" %>
         </p>
       </div>
 
       <div class="flex items-center gap-2">
-        <%= link_to "Configure Google Calendar", edit_admin_household_path, class: "text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline" %>
+        <%= link_to "Configure Google Calendar", edit_admin_household_path, class: "text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline" %>
       </div>
     </div>
   </div>

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-50: color-mix(in srgb, var(--user-accent, #ea580c) 10%, white);
   --color-primary-100: color-mix(in srgb, var(--user-accent, #ea580c) 20%, white);
@@ -11,4 +13,5 @@
   --color-primary-700: color-mix(in srgb, var(--user-accent, #ea580c) 70%, black);
   --color-primary-800: color-mix(in srgb, var(--user-accent, #ea580c) 55%, black);
   --color-primary-900: color-mix(in srgb, var(--user-accent, #ea580c) 40%, black);
+  --color-primary-950: color-mix(in srgb, var(--user-accent, #ea580c) 20%, black);
 }

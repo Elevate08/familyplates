@@ -1,22 +1,22 @@
 <div class="max-w-2xl mx-auto py-6 sm:py-8 space-y-6">
-  <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+  <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-xs font-bold"
            style="background-color: <%= @family_member.avatar_color %>">
         <%= icon_tag(@family_member.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
       </div>
       <div>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Edit <%= @family_member.name %>'s Profile</h1>
-        <p class="text-xs text-slate-500">Organizer settings & permissions</p>
+        <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Edit <%= @family_member.name %>'s Profile</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Organizer settings & permissions</p>
       </div>
     </div>
-    <%= link_to "Cancel", admin_family_members_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900" %>
+    <%= link_to "Cancel", admin_family_members_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
   </div>
 
-  <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <%= form_with model: [:admin, @family_member], class: "space-y-6" do |f| %>
       <% if @family_member.errors.any? %>
-        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+        <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs">
           <p class="font-bold mb-1">Please fix the following issues:</p>
           <ul class="list-disc list-inside space-y-0.5">
             <% @family_member.errors.full_messages.each do |msg| %>
@@ -28,29 +28,29 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <%= f.label :name, "Display Name", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5" %>
+          <%= f.label :name, "Display Name", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
           <%= f.text_field :name, required: true,
-                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
         </div>
 
         <div>
-          <%= f.label :role, "Kitchen Role", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5" %>
+          <%= f.label :role, "Kitchen Role", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
           <%= f.select :role, [["Family Member (1-Tap Switching)", "member"], ["Organizer / Parent (Admin)", "admin"]], {},
-                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
         </div>
       </div>
 
       <!-- Icon Picker -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Avatar Icon</label>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</label>
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
           <% FamilyMember::AVATAR_ICONS.each do |icon_name| %>
             <label class="cursor-pointer group flex flex-col items-center">
               <%= f.radio_button :avatar_icon, icon_name, class: "sr-only peer" %>
-              <div class="w-11 h-11 rounded-2xl border-2 border-slate-200 peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:text-white text-slate-600 flex items-center justify-center transition-all group-hover:scale-105 shadow-xs">
+              <div class="w-11 h-11 rounded-2xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-slate-900 dark:peer-checked:border-white peer-checked:bg-slate-900 dark:peer-checked:bg-white peer-checked:text-white dark:peer-checked:text-slate-900 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all group-hover:scale-105 shadow-xs">
                 <%= icon_tag(icon_name, css_class: "w-5 h-5") %>
               </div>
-              <span class="text-[10px] font-medium text-slate-400 mt-1 capitalize text-center truncate max-w-full">
+              <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-1 capitalize text-center truncate max-w-full">
                 <%= icon_name.tr("-", " ") %>
               </span>
             </label>
@@ -60,12 +60,12 @@
 
       <!-- Color Swatches -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Theme Accent Color</label>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Theme Accent Color</label>
         <div class="flex flex-wrap items-center gap-2.5">
           <% FamilyMember::AVATAR_COLORS.each do |color| %>
             <label class="cursor-pointer">
               <%= f.radio_button :avatar_color, color, class: "sr-only peer" %>
-              <span class="inline-block w-8 h-8 rounded-full shadow-xs peer-checked:ring-4 peer-checked:ring-offset-2 peer-checked:ring-slate-900 peer-checked:scale-110 transition-all"
+              <span class="inline-block w-8 h-8 rounded-full shadow-xs peer-checked:ring-4 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-900 peer-checked:ring-slate-900 dark:peer-checked:ring-white peer-checked:scale-110 transition-all"
                     style="background-color: <%= color %>"></span>
             </label>
           <% end %>
@@ -74,16 +74,16 @@
 
       <!-- PIN Field -->
       <div>
-        <%= f.label :pin, "4-Digit PIN (Required for Admin role)", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5" %>
+        <%= f.label :pin, "4-Digit PIN (Required for Admin role)", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
         <div class="max-w-xs">
           <%= f.password_field :pin, value: @family_member.pin, maxlength: 4, placeholder: "••••", pattern: "[0-9]*", inputmode: "numeric",
-                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
         </div>
-        <p class="text-xs text-slate-400 mt-1">Non-admin members will ignore this field automatically.</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Non-admin members will ignore this field automatically.</p>
       </div>
 
-      <div class="pt-4 flex items-center justify-between border-t border-slate-100">
-        <%= link_to "Cancel", admin_family_members_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900" %>
+      <div class="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+        <%= link_to "Cancel", admin_family_members_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
         <%= f.submit "Update Profile", class: "py-2.5 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-sm cursor-pointer transition-all" %>
       </div>
     <% end %>
