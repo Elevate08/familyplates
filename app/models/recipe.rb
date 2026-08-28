@@ -68,21 +68,25 @@ class Recipe < ApplicationRecord
     tags.to_s.split(",").map(&:strip).reject(&:blank?)
   end
 
-  def requested_by?(family_member, week = Date.current.beginning_of_week)
+  def active_requests
+    recipe_requests.active
+  end
+
+  def requested_by?(family_member, _week = nil)
     return false unless family_member
-    recipe_requests.exists?(family_member: family_member, week_start_date: week)
+    recipe_requests.active.exists?(family_member: family_member)
   end
 
-  def request_count_for_week(week = Date.current.beginning_of_week)
-    recipe_requests.where(week_start_date: week).count
+  def request_count_for_week(_week = nil)
+    recipe_requests.active.count
   end
 
-  def requesters_for_week(week = Date.current.beginning_of_week)
+  def requesters_for_week(_week = nil)
     FamilyMember.joins(:recipe_requests)
-                .where(recipe_requests: { recipe_id: id, week_start_date: week })
+                .where(recipe_requests: { recipe_id: id, fulfilled_at: nil })
   end
 
-  def requester_names_for_week(week = Date.current.beginning_of_week)
-    requesters_for_week(week).pluck(:name)
+  def requester_names_for_week(_week = nil)
+    requesters_for_week.pluck(:name)
   end
 end

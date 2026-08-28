@@ -2,26 +2,27 @@ class RecipeRequestsController < ApplicationController
   before_action :set_recipe
 
   def create
-    week = Date.current.beginning_of_week
+    RecipeRequest.auto_fulfill_passed_slots!
     @recipe_request = @recipe.recipe_requests.find_or_initialize_by(
       family_member: current_family_member,
-      week_start_date: week
+      fulfilled_at: nil
     )
+    @recipe_request.week_start_date ||= Date.current.beginning_of_week
     @recipe_request.save
+    @recipe.reload
 
     respond_to do |format|
       format.turbo_stream
-      format.html { redirect_back fallback_location: @recipe, notice: "Added to your cravings for this week!" }
+      format.html { redirect_back fallback_location: @recipe, notice: "Added to your cravings!" }
     end
   end
 
   def destroy
-    week = Date.current.beginning_of_week
-    @recipe_request = @recipe.recipe_requests.find_by(
-      family_member: current_family_member,
-      week_start_date: week
+    @recipe_request = @recipe.recipe_requests.active.find_by(
+      family_member: current_family_member
     )
     @recipe_request&.destroy
+    @recipe.reload
 
     respond_to do |format|
       format.turbo_stream

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_000507) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_013736) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -120,11 +120,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000507) do
   create_table "recipe_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "family_member_id", null: false
+    t.datetime "fulfilled_at"
     t.integer "recipe_id", null: false
     t.datetime "updated_at", null: false
     t.date "week_start_date", null: false
     t.index ["family_member_id"], name: "index_recipe_requests_on_family_member_id"
-    t.index ["recipe_id", "family_member_id", "week_start_date"], name: "index_recipe_requests_unique_per_week", unique: true
+    t.index ["recipe_id", "family_member_id", "fulfilled_at"], name: "index_recipe_requests_on_active_request"
+    t.index ["recipe_id", "family_member_id", "week_start_date"], name: "idx_on_recipe_id_family_member_id_week_start_date_5f86066019"
     t.index ["recipe_id"], name: "index_recipe_requests_on_recipe_id"
   end
 

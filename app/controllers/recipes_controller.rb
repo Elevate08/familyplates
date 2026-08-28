@@ -11,9 +11,9 @@ class RecipesController < ApplicationController
 
     case params[:filter]
     when "requested"
-      week = Date.current.beginning_of_week
+      RecipeRequest.auto_fulfill_passed_slots!
       recipe_ids = current_household.recipes.joins(:recipe_requests)
-                                    .where(recipe_requests: { week_start_date: week })
+                                    .where(recipe_requests: { fulfilled_at: nil })
                                     .distinct.pluck(:id)
       @recipes = @recipes.where(id: recipe_ids)
     when "quick"

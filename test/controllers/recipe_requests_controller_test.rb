@@ -14,12 +14,20 @@ class RecipeRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "should destroy recipe request" do
-    # Create request first
+  test "should create recipe request via turbo stream" do
+    assert_difference("RecipeRequest.count", 1) do
+      post recipe_recipe_requests_url(@recipe), as: :turbo_stream
+    end
+    assert_response :success
+    assert_includes @response.body, "recipe_#{@recipe.id}_heart"
+  end
+
+  test "should destroy recipe request via turbo stream" do
     post recipe_recipe_requests_url(@recipe)
     assert_difference("RecipeRequest.count", -1) do
-      delete recipe_recipe_request_url(@recipe, "current")
+      delete recipe_recipe_request_url(@recipe, "current"), as: :turbo_stream
     end
-    assert_response :redirect
+    assert_response :success
+    assert_includes @response.body, "recipe_#{@recipe.id}_heart"
   end
 end
