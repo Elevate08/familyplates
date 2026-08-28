@@ -1,11 +1,13 @@
 <div id="<%= dom_id(recipe) %>" class="group relative flex flex-col justify-between rounded-3xl bg-white border border-slate-200/80 hover:border-primary-300 hover:shadow-md transition-all overflow-hidden">
   <!-- Recipe Image Banner -->
   <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
-    <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+    <%= link_to recipe_path(recipe), class: "block w-full h-full cursor-pointer", aria: { label: "View #{recipe.title}" } do %>
+      <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+    <% end %>
 
     <!-- Multi-select checkbox top left -->
-    <div class="absolute top-3 left-3 z-10">
+    <div class="absolute top-3 left-3 z-10" onclick="event.stopPropagation()">
       <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 backdrop-blur-xs shadow-md border border-white/60 cursor-pointer hover:scale-110 transition-transform">
         <input type="checkbox"
                value="<%= recipe.id %>"
@@ -18,7 +20,7 @@
     </div>
 
     <!-- Tags & Meal Types overlay on image -->
-    <div class="absolute bottom-3 left-3 right-12 flex flex-wrap gap-1">
+    <%= link_to recipe_path(recipe), class: "absolute bottom-3 left-3 right-12 flex flex-wrap gap-1 cursor-pointer" do %>
       <% recipe.meal_types_list.each do |mt| %>
         <% icon = case mt; when "breakfast" then "☀️"; when "lunch" then "🥪"; else "🍽️"; end %>
         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-xs text-white shadow-2xs">
@@ -30,10 +32,10 @@
           <%= tag %>
         </span>
       <% end %>
-    </div>
+    <% end %>
 
     <!-- Craving Heart overlay on image top right -->
-    <div class="absolute top-3 right-3 z-10">
+    <div class="absolute top-3 right-3 z-10" onclick="event.stopPropagation()">
       <%= render "recipe_requests/heart_button", recipe: recipe %>
     </div>
   </div>
@@ -41,8 +43,8 @@
   <!-- Card Body -->
   <div class="p-5 flex-1 flex flex-col justify-between">
     <div>
-      <%= link_to recipe_path(recipe), class: "block" do %>
-        <h3 class="text-base font-bold text-slate-900 group-hover:text-primary-600 transition-colors leading-snug">
+      <%= link_to recipe_path(recipe), class: "block group/title" do %>
+        <h3 class="text-base font-bold text-slate-900 group-hover/title:text-primary-600 transition-colors leading-snug">
           <%= recipe.title %>
         </h3>
         <% if recipe.description.present? %>

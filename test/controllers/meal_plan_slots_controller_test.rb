@@ -49,6 +49,25 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_redirected_to recipe_url(recipe)
+    assert_includes flash[:notice], "Scheduled"
+  end
+
+  test "should schedule meal from recipe view with return_to recipe via turbo stream" do
+    recipe = recipes(:one)
+    target_date = Date.current.beginning_of_week + 4.days
+    assert_difference("MealPlanSlot.count", 1) do
+      post meal_plan_slots_url, params: {
+        return_to: "recipe",
+        meal_plan_slot: {
+          date: target_date,
+          meal_type: "lunch",
+          recipe_id: recipe.id
+        }
+      }, as: :turbo_stream
+    end
+    assert_response :success
+    assert_includes @response.body, "recipe_schedule_feedback"
+    assert_includes @response.body, "Scheduled"
   end
 
   test "should update meal plan slot notes" do

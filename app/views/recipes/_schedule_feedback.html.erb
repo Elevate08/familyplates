@@ -1,0 +1,18 @@
+<div id="recipe_schedule_feedback" class="mt-3 empty:hidden">
+  <% if local_assigns[:notice].present? %>
+    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold animate-in fade-in zoom-in-95 duration-200 shadow-2xs">
+      <div class="flex items-center gap-2">
+        <span class="text-base">✅</span>
+        <span><%= notice %></span>
+      </div>
+      <%= link_to "View in Planner →", meal_plans_path, class: "font-extrabold text-emerald-700 hover:text-emerald-900 underline ml-2 text-xs shrink-0" %>
+    </div>
+  <% elsif local_assigns[:alert].present? %>
+    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold animate-in fade-in zoom-in-95 duration-200 shadow-2xs">
+      <div class="flex items-center gap-2">
+        <span class="text-base">⚠️</span>
+        <span><%= alert %></span>
+      </div>
+    </div>
+  <% end %>
+</div>

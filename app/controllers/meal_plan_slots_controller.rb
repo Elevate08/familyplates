@@ -9,20 +9,37 @@ class MealPlanSlotsController < ApplicationController
     @slot.assign_attributes(slot_params)
 
     if @slot.save
+      RecipeRequest.auto_fulfill_passed_slots!
       respond_to do |format|
-        format.turbo_stream
-        format.html do
-          if params[:return_to] == "recipe" && @slot.recipe.present?
-            redirect_to @slot.recipe, notice: "Scheduled \"#{@slot.recipe.title}\" for #{@slot.date.strftime('%A, %b %-d')} (#{@slot.meal_type.capitalize})!"
-          else
+        if params[:return_to] == "recipe" && @slot.recipe.present?
+          format.turbo_stream do
+            render turbo_stream: [
+              turbo_stream.replace("recipe_schedule_feedback", partial: "recipes/schedule_feedback", locals: { notice: "📅 Scheduled for #{@slot.date.strftime('%A, %b %-d')} (#{@slot.meal_type.capitalize})!" }),
+              turbo_stream.replace("recipe_#{@slot.recipe.id}_heart", partial: "recipe_requests/heart_button", locals: { recipe: @slot.recipe.reload }),
+              turbo_stream.replace("recipe_#{@slot.recipe.id}_show_craving", partial: "recipe_requests/show_widget", locals: { recipe: @slot.recipe.reload })
+            ]
+          end
+          format.html do
+            redirect_to @slot.recipe, notice: "📅 Scheduled \"#{@slot.recipe.title}\" for #{@slot.date.strftime('%A, %b %-d')} (#{@slot.meal_type.capitalize})!", status: :see_other
+          end
+        else
+          format.turbo_stream
+          format.html do
             redirect_to meal_plan_path(@meal_plan), notice: "Meal scheduled!"
           end
         end
       end
     else
       respond_to do |format|
-        format.turbo_stream { render :create, status: :unprocessable_entity }
-        format.html { redirect_to meal_plan_path(@meal_plan), alert: @slot.errors.full_messages.to_sentence }
+        if params[:return_to] == "recipe"
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.replace("recipe_schedule_feedback", partial: "recipes/schedule_feedback", locals: { alert: @slot.errors.full_messages.to_sentence })
+          end
+          format.html { redirect_to recipe_path(slot_params[:recipe_id]), alert: @slot.errors.full_messages.to_sentence }
+        else
+          format.turbo_stream { render :create, status: :unprocessable_entity }
+          format.html { redirect_to meal_plan_path(@meal_plan), alert: @slot.errors.full_messages.to_sentence }
+        end
       end
     end
   end

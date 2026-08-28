@@ -168,6 +168,9 @@
         <%= f.submit "Schedule Meal 📅", class: "w-full py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all" %>
       </div>
     <% end %>
+
+    <!-- In-Card Schedule Confirmation Feedback -->
+    <%= render "recipes/schedule_feedback", notice: (notice.to_s.include?("Scheduled") ? notice : nil) %>
   </div>
 
   <!-- Content Split: Ingredients & Instructions -->
