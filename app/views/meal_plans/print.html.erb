@@ -4,11 +4,15 @@
       size: letter landscape;
       margin: 0.3in;
     }
-    body {
+    html, body, .print-page-container, table, thead, tbody, tr, th, td, div, hr, span, h1, h3, p, strong {
       background: white !important;
+      background-color: white !important;
       color: #0f172a !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      border-color: #0f172a !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
       padding: 0 !important;
       margin: 0 !important;
     }
@@ -61,25 +65,25 @@
 
 <% if @view == "month" %>
   <!-- FULL MONTH FRIDGE CALENDAR (Landscape 1-Page Matrix) -->
-  <div class="print-page-container border-4 border-slate-900 rounded-3xl p-5 bg-white flex flex-col justify-start h-full">
+  <div class="print-page-container border-4 border-slate-900 dark:border-slate-700 rounded-3xl p-5 bg-white dark:bg-slate-900 flex flex-col justify-start h-full shadow-md transition-colors">
     <!-- Centered Month/Year Header (Clean & space-maximized) -->
-    <div class="border-b-2 border-slate-900 pb-2 mb-2 text-center">
-      <h1 class="text-3xl font-black text-slate-900 tracking-tight uppercase">
+    <div class="border-b-2 border-slate-900 dark:border-slate-700 pb-2 mb-2 text-center">
+      <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
         <%= @month_date.strftime("%B %Y") %>
       </h1>
     </div>
 
     <!-- Day Headers -->
-    <div class="grid grid-cols-7 gap-1.5 pb-1 text-center border-b border-slate-300 mb-1">
+    <div class="grid grid-cols-7 gap-1.5 pb-1 text-center border-b border-slate-300 dark:border-slate-700 mb-1">
       <% %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday].each do |dname| %>
-        <div class="text-[11px] font-black uppercase tracking-wider text-slate-800"><%= dname %></div>
+        <div class="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200"><%= dname %></div>
       <% end %>
     </div>
 
     <!-- Month Grid Rows -->
     <div class="grid grid-cols-7 gap-1.5 flex-1 my-auto">
       <% @leading_blank_days.to_i.times do %>
-        <div class="border-2 border-dashed border-slate-200 rounded-xl p-1 bg-slate-50/20 min-h-[74px]"></div>
+        <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50/20 dark:bg-slate-800/20 min-h-[74px]"></div>
       <% end %>
 
       <% @month_days.each do |day| %>
@@ -88,77 +92,77 @@
         <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
         <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
 
-        <div class="border-2 border-slate-900 bg-white rounded-xl p-1.5 flex flex-col justify-between min-h-[74px]">
+        <div class="border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-xl p-1.5 flex flex-col justify-between min-h-[74px] transition-colors">
           <!-- Date Number -->
           <div class="flex items-center justify-between pb-0.5">
-            <span class="text-xs font-black text-slate-900"><%= day.strftime("%-d") %></span>
+            <span class="text-xs font-black text-slate-900 dark:text-white"><%= day.strftime("%-d") %></span>
           </div>
 
-          <!-- Spelled out Meals (Breakfast, Lunch, Dinner with light grey divider bars) -->
+          <!-- Spelled out Meals (Breakfast, Lunch, Dinner with light divider bars) -->
           <div class="space-y-1 flex-1 justify-between flex flex-col py-0.5">
             <!-- Breakfast -->
-            <div class="text-[9.5px] leading-tight break-words text-center <%= b_slot ? 'text-slate-900' : 'text-slate-300' %>">
-              <div class="font-black text-slate-900 uppercase text-[9px] tracking-wider text-center">Breakfast</div>
+            <div class="text-[9.5px] leading-tight break-words text-center <%= b_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
+              <div class="font-black text-slate-900 dark:text-amber-400 uppercase text-[9px] tracking-wider text-center">Breakfast</div>
               <% if b_slot&.display_title.present? && b_slot.display_title != "No Meal Planned" %>
-                <div class="font-bold text-slate-900 mt-0.5 text-center"><%= b_slot.display_title %></div>
+                <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= b_slot.display_title %></div>
                 <% if b_slot.family_member || (b_slot.recipe && b_slot.recipe.total_time.to_i > 0) %>
-                  <div class="text-[8.5px] text-slate-600 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
+                  <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
                     <% if b_slot.family_member %>
-                      <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong class="text-slate-900"><%= b_slot.family_member.name %></strong></span>
+                      <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-900 dark:text-slate-200"><%= b_slot.family_member.name %></strong></span>
                     <% end %>
                     <% if b_slot.recipe && b_slot.recipe.total_time.to_i > 0 %>
-                      <span><span class="text-amber-700 font-extrabold">Time:</span> <strong class="text-slate-900"><%= b_slot.recipe.total_time %> mins</strong></span>
+                      <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-900 dark:text-slate-200"><%= b_slot.recipe.total_time %> mins</strong></span>
                     <% end %>
                   </div>
                 <% end %>
               <% else %>
-                <div class="text-slate-300 italic mt-0.5 text-center">—</div>
+                <div class="text-slate-300 dark:text-slate-700 italic mt-0.5 text-center">—</div>
               <% end %>
             </div>
 
-            <!-- Light Grey Separator Bar -->
-            <hr class="border-t border-slate-300 my-0.5 w-full shrink-0 block" />
+            <!-- Light Separator Bar -->
+            <hr class="border-t border-slate-300 dark:border-slate-800 my-0.5 w-full shrink-0 block" />
 
             <!-- Lunch -->
-            <div class="text-[9.5px] leading-tight break-words text-center <%= l_slot ? 'text-slate-900' : 'text-slate-300' %>">
-              <div class="font-black text-slate-900 uppercase text-[9px] tracking-wider text-center">Lunch</div>
+            <div class="text-[9.5px] leading-tight break-words text-center <%= l_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
+              <div class="font-black text-slate-900 dark:text-teal-400 uppercase text-[9px] tracking-wider text-center">Lunch</div>
               <% if l_slot&.display_title.present? && l_slot.display_title != "No Meal Planned" %>
-                <div class="font-bold text-slate-900 mt-0.5 text-center"><%= l_slot.display_title %></div>
+                <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= l_slot.display_title %></div>
                 <% if l_slot.family_member || (l_slot.recipe && l_slot.recipe.total_time.to_i > 0) %>
-                  <div class="text-[8.5px] text-slate-600 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
+                  <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
                     <% if l_slot.family_member %>
-                      <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong class="text-slate-900"><%= l_slot.family_member.name %></strong></span>
+                      <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-900 dark:text-slate-200"><%= l_slot.family_member.name %></strong></span>
                     <% end %>
                     <% if l_slot.recipe && l_slot.recipe.total_time.to_i > 0 %>
-                      <span><span class="text-amber-700 font-extrabold">Time:</span> <strong class="text-slate-900"><%= l_slot.recipe.total_time %> mins</strong></span>
+                      <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-900 dark:text-slate-200"><%= l_slot.recipe.total_time %> mins</strong></span>
                     <% end %>
                   </div>
                 <% end %>
               <% else %>
-                <div class="text-slate-300 italic mt-0.5 text-center">—</div>
+                <div class="text-slate-300 dark:text-slate-700 italic mt-0.5 text-center">—</div>
               <% end %>
             </div>
 
-            <!-- Light Grey Separator Bar -->
-            <hr class="border-t border-slate-300 my-0.5 w-full shrink-0 block" />
+            <!-- Light Separator Bar -->
+            <hr class="border-t border-slate-300 dark:border-slate-800 my-0.5 w-full shrink-0 block" />
 
             <!-- Dinner -->
-            <div class="text-[9.5px] leading-tight break-words text-center <%= d_slot ? 'text-slate-900' : 'text-slate-300' %>">
-              <div class="font-black text-slate-900 uppercase text-[9px] tracking-wider text-center">Dinner</div>
+            <div class="text-[9.5px] leading-tight break-words text-center <%= d_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
+              <div class="font-black text-slate-900 dark:text-primary-400 uppercase text-[9px] tracking-wider text-center">Dinner</div>
               <% if d_slot&.display_title.present? && d_slot.display_title != "No Meal Planned" %>
-                <div class="font-bold text-slate-900 mt-0.5 text-center"><%= d_slot.display_title %></div>
+                <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= d_slot.display_title %></div>
                 <% if d_slot.family_member || (d_slot.recipe && d_slot.recipe.total_time.to_i > 0) %>
-                  <div class="text-[8.5px] text-slate-600 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
+                  <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
                     <% if d_slot.family_member %>
-                      <span><span class="text-blue-700 font-extrabold">Cook:</span> <strong class="text-slate-900"><%= d_slot.family_member.name %></strong></span>
+                      <span><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-900 dark:text-slate-200"><%= d_slot.family_member.name %></strong></span>
                     <% end %>
                     <% if d_slot.recipe && d_slot.recipe.total_time.to_i > 0 %>
-                      <span><span class="text-amber-700 font-extrabold">Time:</span> <strong class="text-slate-900"><%= d_slot.recipe.total_time %> mins</strong></span>
+                      <span><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-900 dark:text-slate-200"><%= d_slot.recipe.total_time %> mins</strong></span>
                     <% end %>
                   </div>
                 <% end %>
               <% else %>
-                <div class="text-slate-300 italic mt-0.5 text-center">—</div>
+                <div class="text-slate-300 dark:text-slate-700 italic mt-0.5 text-center">—</div>
               <% end %>
             </div>
           </div>
@@ -169,63 +173,63 @@
 
 <% else %>
   <!-- 7-DAY WEEKLY FRIDGE TABLE (Flipped: Days as Columns, Meals as Rows - Shifted to Top for Clean Cutting) -->
-  <div class="print-page-container border-4 border-slate-900 rounded-3xl p-5 bg-white flex flex-col justify-start">
+  <div class="print-page-container border-4 border-slate-900 dark:border-slate-700 rounded-3xl p-5 bg-white dark:bg-slate-900 flex flex-col justify-start shadow-md transition-colors">
     <!-- Centered Week Header (Clean & space-maximized) -->
-    <div class="border-b-2 border-slate-900 pb-2 mb-3 text-center">
-      <h1 class="text-3xl font-black text-slate-900 tracking-tight uppercase">
+    <div class="border-b-2 border-slate-900 dark:border-slate-700 pb-2 mb-3 text-center">
+      <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
         <%= @meal_plan.week_label %>
       </h1>
     </div>
 
     <!-- Flipped Matrix Table with Rounded Corners -->
-    <div class="rounded-2xl overflow-hidden border-2 border-slate-900 bg-white">
-      <table class="w-full border-collapse table-fixed bg-white">
+    <div class="rounded-2xl overflow-hidden border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <table class="w-full border-collapse table-fixed bg-white dark:bg-slate-900">
         <thead>
-          <tr class="border-b-2 border-slate-900 bg-white">
-            <th class="w-24 p-2 text-left text-xs font-black uppercase tracking-wider text-slate-500 border-r-2 border-slate-900">
+          <tr class="border-b-2 border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+            <th class="w-24 p-2 text-left text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 border-r-2 border-slate-900 dark:border-slate-700">
               Meal
             </th>
             <% @meal_plan.days.each do |day| %>
-              <th class="p-2 text-center border-r-2 border-slate-900 last:border-r-0">
-                <div class="text-xs font-black uppercase tracking-wider text-slate-900"><%= day.strftime("%a") %></div>
-                <div class="text-[11px] font-bold text-slate-500 mt-0.5"><%= day.strftime("%b %-d") %></div>
+              <th class="p-2 text-center border-r-2 border-slate-900 dark:border-slate-700 last:border-r-0">
+                <div class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white"><%= day.strftime("%a") %></div>
+                <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5"><%= day.strftime("%b %-d") %></div>
               </th>
             <% end %>
           </tr>
         </thead>
         <tbody>
           <% %w[breakfast lunch dinner].each do |meal_type| %>
-            <tr class="border-b-2 border-slate-900 last:border-b-0">
-              <th class="p-2.5 text-left border-r-2 border-slate-900 bg-white font-black uppercase text-xs tracking-wider text-slate-900 align-middle">
+            <tr class="border-b-2 border-slate-900 dark:border-slate-700 last:border-b-0">
+              <th class="p-2.5 text-left border-r-2 border-slate-900 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 font-black uppercase text-xs tracking-wider text-slate-900 dark:text-white align-middle">
                 <%= meal_type.capitalize %>
               </th>
               <% @meal_plan.days.each do |day| %>
                 <% slot = @meal_plan.slot_for(day, meal_type) %>
-                <td class="p-2 border-r-2 border-slate-900 last:border-r-0 align-top bg-white">
+                <td class="p-2 border-r-2 border-slate-900 dark:border-slate-700 last:border-r-0 align-top bg-white dark:bg-slate-900">
                   <% if slot&.display_title.present? && slot.display_title != "No Meal Planned" %>
                     <div class="flex flex-col justify-between h-full min-h-[75px]">
-                      <div class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words flex items-center gap-1 flex-wrap">
+                      <div class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug break-words flex items-center gap-1 flex-wrap">
                         <span><%= slot.display_title %></span>
                         <% if slot.is_leftover? %>
-                          <span class="text-[9px] font-black uppercase px-1 py-0.5 rounded border border-slate-900 bg-purple-100 text-purple-900">🍱 Leftover</span>
+                          <span class="text-[9px] font-black uppercase px-1 py-0.5 rounded border border-slate-900 dark:border-purple-800 bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300">🍱 Leftover</span>
                         <% end %>
                       </div>
                       <% if slot.family_member || (slot.recipe && slot.recipe.total_time.to_i > 0) || slot.notes.present? %>
-                        <div class="mt-2 pt-1 border-t border-slate-200 text-[9.5px] text-slate-600 font-medium flex flex-col gap-0.5">
+                        <div class="mt-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-[9.5px] text-slate-600 dark:text-slate-400 font-medium flex flex-col gap-0.5">
                           <% if slot.family_member %>
-                            <div><span class="text-blue-700 font-extrabold">Cook:</span> <strong class="text-slate-900"><%= slot.family_member.name %></strong></div>
+                            <div><span class="text-blue-700 dark:text-blue-400 font-extrabold">Cook:</span> <strong class="text-slate-900 dark:text-slate-200"><%= slot.family_member.name %></strong></div>
                           <% end %>
                           <% if slot.recipe && slot.recipe.total_time.to_i > 0 %>
-                            <div><span class="text-amber-700 font-extrabold">Time:</span> <strong class="text-slate-900"><%= slot.recipe.total_time %> mins</strong></div>
+                            <div><span class="text-amber-700 dark:text-amber-400 font-extrabold">Time:</span> <strong class="text-slate-900 dark:text-slate-200"><%= slot.recipe.total_time %> mins</strong></div>
                           <% end %>
                           <% if slot.notes.present? %>
-                            <div class="italic text-slate-500">(<%= slot.notes %>)</div>
+                            <div class="italic text-slate-500 dark:text-slate-400">(<%= slot.notes %>)</div>
                           <% end %>
                         </div>
                       <% end %>
                     </div>
                   <% else %>
-                    <div class="h-full min-h-[75px] flex items-center justify-center text-[10px] text-slate-300 italic">
+                    <div class="h-full min-h-[75px] flex items-center justify-center text-[10px] text-slate-300 dark:text-slate-700 italic">
                       —
                     </div>
                   <% end %>
