@@ -26,7 +26,7 @@
             class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" %>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div>
         <%= f.label :prep_time, "Prep Time (mins)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
         <%= f.number_field :prep_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
@@ -36,9 +36,20 @@
         <%= f.number_field :cook_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
       <div>
+        <%= f.label :total_time, "Total Time (mins)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+        <%= f.number_field :total_time, min: 0, placeholder: "Auto or exact", class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+      </div>
+      <div>
         <%= f.label :servings, "Servings", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
         <%= f.number_field :servings, min: 1, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
+    </div>
+
+    <div>
+      <%= f.label :equipment, "Equipment & Materials Needed (optional)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>
+      <%= f.text_field :equipment, placeholder: "e.g. 8x8-inch baking pan, Dutch oven, 6-qt slow cooker, cast iron skillet",
+            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" %>
+      <p class="text-[11px] text-slate-400 mt-1">Baking dish sizes, special pans, or appliances required for this recipe.</p>
     </div>
 
     <div>

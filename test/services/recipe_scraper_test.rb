@@ -49,6 +49,45 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "Meat & Seafood", chicken_ing[:aisle_category]
   end
 
+  test "parses total_time, equipment dish sizes, and normalizes margarine to butter" do
+    html = <<~HTML
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <script type="application/ld+json">
+          {
+            "@context": "https://schema.org",
+            "@type": "Recipe",
+            "name": "French Toast Casserole",
+            "prepTime": "PT15M",
+            "cookTime": "PT45M",
+            "totalTime": "PT75M",
+            "recipeYield": ["6", "1 (8x8-inch) casserole"],
+            "recipeIngredient": [
+              "1 tablespoon margarine, softened"
+            ],
+            "recipeInstructions": [
+              { "@type": "HowToStep", "text": "Grease an 8x8-inch baking pan." },
+              { "@type": "HowToStep", "text": "Dot with butter and bake." }
+            ]
+          }
+          </script>
+        </head>
+        <body></body>
+      </html>
+    HTML
+
+    result = RecipeScraper.parse_html(html, "https://example.com/casserole")
+    assert_equal 15, result[:prep_time]
+    assert_equal 45, result[:cook_time]
+    assert_equal 75, result[:total_time]
+    assert_includes result[:equipment], "8x8-inch"
+
+    butter_ing = result[:ingredients].first
+    assert_equal "Butter, softened", butter_ing[:name]
+    assert_equal "Dairy & Refrigerated", butter_ing[:aisle_category]
+  end
+
   test "parses OpenGraph fallback when no JSON-LD is present" do
     html = <<~HTML
       <!DOCTYPE html>

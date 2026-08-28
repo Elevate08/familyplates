@@ -26,7 +26,7 @@ class Recipe < ApplicationRecord
     "Weekend Grill"
   ].freeze
 
-  validates :title, presence: true
+  validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
 
   scope :alphabetical, -> { order(:title) }
   scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30") }
@@ -55,7 +55,13 @@ class Recipe < ApplicationRecord
   end
 
   def total_time
-    (prep_time || 0) + (cook_time || 0)
+    read_attribute(:total_time).presence || ((prep_time || 0) + (cook_time || 0))
+  end
+
+  def additional_time
+    tt = read_attribute(:total_time)
+    base = (prep_time || 0) + (cook_time || 0)
+    (tt && tt > base) ? (tt - base) : 0
   end
 
   def tag_list

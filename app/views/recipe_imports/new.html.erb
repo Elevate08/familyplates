@@ -18,7 +18,9 @@
         <p class="text-[11px] text-slate-400 mt-1.5">Supports AllRecipes, NYT Cooking, Serious Eats, Budget Bytes, Food Network, Sally's Baking, and hundreds of independent food blogs.</p>
       </div>
 
-      <%= f.submit "Extract & Preview Recipe ⚡", class: "w-full py-3.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-[1.01]" %>
+      <%= f.submit "Extract & Import Recipe ⚡", 
+            data: { turbo_submits_with: "Extracting Recipe from Web... 🍳" },
+            class: "w-full py-3.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-[1.01]" %>
     <% end %>
 
     <div class="mt-6 text-center">

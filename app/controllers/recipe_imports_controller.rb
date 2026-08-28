@@ -9,9 +9,23 @@ class RecipeImportsController < ApplicationController
       return
     end
 
+    # Check if a recipe with this exact URL already exists in household
+    existing_by_url = current_household.recipes.find_by(source_url: url)
+    if existing_by_url
+      redirect_to existing_by_url, alert: "ℹ️ This recipe link is already saved as \"#{existing_by_url.title}\" in your recipe box."
+      return
+    end
+
     data = RecipeScraper.call(url)
     if data.nil?
       redirect_to new_recipe_import_path, alert: "Could not fetch recipe from that web address. Please check the link or add manually."
+      return
+    end
+
+    # Check if a recipe with this title already exists in household
+    existing_by_title = current_household.recipes.where("LOWER(title) = ?", data[:title].to_s.strip.downcase).first
+    if existing_by_title
+      redirect_to existing_by_title, alert: "ℹ️ A recipe titled \"#{existing_by_title.title}\" is already in your recipe box."
       return
     end
 
@@ -20,6 +34,8 @@ class RecipeImportsController < ApplicationController
       description: data[:description],
       prep_time: data[:prep_time] || 15,
       cook_time: data[:cook_time] || 20,
+      total_time: data[:total_time],
+      equipment: data[:equipment],
       servings: data[:servings] || 4,
       source_url: data[:source_url],
       image_url: data[:image_url],
@@ -36,10 +52,13 @@ class RecipeImportsController < ApplicationController
       )
     end
 
-    if @recipe.recipe_ingredients.empty?
-      5.times { @recipe.recipe_ingredients.build }
+    if @recipe.save
+      redirect_to @recipe, notice: "🎉 Successfully imported \"#{@recipe.title}\" into your recipe box!"
+    else
+      if @recipe.recipe_ingredients.empty?
+        5.times { @recipe.recipe_ingredients.build }
+      end
+      render "recipes/new", status: :unprocessable_entity
     end
-
-    render "recipes/new"
   end
 end

@@ -68,20 +68,48 @@
       </div>
 
       <!-- Quick Stats Grid -->
-      <div class="mt-8 pt-6 border-t border-slate-100 grid grid-cols-3 gap-4 text-center">
-        <div class="p-3 rounded-2xl bg-primary-50/50">
-          <span class="block text-xs font-semibold text-slate-500">Prep Time</span>
-          <span class="text-lg font-bold text-slate-900"><%= @recipe.prep_time || 0 %> mins</span>
+      <div class="mt-8 pt-6 border-t border-slate-100 grid grid-cols-2 <%= @recipe.additional_time > 0 ? 'sm:grid-cols-5' : 'sm:grid-cols-4' %> gap-3 text-center">
+        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/60">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-amber-700">Total Time</span>
+          <span class="text-base sm:text-lg font-black text-slate-900">
+            <% total_m = @recipe.total_time %>
+            <% if total_m >= 60 %>
+              <%= "#{total_m / 60} hr #{total_m % 60}m" %>
+            <% else %>
+              <%= "#{total_m} mins" %>
+            <% end %>
+          </span>
         </div>
-        <div class="p-3 rounded-2xl bg-primary-50/50">
-          <span class="block text-xs font-semibold text-slate-500">Cook Time</span>
-          <span class="text-lg font-bold text-slate-900"><%= @recipe.cook_time || 0 %> mins</span>
+        <div class="p-3.5 rounded-2xl bg-primary-50/50 border border-primary-100/80">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Prep Time</span>
+          <span class="text-base sm:text-lg font-bold text-slate-900"><%= @recipe.prep_time || 0 %> mins</span>
         </div>
-        <div class="p-3 rounded-2xl bg-primary-50/50">
-          <span class="block text-xs font-semibold text-slate-500">Servings</span>
-          <span class="text-lg font-bold text-slate-900"><%= @recipe.servings || 4 %></span>
+        <div class="p-3.5 rounded-2xl bg-primary-50/50 border border-primary-100/80">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Cook Time</span>
+          <span class="text-base sm:text-lg font-bold text-slate-900"><%= @recipe.cook_time || 0 %> mins</span>
+        </div>
+        <% if @recipe.additional_time > 0 %>
+          <div class="p-3.5 rounded-2xl bg-teal-50/60 border border-teal-200/60">
+            <span class="block text-[11px] font-bold uppercase tracking-wider text-teal-700">Rest / Stand</span>
+            <span class="text-base sm:text-lg font-bold text-slate-900"><%= @recipe.additional_time %> mins</span>
+          </div>
+        <% end %>
+        <div class="p-3.5 rounded-2xl bg-primary-50/50 border border-primary-100/80">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Servings</span>
+          <span class="text-base sm:text-lg font-bold text-slate-900"><%= @recipe.servings || 4 %></span>
         </div>
       </div>
+
+      <!-- Equipment & Materials Callout -->
+      <% if @recipe.equipment.present? %>
+        <div class="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+          <span class="text-xl">🍳</span>
+          <div class="text-xs">
+            <span class="font-extrabold text-slate-900">Materials / Equipment Needed:</span>
+            <span class="text-slate-700 font-semibold ml-1"><%= @recipe.equipment %></span>
+          </div>
+        </div>
+      <% end %>
     </div>
   </div>
 

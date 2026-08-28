@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_234353) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_000507) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -132,6 +132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_234353) do
     t.integer "cook_time", default: 20
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "equipment"
     t.integer "household_id", null: false
     t.string "image_url"
     t.text "instructions"
@@ -141,6 +142,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_234353) do
     t.string "source_url"
     t.string "tags"
     t.string "title", null: false
+    t.integer "total_time"
     t.datetime "updated_at", null: false
     t.index ["household_id", "title"], name: "index_recipes_on_household_id_and_title"
     t.index ["household_id"], name: "index_recipes_on_household_id"

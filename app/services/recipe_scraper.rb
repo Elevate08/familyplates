@@ -81,16 +81,20 @@ class RecipeScraper
     description = data["description"]
     prep_time = parse_iso_duration(data["prepTime"])
     cook_time = parse_iso_duration(data["cookTime"])
+    total_time = parse_iso_duration(data["totalTime"])
     servings = parse_servings(data["recipeYield"])
     image_url = extract_image(data["image"]) || extract_og_image(doc)
     instructions = extract_instructions(data["recipeInstructions"])
     ingredients = extract_ingredients(data["recipeIngredient"])
+    equipment = extract_equipment(data, instructions, description, doc)
 
     {
       title: title.to_s.strip,
       description: description.to_s.strip,
       prep_time: prep_time,
       cook_time: cook_time,
+      total_time: (total_time > 0 ? total_time : ((prep_time || 0) + (cook_time || 0))),
+      equipment: equipment,
       servings: servings,
       source_url: url,
       image_url: image_url,
@@ -174,6 +178,67 @@ class RecipeScraper
     end.compact
   end
 
+  def extract_equipment(data, instructions, description, doc)
+    raw_items = []
+
+    # 1. From JSON-LD tool / equipment array
+    tools = data["tool"] || data["equipment"]
+    Array(tools).each do |t|
+      val = (t.is_a?(Hash) ? t["name"] : t.to_s).strip
+      raw_items << val if val.present?
+    end
+
+    # 2. From JSON-LD yield if it mentions pan/casserole/dish
+    Array(data["recipeYield"]).each do |y|
+      y_str = y.to_s.strip
+      if y_str =~ /(?:pan|casserole|dish|sheet|pot|skillet|tin|loaf)/i
+        cleaned = y_str.gsub(/^1\s*\((.*?)\)\s*/, '\1 ').strip
+        raw_items << cleaned if cleaned.present?
+      end
+    end
+
+    # 3. Scan instructions & description for dish/pan dimensions and equipment
+    all_text = "#{instructions} #{description}"
+    pattern = /(?:an?\s+)?(\d+(?:\.\d+)?(?:\s*(?:x|by|\*)\s*\d+(?:\.\d+)?)*(?:\s*-\s*inch|\s*inch|\s*\")?\s*(?:baking pan|baking dish|casserole dish|casserole|cake pan|pie plate|pie dish|pie pan|springform pan|loaf pan|sheet pan|roasting pan|baking sheet|muffin tin|muffin pan|cast[- ]iron skillet|skillet|frying pan|Dutch oven|saucepan|stockpot|slow cooker|instant pot|air fryer|bundt pan|ramekins?))/i
+
+    all_text.scan(pattern).each do |match|
+      found = match.first.strip
+      raw_items << found if found.present?
+    end
+
+    # Dimension-aware deduplication (e.g. consolidate '8x8-inch casserole' and '8x8-inch baking pan')
+    dimension_regex = /(\d+(?:\.\d+)?(?:\s*(?:x|by|\*)\s*\d+(?:\.\d+)?)*(?:\s*-\s*inch|\s*inch|\s*\")?)/i
+    grouped_by_dim = {}
+    unmatched = []
+
+    raw_items.each do |item|
+      cleaned = item.to_s.strip
+      next if cleaned.blank? || cleaned =~ /^\d+$/ || cleaned.length < 3
+
+      dim_match = cleaned.match(dimension_regex)
+      dim_key = dim_match ? dim_match[1].gsub(/\s+/, "").downcase : nil
+
+      if dim_key.present? && dim_key.length > 1
+        grouped_by_dim[dim_key] ||= []
+        grouped_by_dim[dim_key] << cleaned
+      else
+        unmatched << cleaned
+      end
+    end
+
+    results = []
+    grouped_by_dim.each do |_dim, group_items|
+      preferred = group_items.find { |i| i =~ /baking pan|baking dish|casserole dish|sheet pan|skillet/i } || group_items.first
+      results << preferred.capitalize
+    end
+
+    unmatched.each do |item|
+      results << item.capitalize unless results.any? { |r| r.downcase.include?(item.downcase) }
+    end
+
+    results.uniq.join(", ").presence
+  end
+
   def parse_ingredient_line(raw)
     cleaned = raw.gsub(/\s+/, " ").strip
 
@@ -188,6 +253,12 @@ class RecipeScraper
       name = $3.strip
 
       quantity = parse_fraction(qty_str)
+    end
+
+    # Normalize margarine/oleo to Butter
+    if name =~ /^margarine/i
+      name = name.sub(/^margarine/i, "Butter")
+      cleaned = cleaned.sub(/margarine/i, "butter")
     end
 
     aisle = categorize_ingredient(name)
@@ -222,7 +293,7 @@ class RecipeScraper
     case n
     when /chicken|beef|pork|steak|turkey|salmon|fish|shrimp|bacon|sausage|kielbasa|tuna|lamb|prosciutto|meatball/
       "Meat & Seafood"
-    when /milk|cream|cheese|cheddar|mozzarella|parmesan|butter|yogurt|sour cream|feta|ricotta|egg/
+    when /milk|cream|cheese|cheddar|mozzarella|parmesan|butter|margarine|yogurt|sour cream|feta|ricotta|egg/
       "Dairy & Refrigerated"
     when /onion|garlic|tomato|potato|lettuce|bell pepper|pepper|spinach|carrot|broccoli|avocado|lime|lemon|cilantro|basil|parsley|cucumber|asparagus|zucchini|mushroom|ginger|celery/
       "Produce"
