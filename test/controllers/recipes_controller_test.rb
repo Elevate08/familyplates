@@ -79,7 +79,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
     created = Recipe.last
     assert_equal "Blueberry French Toast", created.title
-    assert_equal ["breakfast"], created.meal_types_list
+    assert_equal [ "breakfast" ], created.meal_types_list
     assert created.image.attached?
   end
 
@@ -109,14 +109,14 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     r2 = recipes(:two)
 
     post bulk_update_recipes_url, params: {
-      recipe_ids: [r1.id, r2.id],
+      recipe_ids: [ r1.id, r2.id ],
       update_meal_types: "1",
-      meal_types: ["breakfast", "lunch"]
+      meal_types: [ "breakfast", "lunch" ]
     }
 
     assert_redirected_to recipes_url
-    assert_equal ["breakfast", "lunch"], r1.reload.meal_types_list
-    assert_equal ["breakfast", "lunch"], r2.reload.meal_types_list
+    assert_equal [ "breakfast", "lunch" ], r1.reload.meal_types_list
+    assert_equal [ "breakfast", "lunch" ], r2.reload.meal_types_list
   end
 
   test "should bulk update tags" do
@@ -124,7 +124,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     r2 = recipes(:two)
 
     post bulk_update_recipes_url, params: {
-      recipe_ids: [r1.id, r2.id],
+      recipe_ids: [ r1.id, r2.id ],
       update_tags: "1",
       tags: "Family Favorite, Weekend Grill"
     }
@@ -140,7 +140,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference("Recipe.count", -2) do
       post bulk_destroy_recipes_url, params: {
-        recipe_ids: [r1.id, r2.id]
+        recipe_ids: [ r1.id, r2.id ]
       }
     end
 

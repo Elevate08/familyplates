@@ -7,6 +7,6 @@ class CreateRecipeRequests < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
-    add_index :recipe_requests, [:recipe_id, :family_member_id, :week_start_date], unique: true, name: "index_recipe_requests_unique_per_week"
+    add_index :recipe_requests, [ :recipe_id, :family_member_id, :week_start_date ], unique: true, name: "index_recipe_requests_unique_per_week"
   end
 end

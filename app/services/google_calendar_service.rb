@@ -9,7 +9,7 @@ class GoogleCalendarService
       ENV["GOOGLE_CALENDAR_SERVICE_ACCOUNT_JSON"].presence ||
       Rails.application.credentials.google_calendar_service_account_json.presence ||
       (File.exist?(Rails.root.join("config/google_service_account.json")) ? File.read(Rails.root.join("config/google_service_account.json")) : nil) ||
-      Household.where.not(google_service_account_json: [nil, ""]).first&.google_service_account_json
+      Household.where.not(google_service_account_json: [ nil, "" ]).first&.google_service_account_json
   end
 
   def self.configured?(household = nil)
@@ -134,23 +134,24 @@ class GoogleCalendarService
   end
 
   def calculate_slot_times(slot)
-    time_str = slot.scheduled_time.presence || case slot.meal_type
-               when "breakfast" then household.breakfast_time.presence || "08:00"
-               when "lunch"     then household.lunch_time.presence || "12:30"
-               else                  household.dinner_time.presence || "18:00"
-               end
+    time_str = slot.scheduled_time.presence ||
+      case slot.meal_type
+      when "breakfast" then household.breakfast_time.presence || "08:00"
+      when "lunch"     then household.lunch_time.presence || "12:30"
+      else                  household.dinner_time.presence || "18:00"
+      end
 
     duration_minutes = case slot.meal_type
-                       when "breakfast" then 45
-                       when "lunch"     then 45
-                       else                  60
-                       end
+    when "breakfast" then 45
+    when "lunch"     then 45
+    else                  60
+    end
 
     hour, min = time_str.split(":").map(&:to_i)
     start_time = Time.zone.local(slot.date.year, slot.date.month, slot.date.day, hour, min, 0)
     end_time = start_time + duration_minutes.minutes
 
-    [start_time, end_time]
+    [ start_time, end_time ]
   end
 
   def build_event_data(slot)
@@ -186,11 +187,11 @@ class GoogleCalendarService
     @client ||= begin
       calendar_service = Google::Apis::CalendarV3::CalendarService.new
       calendar_service.client_options.application_name = "FamilyPlates"
-      
+
       json_key = StringIO.new(self.class.credentials_json)
       authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
         json_key_io: json_key,
-        scope: [Google::Apis::CalendarV3::AUTH_CALENDAR]
+        scope: [ Google::Apis::CalendarV3::AUTH_CALENDAR ]
       )
       calendar_service.authorization = authorizer
       calendar_service

@@ -67,6 +67,6 @@ class FamilyMembersController < ApplicationController
   end
 
   def family_member_params
-    params.require(:family_member).permit(:name, :avatar_color, :avatar_icon, :role, :pin)
+    params.require(:family_member).permit(:name, :avatar_color, :avatar_icon, :pin)
   end
 end

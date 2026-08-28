@@ -80,7 +80,7 @@ end
 week_start = Date.current.beginning_of_week
 plan = household.current_meal_plan(week_start)
 
-cooks = [dad, mom, dad, maya, mom, leo, dad]
+cooks = [ dad, mom, dad, maya, mom, leo, dad ]
 
 plan.days.each_with_index do |day, idx|
   recipe = created_recipes[idx % created_recipes.size]

@@ -35,7 +35,7 @@ class MealPlansController < ApplicationController
                                          .where(meal_plans: { household_id: current_household.id })
                                          .where(date: @month_start..@month_end)
                                          .includes(:recipe, :family_member)
-                                         .group_by { |s| [s.date, s.meal_type] }
+                                         .group_by { |s| [ s.date, s.meal_type ] }
     end
   end
 
@@ -54,7 +54,7 @@ class MealPlansController < ApplicationController
                                          .where(meal_plans: { household_id: current_household.id })
                                          .where(date: @month_start..@month_end)
                                          .includes(:recipe, :family_member)
-                                         .group_by { |s| [s.date, s.meal_type] }
+                                         .group_by { |s| [ s.date, s.meal_type ] }
     end
 
     render layout: "print"

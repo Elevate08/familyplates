@@ -14,6 +14,6 @@ class CreateRecipes < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
-    add_index :recipes, [:household_id, :title]
+    add_index :recipes, [ :household_id, :title ]
   end
 end

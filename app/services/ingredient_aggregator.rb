@@ -46,7 +46,7 @@ class IngredientAggregator
           aisle_category: aisle,
           emoji: emoji,
           is_staple: is_staple,
-          sources: [ing.recipe.title]
+          sources: [ ing.recipe.title ]
         }
       end
     end
@@ -59,7 +59,7 @@ class IngredientAggregator
     grouped_all_by_aisle = AISLE_ORDER.each_with_object({}) do |aisle, hash|
       items_in_aisle = all_items.select { |i| i[:aisle_category] == aisle }
       # Sort so items to buy come first, then in-pantry items
-      hash[aisle] = items_in_aisle.sort_by { |i| [i[:is_staple] ? 1 : 0, i[:name]] } if items_in_aisle.any?
+      hash[aisle] = items_in_aisle.sort_by { |i| [ i[:is_staple] ? 1 : 0, i[:name] ] } if items_in_aisle.any?
     end
 
     {

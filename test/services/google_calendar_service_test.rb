@@ -18,7 +18,7 @@ class GoogleCalendarServiceTest < ActiveSupport::TestCase
 
   test "calculates start and end time based on meal type and household settings" do
     start_time, end_time = @service.calculate_slot_times(@slot)
-    
+
     # Date is slot.date, time is 17:30 (dinner_time)
     assert_equal 17, start_time.hour
     assert_equal 30, start_time.min

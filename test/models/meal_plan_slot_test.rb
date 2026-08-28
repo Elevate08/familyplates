@@ -36,7 +36,7 @@ class MealPlanSlotTest < ActiveSupport::TestCase
     slot = meal_plan_slots(:one)
     slot.update_column(:google_event_id, "gcal_event_to_delete")
 
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [nil, "delete", "gcal_event_to_delete", household.id]) do
+    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ nil, "delete", "gcal_event_to_delete", household.id ]) do
       slot.destroy
     end
   end
@@ -47,7 +47,7 @@ class MealPlanSlotTest < ActiveSupport::TestCase
     slot = meal_plan_slots(:one)
     slot.update_column(:google_event_id, "gcal_event_cleared")
 
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [slot.id, "delete", "gcal_event_cleared", household.id]) do
+    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ slot.id, "delete", "gcal_event_cleared", household.id ]) do
       slot.update!(recipe: nil, custom_title: nil)
     end
   end

@@ -7,6 +7,6 @@ class CreateMealPlans < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
-    add_index :meal_plans, [:household_id, :week_start_date], unique: true
+    add_index :meal_plans, [ :household_id, :week_start_date ], unique: true
   end
 end

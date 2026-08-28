@@ -51,7 +51,7 @@ class MealPlan < ApplicationRecord
       is_yields = rec&.yields_leftovers? ? 0 : 1
       days_ago = (target_date - slot.date).to_i
       rank_diff = target_rank - (MEAL_TYPE_ORDER[slot.meal_type.to_s] || 1)
-      [is_yields, days_ago, -rank_diff]
+      [ is_yields, days_ago, -rank_diff ]
     end.map do |slot|
       {
         slot: slot,

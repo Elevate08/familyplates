@@ -81,7 +81,9 @@ module Admin
     end
 
     def family_member_params
-      params.require(:family_member).permit(:name, :role, :avatar_color, :avatar_icon, :pin)
+      allowed = params.require(:family_member).permit(:name, :avatar_color, :avatar_icon, :pin)
+      allowed[:role] = params[:family_member][:role] if params.dig(:family_member, :role).in?(%w[admin member])
+      allowed
     end
   end
 end

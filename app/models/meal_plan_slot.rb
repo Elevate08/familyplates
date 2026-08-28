@@ -7,7 +7,7 @@ class MealPlanSlot < ApplicationRecord
 
   validates :date, presence: true
   validates :meal_type, inclusion: { in: MEAL_TYPES }
-  validates :meal_type, uniqueness: { scope: [:meal_plan_id, :date], message: "slot already exists for this date and meal type" }
+  validates :meal_type, uniqueness: { scope: [ :meal_plan_id, :date ], message: "slot already exists for this date and meal type" }
 
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }

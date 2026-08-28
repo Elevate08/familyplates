@@ -7,7 +7,7 @@ class OnboardingController < ApplicationController
 
   def save_recipes
     selected_ids = Array(params[:recipe_ids]).map(&:to_s)
-    
+
     ActiveRecord::Base.transaction do
       @starter_recipes.each do |starter|
         next unless selected_ids.include?(starter["id"])

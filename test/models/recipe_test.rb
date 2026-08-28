@@ -3,7 +3,7 @@ require "test_helper"
 class RecipeTest < ActiveSupport::TestCase
   test "meal_types_list returns array of meal types" do
     recipe = Recipe.new(meal_types: "breakfast,dinner")
-    assert_equal ["breakfast", "dinner"], recipe.meal_types_list
+    assert_equal [ "breakfast", "dinner" ], recipe.meal_types_list
     assert recipe.for_meal_type?("breakfast")
     assert recipe.for_meal_type?("dinner")
     assert_not recipe.for_meal_type?("lunch")

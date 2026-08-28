@@ -1,5 +1,5 @@
 class HomeController < ApplicationController
-  allow_unauthenticated_access only: [:index]
+  allow_unauthenticated_access only: [ :index ]
 
   def index
     if authenticated?

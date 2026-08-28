@@ -11,7 +11,7 @@ class RecipeRequest < ApplicationRecord
   # Fulfills active requests whose planned date on the calendar has arrived or passed
   def self.auto_fulfill_passed_slots!
     active.find_each do |req|
-      min_date = [req.week_start_date, req.created_at&.to_date].compact.min || Date.current.beginning_of_week
+      min_date = [ req.week_start_date, req.created_at&.to_date ].compact.min || Date.current.beginning_of_week
       matching_slot = req.recipe.meal_plan_slots
                          .where("date <= ?", Date.current)
                          .where("date >= ?", min_date)

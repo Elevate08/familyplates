@@ -99,7 +99,7 @@ class MealPlanTest < ActiveSupport::TestCase
     # Next day Tuesday Lunch: both Monday breakfast Quiche and Monday dinner Pot Roast should be available leftover candidates
     tuesday = monday + 1.day
     leftovers = plan.available_leftovers_for(tuesday, "lunch")
-    
+
     assert_equal 2, leftovers.count
     leftover_titles = leftovers.map { |l| l[:recipe].title }
     assert_includes leftover_titles, "Spinach Quiche"
