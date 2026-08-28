@@ -52,6 +52,10 @@ Rails.application.routes.draw do
 
   # Recipes & Scraper
   resources :recipes do
+    collection do
+      post :bulk_update
+      post :bulk_destroy
+    end
     resources :recipe_requests, only: %i[create destroy]
   end
   resources :recipe_imports, only: %i[new create]

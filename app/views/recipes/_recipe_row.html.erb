@@ -1,0 +1,79 @@
+<div id="<%= dom_id(recipe) %>_row"
+     class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-300 hover:shadow-md transition-all">
+  
+  <!-- Left: Checkbox + Thumbnail + Title/Details -->
+  <div class="flex items-center gap-3.5 min-w-0 flex-1">
+    <!-- Multi-select checkbox -->
+    <label class="inline-flex items-center justify-center p-1 rounded-lg cursor-pointer shrink-0">
+      <input type="checkbox"
+             value="<%= recipe.id %>"
+             data-bulk-select-target="checkbox"
+             data-action="change->bulk-select#toggle"
+             class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
+    </label>
+
+    <!-- Thumbnail -->
+    <%= link_to recipe_path(recipe), class: "shrink-0 block" do %>
+      <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>"
+           class="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-2xs group-hover:scale-105 transition-transform bg-slate-100">
+    <% end %>
+
+    <!-- Title & Description -->
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-2 flex-wrap">
+        <%= link_to recipe_path(recipe), class: "font-extrabold text-sm text-slate-900 group-hover:text-primary-600 transition-colors truncate" do %>
+          <%= recipe.title %>
+        <% end %>
+
+        <!-- Meal Type Badges -->
+        <div class="flex items-center gap-1">
+          <% recipe.meal_types_list.each do |mt| %>
+            <% badge_class = case mt; when "breakfast" then "bg-amber-100/80 text-amber-800 border-amber-200"; when "lunch" then "bg-teal-100/80 text-teal-800 border-teal-200"; else "bg-primary-100/80 text-primary-800 border-primary-200"; end %>
+            <% icon = case mt; when "breakfast" then "☀️"; when "lunch" then "🥪"; else "🍽️"; end %>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border <%= badge_class %>">
+              <%= icon %> <%= mt.capitalize %>
+            </span>
+          <% end %>
+        </div>
+      </div>
+
+      <% if recipe.description.present? %>
+        <p class="text-xs text-slate-500 line-clamp-1 mt-0.5"><%= recipe.description %></p>
+      <% end %>
+
+      <!-- Tags -->
+      <div class="flex flex-wrap gap-1 mt-1.5">
+        <% recipe.tag_list.first(4).each do |tag| %>
+          <span class="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            <%= tag %>
+          </span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Stats & Actions -->
+  <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+    <!-- Quick Stats -->
+    <div class="flex items-center gap-3 text-xs text-slate-500 font-medium">
+      <span title="Total Cooking Time">⏱️ <%= recipe.total_time %>m</span>
+      <span title="Servings">👥 <%= recipe.servings %></span>
+      <span title="Number of ingredients">🥗 <%= recipe.recipe_ingredients.count %></span>
+    </div>
+
+    <!-- Craving Heart -->
+    <div class="shrink-0">
+      <%= render "recipe_requests/heart_button", recipe: recipe %>
+    </div>
+
+    <!-- Actions Dropdown / Buttons -->
+    <div class="flex items-center gap-1.5">
+      <%= link_to "Edit", edit_recipe_path(recipe),
+            class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors" %>
+      <%= button_to "Delete", recipe_path(recipe), method: :delete,
+            data: { turbo_confirm: "Are you sure you want to delete #{recipe.title}?" },
+            class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" %>
+    </div>
+  </div>
+
+</div>

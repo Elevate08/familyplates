@@ -97,4 +97,53 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to recipes_url
   end
+
+  test "should get index with list view" do
+    get recipes_url(view: "list")
+    assert_response :success
+    assert_includes response.body, "#{dom_id(recipes(:one))}_row"
+  end
+
+  test "should bulk update meal types" do
+    r1 = recipes(:one)
+    r2 = recipes(:two)
+
+    post bulk_update_recipes_url, params: {
+      recipe_ids: [r1.id, r2.id],
+      meal_types_mode: "set",
+      meal_types: ["breakfast", "lunch"]
+    }
+
+    assert_redirected_to recipes_url
+    assert_equal ["breakfast", "lunch"], r1.reload.meal_types_list
+    assert_equal ["breakfast", "lunch"], r2.reload.meal_types_list
+  end
+
+  test "should bulk update tags" do
+    r1 = recipes(:one)
+    r2 = recipes(:two)
+
+    post bulk_update_recipes_url, params: {
+      recipe_ids: [r1.id, r2.id],
+      tags_mode: "add",
+      tags: "Family Favorite, Weekend Grill"
+    }
+
+    assert_redirected_to recipes_url
+    assert_includes r1.reload.tag_list, "Family Favorite"
+    assert_includes r2.reload.tag_list, "Weekend Grill"
+  end
+
+  test "should bulk destroy recipes" do
+    r1 = recipes(:one)
+    r2 = recipes(:two)
+
+    assert_difference("Recipe.count", -2) do
+      post bulk_destroy_recipes_url, params: {
+        recipe_ids: [r1.id, r2.id]
+      }
+    end
+
+    assert_redirected_to recipes_url
+  end
 end

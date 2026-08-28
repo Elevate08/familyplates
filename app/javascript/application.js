@@ -3,32 +3,28 @@ import "@hotwired/turbo-rails"
 import "controllers"
 
 // Custom styled confirmation dialog (replaces browser native confirm)
+// Ensures all popups inherit the active user profile theme and design language
 Turbo.setConfirmMethod((message, element) => {
   return new Promise((resolve) => {
+    // Dynamic website theme color from active family profile
+    const themeColor = getComputedStyle(document.documentElement).getPropertyValue("--user-accent").trim() || "#ea580c"
+
     // Create backdrop
     const backdrop = document.createElement("div")
-    backdrop.className = "fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+    backdrop.className = "fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen overflow-y-auto"
     backdrop.style.animation = "fadeIn 150ms ease-out"
 
-    // Determine if this is a destructive action
-    const isDelete = element?.closest("form")?.method === "post" &&
-      (element?.closest("form")?.querySelector("[name='_method'][value='delete']") ||
-       message.toLowerCase().includes("delete") ||
-       message.toLowerCase().includes("remove"))
-
-    const accentColor = isDelete ? "#e11d48" : (getComputedStyle(document.documentElement).getPropertyValue("--user-accent").trim() || "#ea580c")
-
     backdrop.innerHTML = `
-      <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 max-w-sm w-full shadow-2xl" style="animation: zoomIn 150ms ease-out">
+      <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 my-auto text-center" style="animation: zoomIn 150ms ease-out">
         <div class="text-center mb-5">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-extrabold shadow-md mx-auto mb-3"
-               style="background-color: ${isDelete ? '#fef2f2' : '#fff7ed'}; border: 2px solid ${isDelete ? '#fecdd3' : '#fed7aa'}">
-            ${isDelete ? '🗑️' : '⚠️'}
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold shadow-md mx-auto mb-3 transition-colors"
+               style="background-color: ${themeColor}; box-shadow: 0 4px 14px ${themeColor}40">
+            <span>⚠️</span>
           </div>
           <h3 class="text-lg font-extrabold text-slate-900">
-            ${isDelete ? 'Confirm Deletion' : 'Are You Sure?'}
+            Are You Sure?
           </h3>
-          <p class="text-sm text-slate-600 mt-2 leading-relaxed">${message}</p>
+          <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">${message}</p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -38,8 +34,8 @@ Turbo.setConfirmMethod((message, element) => {
           </button>
           <button type="button" data-confirm-action="confirm"
                   class="w-1/2 py-2.5 rounded-xl text-white text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-110"
-                  style="background-color: ${accentColor}; box-shadow: 0 4px 14px ${accentColor}40">
-            ${isDelete ? 'Yes, Delete' : 'Confirm'}
+                  style="background-color: ${themeColor}; box-shadow: 0 4px 14px ${themeColor}40">
+            Confirm
           </button>
         </div>
       </div>

@@ -4,6 +4,17 @@
     <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 
+    <!-- Multi-select checkbox top left -->
+    <div class="absolute top-3 left-3 z-10">
+      <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 backdrop-blur-xs shadow-md border border-white/60 cursor-pointer hover:scale-110 transition-transform">
+        <input type="checkbox"
+               value="<%= recipe.id %>"
+               data-bulk-select-target="checkbox"
+               data-action="change->bulk-select#toggle"
+               class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
+      </label>
+    </div>
+
     <!-- Tags & Meal Types overlay on image -->
     <div class="absolute bottom-3 left-3 right-12 flex flex-wrap gap-1">
       <% recipe.meal_types_list.each do |mt| %>

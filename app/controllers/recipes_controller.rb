@@ -61,6 +61,81 @@ class RecipesController < ApplicationController
     redirect_to recipes_path, notice: "Recipe deleted from recipe box."
   end
 
+  def bulk_update
+    recipe_ids = Array(params[:recipe_ids]).reject(&:blank?)
+    recipes = current_household.recipes.where(id: recipe_ids)
+
+    if recipes.empty?
+      redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]), alert: "No recipes selected."
+      return
+    end
+
+    # Bulk Meal Types Update
+    if params[:meal_types_mode].present?
+      selected_meal_types = Array(params[:meal_types]).reject(&:blank?)
+      case params[:meal_types_mode]
+      when "set"
+        recipes.each do |recipe|
+          recipe.update(meal_types: selected_meal_types.join(","))
+        end
+      when "add"
+        recipes.each do |recipe|
+          existing = recipe.meal_types_list
+          combined = (existing + selected_meal_types).uniq
+          recipe.update(meal_types: combined.join(","))
+        end
+      when "remove"
+        recipes.each do |recipe|
+          existing = recipe.meal_types_list
+          remaining = existing - selected_meal_types
+          recipe.update(meal_types: remaining.join(","))
+        end
+      end
+    end
+
+    # Bulk Tags Update
+    if params[:tags_mode].present?
+      new_tags = params[:tags].to_s.split(",").map(&:strip).reject(&:blank?)
+      case params[:tags_mode]
+      when "set"
+        recipes.each do |recipe|
+          recipe.update(tags: new_tags.join(", "))
+        end
+      when "add"
+        recipes.each do |recipe|
+          existing = recipe.tag_list
+          combined = (existing + new_tags).uniq
+          recipe.update(tags: combined.join(", "))
+        end
+      when "remove"
+        recipes.each do |recipe|
+          existing = recipe.tag_list
+          remaining = existing.reject { |t| new_tags.map(&:downcase).include?(t.downcase) }
+          recipe.update(tags: remaining.join(", "))
+        end
+      end
+    end
+
+    redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]),
+                notice: "✨ Successfully updated #{recipes.count} #{'recipe'.pluralize(recipes.count)}."
+  end
+
+  def bulk_destroy
+    recipe_ids = Array(params[:recipe_ids]).reject(&:blank?)
+    recipes = current_household.recipes.where(id: recipe_ids)
+
+    if recipes.empty?
+      redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]), alert: "No recipes selected."
+      return
+    end
+
+    count = recipes.count
+    recipes.destroy_all
+
+    redirect_to recipes_path(filter: params[:filter], query: params[:query], view: params[:view]),
+                notice: "🗑️ Deleted #{count} #{'recipe'.pluralize(count)} from your recipe box."
+  end
+
   private
 
   def set_recipe
