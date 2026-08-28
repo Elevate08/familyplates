@@ -117,7 +117,7 @@ class RecipesController < ApplicationController
   def recipe_params
     cleaned_params = params.require(:recipe).permit(
       :title, :description, :prep_time, :cook_time, :total_time, :equipment, :servings,
-      :source_url, :image_url, :image, :instructions, :tags, :meal_types,
+      :source_url, :image_url, :image, :instructions, :tags, :meal_types, :yields_leftovers,
       meal_types: [],
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
     )

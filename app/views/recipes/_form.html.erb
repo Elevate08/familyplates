@@ -65,6 +65,21 @@
       <p class="text-[11px] text-slate-400 mt-1.5">Determines which meal slots this recipe appears in when planning your schedule.</p>
     </div>
 
+    <!-- Yields Leftovers Setting -->
+    <div class="p-4 rounded-2xl bg-purple-50/70 border border-purple-200/80 flex items-start gap-3.5">
+      <div class="pt-0.5">
+        <%= f.check_box :yields_leftovers, class: "rounded text-purple-600 focus:ring-purple-500 w-5 h-5 cursor-pointer" %>
+      </div>
+      <div>
+        <label for="recipe_yields_leftovers" class="text-sm font-bold text-purple-900 cursor-pointer block">
+          🍱 Yields Leftovers / Makes Extra Servings
+        </label>
+        <p class="text-xs text-purple-700/90 mt-0.5 leading-relaxed">
+          When scheduled for any meal (Breakfast, Lunch, or Dinner), this recipe will automatically be highlighted as an available 1-tap leftover for upcoming meals on your weekly planner.
+        </p>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <%= f.label :image, "Upload Custom Image (optional)", class: "block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1" %>

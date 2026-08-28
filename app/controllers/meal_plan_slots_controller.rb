@@ -108,6 +108,6 @@ class MealPlanSlotsController < ApplicationController
   end
 
   def slot_params
-    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes)
+    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes, :is_leftover)
   end
 end

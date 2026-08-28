@@ -1,13 +1,35 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["item", "checkbox", "remaining"]
+  static targets = ["item", "checkbox", "remaining", "offlineBadge"]
   static values = { planId: String }
 
   connect() {
     this.storageKey = `familyplates_checklist_${this.planIdValue || "current"}`
     this.restoreCheckedState()
     this.updateProgress()
+
+    this.boundUpdateNetworkStatus = this.updateNetworkStatus.bind(this)
+    window.addEventListener("online", this.boundUpdateNetworkStatus)
+    window.addEventListener("offline", this.boundUpdateNetworkStatus)
+    this.updateNetworkStatus()
+  }
+
+  disconnect() {
+    window.removeEventListener("online", this.boundUpdateNetworkStatus)
+    window.removeEventListener("offline", this.boundUpdateNetworkStatus)
+  }
+
+  updateNetworkStatus() {
+    if (!this.hasOfflineBadgeTarget) return
+
+    if (!navigator.onLine) {
+      this.offlineBadgeTarget.classList.remove("hidden")
+      this.offlineBadgeTarget.classList.add("inline-flex")
+    } else {
+      this.offlineBadgeTarget.classList.add("hidden")
+      this.offlineBadgeTarget.classList.remove("inline-flex")
+    }
   }
 
   toggle(event) {
@@ -73,17 +95,32 @@ export default class extends Controller {
   }
 
   resetAll() {
-    if (!confirm("Reset all checkboxes for this week?")) return
-    this.checkboxTargets.forEach(cb => {
-      const isStaple = cb.dataset.isStaple === "true"
-      cb.checked = isStaple
-      const row = cb.closest("[data-checklist-target='item']")
-      if (row) this.applyRowState(row, cb.checked)
-    })
-    try {
-      localStorage.removeItem(this.storageKey)
-    } catch (e) {}
-    this.updateProgress()
+    const performReset = () => {
+      this.checkboxTargets.forEach(cb => {
+        const isStaple = cb.dataset.isStaple === "true"
+        cb.checked = isStaple
+        const row = cb.closest("[data-checklist-target='item']")
+        if (row) this.applyRowState(row, cb.checked)
+      })
+      try {
+        localStorage.removeItem(this.storageKey)
+      } catch (e) {}
+      this.updateProgress()
+    }
+
+    if (window.showConfirmDialog) {
+      window.showConfirmDialog("Reset all checkboxes for this grocery list?", {
+        title: "Reset Grocery List",
+        confirmText: "Reset Checklist",
+        icon: "🔄"
+      }).then(confirmed => {
+        if (confirmed) performReset()
+      })
+    } else {
+      if (confirm("Reset all checkboxes for this grocery list?")) {
+        performReset()
+      }
+    }
   }
 
   updateProgress() {

@@ -9,6 +9,9 @@ class MealPlanSlot < ApplicationRecord
   validates :meal_type, inclusion: { in: MEAL_TYPES }
   validates :meal_type, uniqueness: { scope: [:meal_plan_id, :date], message: "slot already exists for this date and meal type" }
 
+  scope :leftovers, -> { where(is_leftover: true) }
+  scope :fresh_meals, -> { where(is_leftover: false) }
+
   after_commit :sync_to_google_calendar, on: %i[create update]
   after_destroy_commit :delete_from_google_calendar
   after_save :fulfill_recipe_requests_if_passed

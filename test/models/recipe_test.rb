@@ -40,4 +40,16 @@ class RecipeTest < ActiveSupport::TestCase
     )
     assert recipe.image.attached?
   end
+
+  test "yields_leftovers flag and leftover_friendly scope" do
+    household = households(:one)
+    batch_recipe = household.recipes.create!(title: "Big Lasagna", yields_leftovers: true)
+    quick_recipe = household.recipes.create!(title: "Quick Toast", yields_leftovers: false)
+
+    assert batch_recipe.yields_leftovers?
+    assert_not quick_recipe.yields_leftovers?
+
+    assert_includes household.recipes.leftover_friendly, batch_recipe
+    assert_not_includes household.recipes.leftover_friendly, quick_recipe
+  end
 end

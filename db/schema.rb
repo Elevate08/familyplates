@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_013736) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_015914) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -69,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_013736) do
     t.date "date", null: false
     t.integer "family_member_id"
     t.string "google_event_id"
+    t.boolean "is_leftover", default: false, null: false
     t.integer "meal_plan_id", null: false
     t.string "meal_type", default: "dinner", null: false
     t.text "notes"
@@ -146,6 +147,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_013736) do
     t.string "title", null: false
     t.integer "total_time"
     t.datetime "updated_at", null: false
+    t.boolean "yields_leftovers", default: false, null: false
     t.index ["household_id", "title"], name: "index_recipes_on_household_id_and_title"
     t.index ["household_id"], name: "index_recipes_on_household_id"
   end

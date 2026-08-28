@@ -31,6 +31,7 @@ class Recipe < ApplicationRecord
   scope :alphabetical, -> { order(:title) }
   scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30") }
   scope :for_meal_type, ->(meal_type) { where("meal_types LIKE ? OR meal_types IS NULL OR meal_types = ''", "%#{meal_type}%") }
+  scope :leftover_friendly, -> { where(yields_leftovers: true) }
 
   def display_image_url
     if image.attached?

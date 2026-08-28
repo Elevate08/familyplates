@@ -72,7 +72,7 @@ class IngredientAggregator
   private
 
   def collect_ingredients
-    recipe_ids = meal_plan.meal_plan_slots.where.not(recipe_id: nil).pluck(:recipe_id)
+    recipe_ids = meal_plan.meal_plan_slots.where.not(recipe_id: nil).where(is_leftover: false).pluck(:recipe_id)
     RecipeIngredient.where(recipe_id: recipe_ids).includes(:recipe)
   end
 

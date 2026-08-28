@@ -31,6 +31,9 @@
      }
    end %>
 
+<% leftover_candidates = meal_plan.available_leftovers_for(date, meal_type) %>
+<% top_leftover = leftover_candidates.first %>
+
 <%= turbo_frame_tag frame_id do %>
   <div data-controller="slot-modal"
        data-slot-modal-breakfast-time-value="<%= meal_plan.household.breakfast_time.presence || '08:00' %>"
@@ -42,16 +45,21 @@
 
     <!-- Card Trigger (Click anywhere on card to open modal) -->
     <div data-action="click->slot-modal#open"
-         class="relative group/slot rounded-2xl p-3 transition-all min-h-[105px] flex flex-col justify-between cursor-pointer <%= slot&.recipe.present? || slot&.custom_title.present? ? 'bg-white hover:bg-primary-50/20 border-2 border-primary-200 hover:border-primary-400 hover:shadow-md' : 'bg-slate-50/70 border-2 border-dashed border-slate-200 hover:border-primary-300 hover:bg-primary-50/10' %>">
+         class="relative group/slot rounded-2xl p-3 transition-all min-h-[105px] flex flex-col justify-between cursor-pointer <%= slot&.recipe.present? || slot&.custom_title.present? ? (slot.is_leftover? ? 'bg-purple-50/30 hover:bg-purple-50/60 border-2 border-purple-200 hover:border-purple-400 hover:shadow-md' : 'bg-white hover:bg-primary-50/20 border-2 border-primary-200 hover:border-primary-400 hover:shadow-md') : 'bg-slate-50/70 border-2 border-dashed border-slate-200 hover:border-primary-300 hover:bg-primary-50/10' %>">
       
       <% if slot&.recipe.present? || slot&.custom_title.present? %>
         <div>
-          <!-- Header: Meal Badge + Time Badge + Delete Button -->
+          <!-- Header: Meal Badge + Leftover Badge + Time Badge + Delete Button -->
           <div class="flex items-start justify-between gap-1.5 mb-2">
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border <%= badge_colors[meal_type] %>">
                 <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
               </span>
+              <% if slot.is_leftover? %>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1">
+                  <span>🍱</span> <span>Leftover</span>
+                </span>
+              <% end %>
               <% if slot.scheduled_time.present? %>
                 <span class="text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
                   ⏰ <%= slot.scheduled_time %>
@@ -90,7 +98,7 @@
               <span class="text-[11px] font-semibold text-slate-700 truncate max-w-[85px]"><%= slot.family_member.name %></span>
             </div>
           <% else %>
-            <span class="text-[10px] text-slate-400">👤 Unassigned</span>
+            <span class="text-[10px] text-slate-400"><%= slot.is_leftover? ? "🍱 Ready to heat" : "👤 Unassigned" %></span>
           <% end %>
 
           <% if slot.recipe %>
@@ -100,7 +108,7 @@
 
       <% else %>
         <!-- Empty Slot State -->
-        <div class="flex flex-col items-center justify-center h-full py-4 text-center">
+        <div class="flex flex-col items-center justify-center h-full py-3 text-center">
           <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
             <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
           </span>
@@ -109,6 +117,24 @@
             <%= icon_tag("plus", css_class: "w-3.5 h-3.5") %>
             <span>Plan <%= meal_type.capitalize %></span>
           </div>
+
+          <!-- 1-Tap Leftovers Rollover Action for ANY meal type -->
+          <% if top_leftover.present? %>
+            <%= button_to meal_plan_meal_plan_slots_path(meal_plan), method: :post,
+                  params: {
+                    meal_plan_slot: {
+                      date: date,
+                      meal_type: meal_type,
+                      recipe_id: top_leftover[:recipe].id,
+                      is_leftover: true
+                    }
+                  },
+                  onclick: "event.stopPropagation()",
+                  title: "Use leftovers from #{top_leftover[:source_label]}: #{top_leftover[:recipe].title}",
+                  class: "mt-2 inline-flex items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 transition-all cursor-pointer shadow-2xs group/leftover" do %>
+              <span>🍱 Leftovers: <%= top_leftover[:recipe].title.truncate(13) %></span>
+            <% end %>
+          <% end %>
         </div>
       <% end %>
 
@@ -160,6 +186,32 @@
                  value="<%= slot&.recipe_id %>"
                  data-slot-modal-target="recipeInput">
 
+          <!-- Available Leftovers Quick Selector Bar (if any prior meals exist) -->
+          <% if leftover_candidates.any? %>
+            <div class="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <span>🍱</span>
+                  <span>Available Leftovers this week:</span>
+                </span>
+                <span class="text-[10px] text-purple-600 font-semibold">1-tap quick pick</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <% leftover_candidates.first(4).each do |cand| %>
+                  <button type="button"
+                          data-action="click->slot-modal#selectRecipe"
+                          data-recipe-id="<%= cand[:recipe].id %>"
+                          onclick="const cb = this.closest('form').querySelector('input[name=\'meal_plan_slot[is_leftover]\']'); if (cb) cb.checked = true;"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-purple-100 border border-purple-200 text-purple-900 text-xs font-bold transition-all shadow-2xs cursor-pointer group/cand">
+                    <span>🍱</span>
+                    <span class="truncate max-w-[140px] group-hover/cand:text-purple-700"><%= cand[:recipe].title %></span>
+                    <span class="text-[9.5px] text-purple-500 font-medium">(<%= cand[:source_label] %>)</span>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
           <!-- Detailed Recipe Dropdown Selector -->
           <div class="relative">
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
@@ -198,8 +250,11 @@
                   <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>"
                        class="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 bg-slate-100">
                   <div class="flex-1 min-w-0">
-                    <div class="font-extrabold text-xs text-slate-900 truncate group-hover/item:text-primary-700">
-                      <%= recipe.title %>
+                    <div class="font-extrabold text-xs text-slate-900 truncate group-hover/item:text-primary-700 flex items-center gap-1.5">
+                      <span><%= recipe.title %></span>
+                      <% if recipe.yields_leftovers? %>
+                        <span class="text-[9px] font-bold px-1 rounded bg-purple-100 text-purple-800">🍱 Leftovers</span>
+                      <% end %>
                     </div>
                     <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span class="text-[9.5px] font-bold text-slate-500">⏱️ <%= recipe.total_time %>m</span>
@@ -221,6 +276,15 @@
             <%= f.text_field "meal_plan_slot[custom_title]", value: slot&.custom_title, placeholder: "e.g. Scrambled Eggs & Toast, Leftovers, Dining Out",
                   data: { "slot-modal-target": "customTitleInput" },
                   class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+          </div>
+
+          <!-- Leftover / Batch Cook Toggle -->
+          <div class="p-3 rounded-2xl bg-purple-50/60 border border-purple-200/80 flex items-center justify-between">
+            <label class="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-purple-900">
+              <%= f.check_box "meal_plan_slot[is_leftover]", checked: (slot&.is_leftover? || false), class: "rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" %>
+              <span>🍱 Mark as Leftover / Cooked in Advance</span>
+            </label>
+            <span class="text-[10px] text-purple-600 font-semibold">Won't duplicate groceries</span>
           </div>
 
           <!-- Date, Meal Type & Specific Meal Time -->

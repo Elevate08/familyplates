@@ -32,6 +32,11 @@
           <%= tag %>
         </span>
       <% end %>
+      <% if recipe.yields_leftovers? %>
+        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-900/80 backdrop-blur-xs text-white shadow-2xs" title="Yields Leftovers">
+          🍱
+        </span>
+      <% end %>
     <% end %>
 
     <!-- Craving Heart overlay on image top right -->

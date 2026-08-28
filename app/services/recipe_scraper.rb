@@ -87,6 +87,7 @@ class RecipeScraper
     instructions = extract_instructions(data["recipeInstructions"])
     ingredients = extract_ingredients(data["recipeIngredient"])
     equipment = extract_equipment(data, instructions, description, doc)
+    yields_leftovers = servings.to_i >= 6 || title.to_s =~ /casserole|lasagna|stew|chili|roast|soup|bake|enchilada|pulled pork|batch|pot roast/i
 
     {
       title: title.to_s.strip,
@@ -96,6 +97,7 @@ class RecipeScraper
       total_time: (total_time > 0 ? total_time : ((prep_time || 0) + (cook_time || 0))),
       equipment: equipment,
       servings: servings,
+      yields_leftovers: yields_leftovers,
       source_url: url,
       image_url: image_url,
       instructions: instructions,

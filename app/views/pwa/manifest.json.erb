@@ -1,22 +1,55 @@
 {
-  "name": "HomeMealPlanner",
+  "name": "FamilyPlates",
+  "short_name": "FamilyPlates",
   "icons": [
     {
       "src": "/icon.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     },
     {
       "src": "/icon.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
   "start_url": "/",
   "display": "standalone",
   "scope": "/",
-  "description": "HomeMealPlanner.",
-  "theme_color": "red",
-  "background_color": "red"
+  "description": "5-Minute Family Meal Planner & Offline Smart Grocery List",
+  "theme_color": "#ea580c",
+  "background_color": "#f8fafc",
+  "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Weekly Meal Plan",
+      "short_name": "Meal Plan",
+      "description": "View and edit the household meal plan",
+      "url": "/meal_plans",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Grocery List",
+      "short_name": "Groceries",
+      "description": "Interactive supermarket shopping checklist",
+      "url": "/grocery_list",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Recipe Box",
+      "short_name": "Recipes",
+      "description": "Browse and search family recipes",
+      "url": "/recipes",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    }
+  ]
 }

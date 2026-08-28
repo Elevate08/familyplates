@@ -204,8 +204,11 @@
                 <td class="p-2 border-r-2 border-slate-900 last:border-r-0 align-top bg-white">
                   <% if slot&.display_title.present? && slot.display_title != "No Meal Planned" %>
                     <div class="flex flex-col justify-between h-full min-h-[75px]">
-                      <div class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words">
-                        <%= slot.display_title %>
+                      <div class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words flex items-center gap-1 flex-wrap">
+                        <span><%= slot.display_title %></span>
+                        <% if slot.is_leftover? %>
+                          <span class="text-[9px] font-black uppercase px-1 py-0.5 rounded border border-slate-900 bg-purple-100 text-purple-900">🍱 Leftover</span>
+                        <% end %>
                       </div>
                       <% if slot.family_member || (slot.recipe && slot.recipe.total_time.to_i > 0) || slot.notes.present? %>
                         <div class="mt-2 pt-1 border-t border-slate-200 text-[9.5px] text-slate-600 font-medium flex flex-col gap-0.5">
