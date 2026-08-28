@@ -76,4 +76,13 @@ class Recipe < ApplicationRecord
   def request_count_for_week(week = Date.current.beginning_of_week)
     recipe_requests.where(week_start_date: week).count
   end
+
+  def requesters_for_week(week = Date.current.beginning_of_week)
+    FamilyMember.joins(:recipe_requests)
+                .where(recipe_requests: { recipe_id: id, week_start_date: week })
+  end
+
+  def requester_names_for_week(week = Date.current.beginning_of_week)
+    requesters_for_week(week).pluck(:name)
+  end
 end

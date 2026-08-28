@@ -1,21 +1,41 @@
-<% is_requested = recipe.requested_by?(current_family_member) %>
-<% total_requests = recipe.request_count_for_week %>
+<% week_start = Date.current.beginning_of_week %>
+<% is_requested = recipe.requested_by?(current_family_member, week_start) %>
+<% requesters = recipe.requesters_for_week(week_start).to_a %>
+<% total_requests = requesters.size %>
 
-<div id="recipe_<%= recipe.id %>_heart" class="flex items-center gap-1">
-  <% if total_requests > 0 %>
-    <span class="text-xs font-bold text-rose-500"><%= total_requests %></span>
-  <% end %>
-  <% if is_requested %>
-    <%= button_to recipe_recipe_request_path(recipe, "current"), method: :delete,
-          class: "p-1.5 rounded-full text-rose-500 hover:bg-rose-50 transition-transform hover:scale-110 cursor-pointer",
-          title: "Requested for this week! Click to remove" do %>
-      <%= icon_tag("heart-solid", css_class: "w-5 h-5") %>
+<% names_list = requesters.map { |m| m == current_family_member ? "You" : m.name } %>
+<% tooltip_text = if total_requests == 0
+                    "Vote / Crave this dish for this week"
+                  elsif is_requested && total_requests == 1
+                    "Craved by you this week (click to remove)"
+                  else
+                    "Craved this week by #{names_list.to_sentence}"
+                  end %>
+
+<div id="recipe_<%= recipe.id %>_heart" class="inline-flex items-center">
+  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm shadow-md border border-white/80 transition-all hover:scale-105"
+       title="<%= tooltip_text %>">
+    
+    <% if total_requests > 0 %>
+      <span class="text-xs font-extrabold text-rose-500 leading-none select-none"><%= total_requests %></span>
     <% end %>
-  <% else %>
-    <%= button_to recipe_recipe_requests_path(recipe), method: :post,
-          class: "p-1.5 rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-transform hover:scale-110 cursor-pointer",
-          title: "Vote / Request for this week" do %>
-      <%= icon_tag("heart", css_class: "w-5 h-5") %>
+
+    <% if is_requested %>
+      <%= button_to recipe_recipe_request_path(recipe, "current"), method: :delete,
+            form_class: "inline-flex items-center leading-none",
+            class: "p-0 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer flex items-center justify-center",
+            title: tooltip_text,
+            aria: { label: tooltip_text } do %>
+        <%= icon_tag("heart-solid", css_class: "w-4 h-4") %>
+      <% end %>
+    <% else %>
+      <%= button_to recipe_recipe_requests_path(recipe), method: :post,
+            form_class: "inline-flex items-center leading-none",
+            class: "p-0 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer flex items-center justify-center",
+            title: tooltip_text,
+            aria: { label: tooltip_text } do %>
+        <%= icon_tag("heart", css_class: "w-4 h-4") %>
+      <% end %>
     <% end %>
-  <% end %>
+  </div>
 </div>
