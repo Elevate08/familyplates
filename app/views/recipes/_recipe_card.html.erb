@@ -6,18 +6,20 @@
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
     <% end %>
 
-    <!-- Multi-select checkbox top left -->
-    <div class="absolute top-3 left-3 z-10" onclick="event.stopPropagation()">
-      <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs shadow-md border border-white/60 dark:border-slate-700 cursor-pointer hover:scale-110 transition-transform">
-        <input type="checkbox"
-               value="<%= recipe.id %>"
-               data-meal-types="<%= recipe.meal_types_list.join(',') %>"
-               data-tags="<%= recipe.tag_list.join(',') %>"
-               data-bulk-select-target="checkbox"
-               data-action="change->bulk-select#toggle"
-               class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
-      </label>
-    </div>
+    <!-- Multi-select checkbox top left (Admins only) -->
+    <% if current_family_member&.admin? %>
+      <div class="absolute top-3 left-3 z-10" onclick="event.stopPropagation()">
+        <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs shadow-md border border-white/60 dark:border-slate-700 cursor-pointer hover:scale-110 transition-transform">
+          <input type="checkbox"
+                 value="<%= recipe.id %>"
+                 data-meal-types="<%= recipe.meal_types_list.join(',') %>"
+                 data-tags="<%= recipe.tag_list.join(',') %>"
+                 data-bulk-select-target="checkbox"
+                 data-action="change->bulk-select#toggle"
+                 class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
+        </label>
+      </div>
+    <% end %>
 
     <!-- Tags & Meal Types overlay on image -->
     <%= link_to recipe_path(recipe), class: "absolute bottom-3 left-3 right-12 flex flex-wrap gap-1 cursor-pointer" do %>

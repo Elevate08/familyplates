@@ -94,8 +94,8 @@
       <% end %>
     </div>
 
-    <!-- Select All Checkbox Control -->
-    <% if @recipes.any? %>
+    <!-- Select All Checkbox Control (Admins only) -->
+    <% if current_family_member&.admin? && @recipes.any? %>
       <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
         <input type="checkbox"
                data-bulk-select-target="selectAllCheckbox"
@@ -106,51 +106,53 @@
     <% end %>
   </div>
 
-  <!-- Floating Sticky Bulk Actions Toolbar -->
-  <div data-bulk-select-target="toolbar"
-       class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 dark:bg-slate-800 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-slate-700 dark:border-slate-600 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-2xl w-[92%] sm:w-auto justify-between sm:justify-start">
-    
-    <div class="flex items-center gap-2 pr-2 border-r border-slate-700 dark:border-slate-600">
-      <span class="w-2.5 h-2.5 rounded-full bg-primary-400 animate-pulse"></span>
-      <span data-bulk-select-target="count" class="text-xs font-extrabold whitespace-nowrap text-white">
-        0 selected
-      </span>
+  <!-- Floating Sticky Bulk Actions Toolbar (Admins only) -->
+  <% if current_family_member&.admin? %>
+    <div data-bulk-select-target="toolbar"
+         class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 dark:bg-slate-800 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-slate-700 dark:border-slate-600 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-2xl w-[92%] sm:w-auto justify-between sm:justify-start">
+      
+      <div class="flex items-center gap-2 pr-2 border-r border-slate-700 dark:border-slate-600">
+        <span class="w-2.5 h-2.5 rounded-full bg-primary-400 animate-pulse"></span>
+        <span data-bulk-select-target="count" class="text-xs font-extrabold whitespace-nowrap text-white">
+          0 selected
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Edit Meal Types Button -->
+        <button type="button"
+                data-action="click->bulk-select#openMealTypesModal"
+                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+          <span>☀️/🥪/🍽️</span>
+          <span>Meal Types</span>
+        </button>
+
+        <!-- Edit Tags Button -->
+        <button type="button"
+                data-action="click->bulk-select#openTagsModal"
+                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+          <span>🏷️</span>
+          <span>Tags</span>
+        </button>
+
+        <!-- Bulk Delete Button (Uses theme styling) -->
+        <button type="button"
+                data-action="click->bulk-select#confirmBulkDelete"
+                class="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5">
+          <span>🗑️</span>
+          <span>Delete</span>
+        </button>
+
+        <!-- Deselect All Button -->
+        <button type="button"
+                data-action="click->bulk-select#clearAll"
+                class="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer text-xs ml-1"
+                title="Deselect All">
+          ✕
+        </button>
+      </div>
     </div>
-
-    <div class="flex items-center gap-2 flex-wrap">
-      <!-- Edit Meal Types Button -->
-      <button type="button"
-              data-action="click->bulk-select#openMealTypesModal"
-              class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
-        <span>☀️/🥪/🍽️</span>
-        <span>Meal Types</span>
-      </button>
-
-      <!-- Edit Tags Button -->
-      <button type="button"
-              data-action="click->bulk-select#openTagsModal"
-              class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
-        <span>🏷️</span>
-        <span>Tags</span>
-      </button>
-
-      <!-- Bulk Delete Button (Uses theme styling) -->
-      <button type="button"
-              data-action="click->bulk-select#confirmBulkDelete"
-              class="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5">
-        <span>🗑️</span>
-        <span>Delete</span>
-      </button>
-
-      <!-- Deselect All Button -->
-      <button type="button"
-              data-action="click->bulk-select#clearAll"
-              class="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer text-xs ml-1"
-              title="Deselect All">
-        ✕
-      </button>
-    </div>
-  </div>
+  <% end %>
 
   <!-- Recipes Content: Grid View or List View -->
   <% if @recipes.any? %>
@@ -184,95 +186,97 @@
     </div>
   <% end %>
 
-  <!-- ============================================== -->
-  <!-- MODAL: Bulk Edit Meal Types                     -->
-  <!-- ============================================== -->
-  <%= render "shared/modal",
-             data: { "bulk-select-target": "mealTypesModal" },
-             backdrop_action: "bulk-select#closeOnBackdrop",
-             title: "Bulk Update Meal Types",
-             subtitle: "Set meal periods for all selected recipes. Shared meal types are prepopulated.",
-             icon: "☀️",
-             close_action: "bulk-select#closeMealTypesModal" do %>
-    
-    <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "mealTypesForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
-      <%= hidden_field_tag :filter, params[:filter] %>
-      <%= hidden_field_tag :query, params[:query] %>
-      <%= hidden_field_tag :view, current_view %>
-      <%= hidden_field_tag :update_meal_types, "1" %>
+  <% if current_family_member&.admin? %>
+    <!-- ============================================== -->
+    <!-- MODAL: Bulk Edit Meal Types                     -->
+    <!-- ============================================== -->
+    <%= render "shared/modal",
+               data: { "bulk-select-target": "mealTypesModal" },
+               backdrop_action: "bulk-select#closeOnBackdrop",
+               title: "Bulk Update Meal Types",
+               subtitle: "Set meal periods for all selected recipes. Shared meal types are prepopulated.",
+               icon: "☀️",
+               close_action: "bulk-select#closeMealTypesModal" do %>
+      
+      <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "mealTypesForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
+        <%= hidden_field_tag :filter, params[:filter] %>
+        <%= hidden_field_tag :query, params[:query] %>
+        <%= hidden_field_tag :view, current_view %>
+        <%= hidden_field_tag :update_meal_types, "1" %>
 
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Assigned Meal Periods:</label>
-        <div class="space-y-2">
-          <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
-            <label class="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-700 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
-              <%= check_box_tag "meal_types[]", type, false, class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
-              <span class="text-sm"><%= label %></span>
-            </label>
-          <% end %>
-        </div>
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">Checked meal periods will be applied to all selected recipes.</p>
-      </div>
-
-      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
-        <button type="button" data-action="click->bulk-select#closeMealTypesModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-        <%= f.submit "Save Meal Types", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
-      </div>
-    <% end %>
-  <% end %>
-
-  <!-- ============================================== -->
-  <!-- MODAL: Bulk Edit Tags                           -->
-  <!-- ============================================== -->
-  <%= render "shared/modal",
-             data: { "bulk-select-target": "tagsModal" },
-             backdrop_action: "bulk-select#closeOnBackdrop",
-             title: "Bulk Update Tags",
-             subtitle: "Set tags for all selected recipes. Shared tags are prepopulated.",
-             icon: "🏷️",
-             close_action: "bulk-select#closeTagsModal" do %>
-
-    <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "tagsForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
-      <%= hidden_field_tag :filter, params[:filter] %>
-      <%= hidden_field_tag :query, params[:query] %>
-      <%= hidden_field_tag :view, current_view %>
-      <%= hidden_field_tag :update_tags, "1" %>
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Tags (comma-separated):</label>
-        <%= text_field_tag :tags, "", placeholder: "e.g. Kid Friendly, Quick (<30m), Italian",
-              data: { "bulk-select-target": "tagsInput" },
-              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
-        
-        <div class="mt-3">
-          <span class="block text-[10.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Popular Tags (click to toggle):</span>
-          <div class="flex flex-wrap gap-1.5">
-            <% Recipe::POPULAR_TAGS.first(8).each do |popular_tag| %>
-              <button type="button"
-                      data-action="click->bulk-select#addTag"
-                      data-tag="<%= popular_tag %>"
-                      class="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 text-slate-600 dark:text-slate-300 hover:text-primary-700 dark:hover:text-primary-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer">
-                + <%= popular_tag %>
-              </button>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Assigned Meal Periods:</label>
+          <div class="space-y-2">
+            <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
+              <label class="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-700 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
+                <%= check_box_tag "meal_types[]", type, false, class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
+                <span class="text-sm"><%= label %></span>
+              </label>
             <% end %>
           </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">Checked meal periods will be applied to all selected recipes.</p>
         </div>
-      </div>
 
-      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
-        <button type="button" data-action="click->bulk-select#closeTagsModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-        <%= f.submit "Save Tags", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
-      </div>
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" data-action="click->bulk-select#closeMealTypesModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
+          <%= f.submit "Save Meal Types", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
+        </div>
+      <% end %>
     <% end %>
-  <% end %>
 
-  <!-- ============================================== -->
-  <!-- HIDDEN FORM: Bulk Delete Form                  -->
-  <!-- ============================================== -->
-  <%= form_with url: bulk_destroy_recipes_path, method: :post, data: { "bulk-select-target": "deleteForm" }, class: "hidden" do %>
-    <%= hidden_field_tag :filter, params[:filter] %>
-    <%= hidden_field_tag :query, params[:query] %>
-    <%= hidden_field_tag :view, current_view %>
+    <!-- ============================================== -->
+    <!-- MODAL: Bulk Edit Tags                           -->
+    <!-- ============================================== -->
+    <%= render "shared/modal",
+               data: { "bulk-select-target": "tagsModal" },
+               backdrop_action: "bulk-select#closeOnBackdrop",
+               title: "Bulk Update Tags",
+               subtitle: "Set tags for all selected recipes. Shared tags are prepopulated.",
+               icon: "🏷️",
+               close_action: "bulk-select#closeTagsModal" do %>
+
+      <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "tagsForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
+        <%= hidden_field_tag :filter, params[:filter] %>
+        <%= hidden_field_tag :query, params[:query] %>
+        <%= hidden_field_tag :view, current_view %>
+        <%= hidden_field_tag :update_tags, "1" %>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Tags (comma-separated):</label>
+          <%= text_field_tag :tags, "", placeholder: "e.g. Kid Friendly, Quick (<30m), Italian",
+                data: { "bulk-select-target": "tagsInput" },
+                class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
+          
+          <div class="mt-3">
+            <span class="block text-[10.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Popular Tags (click to toggle):</span>
+            <div class="flex flex-wrap gap-1.5">
+              <% Recipe::POPULAR_TAGS.first(8).each do |popular_tag| %>
+                <button type="button"
+                        data-action="click->bulk-select#addTag"
+                        data-tag="<%= popular_tag %>"
+                        class="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 text-slate-600 dark:text-slate-300 hover:text-primary-700 dark:hover:text-primary-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer">
+                  + <%= popular_tag %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" data-action="click->bulk-select#closeTagsModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
+          <%= f.submit "Save Tags", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <!-- ============================================== -->
+    <!-- HIDDEN FORM: Bulk Delete Form                  -->
+    <!-- ============================================== -->
+    <%= form_with url: bulk_destroy_recipes_path, method: :post, data: { "bulk-select-target": "deleteForm" }, class: "hidden" do %>
+      <%= hidden_field_tag :filter, params[:filter] %>
+      <%= hidden_field_tag :query, params[:query] %>
+      <%= hidden_field_tag :view, current_view %>
+    <% end %>
   <% end %>
 
 </div>

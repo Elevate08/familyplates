@@ -6,7 +6,7 @@ module SessionTestHelper
       cookie_jar.signed[:session_id] = Current.session.id
       cookies["session_id"] = cookie_jar[:session_id]
 
-      member = family_member || user.household.family_members.first
+      member = family_member || user.household.family_members.find_by(role: "admin") || user.household.family_members.order(:id).first
       if member
         cookie_jar.signed[:active_family_member_id] = member.id
         cookies["active_family_member_id"] = cookie_jar[:active_family_member_id]

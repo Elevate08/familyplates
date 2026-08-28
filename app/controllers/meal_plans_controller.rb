@@ -1,5 +1,6 @@
 class MealPlansController < ApplicationController
   before_action :set_meal_plan, only: %i[show print]
+  before_action :require_admin, only: %i[sync_calendar]
 
   def index
     week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : Date.current.beginning_of_week

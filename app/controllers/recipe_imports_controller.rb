@@ -53,7 +53,8 @@ class RecipeImportsController < ApplicationController
     end
 
     if @recipe.save
-      redirect_to edit_recipe_path(@recipe), notice: "🎉 Imported \"#{@recipe.title}\" — review or tweak the details below and save when ready!"
+      target_path = current_family_member&.admin? ? edit_recipe_path(@recipe) : recipe_path(@recipe)
+      redirect_to target_path, notice: "🎉 Imported \"#{@recipe.title}\" into your recipe box!"
     else
       if @recipe.recipe_ingredients.empty?
         5.times { @recipe.recipe_ingredients.build }

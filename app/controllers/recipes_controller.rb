@@ -1,5 +1,6 @@
 class RecipesController < ApplicationController
   before_action :set_recipe, only: %i[show edit update destroy]
+  before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
 
   def index
     @recipes = current_household.recipes.alphabetical
