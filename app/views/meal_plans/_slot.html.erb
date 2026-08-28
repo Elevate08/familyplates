@@ -32,7 +32,6 @@
    end %>
 
 <% leftover_candidates = meal_plan.available_leftovers_for(date, meal_type) %>
-<% top_leftover = leftover_candidates.first %>
 
 <%= turbo_frame_tag frame_id do %>
   <div data-controller="slot-modal"
@@ -118,22 +117,29 @@
             <span>Plan <%= meal_type.capitalize %></span>
           </div>
 
-          <!-- 1-Tap Leftovers Rollover Action for ANY meal type -->
-          <% if top_leftover.present? %>
-            <%= button_to meal_plan_meal_plan_slots_path(meal_plan), method: :post,
-                  params: {
-                    meal_plan_slot: {
-                      date: date,
-                      meal_type: meal_type,
-                      recipe_id: top_leftover[:recipe].id,
-                      is_leftover: true
-                    }
-                  },
-                  onclick: "event.stopPropagation()",
-                  title: "Use leftovers from #{top_leftover[:source_label]}: #{top_leftover[:recipe].title}",
-                  class: "mt-2 inline-flex items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200/80 dark:border-purple-800 transition-all cursor-pointer shadow-2xs group/leftover" do %>
-              <span>🍱 Leftovers: <%= top_leftover[:recipe].title.truncate(13) %></span>
-            <% end %>
+          <!-- 1-Tap Leftovers Rollover Actions for ALL available leftover options -->
+          <% if leftover_candidates.any? %>
+            <div class="mt-2.5 w-full flex flex-col items-stretch gap-1.5">
+              <% leftover_candidates.first(2).each do |cand| %>
+                <%= button_to meal_plan_meal_plan_slots_path(meal_plan), method: :post,
+                      params: {
+                        meal_plan_slot: {
+                          date: date,
+                          meal_type: meal_type,
+                          recipe_id: cand[:recipe].id,
+                          is_leftover: true
+                        }
+                      },
+                      onclick: "event.stopPropagation()",
+                      title: "Use leftovers from #{cand[:source_label]}: #{cand[:recipe].title}",
+                      class: "w-full flex flex-col items-center justify-center p-2 rounded-xl text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200/80 dark:border-purple-800 transition-all cursor-pointer shadow-2xs group/leftover text-center" do %>
+                  <div class="w-full text-center">
+                    <span class="text-[11px] font-extrabold leading-tight text-purple-900 dark:text-purple-200 break-words line-clamp-2"><%= cand[:recipe].title %></span>
+                  </div>
+                  <span class="text-[9px] font-semibold text-purple-600 dark:text-purple-400 mt-0.5">(<%= cand[:source_label] %>)</span>
+                <% end %>
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>
@@ -192,20 +198,19 @@
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
                   <span>🍱</span>
-                  <span>Available Leftovers this week:</span>
+                  <span>Available Leftovers this week (<%= leftover_candidates.count %> options):</span>
                 </span>
                 <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">1-tap quick pick</span>
               </div>
-              <div class="flex flex-wrap gap-1.5">
-                <% leftover_candidates.first(4).each do |cand| %>
+              <div class="flex flex-wrap gap-2">
+                <% leftover_candidates.each do |cand| %>
                   <button type="button"
                           data-action="click->slot-modal#selectRecipe"
                           data-recipe-id="<%= cand[:recipe].id %>"
                           onclick="const cb = this.closest('form').querySelector('input[name=\'meal_plan_slot[is_leftover]\']'); if (cb) cb.checked = true;"
-                          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-300 text-xs font-bold transition-all shadow-2xs cursor-pointer group/cand">
-                    <span>🍱</span>
-                    <span class="truncate max-w-[140px] group-hover/cand:text-purple-700 dark:group-hover/cand:text-purple-200"><%= cand[:recipe].title %></span>
-                    <span class="text-[9.5px] text-purple-500 dark:text-purple-400 font-medium">(<%= cand[:source_label] %>)</span>
+                          class="flex flex-col items-start px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-300 transition-all shadow-2xs cursor-pointer group/cand text-left">
+                    <span class="text-xs font-extrabold group-hover/cand:text-purple-700 dark:group-hover/cand:text-purple-200"><%= cand[:recipe].title %></span>
+                    <span class="text-[9.5px] text-purple-500 dark:text-purple-400 font-semibold mt-0.5">(<%= cand[:source_label] %>)</span>
                   </button>
                 <% end %>
               </div>

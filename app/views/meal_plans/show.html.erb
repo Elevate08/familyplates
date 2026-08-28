@@ -1,49 +1,53 @@
 <div class="max-w-7xl mx-auto py-4">
   <!-- Top Navigation & Actions Bar -->
-  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
     
-    <!-- View Switcher & Date Range -->
-    <div class="flex flex-wrap items-center gap-4">
-      <!-- Week / Month View Mode Toggle -->
-      <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <%= link_to "Week View", meal_plan_path(@meal_plan, view: "week"), 
-              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
-        <%= link_to "Month View", meal_plan_path(@meal_plan, view: "month", month: @week_start.beginning_of_month), 
-              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
-      </div>
-
-      <!-- Prev / Next Navigation -->
-      <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <% if @view == "month" %>
-          <%= link_to meal_plan_path(@meal_plan, view: "month", month: @prev_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Month" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          <% end %>
-
-          <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
-                class: "px-3 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
-
-          <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Month" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          <% end %>
-        <% else %>
-          <%= link_to meal_plans_path(week: @prev_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Week" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          <% end %>
-
-          <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
-                class: "px-3 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
-
-          <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Week" do %>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          <% end %>
-        <% end %>
-      </div>
-
-      <div>
-        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+    <!-- Title & Navigation Controls -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between xl:justify-start gap-4">
+      <!-- Date & Subtitle -->
+      <div class="shrink-0">
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
           <%= @view == "month" ? @month_date.strftime("%B %Y") : @meal_plan.week_label %>
         </h1>
         <p class="text-xs text-slate-400 dark:text-slate-500 font-medium">Plan breakfast, lunch, and dinner with your family</p>
+      </div>
+
+      <!-- Navigation & View Mode Toggles -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Week / Month View Mode Toggle -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
+          <%= link_to "Week View", meal_plan_path(@meal_plan, view: "week"), 
+                class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
+          <%= link_to "Month View", meal_plan_path(@meal_plan, view: "month", month: @week_start.beginning_of_month), 
+                class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
+        </div>
+
+        <!-- Prev / Next Navigation -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
+          <% if @view == "month" %>
+            <%= link_to meal_plan_path(@meal_plan, view: "month", month: @prev_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Month" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <% end %>
+
+            <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
+                  class: "px-3 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+
+            <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Month" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <% end %>
+          <% else %>
+            <%= link_to meal_plans_path(week: @prev_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Week" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <% end %>
+
+            <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
+                  class: "px-3 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+
+            <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Week" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <% end %>
+          <% end %>
+        </div>
       </div>
     </div>
 

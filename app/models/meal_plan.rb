@@ -18,7 +18,7 @@ class MealPlan < ApplicationRecord
     if week_start_date.month == end_date.month
       "#{week_start_date.strftime('%B %-d')} – #{end_date.strftime('%-d, %Y')}"
     else
-      "#{week_start_date.strftime('%B %-d')} – #{end_date.strftime('%B %-d, %Y')}"
+      "#{week_start_date.strftime('%b %-d')} – #{end_date.strftime('%b %-d, %Y')}"
     end
   end
 

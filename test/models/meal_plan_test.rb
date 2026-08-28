@@ -73,4 +73,36 @@ class MealPlanTest < ActiveSupport::TestCase
     assert_includes wednesday_recipe_ids, sunday_roast.id
     assert_not_includes wednesday_recipe_ids, saturday_soup.id
   end
+
+  test "week_label formats single-month and multi-month spans cleanly without wrapping" do
+    single_month_plan = MealPlan.new(week_start_date: Date.new(2026, 8, 17))
+    assert_equal "August 17 – 23, 2026", single_month_plan.week_label
+
+    multi_month_plan = MealPlan.new(week_start_date: Date.new(2026, 8, 31))
+    assert_equal "Aug 31 – Sep 6, 2026", multi_month_plan.week_label
+  end
+
+  test "available_leftovers_for supports multiple simultaneous leftover options from breakfast and dinner" do
+    household = households(:one)
+    MealPlanSlot.delete_all
+
+    plan = household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 8, 17))
+    monday = Date.new(2026, 8, 17)
+
+    quiche = household.recipes.create!(title: "Spinach Quiche", yields_leftovers: true)
+    pot_roast = household.recipes.create!(title: "Beef Pot Roast", yields_leftovers: true)
+    salad = household.recipes.create!(title: "Tossed Salad", yields_leftovers: false)
+
+    plan.meal_plan_slots.create!(date: monday, meal_type: "breakfast", recipe: quiche, is_leftover: false)
+    plan.meal_plan_slots.create!(date: monday, meal_type: "dinner", recipe: pot_roast, is_leftover: false)
+
+    # Next day Tuesday Lunch: both Monday breakfast Quiche and Monday dinner Pot Roast should be available leftover candidates
+    tuesday = monday + 1.day
+    leftovers = plan.available_leftovers_for(tuesday, "lunch")
+    
+    assert_equal 2, leftovers.count
+    leftover_titles = leftovers.map { |l| l[:recipe].title }
+    assert_includes leftover_titles, "Spinach Quiche"
+    assert_includes leftover_titles, "Beef Pot Roast"
+  end
 end
