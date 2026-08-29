@@ -62,7 +62,7 @@ starter_recipes:
     cook_time: 30
     servings: 4
     tags: ["Comfort Food", "Kid Friendly", "Pasta", "Italian"]
-    image_url: "https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=800&q=80"
+    image_url: "https://images.unsplash.com/photo-1622973536968-3ead9e780960?auto=format&fit=crop&w=800&q=80"
     instructions: |
       1. Heat olive oil in a large pot over medium-high heat. Add diced onion and minced garlic, sauté 3 minutes.
       2. Add ground beef, breaking it up until browned. Drain excess fat if needed.

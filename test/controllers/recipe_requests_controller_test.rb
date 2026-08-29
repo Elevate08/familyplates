@@ -2,9 +2,9 @@ require "test_helper"
 
 class RecipeRequestsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @admin = family_members(:one)
     @recipe = recipes(:two)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should create recipe request" do

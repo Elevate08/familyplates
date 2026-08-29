@@ -1,23 +1,25 @@
 module SessionTestHelper
-  def sign_in_as(user, family_member: nil)
-    Current.session = user.sessions.create!
+  def sign_in_as(member_or_household = nil, family_member: nil)
+    member = if family_member.present?
+      family_member
+    elsif member_or_household.is_a?(FamilyMember)
+      member_or_household
+    elsif member_or_household.respond_to?(:family_members)
+      member_or_household.family_members.find_by(role: "admin") || member_or_household.family_members.first
+    else
+      FamilyMember.find_by(role: "admin") || FamilyMember.first
+    end
 
-    ActionDispatch::TestRequest.create.cookie_jar.tap do |cookie_jar|
-      cookie_jar.signed[:session_id] = Current.session.id
-      cookies["session_id"] = cookie_jar[:session_id]
-
-      member = family_member || user.household.family_members.find_by(role: "admin") || user.household.family_members.order(:id).first
-      if member
-        cookie_jar.signed[:active_family_member_id] = member.id
-        cookies["active_family_member_id"] = cookie_jar[:active_family_member_id]
-        Current.family_member = member
-      end
+    if member
+      jar = ActionDispatch::Cookies::CookieJar.build(ActionDispatch::TestRequest.create, {})
+      jar.signed[:active_family_member_id] = member.id
+      cookies["active_family_member_id"] = jar["active_family_member_id"]
+      Current.family_member = member
+      Current.household = member.household
     end
   end
 
   def sign_out
-    Current.session&.destroy!
-    cookies.delete("session_id")
     cookies.delete("active_family_member_id")
     Current.family_member = nil
   end

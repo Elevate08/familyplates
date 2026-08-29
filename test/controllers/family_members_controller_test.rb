@@ -2,10 +2,9 @@ require "test_helper"
 
 class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @household = households(:one)
     @family_member = family_members(:one)
-    sign_in_as(@user)
+    sign_in_as(@family_member)
   end
 
   test "should get index" do

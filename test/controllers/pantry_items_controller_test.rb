@@ -2,9 +2,9 @@ require "test_helper"
 
 class PantryItemsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @admin = family_members(:one)
     @item = pantry_items(:one)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should get index" do
@@ -19,6 +19,16 @@ class PantryItemsControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_redirected_to pantry_items_url
+  end
+
+  test "should create pantry item with custom icon" do
+    assert_difference("PantryItem.count", 1) do
+      post pantry_items_url, params: {
+        pantry_item: { name: "Tellicherry Black Pepper", aisle_category: "Spices & Baking", emoji: "pepper-shaker", is_staple: true }
+      }
+    end
+    assert_redirected_to pantry_items_url
+    assert_equal "pepper-shaker", PantryItem.last.emoji
   end
 
   test "should toggle staple" do

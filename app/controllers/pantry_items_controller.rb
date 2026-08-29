@@ -61,6 +61,6 @@ class PantryItemsController < ApplicationController
   end
 
   def pantry_item_params
-    params.require(:pantry_item).permit(:name, :aisle_category, :is_staple)
+    params.require(:pantry_item).permit(:name, :aisle_category, :is_staple, :emoji)
   end
 end

@@ -2,26 +2,23 @@ require "test_helper"
 
 class PreferencesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @admin_member = family_members(:one) # role: admin
     @regular_member = family_members(:two) # role: member
   end
 
-  test "should redirect to login when unauthenticated" do
+  test "should redirect to profile selection when unauthenticated" do
     get edit_preferences_url
-    assert_redirected_to new_session_url
+    assert_redirected_to select_profile_url
   end
 
   test "should get edit when authenticated" do
-    sign_in_as(@user)
+    sign_in_as(@admin_member)
     get edit_preferences_url
     assert_response :success
   end
 
   test "should update name, avatar color, and avatar icon for active member" do
-    sign_in_as(@user)
-    # Set regular member as active cook
-    post set_profile_url(@regular_member)
+    sign_in_as(@regular_member)
 
     patch preferences_url, params: {
       family_member: {
@@ -41,8 +38,7 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should allow admin member to update their 4-digit PIN" do
-    sign_in_as(@user)
-    post set_profile_url(@admin_member, params: { pin: "1234" })
+    sign_in_as(@admin_member)
 
     patch preferences_url, params: {
       family_member: {
@@ -57,8 +53,7 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not allow non-admin member to set a PIN" do
-    sign_in_as(@user)
-    post set_profile_url(@regular_member)
+    sign_in_as(@regular_member)
 
     patch preferences_url, params: {
       family_member: {

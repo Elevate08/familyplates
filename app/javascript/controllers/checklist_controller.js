@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["item", "checkbox", "remaining", "offlineBadge"]
+  static targets = ["item", "checkbox", "remaining", "offlineBadge", "copyButton", "copyButtonText"]
   static values = { planId: String }
 
   connect() {
@@ -127,6 +127,65 @@ export default class extends Controller {
     const uncheckedCount = this.checkboxTargets.filter(cb => !cb.checked).length
     if (this.hasRemainingTarget) {
       this.remainingTarget.textContent = uncheckedCount
+    }
+  }
+
+  copyList() {
+    const lines = []
+    const subtitleEl = this.element.querySelector("p.text-xs")
+    const weekLabel = subtitleEl ? subtitleEl.textContent.split("•")[0].trim() : "Shopping List"
+    lines.push(`GROCERY LIST (${weekLabel})`)
+    lines.push("")
+
+    const sections = this.element.querySelectorAll(".space-y-6 > div")
+    let totalItems = 0
+
+    sections.forEach(section => {
+      const aisleHeader = section.querySelector("h2 span:last-child")
+      const aisleTitle = aisleHeader ? aisleHeader.textContent.trim() : null
+      const rows = section.querySelectorAll("[data-checklist-target='item']")
+      
+      const unboughtItems = []
+      rows.forEach(row => {
+        const checkbox = row.querySelector("input[type='checkbox']")
+        if (!checkbox.checked) {
+          const name = row.querySelector(".item-label")?.textContent?.trim()
+          const qty = row.querySelector(".item-qty")?.textContent?.trim()
+          if (name) {
+            unboughtItems.push(qty ? `- ${name} (${qty})` : `- ${name}`)
+            totalItems++
+          }
+        }
+      })
+
+      if (unboughtItems.length > 0 && aisleTitle) {
+        lines.push(aisleTitle.toUpperCase())
+        unboughtItems.forEach(item => lines.push(item))
+        lines.push("")
+      }
+    })
+
+    if (totalItems === 0) {
+      lines.push("All items are marked as purchased / in pantry!")
+    }
+
+    const textToCopy = lines.join("\n").trim()
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        this.showCopyFeedback()
+      }).catch(err => {
+        console.error("Clipboard copy failed:", err)
+      })
+    }
+  }
+
+  showCopyFeedback() {
+    if (this.hasCopyButtonTextTarget) {
+      const originalText = this.copyButtonTextTarget.textContent
+      this.copyButtonTextTarget.textContent = "Copied Plain Text! 📋"
+      setTimeout(() => {
+        this.copyButtonTextTarget.textContent = originalText
+      }, 2000)
     }
   }
 }

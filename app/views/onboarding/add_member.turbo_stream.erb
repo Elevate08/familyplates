@@ -1,0 +1,15 @@
+<%= turbo_stream.append "family-members-list" do %>
+  <%= render "onboarding/member_card", member: @new_member %>
+<% end %>
+
+<%= turbo_stream.update "members-count" do %>
+  <%= current_household.family_members.count %>
+<% end %>
+
+<%= turbo_stream.replace "add-member-form-container" do %>
+  <%= render "onboarding/add_member_form", new_member: @fresh_member, status_message: "#{@new_member.name} was added successfully! 👩‍🍳" %>
+<% end %>
+
+<%= turbo_stream.replace "flash-messages" do %>
+  <%= render "shared/flash", notice: "#{@new_member.name} was added to the family roster! 👩‍🍳" %>
+<% end %>

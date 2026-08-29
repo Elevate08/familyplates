@@ -2,30 +2,26 @@ require "test_helper"
 
 class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @admin = family_members(:one) # admin
     @member = family_members(:two) # member
   end
 
   test "should block non-admin from accessing index" do
-    sign_in_as(@user)
-    post set_profile_url(@member)
+    sign_in_as(@member)
 
     get admin_family_members_url
     assert_redirected_to root_url
   end
 
   test "should get index for admin" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     get admin_family_members_url
     assert_response :success
   end
 
   test "should create member for admin" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     assert_difference "FamilyMember.count", 1 do
       post admin_family_members_url, params: {
@@ -46,8 +42,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create admin with PIN" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     assert_difference "FamilyMember.count", 1 do
       post admin_family_members_url, params: {
@@ -70,8 +65,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update family member" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     patch admin_family_member_url(@member), params: {
       family_member: {
@@ -86,8 +80,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should reset admin PIN with valid 4-digit PIN" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     # Set new PIN
     patch reset_pin_admin_family_member_url(@admin), params: { pin: "9876" }
@@ -97,8 +90,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should reject admin PIN reset with invalid or blank PIN" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     # Attempt blank PIN
     patch reset_pin_admin_family_member_url(@admin), params: { pin: "" }
@@ -108,8 +100,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should reject PIN reset for non-admin" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     patch reset_pin_admin_family_member_url(@member), params: { pin: "1234" }
     assert_redirected_to admin_family_members_url
@@ -118,8 +109,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy member but protect last admin" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     # Destroy regular member should work
     assert_difference "FamilyMember.count", -1 do

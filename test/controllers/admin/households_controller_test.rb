@@ -2,31 +2,27 @@ require "test_helper"
 
 class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @household = households(:one)
     @admin = family_members(:one) # admin
     @member = family_members(:two) # member
   end
 
   test "should block non-admin" do
-    sign_in_as(@user)
-    post set_profile_url(@member)
+    sign_in_as(@member)
 
     get edit_admin_household_url
     assert_redirected_to root_url
   end
 
   test "should get edit for admin" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     get edit_admin_household_url
     assert_response :success
   end
 
   test "should update household name" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     patch admin_household_url, params: {
       household: {
@@ -39,8 +35,7 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update google calendar settings and meal times" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     patch admin_household_url, params: {
       household: {
@@ -62,8 +57,7 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should test google calendar connection" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     post test_google_calendar_admin_household_url, params: {
       google_calendar_id: "family-meals@group.calendar.google.com"
@@ -73,8 +67,7 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should sync google calendar full week" do
-    sign_in_as(@user)
-    post set_profile_url(@admin, params: { pin: "1234" })
+    sign_in_as(@admin)
 
     post sync_google_calendar_admin_household_url
     assert_redirected_to edit_admin_household_url

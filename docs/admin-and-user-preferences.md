@@ -18,7 +18,7 @@ FamilyPlates supports two types of household members:
 | **Access Admin Control Center (`/admin`)** | ✅ | ❌ |
 | **Edit Household Name & Meal Times** | ✅ | ❌ |
 | **Manage Google Calendar Sync & Credentials** | ✅ | ❌ |
-| **Reset Member PINs & Change Master Email** | ✅ | ❌ |
+| **Reset Member PINs & Manage Roster** | ✅ | ❌ |
 
 ---
 
@@ -27,16 +27,8 @@ FamilyPlates supports two types of household members:
 Every logged-in member can personalize their kitchen experience by clicking their avatar pill in the top-right and selecting **"My Preferences"**:
 
 * **Name:** Update display name in the planner and cook rosters.
-* **Avatar Icons:** 8 custom kitchen-themed SVG icons:
-  * 👨‍🍳 `chef-hat`
-  * ✨ `sparkles`
-  * 🍕 `pizza`
-  * 🍔 `burger`
-  * 🥑 `avocado`
-  * 🧁 `cupcake`
-  * ☕ `coffee`
-  * 🥗 `salad`
-* **Color Palettes:** 12 vibrant kitchen accent colors (Ocean Blue, Berry Pink, Sunset Amber, Emerald Green, Royal Violet, Coral Orange, Indigo, Crimson, Teal, Lemon, Sky, Forest).
+* **Avatar Icons:** Custom kitchen-themed SVG icons (`chef-hat`, `utensils`, `heart`, `star`, `smile`, `flame`, `sparkles`, `award`).
+* **Color Palettes:** 12 vibrant kitchen accent colors.
 * **PIN Change:** Admins can change their 4-digit security PIN anytime.
 
 ---
@@ -49,9 +41,7 @@ The Admin Control Center is restricted to Admin members and requires entering th
    * Add new family members.
    * Toggle Admin/Member role.
    * Reset forgotten 4-digit PINs.
-2. **Master Account Credentials (`/admin/account`):**
-   * Modify the primary family email address and password.
-3. **Household & Calendar Settings (`/admin/household/edit`):**
+2. **Household & Calendar Settings (`/admin/household/edit`):**
    * Household display name.
    * Default breakfast, lunch, and dinner start hours.
    * Google Calendar Service Account credentials & Real-Time Sync.

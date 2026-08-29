@@ -2,9 +2,10 @@ require "test_helper"
 
 class MealPlansControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @household = households(:one)
+    @admin = family_members(:one)
     @meal_plan = meal_plans(:one)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should get index and redirect to current meal plan" do
@@ -111,7 +112,7 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should sync calendar when enabled" do
-    @user.household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
+    @household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
 
     post sync_calendar_meal_plan_url(@meal_plan)
     assert_redirected_to meal_plan_url(@meal_plan)
@@ -119,7 +120,7 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should alert when syncing calendar but not enabled" do
-    @user.household.update!(google_calendar_enabled: false)
+    @household.update!(google_calendar_enabled: false)
 
     post sync_calendar_meal_plan_url(@meal_plan)
     assert_redirected_to meal_plan_url(@meal_plan)

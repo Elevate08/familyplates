@@ -2,7 +2,6 @@ require "test_helper"
 
 class RecipeCravingLifecycleTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @household = households(:one)
     @family_member = family_members(:one)
     @recipe = recipes(:two) # Choose a recipe without existing requests
@@ -11,7 +10,7 @@ class RecipeCravingLifecycleTest < ActionDispatch::IntegrationTest
     RecipeRequest.delete_all
     MealPlanSlot.delete_all
 
-    sign_in_as(@user, family_member: @family_member)
+    sign_in_as(@family_member)
   end
 
   test "end-to-end craving lifecycle: request -> persist -> schedule -> fulfill -> re-request" do

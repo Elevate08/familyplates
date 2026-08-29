@@ -6,7 +6,9 @@
       <%= icon_tag(pantry_item.is_staple? ? "check" : "plus", css_class: "w-3.5 h-3.5") %>
     <% end %>
     
-    <span class="text-xl shrink-0"><%= pantry_item.display_emoji %></span>
+    <div class="w-7 h-7 flex items-center justify-center shrink-0">
+      <%= pantry_icon_tag(pantry_item) %>
+    </div>
     <div>
       <span class="text-sm font-bold text-slate-800 dark:text-slate-200"><%= pantry_item.name %></span>
       <% if pantry_item.is_staple? %>
