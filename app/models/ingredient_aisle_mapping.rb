@@ -59,7 +59,7 @@ class IngredientAisleMapping < ApplicationRecord
     where(household_id: h_id).destroy_all
 
     counts = resolved_household.recipes.joins(:recipe_ingredients)
-                               .where.not(recipe_ingredients: { name: [nil, ""], aisle_category: [nil, ""] })
+                               .where.not(recipe_ingredients: { name: [ nil, "" ], aisle_category: [ nil, "" ] })
                                .group("LOWER(recipe_ingredients.name), recipe_ingredients.aisle_category")
                                .count
 
@@ -122,7 +122,7 @@ class IngredientAisleMapping < ApplicationRecord
     h_id = extract_household_id(household)
 
     # Overlay database mappings
-    scope = where(household_id: [nil, h_id].compact)
+    scope = where(household_id: [ nil, h_id ].compact)
     scope.find_each do |m|
       key = m.name.downcase
       display_name = m.name.titleize
@@ -156,7 +156,7 @@ class IngredientAisleMapping < ApplicationRecord
       end
     end
 
-    ingredients_map.values.sort_by { |i| [-i[:weight], i[:name].downcase] }
+    ingredients_map.values.sort_by { |i| [ -i[:weight], i[:name].downcase ] }
   end
 
   def self.extract_household_id(household)

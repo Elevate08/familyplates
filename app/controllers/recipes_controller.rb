@@ -129,7 +129,7 @@ class RecipesController < ApplicationController
   end
 
   def set_available_tags
-    household_tags = current_household.recipes.where.not(tags: [nil, ""])
+    household_tags = current_household.recipes.where.not(tags: [ nil, "" ])
                                       .pluck(:tags)
                                       .flat_map { |t| t.to_s.split(",").map(&:strip) }
                                       .reject(&:blank?)

@@ -191,6 +191,8 @@ class OnboardingController < ApplicationController
   end
 
   def family_member_params
-    params.require(:family_member).permit(:name, :role, :pin, :avatar_color, :avatar_icon)
+    allowed = params.require(:family_member).permit(:name, :pin, :avatar_color, :avatar_icon)
+    allowed[:role] = params[:family_member][:role] if params.dig(:family_member, :role).in?(%w[admin member])
+    allowed
   end
 end

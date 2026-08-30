@@ -9,7 +9,7 @@ class CreateIngredientAisleMappings < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :ingredient_aisle_mappings, [:household_id, :name]
-    add_index :ingredient_aisle_mappings, [:name, :aisle_category]
+    add_index :ingredient_aisle_mappings, [ :household_id, :name ]
+    add_index :ingredient_aisle_mappings, [ :name, :aisle_category ]
   end
 end

@@ -35,11 +35,11 @@ class IngredientAisleMappingTest < ActiveSupport::TestCase
   test "returns most likely aisle based on highest weighted count" do
     recipe1 = recipes(:one)
     recipe2 = recipes(:two)
-    
+
     # 1 recipe has "Special Herb" in Bakery, 2 recipes have it in Produce
     recipe1.recipe_ingredients.create!(name: "Special Herb", quantity: 1, aisle_category: "Bakery")
     recipe2.recipe_ingredients.create!(name: "Special Herb", quantity: 1, aisle_category: "Produce")
-    @household.recipes.create!(title: "Herb Salad", recipe_ingredients_attributes: [{ name: "Special Herb", quantity: 1, aisle_category: "Produce" }])
+    @household.recipes.create!(title: "Herb Salad", recipe_ingredients_attributes: [ { name: "Special Herb", quantity: 1, aisle_category: "Produce" } ])
 
     assert_equal "Produce", IngredientAisleMapping.most_likely_aisle("Special Herb", @household)
   end

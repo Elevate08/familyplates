@@ -8,4 +8,3 @@
 # No preloaded families, dummy users, or sample meal plans are seeded here.
 
 puts "✨ FamilyPlates database initialized. Launch the web application to complete your family kitchen onboarding!"
-

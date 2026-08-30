@@ -48,11 +48,11 @@ class RecipeIngredient < ApplicationRecord
   def self.available_units(household = nil)
     db_units = if household
                  household.recipes.joins(:recipe_ingredients)
-                          .where.not(recipe_ingredients: { unit: [nil, ""] })
+                          .where.not(recipe_ingredients: { unit: [ nil, "" ] })
                           .distinct.pluck(Arel.sql("recipe_ingredients.unit"))
-               else
-                 where.not(unit: [nil, ""]).distinct.pluck(Arel.sql("unit"))
-               end
+    else
+                 where.not(unit: [ nil, "" ]).distinct.pluck(Arel.sql("unit"))
+    end
     (COMMON_UNITS + db_units).map(&:to_s).map(&:strip).reject(&:blank?).uniq.sort_by(&:downcase)
   end
 
