@@ -134,6 +134,8 @@ class RecipesController < ApplicationController
                                       .flat_map { |t| t.to_s.split(",").map(&:strip) }
                                       .reject(&:blank?)
     @available_tags = (household_tags + Recipe::POPULAR_TAGS).uniq.sort_by(&:downcase)
+    @available_ingredients = IngredientAisleMapping.available_ingredients_with_aisles(current_household)
+    @available_units = RecipeIngredient.available_units(current_household)
   end
 
   def recipe_params

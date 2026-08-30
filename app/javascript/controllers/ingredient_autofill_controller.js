@@ -1,0 +1,318 @@
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = [
+    "nameInput",
+    "aisleSelect",
+    "nameDropdown",
+    "nameList",
+    "createNameOption",
+    "createNameText",
+    "unitInput",
+    "unitDropdown",
+    "unitList",
+    "createUnitOption",
+    "createUnitText"
+  ]
+
+  static values = {
+    ingredients: { type: Array, default: [] },
+    units: { type: Array, default: [] }
+  }
+
+  connect() {
+    this._handleClickOutside = this.handleClickOutside.bind(this)
+    document.addEventListener("click", this._handleClickOutside)
+  }
+
+  disconnect() {
+    document.removeEventListener("click", this._handleClickOutside)
+  }
+
+  // ==========================================
+  // INGREDIENT NAME AUTOFILL & CREATION
+  // ==========================================
+
+  onNameFocus() {
+    this.closeUnitDropdown()
+    this.updateNameDropdown(this.nameInputTarget.value.trim())
+  }
+
+  onNameInput() {
+    this.closeUnitDropdown()
+    this.updateNameDropdown(this.nameInputTarget.value.trim())
+  }
+
+  onNameKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      const query = this.nameInputTarget.value.trim()
+      if (query.length > 0) {
+        const firstMatch = this.hasNameListTarget ? this.nameListTarget.querySelector("[data-ingredient-name]") : null
+        if (firstMatch && firstMatch.dataset.ingredientName.toLowerCase() === query.toLowerCase()) {
+          this.selectIngredient(firstMatch.dataset.ingredientName, firstMatch.dataset.ingredientAisle)
+        } else {
+          this.createCustomIngredient(query)
+        }
+      }
+    } else if (event.key === "Escape") {
+      this.closeNameDropdown()
+    }
+  }
+
+  updateNameDropdown(query) {
+    if (!this.hasNameDropdownTarget || !this.hasNameListTarget) return
+
+    const q = (query || "").toLowerCase()
+    const matching = this.ingredientsValue.filter(item => {
+      if (!q) return true
+      return this.fuzzyMatch(q, item.name.toLowerCase())
+    })
+
+    this.nameListTarget.innerHTML = ""
+
+    matching.slice(0, 8).forEach(item => {
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.dataset.ingredientName = item.name
+      btn.dataset.ingredientAisle = item.aisle
+      btn.className = "w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
+      
+      const aisleColor = this.getAisleBadgeColor(item.aisle)
+      btn.innerHTML = `
+        <span class="font-bold text-slate-900 dark:text-white truncate">${item.name}</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${aisleColor} shrink-0 ml-2 shadow-2xs">${item.aisle}</span>
+      `
+      
+      btn.addEventListener("click", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this.selectIngredient(item.name, item.aisle)
+      })
+
+      this.nameListTarget.appendChild(btn)
+    })
+
+    // Check exact match for create option
+    const exactMatch = this.ingredientsValue.some(i => i.name.toLowerCase() === q)
+    if (q.length > 0 && !exactMatch) {
+      if (this.hasCreateNameOptionTarget) this.createNameOptionTarget.classList.remove("hidden")
+      if (this.hasCreateNameTextTarget) this.createNameTextTarget.textContent = query
+    } else {
+      if (this.hasCreateNameOptionTarget) this.createNameOptionTarget.classList.add("hidden")
+    }
+
+    const hasContent = matching.length > 0 || (q.length > 0 && !exactMatch)
+    if (hasContent) {
+      this.nameDropdownTarget.classList.remove("hidden")
+    } else {
+      this.nameDropdownTarget.classList.add("hidden")
+    }
+  }
+
+  selectIngredient(name, aisle) {
+    this.nameInputTarget.value = name
+
+    if (aisle && this.hasAisleSelectTarget) {
+      const select = this.aisleSelectTarget
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.toLowerCase() === aisle.toLowerCase()) {
+          select.selectedIndex = i
+          break
+        }
+      }
+      select.dispatchEvent(new Event("change", { bubbles: true }))
+    }
+
+    this.closeNameDropdown()
+  }
+
+  createCustomIngredient(query) {
+    const trimmed = (query || this.nameInputTarget.value).trim()
+    if (!trimmed) return
+
+    this.nameInputTarget.value = trimmed
+
+    const guessedAisle = this.guessAisle(trimmed)
+    if (guessedAisle && this.hasAisleSelectTarget) {
+      const select = this.aisleSelectTarget
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.toLowerCase() === guessedAisle.toLowerCase()) {
+          select.selectedIndex = i
+          break
+        }
+      }
+    }
+
+    this.closeNameDropdown()
+  }
+
+  handleCreateNameClick(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    const query = this.nameInputTarget.value.trim()
+    this.createCustomIngredient(query)
+  }
+
+  closeNameDropdown() {
+    if (this.hasNameDropdownTarget) {
+      this.nameDropdownTarget.classList.add("hidden")
+    }
+  }
+
+  // ==========================================
+  // MEASUREMENT UNIT AUTOFILL & CREATION
+  // ==========================================
+
+  onUnitFocus() {
+    this.closeNameDropdown()
+    this.updateUnitDropdown(this.unitInputTarget.value.trim())
+  }
+
+  onUnitInput() {
+    this.closeNameDropdown()
+    this.updateUnitDropdown(this.unitInputTarget.value.trim())
+  }
+
+  onUnitKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      const query = this.unitInputTarget.value.trim()
+      if (query.length > 0) {
+        const firstMatch = this.hasUnitListTarget ? this.unitListTarget.querySelector("[data-unit-name]") : null
+        if (firstMatch && firstMatch.dataset.unitName.toLowerCase() === query.toLowerCase()) {
+          this.selectUnit(firstMatch.dataset.unitName)
+        } else {
+          this.selectUnit(query)
+        }
+      }
+    } else if (event.key === "Escape") {
+      this.closeUnitDropdown()
+    }
+  }
+
+  updateUnitDropdown(query) {
+    if (!this.hasUnitDropdownTarget || !this.hasUnitListTarget) return
+
+    const q = (query || "").toLowerCase()
+    const matching = this.unitsValue.filter(unit => {
+      if (!q) return true
+      return this.fuzzyMatch(q, unit.toLowerCase())
+    })
+
+    this.unitListTarget.innerHTML = ""
+
+    matching.slice(0, 8).forEach(unit => {
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.dataset.unitName = unit
+      btn.className = "w-full text-left px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
+      btn.innerHTML = `
+        <span class="font-bold text-slate-900 dark:text-white">${unit}</span>
+        <span class="text-[10px] text-slate-400 font-medium">Use</span>
+      `
+
+      btn.addEventListener("click", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this.selectUnit(unit)
+      })
+
+      this.unitListTarget.appendChild(btn)
+    })
+
+    // Exact match check for create unit option
+    const exactMatch = this.unitsValue.some(u => u.toLowerCase() === q)
+    if (q.length > 0 && !exactMatch) {
+      if (this.hasCreateUnitOptionTarget) this.createUnitOptionTarget.classList.remove("hidden")
+      if (this.hasCreateUnitTextTarget) this.createUnitTextTarget.textContent = query
+    } else {
+      if (this.hasCreateUnitOptionTarget) this.createUnitOptionTarget.classList.add("hidden")
+    }
+
+    const hasContent = matching.length > 0 || (q.length > 0 && !exactMatch)
+    if (hasContent) {
+      this.unitDropdownTarget.classList.remove("hidden")
+    } else {
+      this.unitDropdownTarget.classList.add("hidden")
+    }
+  }
+
+  selectUnit(unit) {
+    this.unitInputTarget.value = unit
+    this.closeUnitDropdown()
+  }
+
+  handleCreateUnitClick(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    const query = this.unitInputTarget.value.trim()
+    this.selectUnit(query)
+  }
+
+  closeUnitDropdown() {
+    if (this.hasUnitDropdownTarget) {
+      this.unitDropdownTarget.classList.add("hidden")
+    }
+  }
+
+  // ==========================================
+  // GENERAL UTILITIES
+  // ==========================================
+
+  handleClickOutside(event) {
+    if (!this.element.contains(event.target)) {
+      this.closeNameDropdown()
+      this.closeUnitDropdown()
+    }
+  }
+
+  fuzzyMatch(pattern, str) {
+    if (!pattern) return true
+    if (!str) return false
+    if (str.includes(pattern)) return true
+
+    let patternIdx = 0
+    let strIdx = 0
+    while (patternIdx < pattern.length && strIdx < str.length) {
+      if (pattern[patternIdx] === str[strIdx]) {
+        patternIdx++
+      }
+      strIdx++
+    }
+    return patternIdx === pattern.length
+  }
+
+  getAisleBadgeColor(aisle) {
+    switch (aisle) {
+      case "Produce":
+        return "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+      case "Meat & Seafood":
+        return "bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+      case "Dairy & Refrigerated":
+        return "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+      case "Bakery":
+        return "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+      case "Pantry & Grains":
+        return "bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800"
+      case "Spices & Baking":
+        return "bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+      case "Frozen":
+        return "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800"
+      default:
+        return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+    }
+  }
+
+  guessAisle(name) {
+    const n = name.toLowerCase()
+    if (/chicken|beef|pork|steak|turkey|salmon|fish|shrimp|bacon|sausage|meat/i.test(n)) return "Meat & Seafood"
+    if (/milk|cream|cheese|cheddar|mozzarella|parmesan|butter|yogurt|egg/i.test(n)) return "Dairy & Refrigerated"
+    if (/onion|garlic|tomato|potato|lettuce|pepper|spinach|carrot|broccoli|avocado|lime|lemon|cilantro|basil|parsley|cucumber|asparagus|zucchini|mushroom|celery/i.test(n)) return "Produce"
+    if (/bread|tortilla|bun|pita|bagel|crust|roll/i.test(n)) return "Bakery"
+    if (/flour|sugar|baking|salt|pepper|cumin|chili|oregano|paprika|cinnamon|vanilla|seasoning/i.test(n)) return "Spices & Baking"
+    if (/frozen|peas|ice cream/i.test(n)) return "Frozen"
+    if (/rice|pasta|spaghetti|noodle|oil|vinegar|soy sauce|broth|stock|canned|bean|honey|sauce|salsa/i.test(n)) return "Pantry & Grains"
+    return "Other"
+  }
+}

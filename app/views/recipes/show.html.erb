@@ -203,8 +203,14 @@
               <%= pantry_icon_tag(ing.name, ing.aisle_category, css_class: "w-5 h-5") %>
             </div>
             <div>
-              <span class="font-medium"><%= ing.raw_text.presence || "#{ing.quantity} #{ing.unit} #{ing.name}" %></span>
-              <span class="block text-[10px] text-slate-400 dark:text-slate-500"><%= ing.aisle_category %></span>
+              <div>
+                <% formatted_qty = [ing.display_quantity, ing.unit].reject(&:blank?).join(" ") %>
+                <% if formatted_qty.present? %>
+                  <strong class="text-slate-900 dark:text-white font-bold"><%= formatted_qty %></strong>
+                <% end %>
+                <span class="font-medium <%= formatted_qty.present? ? 'ml-1' : '' %>"><%= ing.name.presence || ing.raw_text %></span>
+              </div>
+              <span class="block text-[10px] text-slate-400 dark:text-slate-500 font-semibold"><%= ing.aisle_category %></span>
             </div>
           </li>
         <% end %>

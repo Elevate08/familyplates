@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_201000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_202500) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -61,6 +61,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_201000) do
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "ingredient_aisle_mappings", force: :cascade do |t|
+    t.string "aisle_category", null: false
+    t.integer "count", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.integer "household_id"
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "name"], name: "index_ingredient_aisle_mappings_on_household_id_and_name"
+    t.index ["household_id"], name: "index_ingredient_aisle_mappings_on_household_id"
+    t.index ["name", "aisle_category"], name: "index_ingredient_aisle_mappings_on_name_and_aisle_category"
   end
 
   create_table "meal_plan_slots", force: :cascade do |t|
@@ -155,6 +167,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_201000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "family_members", "households"
+  add_foreign_key "ingredient_aisle_mappings", "households"
   add_foreign_key "meal_plan_slots", "family_members"
   add_foreign_key "meal_plan_slots", "meal_plans"
   add_foreign_key "meal_plan_slots", "recipes"
