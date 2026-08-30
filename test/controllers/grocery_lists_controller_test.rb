@@ -2,9 +2,9 @@ require "test_helper"
 
 class GroceryListsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @admin = family_members(:one)
     @meal_plan = meal_plans(:one)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should get current grocery list" do

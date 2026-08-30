@@ -1,5 +1,6 @@
 class MealPlanSlotsController < ApplicationController
   before_action :set_meal_plan
+  before_action :require_admin, only: %i[create update destroy]
 
   def create
     @slot = @meal_plan.meal_plan_slots.find_or_initialize_by(

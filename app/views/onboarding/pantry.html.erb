@@ -1,25 +1,51 @@
-<div class="max-w-3xl mx-auto py-8">
+<div class="max-w-3xl mx-auto py-4 sm:py-8" data-controller="select-all">
   <!-- Progress Bar -->
-  <div class="mb-10 text-center">
-    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider mb-3">
-      Step 2 of 2: Pantry Shield
+  <%= render "onboarding/progress_bar", current_step: 4 %>
+
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-primary-500 text-white shadow-lg shadow-primary-500/30 mb-3">
+      <%= icon_tag("archive", css_class: "w-8 h-8") %>
     </div>
-    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Confirm Your Pantry Staples</h1>
-    <p class="mt-2 text-slate-600 text-base max-w-xl mx-auto">
-      These ingredients are checked by default so they won't clutter your grocery store shopping list. You can change these anytime!
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Confirm Your On-Hand Pantry Items</h1>
+    <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+      These ingredients activate your <strong class="text-amber-600 dark:text-amber-400">Pantry Shield</strong>. They are checked off by default so they won't clutter your weekly supermarket grocery list!
     </p>
   </div>
 
   <%= form_with url: onboarding_save_pantry_path, method: :post do |f| %>
-    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-10">
+    <!-- Selection Control Bar -->
+    <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6">
+      <div class="flex items-center gap-2">
+        <button type="button" data-action="click->select-all#selectAll"
+                class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors cursor-pointer">
+          Select All
+        </button>
+        <button type="button" data-action="click->select-all#deselectAll"
+                class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors cursor-pointer">
+          Deselect All
+        </button>
+      </div>
+
+      <span data-select-all-target="countDisplay" class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <%= @default_staples.count %> of <%= @default_staples.count %> selected
+      </span>
+    </div>
+
+    <!-- Staples Grid -->
+    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-10">
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <% @default_staples.each do |staple| %>
-          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 has-checked:border-amber-400 has-checked:bg-amber-50/30 cursor-pointer transition-colors">
+          <label class="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 has-checked:border-amber-400 dark:has-checked:border-amber-500 has-checked:bg-amber-50/40 dark:has-checked:bg-amber-950/30 cursor-pointer transition-all">
             <%= check_box_tag "staple_names[]", staple[:name], true, 
-                  class: "w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 transition-colors" %>
-            <div class="flex flex-col">
-              <span class="text-sm font-semibold text-slate-800"><%= staple[:name] %></span>
-              <span class="text-[10px] text-slate-400"><%= staple[:aisle_category] %></span>
+                  data: { select_all_target: "checkbox", action: "change->select-all#toggle" },
+                  class: "w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 dark:border-slate-600 transition-colors" %>
+            <div class="w-7 h-7 flex items-center justify-center shrink-0">
+              <%= pantry_icon_tag(staple[:name], staple[:aisle_category], css_class: "w-6 h-6") %>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate"><%= staple[:name] %></span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 truncate"><%= staple[:aisle_category] %></span>
             </div>
           </label>
         <% end %>
@@ -27,8 +53,8 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center justify-between p-4 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl max-w-2xl mx-auto">
-      <%= link_to "← Back to Recipes", onboarding_recipes_path, class: "text-sm font-semibold text-slate-600 hover:text-slate-900" %>
+    <div class="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto">
+      <%= link_to "← Back to Recipes", onboarding_recipes_path, class: "text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" %>
       <%= f.submit "Finish & Start Planning 🎉", class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>
     </div>
   <% end %>

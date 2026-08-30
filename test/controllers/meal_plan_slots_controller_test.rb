@@ -2,9 +2,9 @@ require "test_helper"
 
 class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @admin = family_members(:one)
     @meal_plan = meal_plans(:one)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should create meal plan slot" do
@@ -142,5 +142,42 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
       delete meal_plan_meal_plan_slot_url(@meal_plan, slot)
     end
     assert_redirected_to meal_plan_url(@meal_plan)
+  end
+
+  test "non-admin member should not be able to create meal plan slot" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    assert_no_difference("MealPlanSlot.count") do
+      post meal_plan_meal_plan_slots_url(@meal_plan), params: {
+        meal_plan_slot: {
+          date: Date.current.beginning_of_week + 2.days,
+          meal_type: "dinner",
+          recipe_id: recipes(:one).id
+        }
+      }
+    end
+    assert_redirected_to root_url
+    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+  end
+
+  test "non-admin member should not be able to update meal plan slot" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+    slot = meal_plan_slots(:one)
+
+    patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
+      meal_plan_slot: { notes: "Should not change" }
+    }
+    assert_redirected_to root_url
+    assert_not_equal "Should not change", slot.reload.notes
+  end
+
+  test "non-admin member should not be able to destroy meal plan slot" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+    slot = meal_plan_slots(:one)
+
+    assert_no_difference("MealPlanSlot.count") do
+      delete meal_plan_meal_plan_slot_url(@meal_plan, slot)
+    end
+    assert_redirected_to root_url
   end
 end

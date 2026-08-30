@@ -1,19 +1,16 @@
-<div id="<%= dom_id(pantry_item) %>" class="flex items-center justify-between p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+<div id="<%= dom_id(pantry_item) %>" class="flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 transition-all">
   <div class="flex items-center gap-3">
     <%= button_to toggle_staple_pantry_item_path(pantry_item), method: :patch,
-          class: "flex items-center justify-center w-6 h-6 rounded-lg transition-colors cursor-pointer #{pantry_item.is_staple? ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}",
-          title: pantry_item.is_staple? ? "Always in stock (Pantry Shield on)" : "Not marked as always in stock" do %>
-      <%= icon_tag(pantry_item.is_staple? ? "check" : "plus", css_class: "w-3.5 h-3.5") %>
+          class: "flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer #{pantry_item.is_staple? ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-2xs' : 'bg-slate-100 dark:bg-slate-700/80 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-600'}",
+          title: pantry_item.is_staple? ? "On Hand (Shielded from grocery list — click to mark as needed)" : "Need to Buy (Will appear on grocery list — click to mark On Hand)" do %>
+      <%= icon_tag(pantry_item.is_staple? ? "shield-check" : "shield-outline", css_class: "w-4 h-4") %>
     <% end %>
     
-    <span class="text-xl shrink-0"><%= pantry_item.display_emoji %></span>
+    <div class="w-7 h-7 flex items-center justify-center shrink-0">
+      <%= pantry_icon_tag(pantry_item) %>
+    </div>
     <div>
       <span class="text-sm font-bold text-slate-800 dark:text-slate-200"><%= pantry_item.name %></span>
-      <% if pantry_item.is_staple? %>
-        <span class="inline-block ml-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded">
-          Staple
-        </span>
-      <% end %>
     </div>
   </div>
 

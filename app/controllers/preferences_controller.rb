@@ -2,6 +2,8 @@ class PreferencesController < ApplicationController
   before_action :set_family_member
 
   def edit
+    @household = current_household
+    @family_members = @household ? @household.family_members.order(:id) : []
   end
 
   def update
@@ -10,6 +12,8 @@ class PreferencesController < ApplicationController
       Current.family_member = @family_member
       redirect_to edit_preferences_path, notice: "Your preferences were saved successfully! 🎨"
     else
+      @household = current_household
+      @family_members = @household ? @household.family_members.order(:id) : []
       render :edit, status: :unprocessable_entity
     end
   end

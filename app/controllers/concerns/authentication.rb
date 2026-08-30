@@ -2,10 +2,10 @@ module Authentication
   extend ActiveSupport::Concern
 
   included do
-    before_action :require_authentication
     before_action :set_current_family_member
+    before_action :require_authentication
     before_action :require_active_family_member
-    helper_method :authenticated?, :current_user, :current_household, :current_family_member
+    helper_method :authenticated?, :current_household, :current_family_member
   end
 
   class_methods do
@@ -16,73 +16,66 @@ module Authentication
   end
 
   private
-    def authenticated?
-      resume_session
+
+  def authenticated?
+    Current.family_member.present?
+  end
+
+  def current_household
+    Current.household || Household.first
+  end
+
+  def current_family_member
+    Current.family_member
+  end
+
+  def set_current_family_member
+    member_id = cookies.signed[:active_family_member_id]
+    if member_id.present?
+      Current.family_member = FamilyMember.find_by(id: member_id)
+      Current.household = Current.family_member&.household || Household.first
+    else
+      Current.family_member = nil
+      Current.household = Household.first
+    end
+  end
+
+  def require_authentication
+    if Household.none?
+      redirect_to onboarding_path and return unless request.path.start_with?("/onboarding")
+      return
     end
 
-    def current_user
-      Current.user
+    return if Current.family_member.present?
+
+    # Allow unauthenticated profile selection & onboarding
+    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
+
+    session[:return_to_after_authenticating] = request.url
+    redirect_to select_profile_path and return
+  end
+
+  def require_active_family_member
+    return if Household.none?
+    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
+
+    if Current.family_member.nil?
+      redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
     end
+  end
 
-    def current_household
-      Current.household
-    end
+  def after_authentication_url
+    session.delete(:return_to_after_authenticating) || root_url
+  end
 
-    def current_family_member
-      Current.family_member
-    end
+  def start_new_session_for(member)
+    Current.family_member = member
+    Current.household = member.household
+    cookies.signed.permanent[:active_family_member_id] = { value: member.id, httponly: true, same_site: :lax }
+  end
 
-    def require_authentication
-      resume_session || request_authentication
-    end
-
-    def resume_session
-      Current.session ||= find_session_by_cookie
-    end
-
-    def set_current_family_member
-      return unless authenticated? && current_household
-
-      member_id = cookies.signed[:active_family_member_id]
-      if member_id.present?
-        Current.family_member = current_household.family_members.find_by(id: member_id)
-      else
-        Current.family_member = nil
-      end
-    end
-
-    def require_active_family_member
-      return unless authenticated?
-      return if controller_name.in?(%w[profiles sessions registrations]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
-
-      if Current.family_member.nil?
-        redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
-      end
-    end
-
-    def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
-    end
-
-    def request_authentication
-      session[:return_to_after_authenticating] = request.url
-      redirect_to new_session_path
-    end
-
-    def after_authentication_url
-      session.delete(:return_to_after_authenticating) || root_url
-    end
-
-    def start_new_session_for(user)
-      user.sessions.create!(user_agent: request.user_agent, ip_address: request.remote_ip).tap do |session|
-        Current.session = session
-        cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
-      end
-    end
-
-    def terminate_session
-      Current.session&.destroy
-      cookies.delete(:session_id)
-      cookies.delete(:active_family_member_id)
-    end
+  def terminate_session
+    Current.family_member = nil
+    cookies.delete(:active_family_member_id)
+  end
 end

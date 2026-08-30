@@ -1,5 +1,4 @@
 class Household < ApplicationRecord
-  has_many :users, dependent: :destroy
   has_many :family_members, dependent: :destroy
   has_many :pantry_items, dependent: :destroy
   has_many :recipes, dependent: :destroy

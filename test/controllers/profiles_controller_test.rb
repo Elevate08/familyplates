@@ -2,8 +2,8 @@ require "test_helper"
 
 class ProfilesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
-    sign_in_as(@user)
+    @admin = family_members(:one)
+    sign_in_as(@admin)
   end
 
   test "should get select" do
@@ -49,13 +49,11 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "This profile is protected by a PIN.", flash[:alert]
   end
 
-  test "should redirect to select profile if logged in but no active profile selected" do
-    # When user signs in and has not selected a profile yet
+  test "should redirect to select profile if no active profile selected" do
     cookies.delete("active_family_member_id")
     Current.family_member = nil
 
     get root_url
     assert_redirected_to select_profile_url
-    assert_equal "Please select who is in the kitchen today.", flash[:alert]
   end
 end

@@ -2,9 +2,9 @@ require "test_helper"
 
 class RecipesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
+    @admin = family_members(:one)
     @recipe = recipes(:one)
-    sign_in_as(@user)
+    sign_in_as(@admin)
   end
 
   test "should get index" do
@@ -19,6 +19,13 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
   test "should filter by cravings" do
     get recipes_url(filter: "requested")
+    assert_response :success
+  end
+
+  test "should filter by tag" do
+    get recipes_url(tag: "Mexican")
+    assert_response :success
+    get recipes_url(filter: "tag:Mexican")
     assert_response :success
   end
 
@@ -145,5 +152,54 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to recipes_url
+  end
+
+  test "non-admin member should not be able to edit recipe" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    get edit_recipe_url(@recipe)
+    assert_redirected_to root_url
+    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+  end
+
+  test "non-admin member should not be able to update recipe" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    patch recipe_url(@recipe), params: {
+      recipe: { title: "Hacked Title" }
+    }
+    assert_redirected_to root_url
+    assert_not_equal "Hacked Title", @recipe.reload.title
+  end
+
+  test "non-admin member should not be able to destroy recipe" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    assert_no_difference("Recipe.count") do
+      delete recipe_url(@recipe)
+    end
+    assert_redirected_to root_url
+  end
+
+  test "non-admin member should not be able to bulk update recipes" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    post bulk_update_recipes_url, params: {
+      recipe_ids: [ @recipe.id ],
+      update_meal_types: "1",
+      meal_types: [ "breakfast" ]
+    }
+    assert_redirected_to root_url
+  end
+
+  test "non-admin member should not be able to bulk destroy recipes" do
+    sign_in_as(family_members(:two)) # Mom (role: member)
+
+    assert_no_difference("Recipe.count") do
+      post bulk_destroy_recipes_url, params: {
+        recipe_ids: [ @recipe.id ]
+      }
+    end
+    assert_redirected_to root_url
   end
 end

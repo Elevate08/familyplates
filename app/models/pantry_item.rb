@@ -14,15 +14,15 @@ class PantryItem < ApplicationRecord
 
   DEFAULT_STAPLES = [
     { name: "Salt", aisle_category: "Spices & Baking", emoji: "🧂" },
-    { name: "Black Pepper", aisle_category: "Spices & Baking", emoji: "🌶️" },
-    { name: "Olive Oil", aisle_category: "Pantry & Grains", emoji: "🫒" },
-    { name: "Vegetable Oil", aisle_category: "Pantry & Grains", emoji: "🛢️" },
-    { name: "Garlic Powder", aisle_category: "Spices & Baking", emoji: "🧄" },
-    { name: "Onion Powder", aisle_category: "Spices & Baking", emoji: "🧅" },
+    { name: "Black Pepper", aisle_category: "Spices & Baking", emoji: "🫙" },
+    { name: "Olive Oil", aisle_category: "Pantry & Grains", emoji: "🍾" },
+    { name: "Vegetable Oil", aisle_category: "Pantry & Grains", emoji: "🌻" },
+    { name: "Garlic Powder", aisle_category: "Spices & Baking", emoji: "🫙" },
+    { name: "Onion Powder", aisle_category: "Spices & Baking", emoji: "🫙" },
     { name: "Italian Seasoning", aisle_category: "Spices & Baking", emoji: "🌿" },
     { name: "All-Purpose Flour", aisle_category: "Spices & Baking", emoji: "🌾" },
-    { name: "Granulated Sugar", aisle_category: "Spices & Baking", emoji: "🍯" },
-    { name: "Soy Sauce", aisle_category: "Pantry & Grains", emoji: "🥢" },
+    { name: "Granulated Sugar", aisle_category: "Spices & Baking", emoji: "🥄" },
+    { name: "Soy Sauce", aisle_category: "Pantry & Grains", emoji: "🍶" },
     { name: "Butter", aisle_category: "Dairy & Refrigerated", emoji: "🧈" },
     { name: "Eggs", aisle_category: "Dairy & Refrigerated", emoji: "🥚" },
     { name: "Garlic", aisle_category: "Produce", emoji: "🧄" },
@@ -50,10 +50,13 @@ class PantryItem < ApplicationRecord
   def self.emoji_for(name, category = nil)
     n = name.to_s.downcase
     case n
-    when /olive oil/ then "🫒"
-    when /vegetable oil|canola oil|sesame oil|oil/ then "🛢️"
+    when /olive oil/ then "🍾"
+    when /vegetable oil|canola oil|sunflower oil|corn oil/ then "🌻"
+    when /sesame oil|cooking oil|oil/ then "🍾"
     when /salt/ then "🧂"
-    when /black pepper|pepper powder|peppercorn/ then "🌶️"
+    when /black pepper|pepper powder|peppercorn/ then "🫙"
+    when /garlic powder|garlic salt/ then "🫙"
+    when /onion powder|onion flakes/ then "🫙"
     when /garlic/ then "🧄"
     when /onion/ then "🧅"
     when /butter/ then "🧈"
@@ -62,8 +65,9 @@ class PantryItem < ApplicationRecord
     when /cream|sour cream/ then "🥛"
     when /cheese|cheddar|mozzarella|parmesan|feta/ then "🧀"
     when /flour/ then "🌾"
-    when /sugar|honey|syrup/ then "🍯"
-    when /soy sauce/ then "🥢"
+    when /sugar/ then "🥄"
+    when /honey|syrup|maple/ then "🍯"
+    when /soy sauce/ then "🍶"
     when /rice/ then "🍚"
     when /pasta|spaghetti|noodle/ then "🍝"
     when /bread|sourdough|bagel|bun/ then "🍞"

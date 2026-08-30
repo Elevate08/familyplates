@@ -3,33 +3,33 @@
 <% requesters = recipe.requesters_for_week(week_start).to_a %>
 <% total = requesters.size %>
 
-<div id="recipe_<%= recipe.id %>_show_craving" class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 text-center min-w-[180px]">
-  <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Family Craving</div>
+<div id="recipe_<%= recipe.id %>_show_craving" class="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[200px] shadow-2xs">
+  <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Family Craving</div>
   <% if requested %>
     <%= button_to recipe_recipe_request_path(recipe, "current"), method: :delete,
-          class: "w-full py-2.5 px-4 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer" do %>
-      <%= icon_tag("heart-solid", css_class: "w-4 h-4") %>
+          class: "w-full py-2.5 px-4 rounded-2xl bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer" do %>
+      <%= icon_tag("heart-solid", css_class: "w-4 h-4 text-white") %>
       <span>Requested!</span>
     <% end %>
   <% else %>
     <%= button_to recipe_recipe_requests_path(recipe), method: :post,
-          class: "w-full py-2.5 px-4 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer" do %>
-      <%= icon_tag("heart", css_class: "w-4 h-4") %>
+          class: "w-full py-2.5 px-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer" do %>
+      <%= icon_tag("heart", css_class: "w-4 h-4 text-rose-500") %>
       <span>I Crave This</span>
     <% end %>
   <% end %>
   
   <% if total > 0 %>
-    <div class="mt-2.5 pt-2 border-t border-slate-200/60">
-      <p class="text-xs font-bold text-slate-700">
+    <div class="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60">
+      <p class="text-xs font-bold text-slate-800 dark:text-slate-100">
         <%= total %> <%= "vote".pluralize(total) %> this week
       </p>
-      <p class="text-[11px] text-slate-500 mt-0.5">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
         Craved by <%= requesters.map { |m| m == current_family_member ? "You" : m.name }.to_sentence %>
       </p>
     </div>
   <% else %>
-    <p class="text-[11px] text-slate-400 mt-2">
+    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2.5">
       No requests yet this week
     </p>
   <% end %>

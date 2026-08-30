@@ -6,10 +6,8 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  # Authentication & Registration
-  resource :registration, only: %i[new create]
+  # Session / Profile Logout
   resource :session, only: %i[new create destroy]
-  resources :passwords, param: :token
 
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
@@ -32,19 +30,30 @@ Rails.application.routes.draw do
         patch :reset_pin
       end
     end
-    resource :account, only: %i[edit update]
     resource :household, only: %i[edit update] do
       post :test_google_calendar
       post :sync_google_calendar
     end
+    resource :calendar, only: %i[show edit update], controller: "calendars" do
+      post :test_connection
+      post :sync_plan
+    end
   end
 
-  # Onboarding Wizard
-  namespace :onboarding do
-    get :recipes
-    post :save_recipes
-    get :pantry
-    post :save_pantry
+  # First-Boot Setup & Onboarding Wizard
+  get "onboarding" => "onboarding#family", as: :onboarding
+  get "setup" => "onboarding#family", as: :setup
+  scope :onboarding, as: :onboarding do
+    get "family", to: "onboarding#family"
+    post "save_family", to: "onboarding#save_family"
+    get "members", to: "onboarding#members"
+    post "add_member", to: "onboarding#add_member"
+    delete "members/:id", to: "onboarding#remove_member", as: :remove_member
+    get "recipes", to: "onboarding#recipes"
+    post "save_recipes", to: "onboarding#save_recipes"
+    get "pantry", to: "onboarding#pantry"
+    post "save_pantry", to: "onboarding#save_pantry"
+    get "complete", to: "onboarding#complete"
   end
 
   # Pantry Items

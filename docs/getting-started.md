@@ -54,9 +54,11 @@ bundle exec rails test
 
 ---
 
-## 🔐 Initial Setup & First Login
+## 🔐 Initial Setup & First Boot
 
-1. On first run, create your household and primary account credentials on the registration page (`/registration/new`).
-2. Add your family members (Organizers/Parents and regular members).
-3. Set 4-digit PINs for Organizers to protect Admin access and sensitive settings.
-4. Follow the [Google Calendar Guide](./google-calendar-integration.md) to enable automatic meal synchronization.
+1. On first run, FamilyPlates presents a 4-step **Onboarding Wizard** (`/onboarding`):
+   * Create your Family Household name.
+   * Add family members & assign Organizer (Admin) roles with optional 4-digit PINs.
+   * Pick starter recipes for your Recipe Box.
+   * Confirm On-Hand pantry items to activate the **Pantry Shield**.
+2. Follow the [Google Calendar Guide](google-calendar-integration) to enable automatic meal synchronization.

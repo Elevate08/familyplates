@@ -3,34 +3,172 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-        <span>Pantry & Staples</span>
+        <span>Pantry & On-Hand Inventory</span>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">
-          <%= @pantry_items.where(is_staple: true).count %> active staples
+          <%= @pantry_items.where(is_staple: true).count %> on hand
         </span>
       </h1>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Items marked with a checkmark are excluded from your weekly grocery shopping list automatically ("Pantry Shield").
+        Items marked as on hand are automatically shielded and excluded from your weekly grocery shopping list.
       </p>
     </div>
   </div>
 
-  <!-- Add Item Form -->
-  <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-8">
-    <%= form_with model: @new_item, url: pantry_items_path, class: "flex flex-col sm:flex-row items-center gap-3" do |f| %>
-      <div class="flex-1 w-full">
-        <%= f.text_field :name, placeholder: "Add ingredient or staple (e.g. Sriracha, Honey, Canned Tomatoes)...", required: true,
-              class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white" %>
+  <!-- Elegant Add Item Card with Interactive Picker -->
+  <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-10" data-controller="pantry-item-form">
+    <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+      <%= icon_tag("plus", css_class: "w-4 h-4 text-primary-500") %>
+      <span>Add Item to Pantry</span>
+    </h2>
+
+    <%= form_with model: @new_item, url: pantry_items_path, class: "space-y-4" do |f| %>
+      <%= f.hidden_field :emoji, value: "", data: { pantry_item_form_target: "iconInput" } %>
+
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <!-- Interactive Icon Picker Trigger & Floating Dropdown -->
+        <div class="relative shrink-0">
+          <button type="button" 
+                  data-action="click->pantry-item-form#togglePicker"
+                  class="group flex items-center gap-2 p-2 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-slate-50 dark:bg-slate-800 transition-all cursor-pointer shadow-2xs shrink-0"
+                  title="Click to choose a custom icon">
+            <div data-pantry-item-form-target="iconPreview" class="w-8 h-8 flex items-center justify-center">
+              <%= pantry_icon_tag("spice-jar", "Spices & Baking", css_class: "w-6 h-6") %>
+            </div>
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 pr-1">
+              Pick Icon ▾
+            </span>
+          </button>
+
+          <!-- Floating Icon Search Dropdown (Uniform Rounded-3xl Shell) -->
+          <div data-pantry-item-form-target="pickerContainer" 
+               class="hidden absolute left-0 top-full mt-2 z-50 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100 w-80 sm:w-96">
+            
+            <!-- Search Bar Header -->
+            <div class="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
+              <div class="relative">
+                <input type="text"
+                       placeholder="Search icons (e.g. garlic, butter, sugar)..."
+                       data-pantry-item-form-target="iconSearchInput"
+                       data-action="input->pantry-item-form#filterIcons"
+                       autocomplete="off"
+                       class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium">
+                <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+            </div>
+
+            <!-- Scrollable Grid of Icons -->
+            <div data-pantry-item-form-target="iconGrid" class="grid grid-cols-5 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto overscroll-contain">
+              <!-- Custom SVGs -->
+              <button type="button" data-icon-id="pepper-shaker" data-icon-label="black pepper shaker pepper" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Black Pepper Shaker">
+                <%= pantry_icon_tag("pepper-shaker", css_class: "w-6 h-6") %>
+                <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Pepper</span>
+              </button>
+
+              <button type="button" data-icon-id="sugar-bag" data-icon-label="sugar bag brown granulated" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Sugar Bag">
+                <%= pantry_icon_tag("sugar-bag", css_class: "w-6 h-6") %>
+                <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Sugar</span>
+              </button>
+
+              <button type="button" data-icon-id="oil-bottle" data-icon-label="cooking oil vegetable canola" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Cooking Oil">
+                <%= pantry_icon_tag("oil-bottle", css_class: "w-6 h-6") %>
+                <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Oil</span>
+              </button>
+
+              <button type="button" data-icon-id="spice-jar" data-icon-label="spices spice jar powder seasoning" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Spice Jar / Powder">
+                <%= pantry_icon_tag("spice-jar", css_class: "w-6 h-6") %>
+                <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Spices</span>
+              </button>
+
+              <!-- Popular Icons -->
+              <% [
+                ["🧂", "Salt", "salt shaker kosher sea"],
+                ["🍾", "Olive Oil", "olive oil bottle extra virgin"],
+                ["🧈", "Butter", "butter margarine spread dairy"],
+                ["🥚", "Eggs", "eggs egg dairy breakfast"],
+                ["🥛", "Milk", "milk cream heavy dairy"],
+                ["🧀", "Cheese", "cheese cheddar mozzarella parmesan dairy"],
+                ["🧄", "Garlic", "garlic cloves produce"],
+                ["🧅", "Onion", "onion yellow red white produce"],
+                ["🍞", "Bread", "bread bakery toast loaf bun"],
+                ["🍚", "Rice", "rice white jasmine brown grains"],
+                ["🍝", "Pasta", "pasta spaghetti noodles grains"],
+                ["🌾", "Flour", "flour wheat baking grains"],
+                ["🌿", "Herbs", "herbs basil oregano rosemary thyme seasoning"],
+                ["🍯", "Honey", "honey syrup sweet maple"],
+                ["🍶", "Soy Sauce", "soy sauce liquid aminos sauce asian"],
+                ["🥩", "Beef", "beef steak meat ground steak"],
+                ["🍗", "Chicken", "chicken poultry meat drumstick thighs"],
+                ["🥓", "Bacon", "bacon pork breakfast meat"],
+                ["🐟", "Fish", "fish salmon tuna seafood"],
+                ["🦐", "Shrimp", "shrimp prawns seafood"],
+                ["🥬", "Greens", "greens lettuce spinach kale salad produce"],
+                ["🍅", "Tomato", "tomato tomatoes produce"],
+                ["🍋", "Lemon", "lemon lime citrus produce"],
+                ["🥑", "Avocado", "avocado produce guac"],
+                ["🥔", "Potato", "potato potatoes russet produce"],
+                ["🥕", "Carrot", "carrot carrots produce"],
+                ["🥦", "Broccoli", "broccoli produce vegetable"],
+                ["🌽", "Corn", "corn maize produce sweet"],
+                ["🍄", "Mushroom", "mushroom mushrooms produce fungi"],
+                ["🌶️", "Chili", "chili peppers spicy jalapeno"],
+                ["🫘", "Beans", "beans black kidney pinto legumes"],
+                ["🌮", "Taco", "taco tortilla shells bakery"],
+                ["🧊", "Frozen", "frozen peas ice freezer"],
+                ["📦", "Other", "package other box container"]
+              ].each do |emoji_char, label, keywords| %>
+                <button type="button" 
+                        data-icon-id="<%= emoji_char %>" 
+                        data-icon-label="<%= "#{label.downcase} #{keywords}" %>"
+                        data-action="click->pantry-item-form#pickIcon" 
+                        class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" 
+                        title="<%= label %>">
+                  <span class="text-xl leading-none"><%= emoji_char %></span>
+                  <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full"><%= label %></span>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Name Input with auto-suggest -->
+        <div class="flex-1 w-full">
+          <%= f.text_field :name, placeholder: "e.g. Black Pepper, Brown Sugar, Olive Oil, Basmati Rice...", required: true,
+                data: { pantry_item_form_target: "nameInput", action: "input->pantry-item-form#onNameChange" },
+                class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white" %>
+        </div>
+
+        <!-- Submit & Always Stocked Toggle -->
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+            <%= f.check_box :is_staple, checked: true, class: "w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 dark:border-slate-600" %>
+            <span>Always On Hand</span>
+          </label>
+          <%= f.submit "+ Add Item", class: "py-2.5 px-5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all hover:scale-105" %>
+        </div>
       </div>
-      <div class="w-full sm:w-56">
-        <%= f.select :aisle_category, PantryItem::CATEGORIES.map { |c| [c, c] }, {},
-              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200" %>
-      </div>
-      <div class="w-full sm:w-auto flex items-center gap-2">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
-          <%= f.check_box :is_staple, checked: true, class: "rounded text-primary-600 focus:ring-primary-500" %>
-          <span>Always Stocked</span>
-        </label>
-        <%= f.submit "Add Item", class: "w-full sm:w-auto py-2.5 px-5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold text-sm shadow-xs cursor-pointer transition-colors" %>
+
+      <!-- Category Quick-Select Chips (Native Radio with Peer-Checked Styling) -->
+      <div>
+        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Aisle Category</span>
+        <div class="flex flex-wrap gap-1.5">
+          <% category_emojis = { "Produce" => "🥬", "Meat & Seafood" => "🥩", "Dairy & Refrigerated" => "🧀", "Bakery" => "🍞", "Pantry & Grains" => "🌾", "Spices & Baking" => "🧂", "Frozen" => "🧊", "Other" => "📦" } %>
+          <% default_cat = @new_item.aisle_category.presence || "Spices & Baking" %>
+          <% PantryItem::CATEGORIES.each do |cat| %>
+            <label class="cursor-pointer select-none">
+              <%= f.radio_button :aisle_category, cat,
+                    checked: (cat == default_cat),
+                    class: "peer sr-only",
+                    data: {
+                      pantry_item_form_target: "categoryRadio",
+                      action: "change->pantry-item-form#onCategoryRadioChange"
+                    } %>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 peer-checked:bg-primary-600 peer-checked:text-white peer-checked:border-primary-600 peer-checked:shadow-sm peer-checked:scale-105 peer-checked:font-bold">
+                <span><%= category_emojis[cat] %></span>
+                <span><%= cat %></span>
+              </span>
+            </label>
+          <% end %>
+        </div>
       </div>
     <% end %>
   </div>

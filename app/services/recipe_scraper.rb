@@ -263,7 +263,7 @@ class RecipeScraper
       cleaned = cleaned.sub(/margarine/i, "butter")
     end
 
-    aisle = categorize_ingredient(name)
+    aisle = IngredientAisleMapping.most_likely_aisle(name)
 
     {
       raw_text: cleaned,

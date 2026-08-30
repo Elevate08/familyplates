@@ -1,0 +1,73 @@
+<div class="max-w-3xl mx-auto py-8 sm:py-12 text-center">
+  <!-- Celebration Icon Badge -->
+  <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/25 mb-6 animate-in zoom-in-95 duration-300">
+    <span class="text-3xl">🎉</span>
+  </div>
+
+  <!-- Heading -->
+  <h1 class="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-3">
+    Welcome to <%= current_household.name %>!
+  </h1>
+  <p class="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto mb-10">
+    Your family kitchen is set up and ready for effortless 5-minute weekly meal planning, fridge sheets, and smart grocery checklists.
+  </p>
+
+  <!-- Summary Cards Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left mb-10">
+    <!-- Family Roster Summary -->
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
+        <%= icon_tag("users", css_class: "w-5 h-5") %>
+      </div>
+      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Family Roster</h3>
+      <p class="text-2xl font-black text-slate-900 dark:text-white mb-3"><%= @members_count %> <%= 'Member'.pluralize(@members_count) %></p>
+      
+      <div class="flex items-center -space-x-2">
+        <% current_household.family_members.order(:id).each do |member| %>
+          <div class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold shadow-xs"
+               style="background-color: <%= member.avatar_color %>"
+               title="<%= member.name %> (<%= member.role %>)">
+            <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-4 h-4") %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Recipes Summary -->
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-4">
+        <%= icon_tag("book-open", css_class: "w-5 h-5") %>
+      </div>
+      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Recipe Vault</h3>
+      <p class="text-2xl font-black text-slate-900 dark:text-white mb-1"><%= @recipes_count %> <%= 'Recipe'.pluralize(@recipes_count) %></p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Ready to drag & drop onto your meal plan.</p>
+    </div>
+
+    <!-- Pantry Staples Summary -->
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+        <%= icon_tag("shield", css_class: "w-5 h-5") %>
+      </div>
+      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Pantry Shield</h3>
+      <p class="text-2xl font-black text-slate-900 dark:text-white mb-1"><%= @staples_count %> On-Hand Items</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Pre-filtered on your supermarket grocery lists.</p>
+    </div>
+  </div>
+
+  <!-- Primary CTA -->
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+    <%= link_to meal_plan_path(@current_meal_plan),
+          class: "w-full inline-flex items-center justify-center gap-2 py-4 px-8 rounded-2xl bg-primary-600 hover:bg-primary-500 text-white font-black text-lg shadow-xl shadow-primary-500/30 transition-all hover:scale-105" do %>
+      <span>Open Meal Planner</span>
+      <%= icon_tag("calendar", css_class: "w-5 h-5") %>
+    <% end %>
+  </div>
+
+  <div class="mt-8 flex items-center justify-center gap-6 text-sm">
+    <%= link_to "Explore Recipe Box", recipes_path, class: "font-semibold text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" %>
+    <span class="text-slate-300 dark:text-slate-700">•</span>
+    <%= link_to "Add Custom Recipe", new_recipe_path, class: "font-semibold text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" %>
+    <span class="text-slate-300 dark:text-slate-700">•</span>
+    <%= link_to "Household Settings", edit_admin_household_path, class: "font-semibold text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" %>
+  </div>
+</div>

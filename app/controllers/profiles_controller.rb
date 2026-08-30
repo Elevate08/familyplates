@@ -1,10 +1,16 @@
 class ProfilesController < ApplicationController
+  allow_unauthenticated_access only: %i[select set]
+
   def select
-    @family_members = current_household.family_members.order(:created_at)
+    if Household.none?
+      redirect_to onboarding_path and return
+    end
+    household = current_household
+    @family_members = household ? household.family_members.order(:id) : []
   end
 
   def set
-    member = current_household.family_members.find(params[:id])
+    member = FamilyMember.find(params[:id])
 
     if member.requires_pin? && params[:pin].blank?
       flash[:alert] = "This profile is protected by a PIN."
@@ -16,7 +22,8 @@ class ProfilesController < ApplicationController
       redirect_to select_profile_path(pin_member_id: member.id) and return
     end
 
-    cookies.signed[:active_family_member_id] = member.id
-    redirect_to root_path, notice: "Welcome back, #{member.name}! 🍳"
+    start_new_session_for(member)
+    target_url = after_authentication_url
+    redirect_to target_url, notice: "Welcome to the kitchen, #{member.name}! 🍳"
   end
 end

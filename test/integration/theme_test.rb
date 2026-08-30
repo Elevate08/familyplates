@@ -2,11 +2,10 @@ require "test_helper"
 
 class ThemeTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
     @household = households(:one)
     @member_one = family_members(:one) # e.g. #3B82F6 (Blue)
     @member_two = family_members(:two) # e.g. #10B981 (Emerald)
-    sign_in_as(@user)
+    sign_in_as(@member_one)
   end
 
   test "theme color adapts to active family member" do

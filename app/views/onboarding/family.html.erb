@@ -1,0 +1,146 @@
+<div class="max-w-2xl mx-auto py-4 sm:py-8" data-controller="onboarding-avatar">
+  <!-- Progress Bar -->
+  <%= render "onboarding/progress_bar", current_step: 1 %>
+
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-primary-500 text-white shadow-lg shadow-primary-500/30 mb-3">
+      <%= icon_tag("chef-hat", css_class: "w-8 h-8") %>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Set Up Your Family Kitchen</h1>
+    <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+      Create your private household kitchen space and set up the primary kitchen organizer profile.
+    </p>
+  </div>
+
+  <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+    <%= form_with url: onboarding_save_family_path, method: :post, class: "space-y-8" do |f| %>
+      
+      <!-- Section 1: Household Details -->
+      <div>
+        <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <span class="text-base">🏡</span>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">1. Household & Meal Times</h2>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <%= label_tag "household[name]", "Household / Family Name", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
+            <%= text_field_tag "household[name]", params.dig(:household, :name), placeholder: "e.g. The Spencer Family, Miller Kitchen", required: true, autofocus: true,
+                  class: "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white text-sm transition-colors" %>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Default Meal Times</label>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <span class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">🥞 Breakfast</span>
+                <%= text_field_tag "household[breakfast_time]", params.dig(:household, :breakfast_time) || "08:00", type: "time", required: true,
+                      class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              </div>
+              <div>
+                <span class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">🥪 Lunch</span>
+                <%= text_field_tag "household[lunch_time]", params.dig(:household, :lunch_time) || "12:30", type: "time", required: true,
+                      class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              </div>
+              <div>
+                <span class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">🍲 Dinner</span>
+                <%= text_field_tag "household[dinner_time]", params.dig(:household, :dinner_time) || "18:00", type: "time", required: true,
+                      class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Primary Organizer Profile -->
+      <div>
+        <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <span class="text-base">👩‍🍳</span>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">2. Primary Kitchen Organizer Profile</h2>
+        </div>
+
+        <div class="space-y-5">
+          <!-- Profile Live Preview Card -->
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex items-center gap-4">
+            <div data-onboarding-avatar-target="previewColor"
+                 class="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-xl transition-all"
+                 style="background-color: <%= params.dig(:admin_member, :avatar_color) || '#3B82F6' %>">
+              <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
+                <span data-icon-name="<%= icon_name %>" class="<%= (params.dig(:admin_member, :avatar_icon) || 'chef-hat') == icon_name ? '' : 'hidden' %>">
+                  <%= icon_tag(icon_name, css_class: "w-7 h-7") %>
+                </span>
+              <% end %>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span data-onboarding-avatar-target="previewName" class="font-bold text-slate-900 dark:text-white text-base">
+                  <%= params.dig(:admin_member, :name).presence || "Head Chef / Organizer" %>
+                </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">Admin</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Primary kitchen organizer with full management and planning permissions.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <%= label_tag "admin_member[name]", "Your Name or Nickname", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
+              <%= text_field_tag "admin_member[name]", params.dig(:admin_member, :name), placeholder: "e.g. Dad, Sarah, Chef Alex", required: true,
+                    data: { onboarding_avatar_target: "nameInput", action: "input->onboarding-avatar#updatePreview" },
+                    class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white text-sm transition-colors" %>
+            </div>
+
+            <div>
+              <%= label_tag "admin_member[pin]", "Admin 4-Digit Security PIN", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
+              <%= password_field_tag "admin_member[pin]", params.dig(:admin_member, :pin) || "1234", required: true, maxlength: 4, pattern: "[0-9]*", inputmode: "numeric", placeholder: "e.g. 1234",
+                    onfocus: "this.value = '';",
+                    class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white text-sm font-mono tracking-widest transition-colors" %>
+              <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Locks your admin profile so kids or guests don't alter household settings.</p>
+            </div>
+          </div>
+
+          <!-- Icon Picker -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</label>
+            <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              <% selected_icon = params.dig(:admin_member, :avatar_icon) || "chef-hat" %>
+              <% FamilyMember::AVATAR_ICONS.each do |icon_name| %>
+                <label class="cursor-pointer group flex flex-col items-center">
+                  <%= radio_button_tag "admin_member[avatar_icon]", icon_name, selected_icon == icon_name, class: "sr-only peer", data: { action: "change->onboarding-avatar#changeIcon" } %>
+                  <div class="w-11 h-11 rounded-2xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-slate-900 dark:peer-checked:border-white peer-checked:bg-slate-900 dark:peer-checked:bg-white peer-checked:text-white dark:peer-checked:text-slate-900 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all group-hover:scale-105 shadow-xs">
+                    <%= icon_tag(icon_name, css_class: "w-5 h-5") %>
+                  </div>
+                  <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-1 capitalize text-center truncate max-w-full">
+                    <%= icon_name.tr("-", " ") %>
+                  </span>
+                </label>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Color Swatches -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Profile Accent Color</label>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <% selected_color = params.dig(:admin_member, :avatar_color) || "#3B82F6" %>
+              <% FamilyMember::AVATAR_COLORS.each do |color| %>
+                <label class="cursor-pointer">
+                  <%= radio_button_tag "admin_member[avatar_color]", color, selected_color == color, class: "sr-only peer", data: { action: "change->onboarding-avatar#changeColor" } %>
+                  <span class="inline-block w-8 h-8 rounded-full shadow-xs peer-checked:ring-4 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-900 peer-checked:ring-slate-900 dark:peer-checked:ring-white peer-checked:scale-110 transition-all"
+                        style="background-color: <%= color %>"></span>
+                </label>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="pt-4">
+        <%= f.submit "Create Kitchen & Continue to Family Roster →",
+              class: "w-full py-4 px-6 rounded-2xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-base shadow-lg shadow-primary-500/25 cursor-pointer transition-all hover:scale-[1.01]" %>
+      </div>
+    <% end %>
+  </div>
+</div>

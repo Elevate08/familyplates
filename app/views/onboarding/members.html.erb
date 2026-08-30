@@ -1,0 +1,41 @@
+<div class="max-w-3xl mx-auto py-4 sm:py-8">
+  <!-- Progress Bar -->
+  <%= render "onboarding/progress_bar", current_step: 2 %>
+
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-primary-500 text-white shadow-lg shadow-primary-500/30 mb-3">
+      <%= icon_tag("users", css_class: "w-8 h-8") %>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Family Kitchen Roster</h1>
+    <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+      Add who's cooking and eating with you in <strong class="text-slate-900 dark:text-white"><%= current_household.name %></strong>. Everyone gets their own profile to request meals and check the calendar!
+    </p>
+  </div>
+
+  <!-- Current Roster Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-extrabold text-slate-900 dark:text-white">
+        Family Members (<span id="members-count"><%= @family_members.count %></span>)
+      </h2>
+      <span class="text-xs text-slate-400">Add as many as you'd like</span>
+    </div>
+
+    <div id="family-members-list" class="space-y-3">
+      <% @family_members.each do |member| %>
+        <%= render "onboarding/member_card", member: member %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Add Member Form Card -->
+  <%= render "onboarding/add_member_form", new_member: @new_member %>
+
+  <!-- Bottom Navigation Actions -->
+  <div class="flex items-center justify-between p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto">
+    <span class="text-xs text-slate-500 dark:text-slate-400">You can also manage members later in Admin settings.</span>
+    <%= link_to "Continue: Starter Recipes →", onboarding_recipes_path,
+          class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 transition-all hover:scale-105" %>
+  </div>
+</div>

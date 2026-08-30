@@ -2,8 +2,8 @@ require "test_helper"
 
 class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = users(:one)
-    sign_in_as(@user)
+    @admin = family_members(:one)
+    sign_in_as(@admin)
   end
 
   test "should get new" do

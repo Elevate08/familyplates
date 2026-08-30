@@ -181,6 +181,7 @@ export default class extends Controller {
       const commonTags = this.getCommonTags()
       if (this.hasTagsInputTarget) {
         this.tagsInputTarget.value = commonTags.join(", ")
+        this.tagsInputTarget.dispatchEvent(new Event("change", { bubbles: true }))
       }
     }
 

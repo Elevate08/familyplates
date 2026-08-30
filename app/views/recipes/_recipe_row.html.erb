@@ -3,16 +3,18 @@
   
   <!-- Left: Checkbox + Thumbnail + Title/Details -->
   <div class="flex items-center gap-3.5 min-w-0 flex-1">
-    <!-- Multi-select checkbox -->
-    <label class="inline-flex items-center justify-center p-1 rounded-lg cursor-pointer shrink-0">
-      <input type="checkbox"
-             value="<%= recipe.id %>"
-             data-meal-types="<%= recipe.meal_types_list.join(',') %>"
-             data-tags="<%= recipe.tag_list.join(',') %>"
-             data-bulk-select-target="checkbox"
-             data-action="change->bulk-select#toggle"
-             class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
-    </label>
+    <!-- Multi-select checkbox (Admins only) -->
+    <% if current_family_member&.admin? %>
+      <label class="inline-flex items-center justify-center p-1 rounded-lg cursor-pointer shrink-0">
+        <input type="checkbox"
+               value="<%= recipe.id %>"
+               data-meal-types="<%= recipe.meal_types_list.join(',') %>"
+               data-tags="<%= recipe.tag_list.join(',') %>"
+               data-bulk-select-target="checkbox"
+               data-action="change->bulk-select#toggle"
+               class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
+      </label>
+    <% end %>
 
     <!-- Thumbnail -->
     <%= link_to recipe_path(recipe), class: "shrink-0 block" do %>
@@ -68,14 +70,16 @@
       <%= render "recipe_requests/heart_button", recipe: recipe %>
     </div>
 
-    <!-- Actions Dropdown / Buttons -->
-    <div class="flex items-center gap-1.5">
-      <%= link_to "Edit", edit_recipe_path(recipe),
-            class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors" %>
-      <%= button_to "Delete", recipe_path(recipe), method: :delete,
-            data: { turbo_confirm: "Are you sure you want to delete #{recipe.title}?" },
-            class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" %>
-    </div>
+    <!-- Actions Dropdown / Buttons (Admins only) -->
+    <% if current_family_member&.admin? %>
+      <div class="flex items-center gap-1.5">
+        <%= link_to "Edit", edit_recipe_path(recipe),
+              class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors" %>
+        <%= button_to "Delete", recipe_path(recipe), method: :delete,
+              data: { turbo_confirm: "Are you sure you want to delete #{recipe.title}?" },
+              class: "text-xs font-semibold px-2.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
   </div>
 
 </div>

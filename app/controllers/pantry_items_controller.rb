@@ -11,14 +11,14 @@ class PantryItemsController < ApplicationController
     @pantry_item = current_household.pantry_items.build(pantry_item_params)
     if @pantry_item.save
       respond_to do |format|
-        format.turbo_stream
+        format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
         format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
       end
     else
       @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
       @items_by_category = @pantry_items.group_by(&:aisle_category)
       respond_to do |format|
-        format.turbo_stream { render :create, status: :unprocessable_entity }
+        format.turbo_stream { render :index, status: :unprocessable_entity }
         format.html { render :index, status: :unprocessable_entity }
       end
     end
@@ -27,12 +27,14 @@ class PantryItemsController < ApplicationController
   def update
     if @pantry_item.update(pantry_item_params)
       respond_to do |format|
-        format.turbo_stream
+        format.turbo_stream { redirect_to pantry_items_path, notice: "Pantry item updated." }
         format.html { redirect_to pantry_items_path, notice: "Pantry item updated." }
       end
     else
+      @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
+      @items_by_category = @pantry_items.group_by(&:aisle_category)
       respond_to do |format|
-        format.turbo_stream { render :update, status: :unprocessable_entity }
+        format.turbo_stream { render :index, status: :unprocessable_entity }
         format.html { render :index, status: :unprocessable_entity }
       end
     end
@@ -41,7 +43,7 @@ class PantryItemsController < ApplicationController
   def destroy
     @pantry_item.destroy
     respond_to do |format|
-      format.turbo_stream
+      format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry." }
       format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry." }
     end
   end
@@ -49,7 +51,7 @@ class PantryItemsController < ApplicationController
   def toggle_staple
     @pantry_item.toggle_staple!
     respond_to do |format|
-      format.turbo_stream
+      format.turbo_stream { redirect_to pantry_items_path }
       format.html { redirect_to pantry_items_path }
     end
   end
@@ -61,6 +63,6 @@ class PantryItemsController < ApplicationController
   end
 
   def pantry_item_params
-    params.require(:pantry_item).permit(:name, :aisle_category, :is_staple)
+    params.require(:pantry_item).permit(:name, :aisle_category, :is_staple, :emoji)
   end
 end

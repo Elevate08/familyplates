@@ -1,57 +1,60 @@
 # 🛡️ Admin Control Center & User Preferences
 
-FamilyPlates is designed around a single family household with a shared primary login, individual profile switchers, customizable themes, and robust Admin security.
+FamilyPlates is designed around a seamless household profile model — eliminating master email/passwords in favor of 1-tap family cook profile switching, customizable avatar styles, and secure 4-digit PIN protection for Organizer accounts.
 
 ---
 
-## 👥 Profile Roles & Permissions
+## 👥 Profile Roles & Permissions Matrix
 
-FamilyPlates supports two types of household members:
+FamilyPlates provides distinct permission levels tailored for family organizers and kids/household members:
 
-| Feature | Organizer (Admin) | Family Member |
+| Capability / Action | Organizer (Admin) | Family Member |
 | :--- | :---: | :---: |
-| Plan & Schedule Meals | ✅ | ✅ |
-| Submit Recipe Cravings | ✅ | ✅ |
-| View & Check off Grocery List | ✅ | ✅ |
-| Customize Name, Avatar Icon & Accent Color | ✅ | ✅ |
-| **4-Digit Security PIN Requirement** | **Mandatory** | ❌ (1-Tap Switch) |
+| **Weekly & Monthly Meal Scheduling** (Add, edit, reschedule, delete meal slots) | ✅ | ❌ *(Read-Only Planner)* |
+| **Recipe Management** (Create, edit, or delete recipes) | ✅ | ❌ *(Browse & View Only)* |
+| **1-Click Recipe Web Importer** (Import recipes from URL) | ✅ | ❌ |
+| **Recipe Cravings & Requests** (Submit meal requests for upcoming weeks) | ✅ | ✅ |
+| **Smart Grocery Checklist** (View, filter, check off items, copy list) | ✅ | ✅ |
+| **Fridge Schedule Printing** (1-page weekly & monthly fridge prints) | ✅ | ✅ |
+| **Personal Preferences** (Customize name, avatar icon, and accent color) | ✅ | ✅ |
+| **4-Digit PIN Protection** | **Mandatory** | ❌ *(1-Tap Instant Switch)* |
 | **Access Admin Control Center (`/admin`)** | ✅ | ❌ |
-| **Edit Household Name & Meal Times** | ✅ | ❌ |
-| **Manage Google Calendar Sync & Credentials** | ✅ | ❌ |
-| **Reset Member PINs & Change Master Email** | ✅ | ❌ |
+| **Household Roster Management** (Add members, change roles, reset PINs) | ✅ | ❌ |
+| **Household Branding & Meal Schedule** (Household name, meal start times) | ✅ | ❌ |
+| **Google Calendar Real-Time Sync** (Service account keys, sync triggers) | ✅ | ❌ |
+
+---
+
+## 🔐 Profile-Only Authentication & Profile Switcher
+
+* **No Master Password Friction:** Access the app directly through the visual family profile switcher (`/select_profile`).
+* **1-Tap Switching for Kids & Members:** Non-admin family members can tap their avatar to immediately browse recipes, view the scheduled planner, or check groceries.
+* **Organizer PIN Protection:** Switching to an Organizer (Admin) profile triggers a 4-digit PIN modal to protect meal scheduling, recipe editing, and household administration.
+* **Header Profile Switcher:** Switch active cooks quickly at any time from the top-right profile pill.
 
 ---
 
 ## 🎨 User Preferences Portal (`/preferences`)
 
-Every logged-in member can personalize their kitchen experience by clicking their avatar pill in the top-right and selecting **"My Preferences"**:
+Every member can personalize their kitchen experience:
 
-* **Name:** Update display name in the planner and cook rosters.
-* **Avatar Icons:** 8 custom kitchen-themed SVG icons:
-  * 👨‍🍳 `chef-hat`
-  * ✨ `sparkles`
-  * 🍕 `pizza`
-  * 🍔 `burger`
-  * 🥑 `avocado`
-  * 🧁 `cupcake`
-  * ☕ `coffee`
-  * 🥗 `salad`
-* **Color Palettes:** 12 vibrant kitchen accent colors (Ocean Blue, Berry Pink, Sunset Amber, Emerald Green, Royal Violet, Coral Orange, Indigo, Crimson, Teal, Lemon, Sky, Forest).
-* **PIN Change:** Admins can change their 4-digit security PIN anytime.
+* **Display Name:** Customize your display name shown in the planner, cook tags, and fridge sheet.
+* **Avatar Icons:** Custom kitchen-themed SVG icons (`chef-hat`, `utensils`, `heart`, `star`, `smile`, `flame`, `sparkles`, `award`).
+* **Color Palettes:** 12 vibrant kitchen accent colors.
+* **PIN Management:** Organizers can update their 4-digit security PIN anytime.
 
 ---
 
 ## ⚙️ Admin Control Center (`/admin`)
 
-The Admin Control Center is restricted to Admin members and requires entering the 4-digit PIN upon switching to an admin profile:
+The Admin Control Center is restricted to Organizers with PIN verification:
 
 1. **Family Roster Management (`/admin/family_members`):**
-   * Add new family members.
-   * Toggle Admin/Member role.
-   * Reset forgotten 4-digit PINs.
-2. **Master Account Credentials (`/admin/account`):**
-   * Modify the primary family email address and password.
-3. **Household & Calendar Settings (`/admin/household/edit`):**
-   * Household display name.
-   * Default breakfast, lunch, and dinner start hours.
-   * Google Calendar Service Account credentials & Real-Time Sync.
+   * Add new family members or kids.
+   * Promote members to Organizer or demote to standard member.
+   * Reset forgotten 4-digit Organizer PINs.
+2. **Household & Meal Schedule (`/admin/household/edit`):**
+   * Household / Family Kitchen display name.
+   * Default breakfast, lunch, and dinner start times (used when creating calendar events).
+3. **Google Calendar Direct Sync (`/admin/calendar/edit`):**
+   * Service account credentials management, live connection tester, and manual 1-click week sync.
