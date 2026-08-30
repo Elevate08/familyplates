@@ -1,132 +1,73 @@
 <div class="max-w-7xl mx-auto py-2 sm:py-4">
   <!-- Top Navigation & Actions Bar -->
-  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+  <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
     
-    <!-- Title & Navigation Controls -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between xl:justify-start gap-3 sm:gap-4">
-      <!-- Date & Subtitle -->
-      <div class="shrink-0">
-        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+    <!-- Title & Top Mobile Action Row -->
+    <div class="flex items-center justify-between gap-3 min-w-0">
+      <div class="min-w-0">
+        <h1 class="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
           <%= @view == "month" ? @month_date.strftime("%B %Y") : @meal_plan.week_label %>
         </h1>
-        <p class="text-xs text-slate-400 dark:text-slate-500 font-medium">Plan breakfast, lunch, and dinner with your family</p>
+        <p class="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium truncate">Plan breakfast, lunch, and dinner</p>
       </div>
 
-      <!-- Navigation & View Mode Toggles -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <!-- Week / Month View Mode Toggle -->
-        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
-          <%= link_to "Week", meal_plan_path(@meal_plan, view: "week"), 
-                class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
-          <%= link_to "Month", meal_plan_path(@meal_plan, view: "month", month: @week_start.beginning_of_month), 
-                class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
-        </div>
-
-        <!-- Prev / Next Navigation -->
-        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
-          <% if @view == "month" %>
-            <%= link_to meal_plan_path(@meal_plan, view: "month", month: @prev_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Month" do %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <% end %>
-
-            <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
-                  class: "px-2.5 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
-
-            <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Month" do %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            <% end %>
-          <% else %>
-            <%= link_to meal_plans_path(week: @prev_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Week" do %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <% end %>
-
-            <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
-                  class: "px-2.5 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
-
-            <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Week" do %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            <% end %>
-          <% end %>
-        </div>
+      <!-- Mobile-only Print Action Button (Top Right) -->
+      <div class="sm:hidden shrink-0">
+        <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month], autoprint: 1), target: "_blank", 
+              class: "w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer active:scale-95",
+              title: "Print #{@view == 'month' ? 'Monthly' : 'Weekly'} Schedule (Fridge Sheet)",
+              aria: { label: "Print #{@view.capitalize} Schedule" } do %>
+          <%= icon_tag("printer", css_class: "w-4.5 h-4.5 text-slate-600 dark:text-slate-300") %>
+        <% end %>
       </div>
     </div>
 
-    <!-- Output Actions (Fridge Print, Mobile Grocery, Google Calendar) -->
-    <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
-      <!-- Google Calendar Sync Modal Trigger -->
-      <div class="relative" data-controller="dropdown">
-        <button type="button" 
-                data-action="click->dropdown#toggle click@window->dropdown#hide"
-                class="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-xs font-bold transition-colors shadow-2xs cursor-pointer">
-          <%= icon_tag("calendar", css_class: "w-4 h-4 text-blue-600 dark:text-blue-400") %>
-          <span>Google Sync</span>
-        </button>
-
-        <div data-dropdown-target="menu" 
-             data-controller="calendar-sync"
-             data-calendar-sync-sync-url-value="<%= sync_calendar_meal_plan_path(@meal_plan) %>"
-             class="hidden absolute right-0 mt-2 w-72 sm:w-80 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 p-5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-900 dark:text-slate-100">
-          <div class="flex items-center gap-2.5 mb-3">
-            <div class="w-8 h-8 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <%= icon_tag("calendar", css_class: "w-4 h-4") %>
-            </div>
-            <div>
-              <h4 class="text-sm font-bold text-slate-900 dark:text-white">Google Calendar Sync</h4>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">Sync meals to your household calendar</p>
-            </div>
-          </div>
-
-          <% if current_household.google_calendar_enabled? && current_household.google_calendar_id.present? %>
-            <div class="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 text-xs mb-3 space-y-2">
-              <div class="flex items-center gap-1.5 font-bold">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Direct Sync Active</span>
-              </div>
-              <p class="text-[11px] text-emerald-800 dark:text-emerald-400 font-mono truncate">
-                <%= current_household.google_calendar_id %>
-              </p>
-            </div>
-
-            <button type="button"
-                    data-calendar-sync-target="syncButton"
-                    data-action="click->calendar-sync#syncPlan"
-                    class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer">
-              <span>🔄 Sync This Week Now</span>
-            </button>
-
-            <!-- Animated Progress Bar for Sync -->
-            <div data-calendar-sync-target="syncContainer" class="hidden mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in">
-              <div class="text-[11px] font-semibold text-slate-700 dark:text-slate-300" data-calendar-sync-target="progressText">
-                Syncing meal slots to Google Calendar...
-              </div>
-              <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                <div data-calendar-sync-target="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
-              </div>
-            </div>
-          <% else %>
-            <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
-              <p class="font-bold text-slate-700 dark:text-slate-300">Direct sync is not enabled</p>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">Share your existing Google Calendar with FamilyPlates in Admin Settings to enable instant sync.</p>
-              <% if current_family_member&.admin? %>
-                <%= link_to "⚙️ Configure in Admin Settings", edit_admin_calendar_path, class: "text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline block pt-1" %>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+    <!-- Navigation & View Controls (Desktop & Mobile aligned) -->
+    <div class="flex items-center justify-between sm:justify-end gap-2 flex-wrap sm:flex-nowrap">
+      <!-- Week / Month View Mode Toggle -->
+      <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
+        <%= link_to "Week", meal_plan_path(@meal_plan, view: "week"), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'week' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
+        <%= link_to "Month", meal_plan_path(@meal_plan, view: "month", month: @week_start.beginning_of_month), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors #{@view == 'month' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
       </div>
 
-      <!-- Grocery List -->
-      <%= link_to plan_grocery_list_path(@meal_plan), class: "inline-flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-xs font-bold transition-colors shadow-2xs" do %>
-        <%= icon_tag("shopping-cart", css_class: "w-4 h-4 text-emerald-600 dark:text-emerald-400") %>
-        <span>Groceries</span>
-      <% end %>
+      <!-- Prev / Next Navigation -->
+      <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
+        <% if @view == "month" %>
+          <%= link_to meal_plan_path(@meal_plan, view: "month", month: @prev_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Month" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <% end %>
 
-      <!-- Fridge Print Sheet -->
-      <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month]), target: "_blank", 
-            class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
-        <%= icon_tag("printer", css_class: "w-4 h-4") %>
-        <span>Print (<%= @view.capitalize %>)</span>
-      <% end %>
+          <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
+                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+
+          <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Month" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <% end %>
+        <% else %>
+          <%= link_to meal_plans_path(week: @prev_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Previous Week" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <% end %>
+
+          <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
+                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+
+          <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Week" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <% end %>
+        <% end %>
+      </div>
+
+      <!-- Desktop Print Action Button -->
+      <div class="hidden sm:flex items-center shrink-0">
+        <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month], autoprint: 1), target: "_blank", 
+              class: "p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer group",
+              title: "Print #{@view == 'month' ? 'Monthly' : 'Weekly'} Schedule (Fridge Sheet)",
+              aria: { label: "Print #{@view.capitalize} Schedule" } do %>
+          <%= icon_tag("printer", css_class: "w-4.5 h-4.5 text-slate-600 dark:text-slate-300 group-hover:scale-105 transition-transform") %>
+        <% end %>
+      </div>
     </div>
   </div>
 

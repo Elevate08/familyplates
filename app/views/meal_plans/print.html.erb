@@ -242,3 +242,13 @@
     </div>
   </div>
 <% end %>
+
+<% if params[:autoprint] == "1" %>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        window.print();
+      }, 250);
+    });
+  </script>
+<% end %>
