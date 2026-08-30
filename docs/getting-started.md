@@ -1,64 +1,125 @@
-# 🚀 Getting Started with FamilyPlates
+# 🚀 Getting Started & Deployment Guide
 
-This guide walks you through setting up and running FamilyPlates locally or in production.
+This guide covers deploying **FamilyPlates** via **Docker** (recommended for self-hosting and home servers) as well as bare-metal setup for local Ruby development.
 
 ---
 
-## 📋 Prerequisites
+## 🐳 Quick Start: Docker Deployment (Recommended)
 
-* **Ruby:** `4.0.x` or `3.4.x` (managed via `mise`, `asdf`, `rbenv`, or system)
+FamilyPlates is packaged as a lightweight, production-ready container powered by Thruster and Puma with embedded SQLite.
+
+### Method 1: Docker Compose (Easiest)
+
+1. **Create or download `docker-compose.yml`:**
+   ```yaml
+   services:
+     familyplates:
+       image: ghcr.io/elevate08/familyplates:latest
+       container_name: familyplates
+       restart: unless-stopped
+       ports:
+         - "3000:80"
+       environment:
+         - RAILS_ENV=production
+         - SECRET_KEY_BASE=replace_with_a_secure_random_hex_string
+         - RAILS_SERVE_STATIC_FILES=true
+         - RAILS_LOG_TO_STDOUT=true
+       volumes:
+         - familyplates_data:/rails/storage
+
+   volumes:
+     familyplates_data:
+   ```
+
+2. **Generate a Secret Key:**
+   ```bash
+   # Generate a 64-character random hex string for SECRET_KEY_BASE
+   openssl rand -hex 64
+   ```
+
+3. **Start the Container:**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Access the Application:**
+   Open [`http://localhost:3000`](http://localhost:3000) (or your server's IP address) in your browser.
+
+---
+
+### Method 2: Docker CLI (`docker run`)
+
+Run FamilyPlates with persistent storage mounted to a local volume:
+
+```bash
+docker volume create familyplates_data
+
+docker run -d \
+  --name familyplates \
+  --restart unless-stopped \
+  -p 3000:80 \
+  -e RAILS_ENV=production \
+  -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  -e RAILS_SERVE_STATIC_FILES=true \
+  -e RAILS_LOG_TO_STDOUT=true \
+  -v familyplates_data:/rails/storage \
+  ghcr.io/elevate08/familyplates:latest
+```
+
+---
+
+## 🛠️ Environment Variables Reference
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `SECRET_KEY_BASE` | *(Required in prod)* | 64-byte random key used for encrypted cookies and credentials. |
+| `RAILS_ENV` | `production` | Environment mode (`production`, `development`, `test`). |
+| `RAILS_SERVE_STATIC_FILES` | `true` | Serves compiled CSS/JS assets directly from the application. |
+| `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |
+| `PORT` | `80` | Internal listening port inside the container. |
+
+---
+
+## 💻 Local Bare-Metal Development (Developers)
+
+If you are developing or contributing to FamilyPlates directly:
+
+### 1. Prerequisites
+* **Ruby:** `4.0.x` or `3.4.x`
 * **SQLite:** `3.40+`
-* **Node / Propshaft Assets:** Built with modern ESM import maps and Tailwind CSS v4.
+* **libvips:** Required for image processing and recipe attachments
 
----
+### 2. Local Setup
+```bash
+# Clone the repository
+git clone https://github.com/Elevate08/familyplates.git
+cd familyplates
 
-## ⚙️ Quick Installation
+# Install dependencies
+bundle install
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/familyplates.git
-   cd familyplates
-   ```
+# Setup database & migrations
+bin/rails db:setup
 
-2. **Install Ruby gems:**
-   ```bash
-   bundle install
-   ```
+# Start development server (Puma + Tailwind CSS watcher)
+bin/dev
+```
 
-3. **Set up the Database & Seed Data:**
-   ```bash
-   bin/rails db:setup
-   ```
+Visit [`http://localhost:3000`](http://localhost:3000) in your browser.
 
-4. **Start the Development Server:**
-   ```bash
-   bin/dev
-   ```
-   * Or run standard Puma + Tailwind watcher:
-     ```bash
-     bin/rails server
-     ```
-
-5. **Open in Browser:**
-   Visit [`http://localhost:3000`](http://localhost:3000).
-
----
-
-## 🧪 Running Tests
-
-FamilyPlates comes with comprehensive unit, integration, and service tests:
-
+### 3. Running Automated Tests
 ```bash
 bundle exec rails test
 ```
 
 ---
 
-## 🔐 Initial Setup & First Boot
+## 🔐 First-Boot Onboarding
 
-1. On first run, FamilyPlates presents a 4-step **Onboarding Wizard** (`/onboarding`):
-   * Create your Family Household name.
-   * Add family members & assign Organizer (Admin) roles with optional 4-digit PINs.
-   * Pick starter recipes for your Recipe Box.
-   * Confirm On-Hand pantry items to activate the **Pantry Shield**.
-2. Follow the [Google Calendar Guide](google-calendar-integration) to enable automatic meal synchronization.
+When launching FamilyPlates for the first time, the 4-step **Onboarding Wizard** (`/onboarding`) guides you through:
+1. **Household Naming:** Set your family kitchen name.
+2. **Family Member Roster:** Add family members and set 4-digit security PINs for Organizer profiles.
+3. **Starter Recipes:** Select curated starter recipes to populate your vault.
+4. **On-Hand Inventory (Pantry Shield):** Confirm kitchen basics to keep your weekly supermarket grocery lists clean.
+
+Next, follow the **[Google Calendar Sync Guide](google-calendar-integration)** to connect your shared family calendar!

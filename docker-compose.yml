@@ -1,0 +1,21 @@
+services:
+  familyplates:
+    image: ghcr.io/elevate08/familyplates:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: familyplates
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - RAILS_ENV=production
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-replace_with_a_secure_random_hex_string}
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_LOG_TO_STDOUT=true
+    volumes:
+      - familyplates_data:/rails/storage
+
+volumes:
+  familyplates_data:
+    driver: local

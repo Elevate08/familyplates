@@ -34,16 +34,46 @@ Explore the full documentation and guides in the [`docs/`](./docs/README.md) dir
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Docker Compose)
 
-### 1. Prerequisites
-* Ruby `4.0` or `3.4`
-* SQLite `3.40+`
+The easiest way to run FamilyPlates is with **Docker Compose**:
 
-### 2. Setup
+```yaml
+services:
+  familyplates:
+    image: ghcr.io/elevate08/familyplates:latest
+    container_name: familyplates
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - RAILS_ENV=production
+      - SECRET_KEY_BASE=replace_with_a_secure_random_hex_string
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_LOG_TO_STDOUT=true
+    volumes:
+      - familyplates_data:/rails/storage
+
+volumes:
+  familyplates_data:
+```
+
+```bash
+# Start the container
+docker compose up -d
+```
+
+Visit [`http://localhost:3000`](http://localhost:3000) in your browser to launch the initial 4-step onboarding wizard.
+
+---
+
+## 💻 Bare-Metal Development
+
+For local development and contributing:
+
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/familyplates.git
+git clone https://github.com/Elevate08/familyplates.git
 cd familyplates
 
 # Install gems
@@ -52,11 +82,9 @@ bundle install
 # Setup database & migrations
 bin/rails db:setup
 
-# Start development server
+# Start development server (Puma + Tailwind CSS watcher)
 bin/dev
 ```
-
-Visit [`http://localhost:3000`](http://localhost:3000) in your browser.
 
 ---
 
