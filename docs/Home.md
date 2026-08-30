@@ -8,12 +8,12 @@
 
 | Guide | Summary |
 | :--- | :--- |
-| **[🚀 Getting Started](getting-started.md)** | Initial setup, environment requirements, database setup, and local run guide. |
-| **[📅 Google Calendar Sync Guide](google-calendar-integration.md)** | Step-by-step setup for real-time meal sync via Google Cloud Service Accounts. |
-| **[🛡️ Admin & User Preferences](admin-and-user-preferences.md)** | Profile-only auth, Organizer PIN security, member customization (colors & icons). |
-| **[🗓️ Weekly & Monthly Meal Planning](weekly-meal-planning.md)** | Interactive meal scheduler, cook assignments, cravings, and 1-page fridge printouts. |
-| **[🍳 Recipes & Pantry Management](recipes-and-pantry.md)** | Recipe scraper, structured ingredients, weighted aisle learning, and Pantry Shield. |
-| **[🏗️ System Architecture](architecture.md)** | Technical stack, data models, Solid Queue workers, and security model. |
+| **[🚀 Getting Started](getting-started)** | Initial setup, environment requirements, database setup, and local run guide. |
+| **[📅 Google Calendar Sync Guide](google-calendar-integration)** | Step-by-step setup for real-time meal sync via Google Cloud Service Accounts. |
+| **[🛡️ Admin & User Preferences](admin-and-user-preferences)** | Profile-only auth, Organizer PIN security, member customization (colors & icons). |
+| **[🗓️ Weekly & Monthly Meal Planning](weekly-meal-planning)** | Interactive meal scheduler, cook assignments, cravings, and 1-page fridge printouts. |
+| **[🍳 Recipes & Pantry Management](recipes-and-pantry)** | Recipe scraper, structured ingredients, weighted aisle learning, and Pantry Shield. |
+| **[🏗️ System Architecture](architecture)** | Technical stack, data models, Solid Queue workers, and security model. |
 
 ---
 
