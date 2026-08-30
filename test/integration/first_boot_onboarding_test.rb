@@ -81,7 +81,7 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_pantry_url
     follow_redirect!
     assert_response :success
-    assert_select "h1", text: /Confirm Your Pantry Staples/i
+    assert_select "h1", text: /Confirm Your On-Hand Pantry Items/i
 
     # 6. Step 4: Pantry Shield Staples
     post onboarding_save_pantry_url, params: {
@@ -94,7 +94,7 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /Welcome to The Miller Family!/i
     assert_select "p", text: /3 Members/i
     assert_select "p", text: /3 Recipes/i
-    assert_select "p", text: /5 Staples/i
+    assert_select "p", text: /5 On-Hand Items/i
 
     # 7. Visit Meal Planner directly
     meal_plan = household.current_meal_plan

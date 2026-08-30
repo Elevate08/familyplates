@@ -15,7 +15,7 @@
           </span>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-          <%= @meal_plan.week_label %> • <span class="text-amber-700 dark:text-amber-400 font-semibold"><%= @total_pantry_count %> pantry items marked</span>
+          <%= @meal_plan.week_label %> • <span class="text-amber-700 dark:text-amber-400 font-semibold"><%= @total_pantry_count %> items already on hand</span>
         </p>
       </div>
 
@@ -83,7 +83,7 @@
                         </span>
                         <% if item[:is_staple] %>
                           <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            In Pantry
+                            On Hand
                           </span>
                         <% end %>
                       </div>
