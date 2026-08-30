@@ -60,7 +60,8 @@ class RecipeIngredient < ApplicationRecord
   validates :aisle_category, inclusion: { in: AISLE_CATEGORIES }
 
   before_validation :normalize_fields
-  after_save :record_aisle_mapping
+  after_save :sync_aisle_mappings
+  after_destroy :sync_aisle_mappings
 
   def display_quantity
     return nil if quantity.blank?
@@ -86,8 +87,8 @@ class RecipeIngredient < ApplicationRecord
     self.aisle_category = "Other" if aisle_category.blank?
   end
 
-  def record_aisle_mapping
-    return if name.blank? || aisle_category.blank? || aisle_category == "Other"
-    IngredientAisleMapping.record_usage!(name, aisle_category, recipe&.household)
+  def sync_aisle_mappings
+    return if name.blank?
+    IngredientAisleMapping.sync_ingredient_usage!(name, recipe&.household)
   end
 end

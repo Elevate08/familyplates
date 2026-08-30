@@ -7,23 +7,66 @@ class IngredientAisleMapping < ApplicationRecord
 
   before_validation :normalize_fields
 
+  def self.sync_ingredient_usage!(raw_name, household = nil)
+    clean_name = normalize_name(raw_name)
+    return if clean_name.blank?
+
+    h_id = extract_household_id(household)
+    resolved_household = extract_household(household)
+    return unless resolved_household
+
+    # Query actual distinct recipe counts in this household for each aisle category
+    counts_by_aisle = resolved_household.recipes.joins(:recipe_ingredients)
+                                        .where("LOWER(recipe_ingredients.name) = ?", clean_name)
+                                        .group("recipe_ingredients.aisle_category")
+                                        .count
+
+    # Update or prune mappings for each category
+    RecipeIngredient::AISLE_CATEGORIES.each do |aisle|
+      actual_count = counts_by_aisle[aisle] || 0
+      mapping = find_by(household_id: h_id, name: clean_name, aisle_category: aisle)
+
+      if actual_count > 0
+        mapping ||= new(household_id: h_id, name: clean_name, aisle_category: aisle)
+        mapping.count = actual_count
+        mapping.save!
+      elsif mapping
+        mapping.destroy
+      end
+    end
+  end
+
   def self.record_usage!(raw_name, aisle, household = nil)
     clean_name = normalize_name(raw_name)
     return if clean_name.blank? || aisle.blank?
     return unless RecipeIngredient::AISLE_CATEGORIES.include?(aisle)
 
     h_id = extract_household_id(household)
+    if h_id.present?
+      sync_ingredient_usage!(clean_name, household)
+    else
+      mapping = find_or_initialize_by(household_id: nil, name: clean_name, aisle_category: aisle)
+      mapping.count = (mapping.new_record? ? 1 : (mapping.count || 0) + 1)
+      mapping.save!
+    end
+  end
 
-    # Record for specific household if present
-    mapping = if h_id.present?
-                find_or_initialize_by(household_id: h_id, name: clean_name, aisle_category: aisle)
-              else
-                find_or_initialize_by(household_id: nil, name: clean_name, aisle_category: aisle)
-              end
+  def self.recalculate_all!(household = nil)
+    resolved_household = extract_household(household)
+    return unless resolved_household
 
-    mapping.count = (mapping.new_record? ? 1 : (mapping.count || 0) + 1)
-    mapping.save!
-    mapping
+    h_id = resolved_household.id
+    where(household_id: h_id).destroy_all
+
+    counts = resolved_household.recipes.joins(:recipe_ingredients)
+                               .where.not(recipe_ingredients: { name: [nil, ""], aisle_category: [nil, ""] })
+                               .group("LOWER(recipe_ingredients.name), recipe_ingredients.aisle_category")
+                               .count
+
+    counts.each do |(name, aisle), count|
+      next unless RecipeIngredient::AISLE_CATEGORIES.include?(aisle)
+      create!(household_id: h_id, name: name, aisle_category: aisle, count: count)
+    end
   end
 
   def self.most_likely_aisle(raw_name, household = nil)
