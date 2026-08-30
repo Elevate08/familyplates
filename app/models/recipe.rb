@@ -10,7 +10,7 @@ class Recipe < ApplicationRecord
   MEAL_TYPES = %w[breakfast lunch dinner].freeze
 
   POPULAR_TAGS = [
-    "Quick (<30m)",
+    "Quick",
     "Kid Friendly",
     "Family Favorite",
     "One Pan",
@@ -29,7 +29,7 @@ class Recipe < ApplicationRecord
   validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
 
   scope :alphabetical, -> { order(:title) }
-  scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30") }
+  scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30 OR LOWER(tags) LIKE '%quick%'") }
   scope :for_meal_type, ->(meal_type) { where("meal_types LIKE ? OR meal_types IS NULL OR meal_types = ''", "%#{meal_type}%") }
   scope :leftover_friendly, -> { where(yields_leftovers: true) }
 

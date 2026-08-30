@@ -3,24 +3,43 @@ class RecipesController < ApplicationController
   before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
 
   def index
+    @available_tags = current_household.recipes.where.not(tags: [nil, ""])
+                                       .pluck(:tags)
+                                       .flat_map { |t| t.to_s.split(",").map(&:strip) }
+                                       .reject(&:blank?)
+                                       .uniq
+                                       .sort_by(&:downcase)
+
     @recipes = current_household.recipes.alphabetical
 
     if params[:query].present?
-      q = "%#{params[:query].strip.downcase}%"
-      @recipes = @recipes.where("LOWER(title) LIKE ? OR LOWER(tags) LIKE ?", q, q)
+      words = params[:query].strip.downcase.split(/\s+/).reject(&:blank?)
+      words.each do |word|
+        q = "%#{word}%"
+        @recipes = @recipes.where("LOWER(recipes.title) LIKE :q OR LOWER(recipes.tags) LIKE :q OR LOWER(recipes.description) LIKE :q", q: q)
+      end
     end
 
-    case params[:filter]
-    when "requested"
-      RecipeRequest.auto_fulfill_passed_slots!
-      recipe_ids = current_household.recipes.joins(:recipe_requests)
-                                    .where(recipe_requests: { fulfilled_at: nil })
-                                    .distinct.pluck(:id)
-      @recipes = @recipes.where(id: recipe_ids)
-    when "quick"
-      @recipes = @recipes.quick
-    when "breakfast", "lunch", "dinner"
-      @recipes = @recipes.for_meal_type(params[:filter])
+    if params[:tag].present?
+      @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{params[:tag].strip.downcase}%")
+    elsif params[:filter].present?
+      case params[:filter]
+      when "requested"
+        RecipeRequest.auto_fulfill_passed_slots!
+        recipe_ids = current_household.recipes.joins(:recipe_requests)
+                                      .where(recipe_requests: { fulfilled_at: nil })
+                                      .distinct.pluck(:id)
+        @recipes = @recipes.where(id: recipe_ids)
+      when "quick"
+        @recipes = @recipes.quick
+      when "breakfast", "lunch", "dinner"
+        @recipes = @recipes.for_meal_type(params[:filter])
+      else
+        if params[:filter].start_with?("tag:")
+          selected_tag = params[:filter].sub(/\Atag:/, "").strip
+          @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{selected_tag.downcase}%")
+        end
+      end
     end
   end
 

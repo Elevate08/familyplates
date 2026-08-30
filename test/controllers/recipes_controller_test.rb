@@ -22,6 +22,13 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "should filter by tag" do
+    get recipes_url(tag: "Mexican")
+    assert_response :success
+    get recipes_url(filter: "tag:Mexican")
+    assert_response :success
+  end
+
   test "should filter by meal type" do
     get recipes_url(filter: "breakfast")
     assert_response :success

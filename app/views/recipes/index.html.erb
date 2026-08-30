@@ -29,74 +29,235 @@
   </div>
 
   <!-- Search & Primary Filters Bar -->
-  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-    <!-- Filter Tabs with Smooth Touch Horizontal Scroll -->
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1">
-      <%= link_to "All Recipes", recipes_path(view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter].blank? && params[:query].blank? ? 'bg-primary-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
-      <%= link_to "☀️ Breakfast", recipes_path(filter: "breakfast", view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'breakfast' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
-      <%= link_to "🥪 Lunch", recipes_path(filter: "lunch", view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'lunch' ? 'bg-teal-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
-      <%= link_to "🍽️ Dinner", recipes_path(filter: "dinner", view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'dinner' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
-      <%= link_to "❤️ Cravings", recipes_path(filter: "requested", view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'requested' ? 'bg-rose-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
-      <%= link_to "⚡ Quick (<30m)", recipes_path(filter: "quick", view: current_view), 
-            class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'quick' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+  <div class="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-4">
+    <%
+      active_filter_label = if params[:filter] == "breakfast"
+        "☀️ Breakfast"
+      elsif params[:filter] == "lunch"
+        "🥪 Lunch"
+      elsif params[:filter] == "dinner"
+        "🍽️ Dinner"
+      elsif params[:filter] == "requested"
+        "❤️ Cravings"
+      elsif params[:filter] == "quick"
+        "⚡ Quick"
+      elsif params[:tag].present?
+        "🏷️ #{params[:tag]}"
+      elsif params[:filter]&.start_with?("tag:")
+        "🏷️ #{params[:filter].sub(/\Atag:/, '')}"
+      else
+        "All Recipes"
+      end
+    %>
+
+    <!-- Mobile Dynamic In-DOM Filter Dropdown (Zero OS positioning glitch, zero side-scroll) -->
+    <div class="sm:hidden w-full mb-2.5 relative" data-controller="dropdown">
+      <button type="button"
+              data-action="click->dropdown#toggle click@window->dropdown#hide"
+              class="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs cursor-pointer active:bg-slate-100 dark:active:bg-slate-700 transition-colors">
+        <span class="font-extrabold text-slate-900 dark:text-white truncate"><%= active_filter_label %></span>
+        <svg class="w-4 h-4 text-slate-500 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+
+      <div data-dropdown-target="menu" 
+           class="hidden absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
+        
+        <!-- Live Fuzzy Search Input Inside Dropdown -->
+        <div class="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <div class="relative">
+            <input type="text"
+                   data-dropdown-target="searchInput"
+                   data-action="input->dropdown#filter keydown.esc->dropdown#hide"
+                   placeholder="Type to filter categories & tags..."
+                   class="w-full pl-8 pr-7 py-2 rounded-xl bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-2xs">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-h-80 overflow-y-auto p-2 space-y-2 overscroll-contain">
+          <!-- Category Group -->
+          <div data-dropdown-target="group" class="space-y-0.5">
+            <div class="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Categories
+            </div>
+            <%= link_to recipes_path(view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "all recipes" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter].blank? && params[:tag].blank? ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>All Recipes</span>
+              <% if params[:filter].blank? && params[:tag].blank? %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+
+            <%= link_to recipes_path(filter: 'breakfast', view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "breakfast morning" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'breakfast' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>☀️ Breakfast</span>
+              <% if params[:filter] == 'breakfast' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+
+            <%= link_to recipes_path(filter: 'lunch', view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "lunch afternoon" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'lunch' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>🥪 Lunch</span>
+              <% if params[:filter] == 'lunch' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+
+            <%= link_to recipes_path(filter: 'dinner', view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "dinner evening" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'dinner' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>🍽️ Dinner</span>
+              <% if params[:filter] == 'dinner' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+
+            <%= link_to recipes_path(filter: 'requested', view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "cravings requested favorites" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'requested' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>❤️ Cravings</span>
+              <% if params[:filter] == 'requested' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+
+            <%= link_to recipes_path(filter: 'quick', view: current_view, query: params[:query]),
+                  data: { "dropdown-target": "item", "search-text": "quick fast 30 min" },
+                  class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'quick' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+              <span>⚡ Quick</span>
+              <% if params[:filter] == 'quick' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+            <% end %>
+          </div>
+
+          <!-- Tags Group -->
+          <% if @available_tags.any? %>
+            <div data-dropdown-target="group" class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
+              <div class="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Recipe Tags
+              </div>
+              <% @available_tags.each do |tag| %>
+                <% is_tag_active = (params[:tag] == tag || params[:filter] == "tag:#{tag}") %>
+                <%= link_to recipes_path(tag: tag, view: current_view, query: params[:query]),
+                      data: { "dropdown-target": "item", "search-text": tag.downcase },
+                      class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors #{is_tag_active ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
+                  <span>🏷️ <%= tag %></span>
+                  <% if is_tag_active %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <!-- Empty State -->
+          <div data-dropdown-target="emptyState" class="hidden p-6 text-center text-xs text-slate-400 dark:text-slate-500 font-medium">
+            No matching categories or tags.
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Search Bar & View Mode Toggle -->
-    <div class="flex items-center gap-2 w-full sm:w-auto">
-      <%= form_with url: recipes_path, method: :get, class: "flex-1 sm:w-64" do %>
-        <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
-        <%= hidden_field_tag :view, current_view %>
-        <div class="relative">
-          <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
-                class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
-          <% if params[:query].present? %>
-            <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter], view: current_view), class: "absolute right-2.5 top-1.5 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" %>
+    <!-- Desktop Segmented Controls + Search Row -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <!-- Desktop Filter Tabs & Tags Dropdown -->
+      <div class="hidden sm:flex items-center gap-1.5 flex-wrap">
+        <%= link_to "All Recipes", recipes_path(view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter].blank? && params[:tag].blank? ? 'bg-primary-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+        <%= link_to "☀️ Breakfast", recipes_path(filter: "breakfast", view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'breakfast' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+        <%= link_to "🥪 Lunch", recipes_path(filter: "lunch", view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'lunch' ? 'bg-teal-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+        <%= link_to "🍽️ Dinner", recipes_path(filter: "dinner", view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'dinner' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+        <%= link_to "❤️ Cravings", recipes_path(filter: "requested", view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'requested' ? 'bg-rose-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+        <%= link_to "⚡ Quick", recipes_path(filter: "quick", view: current_view, query: params[:query]), 
+              class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter] == 'quick' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
+
+        <% if @available_tags.any? %>
+          <% current_tag_active = params[:tag].presence || (params[:filter]&.start_with?("tag:") ? params[:filter].sub(/\Atag:/, "") : nil) %>
+          <div class="relative" data-controller="dropdown">
+            <button type="button" 
+                    data-action="click->dropdown#toggle click@window->dropdown#hide"
+                    class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer <%= current_tag_active.present? ? 'bg-primary-600 text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' %>">
+              <span>🏷️ <%= current_tag_active.present? ? current_tag_active : "Tags" %></span>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div data-dropdown-target="menu" class="hidden absolute left-0 mt-2 w-56 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <!-- Live Search inside Desktop Tags Dropdown -->
+              <div class="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <input type="text"
+                       data-dropdown-target="searchInput"
+                       data-action="input->dropdown#filter keydown.esc->dropdown#hide"
+                       placeholder="Filter tags..."
+                       class="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              </div>
+              <div class="max-h-60 overflow-y-auto p-1.5 overscroll-contain">
+                <% @available_tags.each do |tag| %>
+                  <% is_selected = (current_tag_active == tag) %>
+                  <%= link_to recipes_path(tag: is_selected ? nil : tag, view: current_view, query: params[:query]), 
+                        data: { "dropdown-target": "item", "search-text": tag.downcase },
+                        class: "px-3 py-1.5 text-xs font-medium rounded-xl flex items-center justify-between transition-colors #{is_selected ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}" do %>
+                    <span><%= tag %></span>
+                    <% if is_selected %>
+                      <span class="text-primary-600 dark:text-primary-400">✓</span>
+                    <% end %>
+                  <% end %>
+                <% end %>
+                <div data-dropdown-target="emptyState" class="hidden p-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                  No tags match
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Search Bar & View Mode Toggle -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <%= form_with url: recipes_path, method: :get, class: "flex-1 sm:w-64" do %>
+          <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
+          <%= hidden_field_tag :tag, params[:tag] if params[:tag].present? %>
+          <%= hidden_field_tag :view, current_view %>
+          <div class="relative">
+            <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
+                  class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
+            <% if params[:query].present? %>
+              <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter], tag: params[:tag], view: current_view), class: "absolute right-2.5 top-1.5 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" %>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Gallery vs List Toggle -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+          <%= link_to recipes_path(filter: params[:filter], tag: params[:tag], query: params[:query], view: "grid"),
+                title: "Gallery Grid View",
+                class: "p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 #{current_view == 'grid' ? 'bg-white dark:bg-slate-700 shadow-2xs text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}" do %>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span class="hidden md:inline text-[11px]">Gallery</span>
+          <% end %>
+
+          <%= link_to recipes_path(filter: params[:filter], tag: params[:tag], query: params[:query], view: "list"),
+                title: "List Table View",
+                class: "p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 #{current_view == 'list' ? 'bg-white dark:bg-slate-700 shadow-2xs text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}" do %>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span class="hidden md:inline text-[11px]">List</span>
           <% end %>
         </div>
-      <% end %>
-
-      <!-- Gallery vs List Toggle -->
-      <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-        <%= link_to recipes_path(filter: params[:filter], query: params[:query], view: "grid"),
-              title: "Gallery Grid View",
-              class: "p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 #{current_view == 'grid' ? 'bg-white dark:bg-slate-700 shadow-2xs text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}" do %>
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-          <span class="hidden md:inline text-[11px]">Gallery</span>
-        <% end %>
-
-        <%= link_to recipes_path(filter: params[:filter], query: params[:query], view: "list"),
-              title: "List Table View",
-              class: "p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 #{current_view == 'list' ? 'bg-white dark:bg-slate-700 shadow-2xs text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}" do %>
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <span class="hidden md:inline text-[11px]">List</span>
-        <% end %>
       </div>
     </div>
   </div>
 
-  <!-- Tag Filter Bar & Select All Bar -->
-  <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs text-slate-500 dark:text-slate-400 -mx-1 px-1">
-      <span class="font-bold text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-wider shrink-0">Tags:</span>
-      <% Recipe::POPULAR_TAGS.first(8).each do |tag| %>
-        <% is_selected = (params[:query] == tag) %>
-        <%= link_to tag, recipes_path(query: is_selected ? nil : tag, filter: params[:filter], view: current_view), 
-              class: "px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors #{is_selected ? 'bg-primary-600 text-white font-bold' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary-300 dark:hover:border-primary-500'}" %>
+  <!-- Active Filter & Select All Status Bar -->
+  <div class="flex items-center justify-between gap-3 mb-4 text-xs">
+    <div class="text-slate-500 dark:text-slate-400 font-medium">
+      <span>Showing <strong><%= @recipes.count %></strong> <%= 'recipe'.pluralize(@recipes.count) %></span>
+      <% if params[:filter].present? || params[:tag].present? || params[:query].present? %>
+        &bull; <%= link_to "Clear filters", recipes_path(view: current_view), class: "text-primary-600 dark:text-primary-400 font-bold hover:underline" %>
       <% end %>
     </div>
 
     <!-- Select All Checkbox Control (Admins only) -->
     <% if current_family_member&.admin? && @recipes.any? %>
-      <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
+      <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
         <input type="checkbox"
                data-bulk-select-target="selectAllCheckbox"
                data-action="change->bulk-select#toggleAll"
@@ -243,7 +404,7 @@
 
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Tags (comma-separated):</label>
-          <%= text_field_tag :tags, "", placeholder: "e.g. Kid Friendly, Quick (<30m), Italian",
+          <%= text_field_tag :tags, "", placeholder: "e.g. Kid Friendly, Quick, Italian",
                 data: { "bulk-select-target": "tagsInput" },
                 class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-none" %>
           
