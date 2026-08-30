@@ -4,26 +4,19 @@ FamilyPlates integrates directly with Google Calendar via a **Google Cloud Servi
 
 ---
 
-## 🏗️ Architecture & Benefits
+## 🏗️ Architecture Overview
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Organizer as Kitchen Admin
-    actor Family as Family Member
-    participant FP as FamilyPlates
-    participant GCal as Google Calendar (Web/App)
+flowchart TD
+    subgraph Setup ["1. One-Time Setup"]
+        A["Google Cloud Service Account"] -->|Share Calendar with Email| B["Shared Family Google Calendar"]
+        A -->|Paste JSON Key| C["FamilyPlates Calendar Settings"]
+    end
 
-    Note over Organizer,FP: Setup Phase (One-Time)
-    Organizer->>FP: Pastes Service Account JSON in Admin Settings
-    FP-->>Organizer: Displays unique Service Account Email
-    Organizer->>GCal: Shares Google Calendar with Service Account Email ("Make changes to events")
-    Organizer->>FP: Enters Google Calendar ID & tests connection
-
-    Note over Family,GCal: Daily Meal Sync (Automatic)
-    Family->>FP: Assigns "Honey Garlic Salmon" (Cook: Mom) to Friday Dinner
-    FP->>GCal: Inserts/Updates event with time, cook, prep duration & ingredients
-    Note over GCal: Appears instantly on family phones, watches & smart displays!
+    subgraph Sync ["2. Automatic Real-Time Sync"]
+        D["Schedule or Edit Meal in Planner"] --> E["Background Sync Job"]
+        E -->|Direct API Write| B
+    end
 ```
 
 ### Key Advantages:
@@ -74,9 +67,9 @@ sequenceDiagram
 ### Step 5: Paste JSON Key into FamilyPlates Admin Settings
 1. Open the downloaded `.json` file in any text editor (Notepad, VS Code, TextEdit).
 2. Copy the entire contents of the file (starts with `{"type": "service_account", ...}`).
-3. In FamilyPlates, switch to an **Admin** profile and navigate to **Admin Control Center > Household & Calendar Settings** (`/admin/household/edit`).
+3. In FamilyPlates, switch to an **Admin** profile and navigate to **Admin Dashboard > Google Calendar Direct Sync** (`/admin/calendar/edit`).
 4. Paste the JSON text into **Step 1: Service Account JSON Key**.
-5. Click **Save Settings**.
+5. Click **Save Calendar Settings**.
 
 ---
 
@@ -96,9 +89,9 @@ sequenceDiagram
 1. In Google Calendar settings, scroll down to the **"Integrate calendar"** section and copy your **Calendar ID**:
    * For your main personal calendar: use `primary`.
    * For a shared family calendar: use the address ending in `@group.calendar.google.com`.
-2. Back in FamilyPlates Admin Settings (`/admin/household/edit`), paste the Calendar ID into **Step 3: Google Calendar ID**.
-3. Toggle the **Google Calendar Direct Sync** switch to **ON**.
-4. Click **Save Settings**.
+2. Back in FamilyPlates Calendar Settings (`/admin/calendar/edit`), paste the Calendar ID into **Step 3: Google Calendar ID**.
+3. Toggle the **Direct Sync Activation** switch to **ON**.
+4. Click **Save Calendar Settings**.
 5. Click **"Test Google Calendar Connection"** at the bottom of the page. You will see a green confirmation notice:
    > *Google Calendar connection verified successfully! 📅 Target: "Family Calendar"*
 
@@ -114,7 +107,7 @@ FamilyPlates automatically schedules events based on the meal type and your hous
 | **Lunch** | `12:30` (12:30 PM) | 45 minutes | `🍽️ Lunch: Turkey Club Sandwich (Cook: Mom)` |
 | **Dinner** | `18:00` (6:00 PM) | 60 minutes | `🍽️ Dinner: Honey Garlic Salmon (Cook: Dad)` |
 
-*Note: You can customize your household's default meal times in **Admin Control Center > Household & Calendar Settings**.*
+*Note: You can customize your household's default meal times in **Admin Dashboard > Household & Meal Schedule** (`/admin/household/edit`).*
 
 ### Event Body Content
 Each Google Calendar event contains:
@@ -129,7 +122,7 @@ Each Google Calendar event contains:
 
 * **Automatic Real-Time Sync:** When any meal is assigned, edited, or reassigned in the weekly or monthly planner, a background job (`SyncMealPlanSlotJob`) updates Google Calendar within seconds.
 * **Automatic Deletion:** When a meal slot is cleared or deleted, FamilyPlates removes the corresponding event from Google Calendar.
-* **Full Week Sync:** On the Weekly Meal Planner page (`/meal_plans/:id`), click **Google Calendar > Sync This Week Now** to re-sync all 7 days of breakfast, lunch, and dinner.
+* **Full Week Sync:** In **Admin Calendar Settings** (`/admin/calendar/edit`), click **"Sync Current Meal Plan Now"** to immediately re-sync all scheduled meals.
 
 ---
 
@@ -140,5 +133,5 @@ Each Google Calendar event contains:
 * **Fix:** Double-check that you copied the exact Calendar ID from Google Calendar Settings > Integrate Calendar, and verify that the Service Account email is listed under "Share with specific people".
 
 ### "Google Service Account JSON key is missing"
-* **Cause:** The JSON key has not been pasted into Admin settings or environment variables.
-* **Fix:** Copy the contents of your downloaded `.json` key and paste it into `/admin/household/edit` under Step 1.
+* **Cause:** The JSON key has not been pasted into Admin settings.
+* **Fix:** Copy the contents of your downloaded `.json` key and paste it into `/admin/calendar/edit` under Step 1.
