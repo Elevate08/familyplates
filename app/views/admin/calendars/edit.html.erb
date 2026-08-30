@@ -1,0 +1,152 @@
+<div class="max-w-2xl mx-auto py-6 sm:py-8 space-y-8" 
+     data-controller="calendar-sync"
+     data-calendar-sync-test-url-value="<%= test_connection_admin_calendar_path %>"
+     data-calendar-sync-sync-url-value="<%= sync_plan_admin_calendar_path %>">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
+        <%= icon_tag("calendar", css_class: "w-5 h-5") %>
+      </div>
+      <div>
+        <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Google Calendar Direct Sync</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Connect your family Google Calendar for real-time automatic meal event syncing</p>
+      </div>
+    </div>
+    <%= link_to "← Admin Dashboard", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
+  </div>
+
+  <!-- Settings Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+    <%= form_with model: @household, url: admin_calendar_path, method: :patch, class: "space-y-7" do |f| %>
+      <% if @household.errors.any? %>
+        <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs">
+          <p class="font-bold mb-1">Please fix the following issues:</p>
+          <ul class="list-disc list-inside space-y-0.5">
+            <% @household.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <!-- Toggle Direct Sync -->
+      <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>Direct Sync Activation</span>
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">When enabled, meals added to the weekly planner will sync to Google Calendar.</p>
+        </div>
+
+        <label class="relative inline-flex items-center cursor-pointer">
+          <%= f.check_box :google_calendar_enabled, class: "sr-only peer" %>
+          <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+        </label>
+      </div>
+
+      <!-- Step 1: Service Account JSON Key -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <%= f.label :google_service_account_json, "Step 1: Service Account JSON Key", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300" %>
+          <% if GoogleCalendarService.configured?(@household) %>
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              Key Configured
+            </span>
+          <% else %>
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+              ⚠️ Key Required
+            </span>
+          <% end %>
+        </div>
+        <%= f.text_area :google_service_account_json, rows: 4, placeholder: 'Paste the contents of your downloaded Google Service Account JSON file here (starts with {"type": "service_account", ...})',
+              class: "w-full font-mono text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+          Generated from Google Cloud Console > IAM & Admin > Service Accounts > Keys > Create JSON Key.
+        </p>
+      </div>
+
+      <!-- Step 2: Service Account Email Display -->
+      <% if @service_email.present? %>
+        <div class="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 space-y-2">
+          <p class="text-xs font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+            <span>🔑</span>
+            <span>Step 2: Share Google Calendar with Kitchen Bot Email</span>
+          </p>
+          <p class="text-xs text-emerald-800 dark:text-emerald-400 leading-relaxed">
+            In Google Calendar settings under <em>"Share with specific people or groups"</em>, add this email and set permission to <strong>"Make changes to events"</strong>:
+          </p>
+          <div class="flex items-center gap-2">
+            <input type="text" readonly value="<%= @service_email %>" id="service-account-email"
+                   class="w-full font-mono text-xs px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-100 select-all font-semibold">
+            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('service-account-email').value); alert('Service Account email copied to clipboard!');"
+                    class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 shadow-xs">
+              Copy Email
+            </button>
+          </div>
+        </div>
+      <% else %>
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+          <p class="font-bold text-slate-800 dark:text-white">Step 2: Share Calendar</p>
+          <p>Once you paste and save your Service Account JSON above, your unique kitchen bot email will display here for 1-click sharing.</p>
+        </div>
+      <% end %>
+
+      <!-- Step 3: Google Calendar ID -->
+      <div>
+        <%= f.label :google_calendar_id, "Step 3: Google Calendar ID", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
+        <%= f.text_field :google_calendar_id, placeholder: "e.g. primary or yourfamily@group.calendar.google.com",
+              data: { "calendar-sync-target": "calendarIdInput" },
+              class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Found under Google Calendar Settings > Integrate Calendar > Calendar ID (use <code>primary</code> for your main calendar).</p>
+      </div>
+
+      <!-- Form Submit & Action Buttons -->
+      <div class="pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+        <%= link_to "Cancel", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-center sm:text-left transition-colors" %>
+        
+        <div class="flex items-center gap-2">
+          <%= f.submit "Save Calendar Settings", class: "w-full sm:w-auto py-2.5 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-sm cursor-pointer transition-all" %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Separate Utility Actions: Test Connection & Sync Now -->
+    <div class="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Test Connection Button -->
+        <button type="button"
+                data-calendar-sync-target="testButton"
+                data-action="click->calendar-sync#testConnection"
+                class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-2xs">
+          <span>🔍</span>
+          <span>Test Google Calendar Connection</span>
+        </button>
+
+        <!-- Sync Now Button -->
+        <button type="button"
+                data-calendar-sync-target="syncButton"
+                data-action="click->calendar-sync#syncPlan"
+                class="px-4 py-2 rounded-xl border border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-2xs">
+          <span>🔄</span>
+          <span>Sync Current Meal Plan Now</span>
+        </button>
+      </div>
+
+      <!-- Pulsing Light Indicator for Test Connection -->
+      <div data-calendar-sync-target="testStatus" class="hidden"></div>
+
+      <!-- Animated Progress Bar for Sync -->
+      <div data-calendar-sync-target="syncContainer" class="hidden p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <span data-calendar-sync-target="progressText">Syncing meal slots to Google Calendar...</span>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+          <div data-calendar-sync-target="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -34,6 +34,10 @@ Rails.application.routes.draw do
       post :test_google_calendar
       post :sync_google_calendar
     end
+    resource :calendar, only: %i[show edit update], controller: "calendars" do
+      post :test_connection
+      post :sync_plan
+    end
   end
 
   # First-Boot Setup & Onboarding Wizard
