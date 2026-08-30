@@ -6,11 +6,32 @@ export default class extends Controller {
     "iconInput",
     "iconPreview",
     "pickerContainer",
+    "iconSearchInput",
+    "iconGrid",
     "categoryRadio"
   ]
 
   connect() {
     this.manualCategorySelection = false
+    this._handleClickOutside = this.handleClickOutside.bind(this)
+    document.addEventListener("click", this._handleClickOutside)
+  }
+
+  disconnect() {
+    document.removeEventListener("click", this._handleClickOutside)
+  }
+
+  handleClickOutside(event) {
+    if (this.hasPickerContainerTarget && !this.pickerContainerTarget.classList.contains("hidden")) {
+      // Check if click was inside the trigger button or inside the dropdown
+      const isInside = this.element.contains(event.target) && (
+        event.target.closest("[data-pantry-item-form-target='pickerContainer']") ||
+        event.target.closest("[data-action*='togglePicker']")
+      )
+      if (!isInside) {
+        this.pickerContainerTarget.classList.add("hidden")
+      }
+    }
   }
 
   onNameChange() {
@@ -43,13 +64,47 @@ export default class extends Controller {
     this.manualCategorySelection = true
   }
 
-  togglePicker() {
+  togglePicker(event) {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
     if (this.hasPickerContainerTarget) {
-      this.pickerContainerTarget.classList.toggle("hidden")
+      const isHidden = this.pickerContainerTarget.classList.toggle("hidden")
+      if (!isHidden && this.hasIconSearchInputTarget) {
+        this.iconSearchInputTarget.value = ""
+        this.filterIcons()
+        setTimeout(() => this.iconSearchInputTarget.focus(), 50)
+      }
     }
   }
 
+  filterIcons() {
+    if (!this.hasIconGridTarget || !this.hasIconSearchInputTarget) return
+
+    const query = this.iconSearchInputTarget.value.trim().toLowerCase()
+    const buttons = this.iconGridTarget.querySelectorAll("button[data-icon-id]")
+
+    buttons.forEach(btn => {
+      const label = (btn.getAttribute("data-icon-label") || "").toLowerCase()
+      const title = (btn.getAttribute("title") || "").toLowerCase()
+      const id = (btn.getAttribute("data-icon-id") || "").toLowerCase()
+
+      if (!query || label.includes(query) || title.includes(query) || id.includes(query)) {
+        btn.classList.remove("hidden")
+      } else {
+        btn.classList.add("hidden")
+      }
+    })
+  }
+
   pickIcon(event) {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
     const btn = event.target.closest("[data-icon-id]") || event.currentTarget
     const iconId = btn ? btn.getAttribute("data-icon-id") : null
     if (iconId) {
