@@ -4,22 +4,8 @@ FamilyPlates integrates directly with Google Calendar via a **Google Cloud Servi
 
 ---
 
-## 🏗️ Architecture Overview
+## 🌟 Key Advantages
 
-```mermaid
-flowchart TD
-    subgraph Setup ["1. One-Time Setup"]
-        A["Google Cloud Service Account"] -->|Share Calendar with Email| B["Shared Family Google Calendar"]
-        A -->|Paste JSON Key| C["FamilyPlates Calendar Settings"]
-    end
-
-    subgraph Sync ["2. Automatic Real-Time Sync"]
-        D["Schedule or Edit Meal in Planner"] --> E["Background Sync Job"]
-        E -->|Direct API Write| B
-    end
-```
-
-### Key Advantages:
 * **Zero Token Expiration:** No OAuth refresh tokens that expire or disconnect after 7 days.
 * **No Unverified App Warnings:** Avoids Google OAuth consent screen verification requirements.
 * **Direct Event Placement:** Events appear directly in your existing shared family calendar rather than a secondary read-only subscription.
