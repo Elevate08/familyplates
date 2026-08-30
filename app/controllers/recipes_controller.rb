@@ -1,15 +1,9 @@
 class RecipesController < ApplicationController
   before_action :set_recipe, only: %i[show edit update destroy]
   before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
+  before_action :set_available_tags, only: %i[index new create edit update]
 
   def index
-    @available_tags = current_household.recipes.where.not(tags: [nil, ""])
-                                       .pluck(:tags)
-                                       .flat_map { |t| t.to_s.split(",").map(&:strip) }
-                                       .reject(&:blank?)
-                                       .uniq
-                                       .sort_by(&:downcase)
-
     @recipes = current_household.recipes.alphabetical
 
     if params[:query].present?
@@ -132,6 +126,14 @@ class RecipesController < ApplicationController
 
   def set_recipe
     @recipe = current_household.recipes.find(params[:id])
+  end
+
+  def set_available_tags
+    household_tags = current_household.recipes.where.not(tags: [nil, ""])
+                                      .pluck(:tags)
+                                      .flat_map { |t| t.to_s.split(",").map(&:strip) }
+                                      .reject(&:blank?)
+    @available_tags = (household_tags + Recipe::POPULAR_TAGS).uniq.sort_by(&:downcase)
   end
 
   def recipe_params
