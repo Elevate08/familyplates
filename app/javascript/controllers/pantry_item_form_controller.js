@@ -3,19 +3,14 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "nameInput",
-    "categorySelect",
     "iconInput",
     "iconPreview",
     "pickerContainer",
-    "categoryChip"
+    "categoryRadio"
   ]
 
   connect() {
     this.manualCategorySelection = false
-    const initialCategory = this.hasCategorySelectTarget && this.categorySelectTarget.value
-      ? this.categorySelectTarget.value
-      : "Spices & Baking"
-    this.renderCategoryState(initialCategory)
   }
 
   onNameChange() {
@@ -25,11 +20,15 @@ export default class extends Controller {
       return
     }
 
-    // Auto-detect matching icon & category if user hasn't manually selected one
+    // Auto-detect matching category if user hasn't manually clicked one
     if (!this.manualCategorySelection) {
       const detectedCategory = this.guessCategory(name)
-      if (detectedCategory) {
-        this.selectCategory(detectedCategory, false)
+      if (detectedCategory && this.hasCategoryRadioTargets) {
+        const matchingRadio = this.categoryRadioTargets.find(r => r.value.toLowerCase() === detectedCategory.toLowerCase())
+        if (matchingRadio && !matchingRadio.checked) {
+          matchingRadio.checked = true
+          matchingRadio.dispatchEvent(new Event("change", { bubbles: true }))
+        }
       }
     }
 
@@ -40,73 +39,14 @@ export default class extends Controller {
     }
   }
 
+  onCategoryRadioChange(event) {
+    this.manualCategorySelection = true
+  }
+
   togglePicker() {
     if (this.hasPickerContainerTarget) {
       this.pickerContainerTarget.classList.toggle("hidden")
     }
-  }
-
-  selectCategoryFromChip(event) {
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
-    const btn = event.target.closest("[data-category]") || event.currentTarget
-    const cat = btn ? btn.getAttribute("data-category") : null
-    if (cat) {
-      this.manualCategorySelection = true
-      this.selectCategory(cat, true)
-    }
-  }
-
-  selectCategory(category, isManual = true) {
-    if (!category) return
-    if (isManual) this.manualCategorySelection = true
-
-    if (this.hasCategorySelectTarget) {
-      this.categorySelectTarget.value = category
-      this.categorySelectTarget.dispatchEvent(new Event("change", { bubbles: true }))
-    }
-
-    this.renderCategoryState(category)
-  }
-
-  renderCategoryState(category) {
-    if (!this.hasCategoryChipTargets) return
-
-    const activeClasses = [
-      "bg-primary-600",
-      "text-white",
-      "border-primary-600",
-      "shadow-sm",
-      "scale-105"
-    ]
-
-    const inactiveClasses = [
-      "bg-slate-100",
-      "dark:bg-slate-800",
-      "text-slate-700",
-      "dark:text-slate-300",
-      "border-slate-200",
-      "dark:border-slate-700",
-      "hover:border-slate-300",
-      "dark:hover:border-slate-600"
-    ]
-
-    this.categoryChipTargets.forEach(chip => {
-      const chipCat = chip.getAttribute("data-category")
-      const isSelected = chipCat && chipCat.trim().toLowerCase() === category.trim().toLowerCase()
-
-      if (isSelected) {
-        inactiveClasses.forEach(cls => chip.classList.remove(cls))
-        activeClasses.forEach(cls => chip.classList.add(cls))
-        chip.setAttribute("aria-selected", "true")
-      } else {
-        activeClasses.forEach(cls => chip.classList.remove(cls))
-        inactiveClasses.forEach(cls => chip.classList.add(cls))
-        chip.setAttribute("aria-selected", "false")
-      }
-    })
   }
 
   pickIcon(event) {
