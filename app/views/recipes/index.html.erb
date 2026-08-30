@@ -1,8 +1,8 @@
 <% current_view = params[:view] == "list" ? "list" : "grid" %>
 
-<div class="max-w-6xl mx-auto py-6" data-controller="bulk-select">
+<div class="max-w-6xl mx-auto py-2 sm:py-6" data-controller="bulk-select">
   <!-- Header & Actions -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 sm:mb-6">
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
         <span>Family Recipe Vault</span>
@@ -10,18 +10,18 @@
           <%= @recipes.count %> <%= "recipe".pluralize(@recipes.count) %>
         </span>
       </h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Your household's curated favorites. Family members can tap the heart on dishes they're craving for next week!
+      <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+        Your household's curated favorites. Tap the heart on dishes you're craving for next week!
       </p>
     </div>
 
-    <div class="flex items-center gap-3">
-      <%= link_to new_recipe_import_path, class: "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
+    <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+      <%= link_to new_recipe_import_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
         <%= icon_tag("link", css_class: "w-4 h-4 text-primary-500") %>
-        <span>Import from Web</span>
+        <span>Import URL</span>
       <% end %>
 
-      <%= link_to new_recipe_path, class: "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-sm font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
+      <%= link_to new_recipe_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs sm:text-sm font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
         <%= icon_tag("plus", css_class: "w-4 h-4") %>
         <span>Add Recipe</span>
       <% end %>
@@ -29,9 +29,9 @@
   </div>
 
   <!-- Search & Primary Filters Bar -->
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-    <!-- Filter Tabs -->
-    <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+    <!-- Filter Tabs with Smooth Touch Horizontal Scroll -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1">
       <%= link_to "All Recipes", recipes_path(view: current_view), 
             class: "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors #{params[:filter].blank? && params[:query].blank? ? 'bg-primary-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}" %>
       <%= link_to "☀️ Breakfast", recipes_path(filter: "breakfast", view: current_view), 
@@ -47,15 +47,15 @@
     </div>
 
     <!-- Search Bar & View Mode Toggle -->
-    <div class="flex items-center gap-2.5 w-full sm:w-auto">
-      <%= form_with url: recipes_path, method: :get, class: "w-full sm:w-64" do %>
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+      <%= form_with url: recipes_path, method: :get, class: "flex-1 sm:w-64" do %>
         <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
         <%= hidden_field_tag :view, current_view %>
         <div class="relative">
           <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
-                class: "w-full pl-3 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
+                class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
           <% if params[:query].present? %>
-            <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter], view: current_view), class: "absolute right-2.5 top-1 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" %>
+            <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter], view: current_view), class: "absolute right-2.5 top-1.5 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" %>
           <% end %>
         </div>
       <% end %>
@@ -84,8 +84,8 @@
   </div>
 
   <!-- Tag Filter Bar & Select All Bar -->
-  <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs text-slate-500 dark:text-slate-400">
+  <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs text-slate-500 dark:text-slate-400 -mx-1 px-1">
       <span class="font-bold text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-wider shrink-0">Tags:</span>
       <% Recipe::POPULAR_TAGS.first(8).each do |tag| %>
         <% is_selected = (params[:query] == tag) %>
@@ -106,31 +106,31 @@
     <% end %>
   </div>
 
-  <!-- Floating Sticky Bulk Actions Toolbar (Admins only) -->
+  <!-- Floating Sticky Bulk Actions Toolbar (Safe-Area Aware for Mobile) -->
   <% if current_family_member&.admin? %>
     <div data-bulk-select-target="toolbar"
-         class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 dark:bg-slate-800 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-slate-700 dark:border-slate-600 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-2xl w-[92%] sm:w-auto justify-between sm:justify-start">
+         class="hidden fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-3xl shadow-2xl border border-slate-700 dark:border-slate-600 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-2xl w-[94%] sm:w-auto justify-between sm:justify-start">
       
-      <div class="flex items-center gap-2 pr-2 border-r border-slate-700 dark:border-slate-600">
-        <span class="w-2.5 h-2.5 rounded-full bg-primary-400 animate-pulse"></span>
+      <div class="flex items-center gap-1.5 pr-2 border-r border-slate-700 dark:border-slate-600">
+        <span class="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></span>
         <span data-bulk-select-target="count" class="text-xs font-extrabold whitespace-nowrap text-white">
           0 selected
         </span>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-1.5 flex-wrap">
         <!-- Edit Meal Types Button -->
         <button type="button"
                 data-action="click->bulk-select#openMealTypesModal"
-                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
           <span>☀️/🥪/🍽️</span>
-          <span>Meal Types</span>
+          <span>Types</span>
         </button>
 
         <!-- Edit Tags Button -->
         <button type="button"
                 data-action="click->bulk-select#openTagsModal"
-                class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
           <span>🏷️</span>
           <span>Tags</span>
         </button>
@@ -138,7 +138,7 @@
         <!-- Bulk Delete Button (Uses theme styling) -->
         <button type="button"
                 data-action="click->bulk-select#confirmBulkDelete"
-                class="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5">
+                class="px-3 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1">
           <span>🗑️</span>
           <span>Delete</span>
         </button>
@@ -146,7 +146,7 @@
         <!-- Deselect All Button -->
         <button type="button"
                 data-action="click->bulk-select#clearAll"
-                class="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer text-xs ml-1"
+                class="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer text-xs ml-0.5"
                 title="Deselect All">
           ✕
         </button>
@@ -165,14 +165,14 @@
       </div>
     <% else %>
       <!-- Gallery Grid View -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <% @recipes.each do |recipe| %>
           <%= render "recipes/recipe_card", recipe: recipe %>
         <% end %>
       </div>
     <% end %>
   <% else %>
-    <div class="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-8">
+    <div class="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-6 sm:p-8">
       <div class="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-500 dark:text-primary-400 flex items-center justify-center mx-auto mb-3">
         <%= icon_tag("book-open", css_class: "w-6 h-6") %>
       </div>
@@ -194,7 +194,7 @@
                data: { "bulk-select-target": "mealTypesModal" },
                backdrop_action: "bulk-select#closeOnBackdrop",
                title: "Bulk Update Meal Types",
-               subtitle: "Set meal periods for all selected recipes. Shared meal types are prepopulated.",
+               subtitle: "Set meal periods for all selected recipes.",
                icon: "☀️",
                close_action: "bulk-select#closeMealTypesModal" do %>
       
@@ -231,7 +231,7 @@
                data: { "bulk-select-target": "tagsModal" },
                backdrop_action: "bulk-select#closeOnBackdrop",
                title: "Bulk Update Tags",
-               subtitle: "Set tags for all selected recipes. Shared tags are prepopulated.",
+               subtitle: "Set tags for all selected recipes.",
                icon: "🏷️",
                close_action: "bulk-select#closeTagsModal" do %>
 

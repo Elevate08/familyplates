@@ -54,8 +54,7 @@ class FamilyMembersController < ApplicationController
       return
     end
 
-    cookies.signed.permanent[:active_family_member_id] = @family_member.id
-    Current.family_member = @family_member
+    start_new_session_for(@family_member)
 
     redirect_back fallback_location: root_path, notice: "Now browsing as #{@family_member.name}"
   end

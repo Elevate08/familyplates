@@ -1,30 +1,30 @@
 <%# Onboarding Progress Bar %>
 <% current_step ||= 1 %>
 <% steps = [
-  { step: 1, label: "Kitchen & Admin" },
-  { step: 2, label: "Family Roster" },
-  { step: 3, label: "Starter Recipes" },
-  { step: 4, label: "Pantry Shield" }
+  { step: 1, label: "Kitchen" },
+  { step: 2, label: "Roster" },
+  { step: 3, label: "Recipes" },
+  { step: 4, label: "Pantry" }
 ] %>
 
-<div class="mb-8 sm:mb-12">
-  <div class="flex items-center justify-between max-w-2xl mx-auto px-4">
+<div class="mb-6 sm:mb-10">
+  <div class="flex items-center justify-between max-w-xl mx-auto px-2 sm:px-4">
     <% steps.each_with_index do |s, idx| %>
       <div class="flex flex-col items-center relative z-10">
-        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-200 <%= s[:step] < current_step ? 'bg-emerald-500 text-white shadow-sm' : (s[:step] == current_step ? 'bg-primary-600 text-white ring-4 ring-primary-100 dark:ring-primary-950 shadow-md scale-110' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400') %>">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-200 <%= s[:step] < current_step ? 'bg-emerald-500 text-white shadow-sm' : (s[:step] == current_step ? 'bg-primary-600 text-white ring-4 ring-primary-100 dark:ring-primary-950 shadow-md scale-110' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400') %>">
           <% if s[:step] < current_step %>
             <%= icon_tag("check", css_class: "w-4 h-4 text-white") %>
           <% else %>
             <%= s[:step] %>
           <% end %>
         </div>
-        <span class="text-[11px] sm:text-xs font-semibold mt-1.5 transition-colors text-center hidden xs:block <%= s[:step] == current_step ? 'text-primary-700 dark:text-primary-400 font-bold' : (s[:step] < current_step ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500') %>">
+        <span class="text-[10px] sm:text-xs font-semibold mt-1 transition-colors text-center <%= s[:step] == current_step ? 'text-primary-700 dark:text-primary-400 font-bold' : (s[:step] < current_step ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500') %>">
           <%= s[:label] %>
         </span>
       </div>
 
       <% if idx < steps.length - 1 %>
-        <div class="flex-1 h-0.5 sm:h-1 mx-2 -mt-5 xs:-mt-6 rounded-full transition-colors duration-200 <%= s[:step] < current_step ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800' %>"></div>
+        <div class="flex-1 h-0.5 sm:h-1 mx-1.5 sm:mx-2 -mt-4 sm:-mt-5 rounded-full transition-colors duration-200 <%= s[:step] < current_step ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800' %>"></div>
       <% end %>
     <% end %>
   </div>

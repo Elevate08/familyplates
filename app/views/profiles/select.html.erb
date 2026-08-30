@@ -1,67 +1,67 @@
-<div class="min-h-[75vh] flex flex-col items-center justify-center py-12 px-4" data-controller="dropdown">
-  <div class="text-center mb-10">
-    <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 mb-4 shadow-sm">
-      <%= icon_tag("chef-hat", css_class: "w-8 h-8") %>
+<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-2 sm:px-4" data-controller="dropdown">
+  <div class="text-center mb-8 sm:mb-10">
+    <div class="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 mb-3 sm:mb-4 shadow-sm">
+      <%= icon_tag("chef-hat", css_class: "w-7 h-7 sm:w-8 sm:h-8") %>
     </div>
-    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+    <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
       Who's in the kitchen today?
     </h1>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
+    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2">
       Select your profile to customize your planner theme and submit cravings
     </p>
   </div>
 
-  <!-- Profile Grid -->
-  <div class="flex flex-wrap items-center justify-center gap-6 max-w-3xl">
+  <!-- Profile Responsive Grid -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 max-w-3xl w-full justify-items-center mb-8">
     <% @family_members.each do |member| %>
-      <div class="group relative flex flex-col items-center">
+      <div class="group relative flex flex-col items-center w-full max-w-[160px]">
         <% if member.requires_pin? %>
           <!-- Trigger PIN Modal -->
           <button type="button" 
                   onclick="openPinModal('<%= member.id %>', '<%= j member.name %>', '<%= member.avatar_color %>', '<%= member.initial %>')"
-                  class="flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer">
-            <div class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl"
+                  class="w-full flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer">
+            <div class="relative w-20 h-20 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl"
                  style="background-color: <%= member.avatar_color %>">
-              <span class="text-white text-3xl font-extrabold drop-shadow-sm"><%= member.initial %></span>
+              <span class="text-white text-2xl sm:text-3xl font-extrabold drop-shadow-sm"><%= member.initial %></span>
               <!-- Lock Badge -->
-              <span class="absolute -top-1 -right-1 w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs shadow-md border-2 border-white dark:border-slate-900">
+              <span class="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs shadow-md border-2 border-white dark:border-slate-900">
                 🔒
               </span>
             </div>
-            <span class="mt-3 font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+            <span class="mt-2.5 sm:mt-3 font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate max-w-full text-center">
               <%= member.name %>
             </span>
-            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">PIN Protected</span>
+            <span class="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">PIN Protected</span>
           </button>
         <% else %>
           <%= button_to set_profile_path(member), method: :post,
-                class: "flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer" do %>
-            <div class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl"
+                class: "w-full flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer" do %>
+            <div class="relative w-20 h-20 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl"
                  style="background-color: <%= member.avatar_color %>">
-              <span class="text-white text-3xl font-extrabold drop-shadow-sm"><%= member.initial %></span>
+              <span class="text-white text-2xl sm:text-3xl font-extrabold drop-shadow-sm"><%= member.initial %></span>
               <% if member.admin? %>
-                <span class="absolute -top-1 -right-1 w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs shadow-md border-2 border-white dark:border-slate-900" title="Admin">
+                <span class="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs shadow-md border-2 border-white dark:border-slate-900" title="Admin">
                   ⭐
                 </span>
               <% end %>
             </div>
-            <span class="mt-3 font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+            <span class="mt-2.5 sm:mt-3 font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate max-w-full text-center">
               <%= member.name %>
             </span>
-            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase"><%= member.role %></span>
+            <span class="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase"><%= member.role %></span>
           <% end %>
         <% end %>
       </div>
     <% end %>
+  </div>
 
-    <!-- Profile Settings & Admin Links -->
-    <div class="w-full text-center mt-6 flex items-center justify-center gap-4">
-      <%= link_to "🎨 My Preferences", preferences_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
-      <% if current_family_member&.admin? %>
-        <span class="text-slate-300 dark:text-slate-700">&bull;</span>
-        <%= link_to "⚙️ Admin Control Center", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
-      <% end %>
-    </div>
+  <!-- Profile Settings & Admin Links -->
+  <div class="w-full text-center flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+    <%= link_to "🎨 My Preferences", preferences_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
+    <% if current_family_member&.admin? %>
+      <span class="text-slate-300 dark:text-slate-700">&bull;</span>
+      <%= link_to "⚙️ Admin Control Center", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
+    <% end %>
   </div>
 
   <!-- PIN Entry Modal -->
