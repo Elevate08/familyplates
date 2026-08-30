@@ -1,4 +1,5 @@
-<div class="max-w-3xl mx-auto py-4" data-controller="checklist" data-checklist-plan-id-value="<%= @meal_plan.id %>">
+<% is_admin = Current.family_member&.admin? %>
+<div class="max-w-3xl mx-auto py-4" data-controller="checklist" data-checklist-plan-id-value="<%= @meal_plan.id %>" data-checklist-read-only-value="<%= !is_admin %>">
   <!-- Sticky Header Bar -->
   <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 sticky top-16 sm:top-20 z-30">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -13,6 +14,11 @@
           <span data-checklist-target="offlineBadge" class="hidden items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
             <span>⚡ Offline Mode</span>
           </span>
+          <% unless is_admin %>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              Read-Only
+            </span>
+          <% end %>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
           <%= @meal_plan.week_label %> • <span class="text-amber-700 dark:text-amber-400 font-semibold"><%= @total_pantry_count %> items already on hand</span>
@@ -28,11 +34,13 @@
           <span data-checklist-target="copyButtonText">Copy Plain Text</span>
         </button>
 
-        <button type="button" 
-                data-action="click->checklist#resetAll"
-                class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer">
-          Reset
-        </button>
+        <% if is_admin %>
+          <button type="button" 
+                  data-action="click->checklist#resetAll"
+                  class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer">
+            Reset
+          </button>
+        <% end %>
         <%= link_to "Planner →", meal_plan_path(@meal_plan), class: "text-xs font-bold px-3.5 py-1.5 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors" %>
       </div>
     </div>
@@ -61,16 +69,17 @@
               <div data-checklist-target="item"
                    data-item-id="<%= item_id %>"
                    data-is-staple="<%= item[:is_staple] %>"
-                   data-action="click->checklist#toggle"
-                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer <%= item[:is_staple] ? 'bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/80 hover:border-amber-300 dark:hover:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600' %>">
+                   <% if is_admin %>data-action="click->checklist#toggle"<% end %>
+                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all <%= is_admin ? 'cursor-pointer' : 'cursor-default select-none' %> <%= item[:is_staple] ? 'bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/80 hover:border-amber-300 dark:hover:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600' %>">
                 
                 <div class="flex items-center gap-3">
                   <input type="checkbox" 
                          value="<%= item_id %>"
                          <%= 'checked' if item[:is_staple] %>
+                         <%= 'disabled' unless is_admin %>
                          data-checklist-target="checkbox"
                          data-is-staple="<%= item[:is_staple] %>"
-                         class="w-5 h-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer">
+                         class="w-5 h-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 <%= is_admin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' %>">
                   
                   <div class="flex items-center gap-2.5">
                     <div class="w-6 h-6 flex items-center justify-center shrink-0">

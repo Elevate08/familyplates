@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["item", "checkbox", "remaining", "offlineBadge", "copyButton", "copyButtonText"]
-  static values = { planId: String }
+  static values = { planId: String, readOnly: Boolean }
 
   connect() {
     this.storageKey = `familyplates_checklist_${this.planIdValue || "current"}`
@@ -33,6 +33,8 @@ export default class extends Controller {
   }
 
   toggle(event) {
+    if (this.readOnlyValue) return
+
     const row = event.currentTarget.closest("[data-checklist-target='item']")
     const checkbox = row.querySelector("input[type='checkbox']")
 
@@ -66,6 +68,8 @@ export default class extends Controller {
   }
 
   saveState() {
+    if (this.readOnlyValue) return
+
     const checkedMap = {}
     this.checkboxTargets.forEach(cb => {
       checkedMap[cb.value] = cb.checked
@@ -83,7 +87,7 @@ export default class extends Controller {
       if (!saved) return
       const checkedMap = JSON.parse(saved)
       this.checkboxTargets.forEach(cb => {
-        if (checkedMap.hasOwnProperty(cb.value)) {
+        if (Object.prototype.hasOwnProperty.call(checkedMap, cb.value)) {
           cb.checked = checkedMap[cb.value]
           const row = cb.closest("[data-checklist-target='item']")
           if (row) this.applyRowState(row, cb.checked)
@@ -95,6 +99,8 @@ export default class extends Controller {
   }
 
   resetAll() {
+    if (this.readOnlyValue) return
+
     const performReset = () => {
       this.checkboxTargets.forEach(cb => {
         const isStaple = cb.dataset.isStaple === "true"
@@ -144,29 +150,35 @@ export default class extends Controller {
       const aisleHeader = section.querySelector("h2 span:last-child")
       const aisleTitle = aisleHeader ? aisleHeader.textContent.trim() : null
       const rows = section.querySelectorAll("[data-checklist-target='item']")
-      
-      const unboughtItems = []
+
+      const aisleItems = []
       rows.forEach(row => {
         const checkbox = row.querySelector("input[type='checkbox']")
-        if (!checkbox.checked) {
-          const name = row.querySelector(".item-label")?.textContent?.trim()
-          const qty = row.querySelector(".item-qty")?.textContent?.trim()
-          if (name) {
-            unboughtItems.push(qty ? `- ${name} (${qty})` : `- ${name}`)
-            totalItems++
+        const isChecked = checkbox && checkbox.checked
+        const isStaple = row.dataset.isStaple === "true"
+        const name = row.querySelector(".item-label")?.textContent?.trim()
+        const qty = row.querySelector(".item-qty")?.textContent?.trim()
+
+        if (name) {
+          const checkMark = (isChecked || isStaple) ? "- [x]" : "- [ ]"
+          let itemText = qty ? `${name} (${qty})` : name
+          if (isStaple && !isChecked) {
+            itemText += " (On Hand)"
           }
+          aisleItems.push(`${checkMark} ${itemText}`)
+          totalItems++
         }
       })
 
-      if (unboughtItems.length > 0 && aisleTitle) {
+      if (aisleItems.length > 0 && aisleTitle) {
         lines.push(aisleTitle.toUpperCase())
-        unboughtItems.forEach(item => lines.push(item))
+        aisleItems.forEach(item => lines.push(item))
         lines.push("")
       }
     })
 
     if (totalItems === 0) {
-      lines.push("All items are marked as purchased / in pantry!")
+      lines.push("No grocery items needed!")
     }
 
     const textToCopy = lines.join("\n").trim()

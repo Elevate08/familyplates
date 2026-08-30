@@ -14,7 +14,7 @@ FamilyPlates provides distinct permission levels tailored for family organizers 
 | **Recipe Management** (Create, edit, or delete recipes) | ✅ | ❌ *(Browse & View Only)* |
 | **1-Click Recipe Web Importer** (Import recipes from URL) | ✅ | ❌ |
 | **Recipe Cravings & Requests** (Submit meal requests for upcoming weeks) | ✅ | ✅ |
-| **Smart Grocery Checklist** (View, filter, check off items, copy list) | ✅ | ✅ |
+| **Smart Grocery Checklist** (Mark items as purchased, reset list) | ✅ | ❌ *(View & Copy Plain Text Only)* |
 | **Fridge Schedule Printing** (1-page weekly & monthly fridge prints) | ✅ | ✅ |
 | **Personal Preferences** (Customize name, avatar icon, and accent color) | ✅ | ✅ |
 | **4-Digit PIN Protection** | **Mandatory** | ❌ *(1-Tap Instant Switch)* |
