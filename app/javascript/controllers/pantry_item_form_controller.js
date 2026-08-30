@@ -1,98 +1,42 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["nameInput", "categorySelect", "iconInput", "iconPreview", "pickerContainer", "categoryChip"]
-
-  static values = {
-    emojiMap: Object
-  }
+  static targets = [
+    "nameInput",
+    "categorySelect",
+    "iconInput",
+    "iconPreview",
+    "pickerContainer",
+    "categoryChip"
+  ]
 
   connect() {
-    this.popularIcons = [
-      { id: "pepper-shaker", label: "Black Pepper", type: "svg", preview: "pepper-shaker" },
-      { id: "sugar-bag", label: "Sugar Bag", type: "svg", preview: "sugar-bag" },
-      { id: "oil-bottle", label: "Cooking Oil", type: "svg", preview: "oil-bottle" },
-      { id: "spice-jar", label: "Spice Jar", type: "svg", preview: "spice-jar" },
-      { id: "🧂", label: "Salt Shaker", type: "emoji", preview: "🧂" },
-      { id: "🍾", label: "Olive Oil", type: "emoji", preview: "🍾" },
-      { id: "🧈", label: "Butter", type: "emoji", preview: "🧈" },
-      { id: "🥚", label: "Eggs", type: "emoji", preview: "🥚" },
-      { id: "🥛", label: "Milk/Cream", type: "emoji", preview: "🥛" },
-      { id: "🧀", label: "Cheese", type: "emoji", preview: "🧀" },
-      { id: "🧄", label: "Fresh Garlic", type: "emoji", preview: "🧄" },
-      { id: "🧅", label: "Fresh Onion", type: "emoji", preview: "🧅" },
-      { id: "🍞", label: "Bread/Bakery", type: "emoji", preview: "🍞" },
-      { id: "🍚", label: "Rice", type: "emoji", preview: "🍚" },
-      { id: "🍝", label: "Pasta", type: "emoji", preview: "🍝" },
-      { id: "🌾", label: "Flour/Grains", type: "emoji", preview: "🌾" },
-      { id: "🌿", label: "Herbs/Seasoning", type: "emoji", preview: "🌿" },
-      { id: "🍯", label: "Honey/Syrup", type: "emoji", preview: "🍯" },
-      { id: "🍶", label: "Soy Sauce", type: "emoji", preview: "🍶" },
-      { id: "🥩", label: "Meat/Beef", type: "emoji", preview: "🥩" },
-      { id: "🍗", label: "Chicken/Poultry", type: "emoji", preview: "🍗" },
-      { id: "🐟", label: "Fish/Seafood", type: "emoji", preview: "🐟" },
-      { id: "🥬", label: "Greens/Produce", type: "emoji", preview: "🥬" },
-      { id: "🍅", label: "Tomato", type: "emoji", preview: "🍅" },
-      { id: "🍋", label: "Citrus/Lemon", type: "emoji", preview: "🍋" },
-      { id: "🥑", label: "Avocado", type: "emoji", preview: "🥑" },
-      { id: "🥔", label: "Potato", type: "emoji", preview: "🥔" },
-      { id: "🧊", label: "Frozen/Ice", type: "emoji", preview: "🧊" }
-    ]
+    this.manualCategorySelection = false
+    const initialCategory = this.hasCategorySelectTarget && this.categorySelectTarget.value
+      ? this.categorySelectTarget.value
+      : "Spices & Baking"
+    this.renderCategoryState(initialCategory)
   }
 
   onNameChange() {
     const name = this.nameInputTarget.value.trim().toLowerCase()
-    if (!name) return
+    if (!name) {
+      this.manualCategorySelection = false
+      return
+    }
 
-    // Auto-detect matching icon & category
-    if (name.includes("black pepper") || name.includes("peppercorn") || name.includes("cracked pepper")) {
-      this.selectIconById("pepper-shaker")
-      this.selectCategory("Spices & Baking")
-    } else if (name.includes("sugar")) {
-      this.selectIconById("sugar-bag")
-      this.selectCategory("Spices & Baking")
-    } else if (name.includes("vegetable oil") || name.includes("canola oil") || name.includes("sunflower oil") || name.includes("cooking oil")) {
-      this.selectIconById("oil-bottle")
-      this.selectCategory("Pantry & Grains")
-    } else if (name.includes("garlic powder") || name.includes("onion powder")) {
-      this.selectIconById("spice-jar")
-      this.selectCategory("Spices & Baking")
-    } else if (name.includes("olive oil")) {
-      this.selectIconById("🍾")
-      this.selectCategory("Pantry & Grains")
-    } else if (name.includes("soy sauce")) {
-      this.selectIconById("🍶")
-      this.selectCategory("Pantry & Grains")
-    } else if (name.includes("salt")) {
-      this.selectIconById("🧂")
-      this.selectCategory("Spices & Baking")
-    } else if (name.includes("flour")) {
-      this.selectIconById("🌾")
-      this.selectCategory("Spices & Baking")
-    } else if (name.includes("butter")) {
-      this.selectIconById("🧈")
-      this.selectCategory("Dairy & Refrigerated")
-    } else if (name.includes("egg")) {
-      this.selectIconById("🥚")
-      this.selectCategory("Dairy & Refrigerated")
-    } else if (name.includes("milk") || name.includes("cream")) {
-      this.selectIconById("🥛")
-      this.selectCategory("Dairy & Refrigerated")
-    } else if (name.includes("cheese")) {
-      this.selectIconById("🧀")
-      this.selectCategory("Dairy & Refrigerated")
-    } else if (name.includes("garlic")) {
-      this.selectIconById("🧄")
-      this.selectCategory("Produce")
-    } else if (name.includes("onion")) {
-      this.selectIconById("🧅")
-      this.selectCategory("Produce")
-    } else if (name.includes("rice")) {
-      this.selectIconById("🍚")
-      this.selectCategory("Pantry & Grains")
-    } else if (name.includes("pasta") || name.includes("noodle") || name.includes("spaghetti")) {
-      this.selectIconById("🍝")
-      this.selectCategory("Pantry & Grains")
+    // Auto-detect matching icon & category if user hasn't manually selected one
+    if (!this.manualCategorySelection) {
+      const detectedCategory = this.guessCategory(name)
+      if (detectedCategory) {
+        this.selectCategory(detectedCategory, false)
+      }
+    }
+
+    // Auto-detect matching icon
+    const detectedIcon = this.guessIcon(name)
+    if (detectedIcon) {
+      this.selectIconById(detectedIcon)
     }
   }
 
@@ -103,30 +47,74 @@ export default class extends Controller {
   }
 
   selectCategoryFromChip(event) {
-    const cat = event.currentTarget.dataset.category
-    this.selectCategory(cat)
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    const btn = event.target.closest("[data-category]") || event.currentTarget
+    const cat = btn ? btn.getAttribute("data-category") : null
+    if (cat) {
+      this.manualCategorySelection = true
+      this.selectCategory(cat, true)
+    }
   }
 
-  selectCategory(category) {
+  selectCategory(category, isManual = true) {
+    if (!category) return
+    if (isManual) this.manualCategorySelection = true
+
     if (this.hasCategorySelectTarget) {
       this.categorySelectTarget.value = category
+      this.categorySelectTarget.dispatchEvent(new Event("change", { bubbles: true }))
     }
-    if (this.hasCategoryChipTargets) {
-      this.categoryChipTargets.forEach(chip => {
-        if (chip.dataset.category === category) {
-          chip.classList.add("bg-primary-600", "text-white", "border-primary-600")
-          chip.classList.remove("bg-slate-100", "dark:bg-slate-800", "text-slate-700", "dark:text-slate-300", "border-slate-200", "dark:border-slate-700")
-        } else {
-          chip.classList.remove("bg-primary-600", "text-white", "border-primary-600")
-          chip.classList.add("bg-slate-100", "dark:bg-slate-800", "text-slate-700", "dark:text-slate-300", "border-slate-200", "dark:border-slate-700")
-        }
-      })
-    }
+
+    this.renderCategoryState(category)
+  }
+
+  renderCategoryState(category) {
+    if (!this.hasCategoryChipTargets) return
+
+    const activeClasses = [
+      "bg-primary-600",
+      "text-white",
+      "border-primary-600",
+      "shadow-sm",
+      "scale-105"
+    ]
+
+    const inactiveClasses = [
+      "bg-slate-100",
+      "dark:bg-slate-800",
+      "text-slate-700",
+      "dark:text-slate-300",
+      "border-slate-200",
+      "dark:border-slate-700",
+      "hover:border-slate-300",
+      "dark:hover:border-slate-600"
+    ]
+
+    this.categoryChipTargets.forEach(chip => {
+      const chipCat = chip.getAttribute("data-category")
+      const isSelected = chipCat && chipCat.trim().toLowerCase() === category.trim().toLowerCase()
+
+      if (isSelected) {
+        inactiveClasses.forEach(cls => chip.classList.remove(cls))
+        activeClasses.forEach(cls => chip.classList.add(cls))
+        chip.setAttribute("aria-selected", "true")
+      } else {
+        activeClasses.forEach(cls => chip.classList.remove(cls))
+        inactiveClasses.forEach(cls => chip.classList.add(cls))
+        chip.setAttribute("aria-selected", "false")
+      }
+    })
   }
 
   pickIcon(event) {
-    const iconId = event.currentTarget.dataset.iconId
-    this.selectIconById(iconId)
+    const btn = event.target.closest("[data-icon-id]") || event.currentTarget
+    const iconId = btn ? btn.getAttribute("data-icon-id") : null
+    if (iconId) {
+      this.selectIconById(iconId)
+    }
     if (this.hasPickerContainerTarget) {
       this.pickerContainerTarget.classList.add("hidden")
     }
@@ -149,5 +137,47 @@ export default class extends Controller {
         this.iconPreviewTarget.innerHTML = `<span class="text-xl select-none leading-none">${iconId}</span>`
       }
     }
+  }
+
+  guessCategory(name) {
+    const n = name.toLowerCase()
+    if (/chicken|beef|pork|steak|turkey|salmon|fish|shrimp|bacon|sausage|meat/i.test(n)) return "Meat & Seafood"
+    if (/milk|cream|cheese|cheddar|mozzarella|parmesan|butter|yogurt|egg/i.test(n)) return "Dairy & Refrigerated"
+    if (/onion|garlic|tomato|potato|lettuce|pepper|spinach|carrot|broccoli|avocado|lime|lemon|cilantro|basil|parsley|cucumber|asparagus|zucchini|mushroom|celery/i.test(n)) return "Produce"
+    if (/bread|tortilla|bun|pita|bagel|crust|roll/i.test(n)) return "Bakery"
+    if (/flour|sugar|baking|salt|pepper|cumin|chili|oregano|paprika|cinnamon|vanilla|seasoning|powder/i.test(n)) return "Spices & Baking"
+    if (/frozen|peas|ice cream/i.test(n)) return "Frozen"
+    if (/rice|pasta|spaghetti|noodle|oil|vinegar|soy sauce|broth|stock|canned|bean|honey|sauce|salsa/i.test(n)) return "Pantry & Grains"
+    return null
+  }
+
+  guessIcon(name) {
+    const n = name.toLowerCase()
+    if (n.includes("black pepper") || n.includes("peppercorn") || n.includes("cracked pepper")) return "pepper-shaker"
+    if (n.includes("sugar")) return "sugar-bag"
+    if (n.includes("vegetable oil") || n.includes("canola oil") || n.includes("sunflower oil") || n.includes("cooking oil")) return "oil-bottle"
+    if (n.includes("garlic powder") || n.includes("onion powder") || n.includes("seasoning") || n.includes("oregano") || n.includes("paprika") || n.includes("cumin") || n.includes("chili powder")) return "spice-jar"
+    if (n.includes("olive oil") || n.includes("sesame oil")) return "🍾"
+    if (n.includes("soy sauce")) return "🍶"
+    if (n.includes("salt")) return "🧂"
+    if (n.includes("flour")) return "🌾"
+    if (n.includes("butter")) return "🧈"
+    if (n.includes("egg")) return "🥚"
+    if (n.includes("milk") || n.includes("cream")) return "🥛"
+    if (n.includes("cheese") || n.includes("cheddar") || n.includes("mozzarella") || n.includes("parmesan")) return "🧀"
+    if (n.includes("garlic")) return "🧄"
+    if (n.includes("onion")) return "🧅"
+    if (n.includes("rice")) return "🍚"
+    if (n.includes("pasta") || n.includes("noodle") || n.includes("spaghetti")) return "🍝"
+    if (n.includes("bread") || n.includes("toast") || n.includes("bun")) return "🍞"
+    if (n.includes("honey") || n.includes("syrup")) return "🍯"
+    if (n.includes("chicken") || n.includes("poultry")) return "🍗"
+    if (n.includes("beef") || n.includes("steak") || n.includes("meat")) return "🥩"
+    if (n.includes("fish") || n.includes("salmon") || n.includes("shrimp")) return "🐟"
+    if (n.includes("tomato")) return "🍅"
+    if (n.includes("lemon") || n.includes("lime")) return "🍋"
+    if (n.includes("avocado")) return "🥑"
+    if (n.includes("potato")) return "🥔"
+    return null
   }
 }
