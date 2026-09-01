@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 189 runs, 750 assertions, 0 failures** (Task 0, A1, A2 landed). Every
+GREEN at 193 runs, 764 assertions, 0 failures** (Task 0, A1–A3 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -130,7 +130,7 @@ entirely — `sign_in_as(admin, pin: "9999")` "succeeded". Both now fail loudly.
 the guard makes the wrong-PIN test fail, confirmed. Suite **189 runs, 750
 assertions, 0 failures**; RuboCop (119 files) and Brakeman clean.
 
-## Task A3: Consolidate roster mutation into `Admin::FamilyMembersController`
+## Task A3: Consolidate roster mutation into `Admin::FamilyMembersController`  ✅ DONE
 
 **Description:** Fixes **F2** (verified: anonymous → PIN-less member profile →
 `PATCH /family_members/<admin_id>` with `pin=0000` → admin PIN rewritten) and
@@ -141,21 +141,35 @@ correctly. **Do not add `:role` to `family_member_params`** — F14 is fixed by
 deleting the surface, not by permitting the attribute.
 
 **Acceptance criteria:**
-- [ ] `config/routes.rb` declares `resources :family_members, only: %i[index]` plus the `switch` member route
-- [ ] `create`/`update`/`destroy` and the now-unused `family_member_params` are gone from `FamilyMembersController`
-- [ ] `app/views/family_members/index.html.erb` no longer renders the create form or role select (`:108-109`); it links to `admin_family_members_path`
-- [ ] No `family_members_path`/`family_member_path` reference anywhere in `app/` still points at a removed verb
+- [x] `config/routes.rb` declares `resources :family_members, only: %i[index]` plus the `switch` member route
+- [x] `create`/`update`/`destroy` and the now-unused `family_member_params` are gone from `FamilyMembersController`
+- [x] `app/views/family_members/index.html.erb` no longer renders the create form or role select (`:108-109`); it links to `admin_family_members_path`
+- [x] No `family_members_path`/`family_member_path` reference anywhere in `app/` still points at a removed verb
 
 **Verification:**
-- [ ] New request test: signed in as `family_members(:two)` (member), `PATCH /family_members/<admin id>` with `pin=0000` → 404 and `admin.reload.pin` unchanged
-- [ ] New request test: same as a member, `DELETE /family_members/<admin id>` → 404, member still exists
-- [ ] New request test: a member can still change their own name/avatar via `PATCH /preferences`, and still cannot set `:pin` there
-- [ ] `grep -rn "family_member" app/views app/controllers` reviewed for dead paths
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
+- [x] New request test: signed in as `family_members(:two)` (member), `PATCH /family_members/<admin id>` with `pin=0000` → 404 and `admin.reload.pin` unchanged
+- [x] New request test: same as a member, `DELETE /family_members/<admin id>` → 404, member still exists
+- [x] New request test: a member can still change their own name/avatar via `PATCH /preferences`, and still cannot set `:pin` there
+- [x] `grep -rn "family_member" app/views app/controllers` reviewed for dead paths
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
 
 **Dependencies:** Task 0, A2
 **Files:** `config/routes.rb`, `app/controllers/family_members_controller.rb`, `app/views/family_members/index.html.erb`, `test/controllers/family_members_controller_test.rb`
 **Scope:** M
+
+**Outcome:** `create`/`update`/`destroy` and `family_member_params` deleted from
+`FamilyMembersController`; the route is `only: %i[index]` plus `switch`. The view
+lost the create form (role select included) and the delete modal, and now links
+admins to `admin_family_members_path` and members to their own preferences.
+`family_member_url` no longer resolves as a route helper — the regression tests
+drive the raw paths instead, which is the shape of the attack anyway. All five
+access-control tests confirmed failing against the old code. Suite **193 runs,
+764 assertions, 0 failures**; RuboCop and Brakeman clean.
+
+**Note:** `Admin::FamilyMembersController` was already a strict superset of what
+was removed (index/create/edit/update/destroy/reset_pin, `:role` permitted, gated
+by `Admin::BaseController`), so nothing had to be rebuilt there — the general
+controller was pure duplication with the authorization left off.
 
 ## Task A4: Throttle PIN entry and compare PINs in constant time
 

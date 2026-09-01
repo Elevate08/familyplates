@@ -12,7 +12,9 @@ Rails.application.routes.draw do
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
   post "set_profile/:id" => "profiles#set", as: :set_profile
-  resources :family_members, only: %i[index create update destroy] do
+  # Roster mutation lives only in Admin::FamilyMembersController. This is the
+  # read-only roster plus the profile switcher.
+  resources :family_members, only: %i[index] do
     member do
       post :switch
     end
