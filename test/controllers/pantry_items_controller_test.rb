@@ -43,4 +43,44 @@ class PantryItemsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to pantry_items_url
   end
+
+  # --- Invalid submissions ----------------------------------------------------
+  #
+  # The pantry form is Turbo-driven, and Rails does not fall back to HTML for a
+  # turbo_stream request. There is no index.turbo_stream.erb, so every invalid
+  # submission raised MissingTemplate and returned a 500 instead of showing the
+  # validation error.
+
+  TURBO_HEADERS = { "Accept" => "text/vnd.turbo-stream.html, text/html, application/xhtml+xml" }.freeze
+
+  test "a blank name over turbo_stream shows the error instead of a 500" do
+    assert_no_difference "PantryItem.count" do
+      post pantry_items_url, params: { pantry_item: { name: "" } }, headers: TURBO_HEADERS
+    end
+
+    assert_response :unprocessable_entity
+    assert_match(/can&#39;t be blank|can't be blank/, response.body)
+  end
+
+  test "a duplicate name over turbo_stream shows the error instead of a 500" do
+    assert_no_difference "PantryItem.count" do
+      post pantry_items_url, params: { pantry_item: { name: @item.name, aisle_category: "Other" } }, headers: TURBO_HEADERS
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "a blank name over plain HTML also re-renders the form" do
+    post pantry_items_url, params: { pantry_item: { name: "" } }
+
+    assert_response :unprocessable_entity
+    assert_select "form"
+  end
+
+  test "an invalid update over turbo_stream shows the error instead of a 500" do
+    patch pantry_item_url(@item), params: { pantry_item: { name: "" } }, headers: TURBO_HEADERS
+
+    assert_response :unprocessable_entity
+    assert_equal @item.name, @item.reload.name
+  end
 end

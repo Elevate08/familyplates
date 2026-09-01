@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 227 runs, 946 assertions, 0 failures** (Task 0, A1–A7 landed). Every
+GREEN at 231 runs, 959 assertions, 0 failures** (Task 0, A1–A8 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -381,7 +381,7 @@ report's word-boundary remedy too. The "Kosher salt" case is kept as an explicit
 test of the *accepted* regression rather than left as a surprise, paired with one
 showing it matches once the household adds it.
 
-## Task A8: Stop invalid pantry submissions returning 500
+## Task A8: Stop invalid pantry submissions returning 500  ✅ DONE
 
 **Description:** Fixes **F6** (verified: `POST /pantry_items` with a blank name
 and a Turbo `Accept` header raises `ActionView::MissingTemplate ... formats:
@@ -392,17 +392,32 @@ duplicate, since `(household_id, name)` is uniquely indexed — 500s instead of
 showing validation errors.
 
 **Acceptance criteria:**
-- [ ] Invalid `create` and `update` render the HTML index with `:unprocessable_entity` and the model's error messages visible
-- [ ] No 500 for a blank name or a duplicate name over either format
+- [x] Invalid `create` and `update` render the HTML index with `:unprocessable_entity` and the model's error messages visible
+- [x] No 500 for a blank name or a duplicate name over either format
 
 **Verification:**
-- [ ] New request test: `POST /pantry_items` with `name: ""` and `Accept: text/vnd.turbo-stream.html` → 422, response body contains the validation message
-- [ ] New request test: same for a duplicate name, and for `PATCH /pantry_items/:id`
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New request test: `POST /pantry_items` with `name: ""` and `Accept: text/vnd.turbo-stream.html` → 422, response body contains the validation message
+- [x] New request test: same for a duplicate name, and for `PATCH /pantry_items/:id`
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0
 **Files:** `app/controllers/pantry_items_controller.rb`, `test/controllers/pantry_items_controller_test.rb`
 **Scope:** XS
+
+**Outcome:** Both error branches collapse into `render_index_with_errors`, which
+renders with `formats: [:html]`. Suite **231 runs, 959 assertions, 0 failures**.
+All four new tests confirmed failing against the old code.
+
+**Bigger than XS, because the HTML path was broken too.** The error branches set
+`@pantry_items` and `@items_by_category` but never `@new_item` — and the form is
+`form_with model: @new_item`. So `render :index` raised on `model: nil` for plain
+HTML as well; the turbo_stream `MissingTemplate` was just the failure that got
+noticed. The helper now sets all three, binding the form to the *rejected* record,
+which is also what surfaces the errors.
+
+And the form had nowhere to show them: `index.html.erb` rendered no
+`errors.full_messages` block at all, so even a fixed render would have bounced the
+user back to an apparently-blank form with no explanation. Added.
 
 ## Task A9: Stop `save_pantry` overwriting customized pantry items
 

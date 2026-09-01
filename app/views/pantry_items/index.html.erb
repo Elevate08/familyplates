@@ -22,6 +22,12 @@
     </h2>
 
     <%= form_with model: @new_item, url: pantry_items_path, class: "space-y-4" do |f| %>
+      <% if @new_item.errors.any? %>
+        <div class="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-xs font-semibold">
+          <%= @new_item.errors.full_messages.to_sentence %>
+        </div>
+      <% end %>
+
       <%= f.hidden_field :emoji, value: "", data: { pantry_item_form_target: "iconInput" } %>
 
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">

@@ -15,12 +15,7 @@ class PantryItemsController < ApplicationController
         format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
       end
     else
-      @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
-      @items_by_category = @pantry_items.group_by(&:aisle_category)
-      respond_to do |format|
-        format.turbo_stream { render :index, status: :unprocessable_entity }
-        format.html { render :index, status: :unprocessable_entity }
-      end
+      render_index_with_errors
     end
   end
 
@@ -31,12 +26,7 @@ class PantryItemsController < ApplicationController
         format.html { redirect_to pantry_items_path, notice: "Pantry item updated." }
       end
     else
-      @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
-      @items_by_category = @pantry_items.group_by(&:aisle_category)
-      respond_to do |format|
-        format.turbo_stream { render :index, status: :unprocessable_entity }
-        format.html { render :index, status: :unprocessable_entity }
-      end
+      render_index_with_errors
     end
   end
 
@@ -57,6 +47,22 @@ class PantryItemsController < ApplicationController
   end
 
   private
+
+  # Turbo submits the pantry form with a text/vnd.turbo-stream.html Accept
+  # header, and Rails does not fall back to HTML for that format - there is no
+  # index.turbo_stream.erb, so rendering :index for it raised MissingTemplate and
+  # every invalid submission became a 500. Turbo renders an HTML 422 fine, so ask
+  # for HTML explicitly rather than adding a second template to keep in step.
+  def render_index_with_errors
+    @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
+    @items_by_category = @pantry_items.group_by(&:aisle_category)
+    # The form is bound to @new_item, which the old error branches never set -
+    # so re-rendering index blew up on form_with model: nil even for HTML.
+    # Handing it the rejected record is also what puts the errors on screen.
+    @new_item = @pantry_item
+
+    render :index, formats: [ :html ], status: :unprocessable_entity
+  end
 
   def set_pantry_item
     @pantry_item = current_household.pantry_items.find(params[:id])
