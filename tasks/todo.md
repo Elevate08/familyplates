@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 234 runs, 967 assertions, 0 failures** (Task 0, A1–A9 landed). Every
+GREEN at 236 runs, 974 assertions, 0 failures** (Task 0, A1–A9, A11 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -474,7 +474,7 @@ Land this **before** tagging `v1.1.1`.
 **Files:** `.github/workflows/release.yml`, possibly `.github/workflows/ci.yml`
 **Scope:** S
 
-## Task A11: Only store GET URLs for post-login redirect
+## Task A11: Only store GET URLs for post-login redirect  ✅ DONE
 
 **Description:** Fixes **F8** (verified: an unauthenticated `POST
 /meal_plan_slots` is stored, and after profile selection the redirect is followed
@@ -483,18 +483,32 @@ stores `request.url` for any method, and `profiles#set:26` now consumes it via
 `after_authentication_url`, where it previously always went to `root_path`.
 
 **Acceptance criteria:**
-- [ ] `session[:return_to_after_authenticating]` is written only when `request.get?`
-- [ ] After a non-GET request from an expired session, profile selection lands on `root_path`, not a 404
-- [ ] A stored GET destination still round-trips correctly
+- [x] `session[:return_to_after_authenticating]` is written only when `request.get?`
+- [x] After a non-GET request from an expired session, profile selection lands on `root_path`, not a 404
+- [x] A stored GET destination still round-trips correctly
 
 **Verification:**
-- [ ] New request test: unauthenticated `POST /meal_plan_slots`, then `POST /set_profile/:id` → redirected to root, 200 on follow
-- [ ] New request test: unauthenticated `GET /recipes`, then profile selection → lands on `/recipes`
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New request test: unauthenticated `POST /meal_plan_slots`, then `POST /set_profile/:id` → redirected to root, 200 on follow
+- [x] New request test: unauthenticated `GET /recipes`, then profile selection → lands on `/recipes`
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0, A1 (same file), A2
 **Files:** `app/controllers/concerns/authentication.rb`, `test/controllers/profiles_controller_test.rb`
 **Scope:** XS
+
+**Outcome:** One-line guard — `session[:return_to_after_authenticating] = request.url if request.get?`.
+Suite **236 runs, 974 assertions, 0 failures**; RuboCop clean, Brakeman clean. Confirmed failing
+against the old code.
+
+Both directions are covered: a stored GET destination still round-trips to
+`/recipes`, and an expired `POST /meal_plan_slots` now lands on `root_url`. The
+verified symptom is a 404, not the `RoutingError` the review predicted — recorded
+in the plan's Verification Log.
+
+**Brakeman caught a follow-on:** the first cut used `if request.get?`, which its
+`VerbConfusion` check flagged — Rails routes `HEAD` to the `GET` action, but
+`request.get?` is false for it, so a `HEAD` destination would silently not be
+stored. Guard is `request.get? || request.head?`.
 
 ---
 

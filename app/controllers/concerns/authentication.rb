@@ -53,7 +53,12 @@ module Authentication
 
     return if Current.family_member.present?
 
-    session[:return_to_after_authenticating] = request.url
+    # Only GETs are worth returning to. profiles#set consumes this with a
+    # redirect, which is always a GET, so storing the URL of an expired POST
+    # sent the user to a path that has no GET route - a dead 404 after a
+    # successful sign-in. HEAD is included because Rails routes it to the GET
+    # action while request.get? is false for it.
+    session[:return_to_after_authenticating] = request.url if request.get? || request.head?
     redirect_to select_profile_path and return
   end
 
