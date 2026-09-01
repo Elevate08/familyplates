@@ -134,4 +134,108 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     get onboarding_complete_url
     assert_response :success
   end
+
+  # --- Wizard access control on a configured install -------------------------
+  #
+  # Authentication used to wave through anything under /onboarding by controller
+  # path, which made the wizard's roster, recipe and pantry steps reachable with
+  # no session at all once a household existed.
+
+  test "anonymous visitor cannot create a family member through the wizard" do
+    assert Household.exists?, "precondition: this install is already configured"
+
+    assert_no_difference "FamilyMember.count" do
+      post onboarding_add_member_url, params: {
+        family_member: { name: "Mallory", role: "admin", pin: "9999", avatar_color: "#F97316", avatar_icon: "star" }
+      }
+    end
+
+    assert_redirected_to select_profile_url
+    assert_nil FamilyMember.find_by(name: "Mallory")
+  end
+
+  test "anonymous visitor cannot remove a family member through the wizard" do
+    victim = households(:one).family_members.create!(name: "Temporary Guest", role: "member", avatar_color: "#10B981")
+
+    assert_no_difference "FamilyMember.count" do
+      delete onboarding_remove_member_url(victim)
+    end
+
+    assert_redirected_to select_profile_url
+  end
+
+  test "anonymous visitor cannot reach any wizard step after setup" do
+    [ onboarding_members_url, onboarding_recipes_url, onboarding_pantry_url, onboarding_complete_url ].each do |url|
+      get url
+      assert_redirected_to select_profile_url, "#{url} should not be reachable anonymously"
+    end
+  end
+
+  test "anonymous visitor cannot overwrite the pantry through the wizard" do
+    item = households(:one).pantry_items.create!(name: "Salt", aisle_category: "Spices & Baking", emoji: "🧂", is_staple: false)
+
+    post onboarding_save_pantry_url, params: { staple_names: [ "Salt" ] }
+
+    assert_redirected_to select_profile_url
+    assert_not item.reload.is_staple, "pantry must be untouched by an unauthenticated request"
+  end
+
+  test "signed-in member without admin role cannot use the wizard" do
+    sign_in_as(family_members(:two))
+    assert_not family_members(:two).admin?, "precondition: fixture two is a plain member"
+
+    assert_no_difference "FamilyMember.count" do
+      post onboarding_add_member_url, params: {
+        family_member: { name: "Mallory", role: "admin", pin: "9999", avatar_color: "#F97316", avatar_icon: "star" }
+      }
+    end
+
+    get onboarding_members_url
+    assert_response :redirect
+    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+  end
+
+  test "first boot completes the whole wizard anonymously and signs the organizer in" do
+    Household.destroy_all
+
+    get onboarding_family_url
+    assert_response :success
+
+    post onboarding_save_family_url, params: {
+      household: { name: "The Robinson Family", breakfast_time: "07:30", lunch_time: "12:00", dinner_time: "17:30" },
+      admin_member: { name: "Captain Chef", pin: "4321", avatar_color: "#3B82F6", avatar_icon: "chef-hat" }
+    }
+    assert_redirected_to onboarding_members_url
+
+    get onboarding_members_url
+    assert_response :success
+
+    post onboarding_add_member_url, params: {
+      family_member: { name: "Little Chef", role: "member", avatar_color: "#EC4899", avatar_icon: "smile" }
+    }
+    assert_redirected_to onboarding_members_url
+
+    get onboarding_recipes_url
+    assert_response :success
+
+    post onboarding_save_recipes_url, params: { recipe_ids: [ "sheet-pan-fajitas" ] }
+    assert_redirected_to onboarding_pantry_url
+
+    get onboarding_pantry_url
+    assert_response :success
+
+    post onboarding_save_pantry_url, params: { staple_names: [ "Salt", "Olive Oil" ] }
+    assert_redirected_to onboarding_complete_url
+
+    get onboarding_complete_url
+    assert_response :success
+  end
+
+  test "wizard steps redirect to the first step when no household exists yet" do
+    Household.destroy_all
+
+    get onboarding_members_url
+
+    assert_redirected_to onboarding_family_url
+  end
 end

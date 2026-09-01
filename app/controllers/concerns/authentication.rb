@@ -40,6 +40,11 @@ module Authentication
     end
   end
 
+  # Before the first household exists there is nothing to protect and no profile
+  # to sign in as, so the setup wizard is open and everything else routes to it.
+  # Once a household exists, controllers opt out one action at a time with
+  # allow_unauthenticated_access — never by controller name, which cannot express
+  # "these two actions but not the other eight".
   def require_authentication
     if Household.none?
       redirect_to onboarding_path and return unless request.path.start_with?("/onboarding")
@@ -48,16 +53,12 @@ module Authentication
 
     return if Current.family_member.present?
 
-    # Allow unauthenticated profile selection & onboarding
-    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
-
     session[:return_to_after_authenticating] = request.url
     redirect_to select_profile_path and return
   end
 
   def require_active_family_member
     return if Household.none?
-    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
 
     if Current.family_member.nil?
       redirect_to select_profile_path, alert: "Please select who is in the kitchen today."

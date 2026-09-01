@@ -5,9 +5,9 @@ the five resolved disagreements (`D1`–`D5`) are in the plan. Do not re-open a
 resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
-(`test/controllers/meal_plans_controller_test.rb:91`). **Task 0 has landed and the
-suite is now GREEN at 176 runs, 706 assertions, 0 failures.** Every task from A1
-onward starts from and must preserve that baseline.
+(`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
+GREEN at 183 runs, 735 assertions, 0 failures** (Task 0, A1 landed). Every
+remaining task starts from and must preserve green.
 
 Repository commands used throughout:
 
@@ -54,7 +54,7 @@ image. **No task in Stream A may add a schema migration** (plan, Architecture
 Decision 2). Note throughout: a member profile is *not* a credential — non-admin
 members have no PIN, so anyone can assume one at `/select_profile`.
 
-## Task A1: Close anonymous access to the onboarding wizard
+## Task A1: Close anonymous access to the onboarding wizard  ✅ DONE
 
 **Description:** Fixes **F1** (verified: anonymous `POST /onboarding/add_member`
 with `role=admin&pin=9999` created a working admin). `authentication.rb:52` and
@@ -66,18 +66,33 @@ every wizard step. Also drop the dead `controller_name == "feeds"` exemption
 (**F30**) — no `FeedsController` exists.
 
 **Acceptance criteria:**
-- [ ] `require_authentication` and `require_active_family_member` no longer special-case `onboarding` or `feeds` by name
-- [ ] On a configured install, every `/onboarding/*` action is either authenticated-admin-only or redirects to `/select_profile`; anonymous `POST /onboarding/add_member` creates nothing
-- [ ] On an unconfigured install (`Household.none?`), the full wizard still completes anonymously end to end
+- [x] `require_authentication` and `require_active_family_member` no longer special-case `onboarding` or `feeds` by name
+- [x] On a configured install, every `/onboarding/*` action is either authenticated-admin-only or redirects to `/select_profile`; anonymous `POST /onboarding/add_member` creates nothing
+- [x] On an unconfigured install (`Household.none?`), the full wizard still completes anonymously end to end
 
 **Verification:**
-- [ ] New request test: anonymous `POST /onboarding/add_member` with `role=admin` → no new `FamilyMember`, non-2xx/302-to-onboarding
-- [ ] New request test: `Household.destroy_all` then walk family → members → recipes → pantry → complete anonymously and succeed
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/brakeman --no-pager` clean
+- [x] New request test: anonymous `POST /onboarding/add_member` with `role=admin` → no new `FamilyMember`, non-2xx/302-to-onboarding
+- [x] New request test: `Household.destroy_all` then walk family → members → recipes → pantry → complete anonymously and succeed
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/brakeman --no-pager` clean
 
 **Dependencies:** Task 0
 **Files:** `app/controllers/concerns/authentication.rb`, `app/controllers/onboarding_controller.rb`, `test/controllers/onboarding_controller_test.rb`
 **Scope:** S
+
+**Outcome:** Both name-based exemptions deleted from `Authentication`; per-action
+`allow_unauthenticated_access` now governs, and the dead `feeds` exemption is gone
+(**F30**). Suite **183 runs, 735 assertions, 0 failures**; RuboCop and Brakeman clean.
+The five new access-control tests were confirmed to fail against HEAD before the fix.
+
+**Deviation from the description above:** the plan said to extend
+`ensure_household_unconfigured` to every wizard step. Used `require_admin` on the
+post-setup steps instead. Blocking them outright would break resuming an
+interrupted setup, and would be a behaviour change wider than closing the hole;
+admin-gating satisfies the acceptance criterion and preserves the flow. This also
+closes a second hole neither review named: `OnboardingController#family_member_params`
+permits `:role`, so before this change **any signed-in member** — and a member
+profile needs no PIN — could `POST /onboarding/add_member` to mint themselves an
+admin, entirely bypassing `Admin::FamilyMembersController`.
 
 ## Task A2: Add a session helper for authenticated request tests
 

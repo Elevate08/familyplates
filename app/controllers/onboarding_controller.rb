@@ -1,7 +1,12 @@
 class OnboardingController < ApplicationController
+  WIZARD_STEPS_AFTER_SETUP = %i[members add_member remove_member recipes save_recipes pantry save_pantry complete].freeze
+
   allow_unauthenticated_access only: %i[family save_family]
   before_action :ensure_household_unconfigured, only: %i[family save_family]
-  before_action :require_household_exists, only: %i[members add_member remove_member recipes save_recipes pantry save_pantry complete]
+  before_action :require_household_exists, only: WIZARD_STEPS_AFTER_SETUP
+  # save_family signs the new organizer in, so the rest of the wizard runs as an
+  # authenticated admin on a first boot and is closed to everyone else after it.
+  before_action :require_admin, only: WIZARD_STEPS_AFTER_SETUP
   before_action :load_starter_recipes, only: %i[recipes save_recipes]
 
   # Step 1: Kitchen & Family Setup
