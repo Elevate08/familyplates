@@ -105,4 +105,29 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "Grandma's Apple Pie", result[:title]
     assert_equal "The best homemade apple pie recipe.", result[:description]
   end
+
+  test "refuses to fetch a target the egress policy blocks, without attempting a connection" do
+    logged = +""
+    original = Rails.logger
+    Rails.logger = Logger.new(StringIO.new(logged))
+
+    begin
+      %w[
+        file:///etc/passwd
+        ftp://example.com/secrets
+        http://169.254.169.254/latest/meta-data/
+        http://127.0.0.1:3000/admin
+        http://10.0.0.1/
+        http://localhost/
+      ].each do |url|
+        assert_nil RecipeScraper.call(url), "#{url} must not produce a recipe"
+      end
+    ensure
+      Rails.logger = original
+    end
+
+    # The refusal is logged distinctly from "the site was down", so an operator
+    # can tell an SSRF attempt from a broken link.
+    assert_equal 6, logged.scan(/\[egress\] RecipeScraper refused/).length, logged
+  end
 end

@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 202 runs, 835 assertions, 0 failures** (Task 0, A1–A4 landed). Every
+GREEN at 223 runs, 919 assertions, 0 failures** (Task 0, A1–A5 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -228,7 +228,7 @@ against `activesupport-8.1.3.1/lib/active_support/security_utils.rb` and pinned 
 unit tests over short, long, empty and nil input. It does leak length by
 short-circuiting, which is immaterial for a fixed four-digit PIN.
 
-## Task A5: Filter outbound recipe-import requests
+## Task A5: Filter outbound recipe-import requests  ✅ DONE
 
 **Description:** Fixes **F3**. `RecipeScraper#fetch_html` (`:36-44`) calls
 `URI.parse(url).open` on fully attacker-controlled input with no scheme, address,
@@ -240,21 +240,48 @@ has no `#open`), so do not write tests or release notes claiming local file read
 rejected by the scheme allowlist.
 
 **Acceptance criteria:**
-- [ ] Scheme allowlist: `http`/`https` only, checked before any network call
-- [ ] The hostname is resolved and every resulting address rejected if loopback, private, link-local, multicast, reserved, unspecified, or IPv4-mapped equivalents thereof — for the initial request **and each redirect hop**
-- [ ] Redirects capped (≤5) and response body capped (≤2 MB), streaming-truncated rather than buffered whole
-- [ ] Rejections are logged and surface to the user as the existing "Could not fetch recipe" message — no internal detail leaks into the flash
-- [ ] The bare `rescue StandardError` no longer masks a validation failure as an ordinary fetch failure
+- [x] Scheme allowlist: `http`/`https` only, checked before any network call
+- [x] The hostname is resolved and every resulting address rejected if loopback, private, link-local, multicast, reserved, unspecified, or IPv4-mapped equivalents thereof — for the initial request **and each redirect hop**
+- [x] Redirects capped (≤5) and response body capped (≤2 MB), streaming-truncated rather than buffered whole
+- [x] Rejections are logged and surface to the user as the existing "Could not fetch recipe" message — no internal detail leaks into the flash
+- [x] The bare `rescue StandardError` no longer masks a validation failure as an ordinary fetch failure
 
 **Verification:**
-- [ ] Unit tests reject: `file:///etc/passwd`, `ftp://example.com/x`, `http://127.0.0.1:3000/`, `http://[::1]/`, `http://10.0.0.1/`, `http://192.168.1.1/`, `http://169.254.169.254/latest/meta-data/`, a hostname resolving to `127.0.0.1`, and an HTTP redirect from a public address into `10.0.0.0/8`
-- [ ] Unit test: an oversized response is truncated/rejected rather than read into memory
-- [ ] Unit test: a public-address fetch still parses a JSON-LD recipe (import is not regressed)
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/brakeman --no-pager` clean
+- [x] Unit tests reject: `file:///etc/passwd`, `ftp://example.com/x`, `http://127.0.0.1:3000/`, `http://[::1]/`, `http://10.0.0.1/`, `http://192.168.1.1/`, `http://169.254.169.254/latest/meta-data/`, a hostname resolving to `127.0.0.1`, and an HTTP redirect from a public address into `10.0.0.0/8`
+- [x] Unit test: an oversized response is truncated/rejected rather than read into memory
+- [x] Unit test: a public-address fetch still parses a JSON-LD recipe (import is not regressed)
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/brakeman --no-pager` clean
 
 **Dependencies:** Task 0
 **Files:** `app/services/recipe_scraper.rb`, new `app/services/safe_http_fetcher.rb` (or equivalent), `test/services/recipe_scraper_test.rb`
 **Scope:** M
+
+**Outcome:** `open-uri` is gone. `OutboundUrlPolicy` decides by *resolved address*
+against explicit CIDR lists (v4 and v6), rejecting loopback, private, CGNAT,
+link-local/metadata, unspecified, multicast, reserved, documentation and NAT64
+space, unwrapping IPv4-mapped IPv6 first. It requires **every** DNS answer to
+pass, then pins the one address the request may use — `SafeHttpFetcher` sets
+`Net::HTTP#ipaddr` so the hostname is still used for SNI and `Host` but nothing
+re-resolves between check and connect, which is the DNS-rebinding hole. Every
+redirect hop goes back through the policy; redirects capped at 5, body streamed
+and capped at 2 MB. `RecipeScraper` now distinguishes a policy refusal
+(`[egress] … refused`) from an ordinary fetch failure. Suite **223 runs, 919
+assertions, 0 failures**; RuboCop (126 files) and Brakeman clean.
+
+**Found while doing this — a bug none of the three reviews reported.**
+`RecipeScraper#scrape` never returned `nil`: a failed fetch fell through to
+`Nokogiri::HTML(nil)` and built an OpenGraph fallback, so importing *any*
+unreachable URL silently created a placeholder recipe titled "Imported Recipe"
+with the rejected URL as its `source_url`. That made
+`RecipeImportsController`'s `if data.nil?` branch — the "Could not fetch recipe"
+message this task's criteria require — **dead code since it was written**. Fixed
+by returning `nil` on blank HTML, with a controller test pinning the message.
+
+**Test tooling note:** `minitest/mock` is not available (Minitest 6), so the
+split-horizon and address-pinning tests swap the resolver with a plain
+`define_singleton_method` and restore it, and `SafeHttpFetcher`'s redirect tests
+use a `ScriptedFetcher` subclass that overrides the network seam. No test in this
+task can reach a real network, by construction.
 
 ## Task A6: Escape user and scraped content at the DOM sinks
 
