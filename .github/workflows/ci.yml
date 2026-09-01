@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [ master ]
+  # Release runs this whole workflow before it will publish an image. v1.1.0 was
+  # tagged and pushed to ghcr with a failing test and an unauthenticated
+  # privilege escalation, because nothing connected the two workflows.
+  workflow_call:
 
 jobs:
   scan_ruby:

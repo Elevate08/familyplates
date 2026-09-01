@@ -452,7 +452,7 @@ old code. With A1 in place this is no longer anonymously triggerable, so what is
 left is the ordinary-use bug: an admin revisiting the wizard silently loses their
 pantry customizations.
 
-## Task A10: Gate the container release on CI
+## Task A10: Gate the container release on CI  ✅ DONE (one check owed)
 
 **Description:** Fixes **F29**. `.github/workflows/release.yml` builds and pushes
 `ghcr.io/…:latest` on any `v*` tag with no dependency on `ci.yml`'s `test`,
@@ -461,18 +461,34 @@ published with a red suite and a remote unauthenticated privilege escalation.
 Land this **before** tagging `v1.1.1`.
 
 **Acceptance criteria:**
-- [ ] `build-and-push` runs the test, lint and security-scan jobs (or `needs:` a reusable workflow that does) and does not publish if any fail
-- [ ] `latest` is still only moved for `v*` tags, unchanged otherwise
-- [ ] A tag pushed on a red tree produces no `ghcr.io` push
+- [x] `build-and-push` runs the test, lint and security-scan jobs (or `needs:` a reusable workflow that does) and does not publish if any fail
+- [x] `latest` is still only moved for `v*` tags, unchanged otherwise
+- [~] A tag pushed on a red tree produces no `ghcr.io` push — **wired, not exercised** (see below)
 
 **Verification:**
-- [ ] Push a throwaway tag on a deliberately-red branch; confirm the release job fails before the `docker/build-push-action` step
-- [ ] Re-run on green; confirm the image publishes as before
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [~] Push a throwaway tag on a deliberately-red branch; confirm the release job fails before the `docker/build-push-action` step — **NOT DONE, needs a human**
+- [~] Re-run on green; confirm the image publishes as before — **NOT DONE, needs a human**
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0 (a green suite must exist for the gate to be satisfiable)
 **Files:** `.github/workflows/release.yml`, possibly `.github/workflows/ci.yml`
 **Scope:** S
+
+**Outcome:** `ci.yml` gains a `workflow_call:` trigger; `release.yml` calls it as
+a `ci` job and `build-and-push` declares `needs: ci`. Reuse rather than
+duplication, so the gate cannot drift from what CI actually runs — all four jobs
+(`test`, `lint`, `scan_ruby`, `scan_js`) must pass before the registry is touched.
+`latest` is still moved only for `v*` tags; that line is unchanged.
+
+**Verification owed to a human.** Confirming this end to end means pushing a tag
+on a deliberately-red branch and watching the release job stop before
+`docker/build-push-action`, then re-running on green. That needs a push to
+GitHub, which I have not done. What *is* verified locally: both files parse,
+`build-and-push` declares `needs: ci`, `ci` resolves to `./.github/workflows/ci.yml`,
+and that workflow accepts `workflow_call` and defines all four jobs. `actionlint`
+is not installed here, so there has been no schema-level lint of the workflow
+syntax. **Do the red-tag rehearsal before tagging `v1.1.1`** — this task exists
+because nobody noticed the release path was ungated.
 
 ## Task A11: Only store GET URLs for post-login redirect  ✅ DONE
 
