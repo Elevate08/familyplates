@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -79,10 +80,10 @@ export default class extends Controller {
       btn.className = "w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
       
       const aisleColor = this.getAisleBadgeColor(item.aisle)
-      btn.innerHTML = `
-        <span class="font-bold text-slate-900 dark:text-white truncate">${item.name}</span>
-        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${aisleColor} shrink-0 ml-2 shadow-2xs">${item.aisle}</span>
-      `
+      replaceChildren(btn,
+        el("span", { className: "font-bold text-slate-900 dark:text-white truncate", text: item.name }),
+        el("span", { className: `text-[10px] font-bold px-2 py-0.5 rounded-full ${aisleColor} shrink-0 ml-2 shadow-2xs`, text: item.aisle })
+      )
       
       btn.addEventListener("click", (e) => {
         e.preventDefault()
@@ -207,10 +208,10 @@ export default class extends Controller {
       btn.type = "button"
       btn.dataset.unitName = unit
       btn.className = "w-full text-left px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
-      btn.innerHTML = `
-        <span class="font-bold text-slate-900 dark:text-white">${unit}</span>
-        <span class="text-[10px] text-slate-400 font-medium">Use</span>
-      `
+      replaceChildren(btn,
+        el("span", { className: "font-bold text-slate-900 dark:text-white", text: unit }),
+        el("span", { className: "text-[10px] text-slate-400 font-medium", text: "Use" })
+      )
 
       btn.addEventListener("click", (e) => {
         e.preventDefault()

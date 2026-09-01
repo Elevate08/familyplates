@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -107,6 +108,21 @@ export default class extends Controller {
     this.hideRecipeDropdown()
   }
 
+  // image_url can arrive from a scraped third-party page, so anything that is
+  // not a plain http(s) URL - javascript:, data:, a value with quotes in it -
+  // falls back to the placeholder rather than reaching an src attribute.
+  safeImageUrl(url) {
+    const fallback = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=200&q=80"
+    if (!url) return fallback
+
+    try {
+      const parsed = new URL(url, window.location.origin)
+      return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : fallback
+    } catch {
+      return fallback
+    }
+  }
+
   syncSelectedRecipeDisplay() {
     if (!this.hasRecipeInputTarget || !this.hasRecipeSelectedDisplayTarget) return
 
@@ -114,35 +130,36 @@ export default class extends Controller {
     const recipeData = this.recipesValue[recipeId]
 
     if (recipeData) {
-      const tagsHtml = (recipeData.tags || []).slice(0, 3)
-        .map(tag => `<span class="px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/80 text-amber-800 text-[9px] font-bold">${tag}</span>`)
-        .join(" ")
+      const tagBadges = (recipeData.tags || []).slice(0, 3).map(tag =>
+        el("span", { className: "px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/80 text-amber-800 text-[9px] font-bold", text: tag })
+      )
 
-      this.recipeSelectedDisplayTarget.innerHTML = `
-        <div class="flex items-center gap-3 w-full text-left">
-          <img src="${recipeData.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=200&q=80'}"
-               alt="${recipeData.title}"
-               class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0 bg-slate-100">
-          <div class="flex-1 min-w-0">
-            <div class="font-extrabold text-xs text-slate-900 truncate">${recipeData.title}</div>
-            <div class="flex items-center gap-2 mt-0.5">
-              <span class="text-[10px] font-bold text-slate-500">⏱️ ${recipeData.total_time || 30}m</span>
-              <div class="flex flex-wrap gap-1">${tagsHtml}</div>
-            </div>
-          </div>
-          <span class="text-xs text-slate-400 font-bold ml-2">▼</span>
-        </div>
-      `
+      replaceChildren(this.recipeSelectedDisplayTarget,
+        el("div", { className: "flex items-center gap-3 w-full text-left" }, [
+          el("img", {
+            className: "w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0 bg-slate-100",
+            attrs: { src: this.safeImageUrl(recipeData.image_url), alt: recipeData.title || "" }
+          }),
+          el("div", { className: "flex-1 min-w-0" }, [
+            el("div", { className: "font-extrabold text-xs text-slate-900 truncate", text: recipeData.title }),
+            el("div", { className: "flex items-center gap-2 mt-0.5" }, [
+              el("span", { className: "text-[10px] font-bold text-slate-500", text: `⏱️ ${recipeData.total_time || 30}m` }),
+              el("div", { className: "flex flex-wrap gap-1" }, tagBadges)
+            ])
+          ]),
+          el("span", { className: "text-xs text-slate-400 font-bold ml-2", text: "▼" })
+        ])
+      )
     } else {
-      this.recipeSelectedDisplayTarget.innerHTML = `
-        <div class="flex items-center justify-between w-full text-left">
-          <div class="flex items-center gap-2.5 text-slate-500 text-xs font-semibold">
-            <span class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm border border-slate-200">📖</span>
-            <span>-- Select Recipe or Enter Custom Dish Below --</span>
-          </div>
-          <span class="text-xs text-slate-400 font-bold ml-2">▼</span>
-        </div>
-      `
+      replaceChildren(this.recipeSelectedDisplayTarget,
+        el("div", { className: "flex items-center justify-between w-full text-left" }, [
+          el("div", { className: "flex items-center gap-2.5 text-slate-500 text-xs font-semibold" }, [
+            el("span", { className: "w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm border border-slate-200", text: "📖" }),
+            el("span", { text: "-- Select Recipe or Enter Custom Dish Below --" })
+          ]),
+          el("span", { className: "text-xs text-slate-400 font-bold ml-2", text: "▼" })
+        ])
+      )
     }
   }
 }

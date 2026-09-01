@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -129,7 +130,10 @@ export default class extends Controller {
       } else if (iconId === "spice-jar") {
         this.iconPreviewTarget.innerHTML = `<svg class="w-6 h-6 inline-block shrink-0" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 4C10 3.44772 10.4477 3 11 3H21C21.5523 3 22 3.44772 22 4V8H10V4Z" fill="#B45309"/><rect x="8" y="9" width="16" height="19" rx="3" fill="#F8FAFC" fill-opacity="0.4" stroke="#94A3B8" stroke-width="1.5"/><rect x="9.5" y="13" width="13" height="13.5" rx="1.5" fill="#FDE68A"/><rect x="8" y="16" width="16" height="7" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.75"/><rect x="10.5" y="18.5" width="11" height="2" rx="1" fill="#64748B"/></svg>`
       } else {
-        this.iconPreviewTarget.innerHTML = `<span class="text-xl select-none leading-none">${iconId}</span>`
+        // iconId is whatever the user typed in the emoji field.
+        replaceChildren(this.iconPreviewTarget,
+          el("span", { className: "text-xl select-none leading-none", text: iconId })
+        )
       }
     }
   }

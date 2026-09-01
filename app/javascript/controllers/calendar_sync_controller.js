@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -27,15 +28,15 @@ export default class extends Controller {
     if (this.hasTestStatusTarget) {
       this.testStatusTarget.classList.remove("hidden", "opacity-0")
       this.testStatusTarget.classList.add("opacity-100", "transition-opacity", "duration-500")
-      this.testStatusTarget.innerHTML = `
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold animate-in fade-in">
-          <span class="relative flex h-2.5 w-2.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
-          </span>
-          <span class="animate-pulse">Testing connection to Google Calendar...</span>
-        </div>
-      `
+      replaceChildren(this.testStatusTarget,
+        el("div", { className: "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold animate-in fade-in" }, [
+          el("span", { className: "relative flex h-2.5 w-2.5" }, [
+            el("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" }),
+            el("span", { className: "relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600" })
+          ]),
+          el("span", { className: "animate-pulse", text: "Testing connection to Google Calendar..." })
+        ])
+      )
     }
 
     try {
@@ -52,28 +53,13 @@ export default class extends Controller {
       const data = await response.json()
 
       if (data.success) {
-        this.testStatusTarget.innerHTML = `
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold animate-in fade-in">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
-            <span>Connected: "${data.summary || 'Google Calendar'}"</span>
-          </div>
-        `
+        this.renderStatus(this.testStatusTarget, "emerald", `Connected: "${data.summary || "Google Calendar"}"`)
       } else {
-        this.testStatusTarget.innerHTML = `
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold animate-in fade-in">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-            <span>Connection Failed: ${data.error || 'Check Calendar ID and Service Account share permissions.'}</span>
-          </div>
-        `
+        this.renderStatus(this.testStatusTarget, "rose", `Connection Failed: ${data.error || "Check Calendar ID and Service Account share permissions."}`)
       }
     } catch (err) {
       if (this.hasTestStatusTarget) {
-        this.testStatusTarget.innerHTML = `
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold animate-in fade-in">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-            <span>Network error testing connection.</span>
-          </div>
-        `
+        this.renderStatus(this.testStatusTarget, "rose", "Network error testing connection.")
       }
     } finally {
       if (this.hasTestButtonTarget) this.testButtonTarget.disabled = false
@@ -138,7 +124,7 @@ export default class extends Controller {
           this.progressBarTarget.classList.add("bg-emerald-500")
         }
         if (this.hasProgressTextTarget) {
-          this.progressTextTarget.innerHTML = `<span class="text-emerald-700 font-bold">✅ ${data.message || 'Successfully synced meal slots to Google Calendar!'}</span>`
+          replaceChildren(this.progressTextTarget, el("span", { className: "text-emerald-700 font-bold", text: `✅ ${data.message || "Successfully synced meal slots to Google Calendar!"}` }))
         }
       } else {
         if (this.hasProgressBarTarget) {
@@ -147,7 +133,7 @@ export default class extends Controller {
           this.progressBarTarget.classList.add("bg-rose-500")
         }
         if (this.hasProgressTextTarget) {
-          this.progressTextTarget.innerHTML = `<span class="text-rose-700 font-bold">❌ Sync failed: ${data.error || 'Please check configuration in Admin settings.'}</span>`
+          replaceChildren(this.progressTextTarget, el("span", { className: "text-rose-700 font-bold", text: `❌ Sync failed: ${data.error || "Please check configuration in Admin settings."}` }))
         }
       }
     } catch (err) {
@@ -158,7 +144,7 @@ export default class extends Controller {
         this.progressBarTarget.classList.add("bg-rose-500")
       }
       if (this.hasProgressTextTarget) {
-        this.progressTextTarget.innerHTML = `<span class="text-rose-700 font-bold">❌ Network error during sync.</span>`
+        replaceChildren(this.progressTextTarget, el("span", { className: "text-rose-700 font-bold", text: "❌ Network error during sync." }))
       }
     } finally {
       if (this.hasSyncButtonTarget) this.syncButtonTarget.disabled = false
@@ -170,5 +156,16 @@ export default class extends Controller {
         }, 4000)
       }
     }
+  }
+
+  // Google's API returns the summary and error strings, so they are external
+  // content and must land as text rather than markup.
+  renderStatus(target, tone, message) {
+    replaceChildren(target,
+      el("div", { className: `inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-${tone}-50 border border-${tone}-200 text-${tone}-800 text-xs font-bold animate-in fade-in` }, [
+        el("span", { className: `w-2.5 h-2.5 rounded-full bg-${tone}-500 shadow-sm` }),
+        el("span", { text: message })
+      ])
+    )
   }
 }

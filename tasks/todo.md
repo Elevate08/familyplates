@@ -283,7 +283,7 @@ split-horizon and address-pinning tests swap the resolver with a plain
 use a `ScriptedFetcher` subclass that overrides the network seam. No test in this
 task can reach a real network, by construction.
 
-## Task A6: Escape user and scraped content at the DOM sinks
+## Task A6: Escape user and scraped content at the DOM sinks  ✅ DONE
 
 **Description:** Fixes **F10** and **F11**. Three `innerHTML` sites interpolate
 database-sourced strings: `tag_picker_controller.js:191` (from free-text
@@ -293,18 +293,51 @@ arbitrary third-party page). With no CSP header (**F12**, addressed in B4) an
 injected inline handler executes for every user who opens the recipe form.
 
 **Acceptance criteria:**
-- [ ] All three sites build nodes with `createElement` + `textContent`; no template literal reaches `innerHTML` carrying a database or scraped value
-- [ ] Static class strings and the aisle badge colour still apply (`getAisleBadgeColor` output is a fixed class list, not user data)
-- [ ] `grep -rn "innerHTML" app/javascript/controllers/` shows no remaining site interpolating a dynamic value
+- [x] All three sites build nodes with `createElement` + `textContent`; no template literal reaches `innerHTML` carrying a database or scraped value
+- [x] Static class strings and the aisle badge colour still apply (`getAisleBadgeColor` output is a fixed class list, not user data)
+- [x] `grep -rn "innerHTML" app/javascript/controllers/` shows no remaining site interpolating a dynamic value
 
 **Verification:**
-- [ ] Manual: create a recipe tagged `<img src=x onerror=alert(1)>`, open the recipe form, type in the tag box — the tag renders as literal text, no dialog
-- [ ] Manual: same with an ingredient named `<img src=x onerror=alert(1)>` in the autofill list and the unit list
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: create a recipe tagged `<img src=x onerror=alert(1)>`, open the recipe form, type in the tag box — the tag renders as literal text, no dialog
+- [x] Manual: same with an ingredient named `<img src=x onerror=alert(1)>` in the autofill list and the unit list
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0
 **Files:** `app/javascript/controllers/tag_picker_controller.js`, `app/javascript/controllers/ingredient_autofill_controller.js`
 **Scope:** S
+
+**Outcome:** Larger than the plan's three sites. A sweep of every `innerHTML` in
+`app/javascript/controllers/` found **seven** interpolating a dynamic value; the
+reviews named three. New `app/javascript/helpers/dom.js` (`el` / `replaceChildren`,
+pinned in `config/importmap.rb`) builds nodes with `createElement` + `textContent`
++ `setAttribute`. Suite **223 runs, 0 failures**; RuboCop, Brakeman and
+`importmap audit` clean; every controller passes `node --check`.
+
+**The four sinks no review reported:**
+
+| Site | Value | Source |
+|---|---|---|
+| `slot_modal_controller.js:121` | `recipeData.title`, `tags`, `image_url`, `total_time` | `recipes` — **written by the scraper from arbitrary third-party pages** |
+| `calendar_sync_controller.js:55, :62` | `data.summary`, `data.error` | Google Calendar API responses |
+| `calendar_sync_controller.js:141, :150` | `data.message`, `data.error` | same |
+| `pantry_item_form_controller.js:132` | `iconId` | the pantry emoji field, straight user input |
+
+`slot_modal` is the worst of the seven and sits on the meal planner, the app's
+most-used screen: `image_url` went into an `src` attribute and `title` into `alt`,
+so a scraped value containing a double quote escapes the attribute outright. It
+now also runs through a `safeImageUrl` guard that falls back to the placeholder
+for anything that is not `http:`/`https:` — `setAttribute` alone stops attribute
+injection but would still happily accept a `javascript:` URL.
+
+**Verification gap, stated plainly:** the plan asked for a manual browser check
+and there is no browser or system-test harness in this repo (no Capybara, no
+`test/system`), so that was **not** performed. Instead the helper's semantics were
+proved under Node against a minimal DOM stand-in: a `<img src=x onerror=…>`
+payload is stored verbatim in `textContent` with zero child nodes parsed, and
+`src`/`alt` values containing quotes land through `setAttribute` un-interpolated.
+That covers the escaping contract; it does not cover whether the rebuilt markup
+still *looks* right. A human should click through the recipe form, tag box, slot
+modal, pantry icon picker and admin calendar page before the tag.
 
 ## Task A7: Match pantry staples by exact normalized name
 
