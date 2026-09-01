@@ -129,6 +129,47 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_complete_url
   end
 
+  test "re-running the pantry step keeps a household's own category and icon" do
+    sign_in_as(family_members(:one))
+    household = households(:one)
+
+    customized = household.pantry_items.find_or_create_by!(name: "Salt")
+    customized.update!(aisle_category: "Produce", emoji: "🧂", is_staple: false)
+
+    post onboarding_save_pantry_url, params: { staple_names: [ "Salt" ] }
+
+    customized.reload
+    assert_equal "Produce", customized.aisle_category, "a hand-picked aisle must survive the wizard"
+    assert_equal "🧂", customized.emoji, "a hand-picked icon must survive the wizard"
+    assert customized.is_staple, "the checkbox is the one thing this step decides"
+  end
+
+  test "re-running the pantry step still honours unchecking a staple" do
+    sign_in_as(family_members(:one))
+    household = households(:one)
+    item = household.pantry_items.find_or_create_by!(name: "Salt")
+    item.update!(is_staple: true)
+
+    post onboarding_save_pantry_url, params: { staple_names: [] }
+
+    assert_not item.reload.is_staple
+  end
+
+  test "the pantry step still seeds defaults for items it creates" do
+    sign_in_as(family_members(:one))
+    household = households(:one)
+    household.pantry_items.where(name: "Olive Oil").destroy_all
+
+    post onboarding_save_pantry_url, params: { staple_names: [ "Olive Oil" ] }
+
+    created = household.pantry_items.find_by(name: "Olive Oil")
+    default = PantryItem::DEFAULT_STAPLES.find { |s| s[:name] == "Olive Oil" }
+    assert_not_nil created
+    assert_equal default[:aisle_category], created.aisle_category
+    assert_equal default[:emoji], created.emoji
+    assert created.is_staple
+  end
+
   test "should get complete step" do
     sign_in_as(family_members(:one))
     get onboarding_complete_url

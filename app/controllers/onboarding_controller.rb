@@ -146,8 +146,16 @@ class OnboardingController < ApplicationController
       PantryItem::DEFAULT_STAPLES.each do |staple|
         is_selected = selected_staple_names.include?(staple[:name])
         item = current_household.pantry_items.find_or_initialize_by(name: staple[:name])
-        item.aisle_category = staple[:aisle_category]
-        item.emoji = staple[:emoji]
+
+        # Seed the defaults only when creating. This step used to assign them
+        # unconditionally, so re-running the wizard reset a household's
+        # hand-picked category and icon back to the DEFAULT_STAPLES values. Only
+        # the checkbox is the user's answer on this screen.
+        if item.new_record?
+          item.aisle_category = staple[:aisle_category]
+          item.emoji = staple[:emoji]
+        end
+
         item.is_staple = is_selected
         item.save!
       end

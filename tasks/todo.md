@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 231 runs, 959 assertions, 0 failures** (Task 0, A1–A8 landed). Every
+GREEN at 234 runs, 967 assertions, 0 failures** (Task 0, A1–A9 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -419,7 +419,7 @@ And the form had nowhere to show them: `index.html.erb` rendered no
 `errors.full_messages` block at all, so even a fixed render would have bounced the
 user back to an apparently-blank form with no explanation. Added.
 
-## Task A9: Stop `save_pantry` overwriting customized pantry items
+## Task A9: Stop `save_pantry` overwriting customized pantry items  ✅ DONE
 
 **Description:** Fixes **F9**. `onboarding_controller.rb:143-147` changed from
 `find_or_create_by!(name:) { … }` (block runs on create only) to
@@ -429,16 +429,28 @@ categories and icons to the `DEFAULT_STAPLES` values. Only `is_staple` should
 follow the checkbox on an existing row.
 
 **Acceptance criteria:**
-- [ ] On an existing pantry item, `save_pantry` updates `is_staple` only; `aisle_category` and `emoji` are preserved
-- [ ] On a new pantry item, all three are still seeded from `DEFAULT_STAPLES`
+- [x] On an existing pantry item, `save_pantry` updates `is_staple` only; `aisle_category` and `emoji` are preserved
+- [x] On a new pantry item, all three are still seeded from `DEFAULT_STAPLES`
 
 **Verification:**
-- [ ] New request test: customize an item's `aisle_category` and `emoji`, re-post `save_pantry`, assert both survive and `is_staple` tracked the checkbox
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New request test: customize an item's `aisle_category` and `emoji`, re-post `save_pantry`, assert both survive and `is_staple` tracked the checkbox
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0, A1
 **Files:** `app/controllers/onboarding_controller.rb`, `test/controllers/onboarding_controller_test.rb`
 **Scope:** XS
+
+**Outcome:** `aisle_category` and `emoji` are assigned only when
+`item.new_record?`; `is_staple` still tracks the checkbox, which is the only
+answer this screen asks for. Suite **234 runs, 967 assertions, 0 failures**;
+RuboCop and Brakeman clean.
+
+Three tests, covering the fix and both directions it could over-correct into:
+customizations survive, unchecking a staple still works, and a genuinely new item
+still gets its `DEFAULT_STAPLES` seed. The first is confirmed failing against the
+old code. With A1 in place this is no longer anonymously triggerable, so what is
+left is the ordinary-use bug: an admin revisiting the wizard silently loses their
+pantry customizations.
 
 ## Task A10: Gate the container release on CI
 
