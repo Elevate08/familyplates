@@ -348,6 +348,55 @@ T0  month-selection helper + green baseline
 
 ---
 
+## UI Consistency Pass (outside Stream A/B)
+
+Follow-up to the A6 visual review, done at the user's direction. Presentation
+only — no controller, model or behaviour changes, and it belongs to neither
+stream. Recorded here so the decisions are not re-litigated.
+
+**Changes:** the tag picker's permanent suggestion chips removed (the dropdown
+already listed every unselected tag) and its menu narrowed from full field width
+to `w-72`; ingredient name and unit menus widened with `overflow-x-hidden` (their
+horizontal scrollbar came from `overflow-y-auto` computing `overflow-x` from
+`visible` to `auto`); a `themed-scrollbar` utility applied to every scrollable
+menu in the app; the slot modal's six fields unified on the recipe trigger's
+treatment (2xl radius, 2px border, matching hover/focus); `themed-select` chevron
+on all 8 selects; and `color-scheme` declared on `:root`/`.dark`, which is what
+makes the browser paint date and time picker popups in the app's theme.
+
+### Decision: native controls stay native
+
+The popup a `<select>` opens is drawn by the platform. Its **colours** are
+reachable — `option`, `option:checked` and `option:disabled` now carry the app's
+palette — but its **shape** is not, and no CSS reaches it. Date and time picker
+panels are the same.
+
+Rounding those popups means giving up a real `<select>`, and with it keyboard
+navigation, type-ahead, screen-reader semantics, and the native wheel/sheet iOS
+and Android render — which is the better interaction on the kitchen tablet this
+app targets. Not worth trading for a border radius on a transient popup.
+Revisit when CSS `appearance: base-select` has support beyond Chromium 135+;
+it keeps a real `<select>` *and* allows a styled popup.
+
+### Decision: the recipe picker stays custom
+
+Audit of every popup in the app:
+
+| Kind | Controls | Native? |
+|---|---|---|
+| `<select>` | role ×3, meal type ×2, assigned cook ×2, aisle category | yes |
+| date/time inputs | 6 | yes |
+| Action/nav menus | profile switcher, theme toggle, recipe sort/filter, recipe card actions, onboarding select-all | **no native equivalent exists** — HTML has no menu control |
+| Comboboxes & pickers | tag picker (multi-value + create), ingredient name/unit (free text + suggestions), pantry icon grid (SVG) | **cannot be native** without removing a capability |
+| Single-choice list | slot modal recipe picker | could be native; **deliberately is not** |
+
+The recipe picker is the one custom control a `<select>` could replace. It stays
+custom because it renders a thumbnail, cook time and tags per row — `<option>` is
+text-only — and it is the only place a recipe is chosen without already knowing
+its name. This is a deliberate exception, not an oversight.
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
