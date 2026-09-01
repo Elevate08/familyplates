@@ -46,4 +46,30 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_not member.valid?
     assert_includes member.errors[:pin], "must be exactly 4 digits"
   end
+
+  test "verify_pin matches only the exact PIN and never raises" do
+    admin = family_members(:one)
+    assert_equal "1234", admin.pin
+
+    assert admin.verify_pin("1234")
+    assert admin.verify_pin(" 1234 "), "surrounding whitespace is stripped"
+    assert admin.verify_pin(1234), "a non-string is coerced, not blown up"
+
+    # Shorter, longer and empty inputs must return false rather than raise -
+    # fixed_length_secure_compare raises on a length mismatch if reached directly.
+    assert_not admin.verify_pin("123")
+    assert_not admin.verify_pin("12345")
+    assert_not admin.verify_pin("9999")
+    assert_not admin.verify_pin("")
+    assert_not admin.verify_pin(nil)
+  end
+
+  test "verify_pin is false for a member that has no PIN" do
+    member = family_members(:two)
+    assert_nil member.pin
+
+    assert_not member.verify_pin("1234")
+    assert_not member.verify_pin("")
+    assert_not member.verify_pin(nil)
+  end
 end

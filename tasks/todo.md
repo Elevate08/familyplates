@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 193 runs, 764 assertions, 0 failures** (Task 0, A1–A3 landed). Every
+GREEN at 202 runs, 835 assertions, 0 failures** (Task 0, A1–A4 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -171,7 +171,7 @@ was removed (index/create/edit/update/destroy/reset_pin, `:role` permitted, gate
 by `Admin::BaseController`), so nothing had to be rebuilt there — the general
 controller was pure duplication with the authorization left off.
 
-## Task A4: Throttle PIN entry and compare PINs in constant time
+## Task A4: Throttle PIN entry and compare PINs in constant time  ✅ DONE
 
 **Description:** Fixes **F4** and the timing half of **F16**. The removed
 `SessionsController` carried `rate_limit to: 10, within: 3.minutes`; neither
@@ -183,20 +183,50 @@ reachable anonymously. `solid_cache` is configured in production
 digest migration is B1.
 
 **Acceptance criteria:**
-- [ ] `rate_limit` applied to `ProfilesController#set` and `FamilyMembersController#switch`, keyed on **both** remote IP and target profile id
-- [ ] Exceeding the limit returns a throttled response and does not reveal whether the PIN was correct
-- [ ] `FamilyMember#verify_pin` uses a constant-time comparison and does not raise on length mismatch
-- [ ] Failed attempts emit a log line suitable for `fail2ban`-style tooling; the line contains no PIN material
+- [x] `rate_limit` applied to `ProfilesController#set` and `FamilyMembersController#switch`, keyed on **both** remote IP and target profile id
+- [x] Exceeding the limit returns a throttled response and does not reveal whether the PIN was correct
+- [x] `FamilyMember#verify_pin` uses a constant-time comparison and does not raise on length mismatch
+- [x] Failed attempts emit a log line suitable for `fail2ban`-style tooling; the line contains no PIN material
 
 **Verification:**
-- [ ] New request test: 11 wrong-PIN `POST /set_profile/:id` in the window → the last is throttled
-- [ ] New request test: throttling on profile A does not lock out profile B from a different IP
-- [ ] Unit test: `verify_pin("123")`, `verify_pin("")`, `verify_pin(nil)` all return false without raising
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New request test: 11 wrong-PIN `POST /set_profile/:id` in the window → the last is throttled
+- [x] New request test: throttling on profile A does not lock out profile B from a different IP
+- [x] Unit test: `verify_pin("123")`, `verify_pin("")`, `verify_pin(nil)` all return false without raising
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0, A2
 **Files:** `app/controllers/profiles_controller.rb`, `app/controllers/family_members_controller.rb`, `app/models/family_member.rb`, `test/controllers/profiles_controller_test.rb`, `test/models/family_member_test.rb`
 **Scope:** M
+
+**Outcome:** `PinThrottling` concern wraps two Rails `rate_limit` declarations —
+one keyed per IP, one per target profile — included by both entry paths and
+sharing one `scope`, so an attacker cannot take 10 tries at `/set_profile` and 10
+more at `/family_members/:id/switch`. `verify_pin` now uses
+`ActiveSupport::SecurityUtils.secure_compare`. Six of the seven new tests were
+confirmed failing without the throttle. Suite **202 runs, 835 assertions, 0
+failures**; RuboCop (122 files) and Brakeman clean.
+
+**Two implementation notes worth carrying forward:**
+
+1. *Only PIN-protected targets are counted* (`if: -> { pin_protected_target? }`).
+   Counting every profile selection would throttle ordinary 1-tap member
+   switching on a shared kitchen tablet, where the whole family is behind one
+   NAT address — the exact UX the v1.1.0 plan chose PIN-less members to get.
+2. *The test environment runs `:null_store`*, whose `#increment` returns `nil`,
+   which Rails' rate limiter reads as "under the limit". Left alone, every test
+   written to prove throttling works would have passed against no throttling at
+   all. `config/initializers/pin_attempt_store.rb` gives tests a real
+   `MemoryStore`; `test_helper` clears it per test so one test cannot spend
+   another's budget. Production uses `Rails.cache` (solid_cache, database-backed)
+   because a per-process store would multiply the limit by the Puma worker count.
+
+**Correcting the plan's D3 note:** it warned that `secure_compare` raises on a
+length mismatch and suggested `fixed_length_secure_compare` on digests. Backwards
+— in Rails 8.1 `fixed_length_secure_compare` is the one that raises, and
+`secure_compare` guards it with a bytesize check first, returning false. Verified
+against `activesupport-8.1.3.1/lib/active_support/security_utils.rb` and pinned by
+unit tests over short, long, empty and nil input. It does leak length by
+short-circuiting, which is immaterial for a fixed four-digit PIN.
 
 ## Task A5: Filter outbound recipe-import requests
 

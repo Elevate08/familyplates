@@ -11,6 +11,10 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    # PIN throttle counters live in a process-wide store, so without this a test
+    # that signs in repeatedly would spend the next test's attempt budget.
+    setup { Rails.application.config.pin_attempt_store.clear }
+
     # Add more helper methods to be used by all tests here...
   end
 end

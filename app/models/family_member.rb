@@ -36,8 +36,15 @@ class FamilyMember < ApplicationRecord
     admin?
   end
 
+  # Constant-time, so a wrong PIN cannot be narrowed down by timing how long the
+  # comparison takes. secure_compare returns false on a length mismatch rather
+  # than raising, and PINs are a fixed four digits, so nothing is leaked by that.
   def verify_pin(input)
-    pin.to_s == input.to_s.strip
+    stored = pin.to_s
+    given = input.to_s.strip
+    return false if stored.empty? || given.empty?
+
+    ActiveSupport::SecurityUtils.secure_compare(stored, given)
   end
 
   private

@@ -1,5 +1,8 @@
 class ProfilesController < ApplicationController
+  include PinThrottling
+
   allow_unauthenticated_access only: %i[select set]
+  throttle_pin_attempts only: :set
 
   def select
     if Household.none?
@@ -18,6 +21,7 @@ class ProfilesController < ApplicationController
     end
 
     if member.requires_pin? && !member.verify_pin(params[:pin])
+      log_pin_failure(member)
       flash[:alert] = "Incorrect 4-digit PIN for #{member.name}."
       redirect_to select_profile_path(pin_member_id: member.id) and return
     end

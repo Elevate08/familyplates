@@ -1,4 +1,7 @@
 class FamilyMembersController < ApplicationController
+  include PinThrottling
+
+  throttle_pin_attempts only: :switch
   before_action :set_family_member, only: %i[switch]
 
   def index
@@ -7,6 +10,7 @@ class FamilyMembersController < ApplicationController
 
   def switch
     if @family_member.requires_pin? && !@family_member.verify_pin(params[:pin])
+      log_pin_failure(@family_member)
       redirect_to select_profile_path(pin_member_id: @family_member.id), alert: "Please enter the 4-digit PIN for #{@family_member.name}."
       return
     end
