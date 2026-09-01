@@ -77,12 +77,27 @@ class IngredientAggregator
   end
 
   def load_staples_map
-    household.pantry_items.staples.pluck(:name).map(&:downcase)
+    household.pantry_items.staples.pluck(:name).map { |name| normalize_for_match(name) }
   end
 
+  # Exact match on a normalized name, with no substring comparison in either
+  # direction. Substrings marked "Peanut butter", "Butternut squash",
+  # "Rice vinegar" and "Pasta sauce" as already in the pantry against the stock
+  # staple list, which silently dropped them from the shopping list. Word
+  # boundaries fix only some of those, so the check does not guess at all.
+  #
+  # The two errors are not symmetric: a miss puts a spare line on the list, which
+  # the shopper ignores. A false match means the ingredient is never bought and
+  # that is discovered at dinner. So this deliberately prefers to under-match.
   def is_staple_item?(name, staples_list)
-    n = name.downcase
-    staples_list.any? { |staple| n == staple || n.include?(staple) || staple.include?(n) }
+    staples_list.include?(normalize_for_match(name))
+  end
+
+  # Case, surrounding and repeated whitespace, and plurals are all noise here:
+  # an ingredient "Egg" and a staple "Eggs" are the same thing. Anything beyond
+  # that is a guess.
+  def normalize_for_match(value)
+    value.to_s.downcase.strip.squeeze(" ").singularize
   end
 
   def normalize_name(raw_name)

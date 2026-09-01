@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 223 runs, 919 assertions, 0 failures** (Task 0, A1–A5 landed). Every
+GREEN at 227 runs, 946 assertions, 0 failures** (Task 0, A1–A7 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -339,7 +339,7 @@ That covers the escaping contract; it does not cover whether the rebuilt markup
 still *looks* right. A human should click through the recipe form, tag box, slot
 modal, pantry icon picker and admin calendar page before the tag.
 
-## Task A7: Match pantry staples by exact normalized name
+## Task A7: Match pantry staples by exact normalized name  ✅ DONE
 
 **Description:** Fixes **F13**. `IngredientAggregator#is_staple_item?` (`:83-86`)
 matches substrings in **both** directions, so ingredients are silently dropped
@@ -349,20 +349,37 @@ The word-boundary remedy proposed in the quality report was measured and rejecte
 — it leaves 7 of 10 real false positives in place against the stock staple list.
 
 **Acceptance criteria:**
-- [ ] `is_staple_item?` performs no substring comparison in either direction
-- [ ] Against the stock `PantryItem::DEFAULT_STAPLES`, none of these are treated as in-pantry: Butternut squash, Buttermilk, Peanut butter, Salted butter, Rice vinegar, Rice noodles, Pasta sauce, Garlic bread, Green onions, Brown rice
-- [ ] Singular/plural still matches: an ingredient "Egg" matches the "Eggs" staple; "Onion" matches "Onions"
-- [ ] Exact matches still match, case- and whitespace-insensitively
+- [x] `is_staple_item?` performs no substring comparison in either direction
+- [x] Against the stock `PantryItem::DEFAULT_STAPLES`, none of these are treated as in-pantry: Butternut squash, Buttermilk, Peanut butter, Salted butter, Rice vinegar, Rice noodles, Pasta sauce, Garlic bread, Green onions, Brown rice
+- [x] Singular/plural still matches: an ingredient "Egg" matches the "Eggs" staple; "Onion" matches "Onions"
+- [x] Exact matches still match, case- and whitespace-insensitively
 
 **Verification:**
-- [ ] New unit test table-driving all ten negative cases above plus the positive cases — this table is the documentation of D5's accepted trade-off
-- [ ] New unit test recording the accepted regression: "Kosher salt" no longer matches the "Salt" staple
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
-- [ ] Manual: a plan containing peanut butter and brown rice shows both on the shopping list
+- [x] New unit test table-driving all ten negative cases above plus the positive cases — this table is the documentation of D5's accepted trade-off
+- [x] New unit test recording the accepted regression: "Kosher salt" no longer matches the "Salt" staple
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: a plan containing peanut butter and brown rice shows both on the shopping list
 
 **Dependencies:** Task 0
 **Files:** `app/services/ingredient_aggregator.rb`, `test/services/ingredient_aggregator_test.rb`
 **Scope:** S
+
+**Outcome:** `is_staple_item?` is now `staples_list.include?(normalize_for_match(name))`
+— no substring comparison in either direction. Normalization is downcase, strip,
+squeeze whitespace, singularize, applied to **both** sides (`load_staples_map`
+normalizes the stored staple names too, which it previously only downcased).
+Suite **227 runs, 946 assertions, 0 failures**; RuboCop and Brakeman clean.
+
+Tests drive the real `IngredientAggregator.call` over a purpose-built household,
+recipe and plan rather than poking the private method, so they prove the item
+actually reaches the shopping list. Confirmed failing against the old code
+("Butternut squash was wrongly treated as already in the pantry").
+
+The `NOT_IN_PANTRY` table in the test is the durable record of D5: all ten
+survived as real defects, and seven of them would have survived the quality
+report's word-boundary remedy too. The "Kosher salt" case is kept as an explicit
+test of the *accepted* regression rather than left as a surprise, paired with one
+showing it matches once the household adds it.
 
 ## Task A8: Stop invalid pantry submissions returning 500
 
