@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 236 runs, 974 assertions, 0 failures** (Task 0, A1–A9, A11 landed). Every
+GREEN at 241 runs, 1014 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -528,25 +528,48 @@ stored. Guard is `request.get? || request.head?`.
 
 ---
 
-## ✅ Checkpoint: Stream A ready to tag `v1.1.1`
+## ✅ Checkpoint: Stream A ready to tag `v1.1.1` — **REACHED, awaiting human review**
 
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` — green, run count ≥ 172 and risen with the new tests
-- [ ] `bin/rubocop` — 0 offenses
-- [ ] `bin/brakeman --no-pager` — 0 warnings
-- [ ] `bin/importmap audit` and `bundle exec bundler-audit check` — clean
-- [ ] **No migration in the diff** — `git diff --stat master -- db/` is empty (plan, Architecture Decision 2)
-- [ ] Adversarial manual pass, as an anonymous visitor on a seeded install:
-  - [ ] `POST /onboarding/add_member` with `role=admin` creates nothing
-  - [ ] Assuming a PIN-less member profile, `PATCH /family_members/<admin id>` cannot change the admin PIN
-  - [ ] Repeated wrong PINs against `/set_profile/:id` get throttled
-  - [ ] Recipe import of `http://169.254.169.254/latest/meta-data/` is refused
-  - [ ] A tag containing `<img src=x onerror=…>` renders as text
-  - [ ] Onboarding still completes end to end on a **fresh** install
-- [ ] Release notes drafted: the escalation is remotely reachable with no credentials, so they must say "upgrade now", name the affected tag, and note that PINs remain plaintext at rest until v1.2.0
-- [ ] A10 has landed, so the tag itself is CI-gated
-- [ ] **Human review before tagging**
+- [x] `PARALLEL_WORKERS=1 bin/rails test` — **241 runs, 1014 assertions, 0 failures** (up from 172/657/1)
+- [x] `bin/rubocop` — 0 offenses (127 files)
+- [x] `bin/brakeman --no-pager` — 0 warnings
+- [x] `bin/importmap audit` and `bundle exec bundler-audit check` — clean
+- [x] **No migration in the diff** — `git diff --stat master -- db/` is empty
+- [x] Adversarial pass — **automated** as `test/integration/v1_1_0_attack_chain_test.rb`
+      rather than clicked through once, so it stays true. It walks the actual
+      v1.1.0 chain end to end: take a PIN-less member profile → try to rewrite
+      the organizer's PIN → try to mint an admin through the wizard → try to
+      delete the roster; plus PIN brute force, egress refusal, and a first-boot
+      walkthrough proving none of it locked out new installs.
+- [x] Release notes drafted — `docs/RELEASE_NOTES_v1.1.1.md`
+- [x] A10 has landed, so the tag itself is CI-gated
+- [ ] **Human review before tagging** ← the remaining gate
 
----
+### Owed before the tag — two things I could not do here
+
+1. **The red-tag rehearsal (A10).** Proving a failing tree cannot publish needs a
+   tag pushed to GitHub on a deliberately-broken branch, watching the release job
+   halt before `docker/build-push-action`, then a green re-run. Not attempted —
+   it requires a push. `actionlint` is not installed here either, so the workflow
+   YAML has had no schema lint, only a parse.
+2. **The visual pass on A6.** Seven `innerHTML` sites were rebuilt as DOM nodes.
+   The escaping contract is proved under Node against a DOM stand-in, but there
+   is no browser or system-test harness in this repo, so nobody has confirmed the
+   rebuilt markup still *looks* right. Click through: the recipe form's tag box
+   and ingredient autofill, the meal-planner slot modal, the pantry icon picker,
+   and the admin calendar test/sync buttons.
+
+### One flaky test found and fixed during this checkpoint
+
+The first full run after adding the attack-chain test failed once, then passed 26
+times. Rather than write it off, 40 more runs reproduced it at iteration 13:
+`pin_throttling_test` asserted `assert_no_match(/8642/, logged)` against the raw
+log, and the log carried the timestamp `18:30:27.238642`. A coincidental digit
+match — **the test, not the application**. It now strips Logger's prefix, matches
+each `[auth]` message against a strict key=value shape (so any leakage fails
+regardless of its digits), and then checks for the PIN. Confirmed with 30 runs of
+the file and **45 consecutive full-suite runs**, against a flake that was roughly
+1 in 25.
 
 # Stream B — `v1.2.0` next release
 

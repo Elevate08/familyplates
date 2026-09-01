@@ -100,9 +100,24 @@ class PinThrottlingTest < ActionDispatch::IntegrationTest
       Rails.logger = original
     end
 
-    assert_match(/pin_failure profile_id=#{@admin.id}/, logged)
-    assert_match(/pin_throttled .*profile_id=#{@admin.id}/, logged)
-    assert_no_match(/8642/, logged, "a submitted PIN must never reach the log")
-    assert_no_match(/#{@admin.pin}/, logged, "a stored PIN must never reach the log")
+    # Only our own messages, with Logger's timestamp prefix stripped. Searching
+    # the raw log for four digits matches microsecond timestamps and record ids
+    # by coincidence - "18:30:27.238642" contains "8642" - which made an earlier
+    # version of this assertion fail roughly one run in twenty-five.
+    auth_messages = logged.lines.filter_map { |line| line[/\[auth\].*/]&.strip }
+
+    assert auth_messages.any? { |m| m.start_with?("[auth] pin_failure profile_id=#{@admin.id} ") }
+    assert auth_messages.any? { |m| m.start_with?("[auth] pin_throttled ") && m.include?("profile_id=#{@admin.id} ") }
+
+    # Every auth message must be nothing but known key=value pairs, so anything
+    # unexpected - a PIN above all - fails regardless of what digits it happens
+    # to be made of.
+    permitted = /\A\[auth\] (?:pin_failure|pin_throttled) (?:(?:limit|profile_id|ip|path)=\S+ ?)+\z/
+    auth_messages.each do |message|
+      assert_match(permitted, message, "unexpected content in an auth log line")
+    end
+
+    assert auth_messages.none? { |m| m.include?("8642") }, "a submitted PIN must never reach the log"
+    assert auth_messages.none? { |m| m.include?(@admin.pin) }, "a stored PIN must never reach the log"
   end
 end
