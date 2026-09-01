@@ -63,7 +63,7 @@
             </div>
 
             <!-- Scrollable Grid of Icons -->
-            <div data-pantry-item-form-target="iconGrid" class="grid grid-cols-5 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto overscroll-contain">
+            <div data-pantry-item-form-target="iconGrid" class="grid grid-cols-5 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain">
               <!-- Custom SVGs -->
               <button type="button" data-icon-id="pepper-shaker" data-icon-label="black pepper shaker pepper" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Black Pepper Shaker">
                 <%= pantry_icon_tag("pepper-shaker", css_class: "w-6 h-6") %>

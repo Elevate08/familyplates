@@ -12,7 +12,7 @@
        data-<%= key.to_s.dasherize %>="<%= value %>"
      <% end %>
      <%= "data-action=\"click->#{backdrop_action}\"" if backdrop_action %>
-     class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4 min-h-screen overflow-y-auto">
+     class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4 min-h-screen overflow-y-auto themed-scrollbar">
   
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 <%= max_width %> w-full shadow-2xl animate-in fade-in zoom-in-95 my-auto text-left text-slate-900 dark:text-slate-100">
     <!-- Modal Header -->
