@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 183 runs, 735 assertions, 0 failures** (Task 0, A1 landed). Every
+GREEN at 189 runs, 750 assertions, 0 failures** (Task 0, A1, A2 landed). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -94,7 +94,7 @@ permits `:role`, so before this change **any signed-in member** — and a member
 profile needs no PIN — could `POST /onboarding/add_member` to mint themselves an
 admin, entirely bypassing `Admin::FamilyMembersController`.
 
-## Task A2: Add a session helper for authenticated request tests
+## Task A2: Add a session helper for authenticated request tests  ✅ DONE
 
 **Description:** Tasks A3–A6 and A11 each need to drive requests as an anonymous
 visitor, a member, and an admin. `test/test_helpers/session_test_helper.rb`
@@ -103,16 +103,32 @@ on `POST /set_profile/:id` so the auth tests exercise the real cookie path rathe
 than stubbing `Current`.
 
 **Acceptance criteria:**
-- [ ] `sign_in_as(family_members(:one), pin: "1234")` and `sign_in_as(family_members(:two))` both work from an `ActionDispatch::IntegrationTest`
-- [ ] Helpers assert the session cookie was actually set, so a silent auth failure fails the test rather than passing as "anonymous"
+- [x] `sign_in_as(family_members(:one), pin: "1234")` and `sign_in_as(family_members(:two))` both work from an `ActionDispatch::IntegrationTest`
+- [x] Helpers assert the session cookie was actually set, so a silent auth failure fails the test rather than passing as "anonymous"
 
 **Verification:**
-- [ ] At least one existing controller test converted to the helper still passes
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] At least one existing controller test converted to the helper still passes
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** Task 0
 **Files:** `test/test_helpers/session_test_helper.rb`
 **Scope:** XS
+
+**Outcome:** Smaller than planned in one way and larger in another. `sign_in_as`
+already existed and all 58 call sites already used it, so nothing needed
+converting — but it *forged* the signed cookie directly and set `Current` in the
+test process, so no test in the suite had ever exercised `POST /set_profile/:id`,
+the PIN check included. It now drives the real path, which is what A4 needs to
+throttle against. Added `active_family_member_id` / `signed_in_as?` (integration
+tests get a `Rack::Test` jar with no `#signed`, so the value is unwrapped through
+a jar sharing the app's secret), and `sign_out` now goes through `DELETE /session`.
+
+The old helper had exactly the silent-failure mode this task was meant to remove:
+it no-opped when handed something that was not a member, and ignored the PIN
+entirely — `sign_in_as(admin, pin: "9999")` "succeeded". Both now fail loudly.
+`test/integration/session_test_helper_test.rb` pins those failure modes; removing
+the guard makes the wrong-PIN test fail, confirmed. Suite **189 runs, 750
+assertions, 0 failures**; RuboCop (119 files) and Brakeman clean.
 
 ## Task A3: Consolidate roster mutation into `Admin::FamilyMembersController`
 
