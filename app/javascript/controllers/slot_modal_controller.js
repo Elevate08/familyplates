@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { el, replaceChildren } from "helpers/dom"
+import { el, replaceChildren, chevron } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -147,7 +147,7 @@ export default class extends Controller {
               el("div", { className: "flex flex-wrap gap-1" }, tagBadges)
             ])
           ]),
-          el("span", { className: "text-xs text-slate-400 font-bold ml-2", text: "▼" })
+          chevron()
         ])
       )
     } else {
@@ -157,7 +157,7 @@ export default class extends Controller {
             el("span", { className: "w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm border border-slate-200", text: "📖" }),
             el("span", { text: "-- Select Recipe or Enter Custom Dish Below --" })
           ]),
-          el("span", { className: "text-xs text-slate-400 font-bold ml-2", text: "▼" })
+          chevron()
         ])
       )
     }

@@ -29,3 +29,23 @@ export function replaceChildren(target, ...children) {
   target.replaceChildren(...children.filter(Boolean))
   return target
 }
+
+// The chevron themed-select paints on a <select>, as a DOM node, so custom
+// dropdown triggers can show the identical arrow instead of a text glyph.
+export function chevron(className = "w-4 h-4 shrink-0 ml-2 text-slate-500 dark:text-slate-400") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("fill", "none")
+  svg.setAttribute("stroke", "currentColor")
+  svg.setAttribute("stroke-width", "2.5")
+  svg.setAttribute("stroke-linecap", "round")
+  svg.setAttribute("stroke-linejoin", "round")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("class", className)
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+  path.setAttribute("d", "M19 9l-7 7-7-7")
+  svg.appendChild(path)
+
+  return svg
+}
