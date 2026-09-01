@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 241 runs, 1014 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
+GREEN at 252 runs, 1084 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -530,7 +530,7 @@ stored. Guard is `request.get? || request.head?`.
 
 ## ✅ Checkpoint: Stream A ready to tag `v1.1.1` — **REACHED, awaiting human review**
 
-- [x] `PARALLEL_WORKERS=1 bin/rails test` — **241 runs, 1014 assertions, 0 failures** (up from 172/657/1)
+- [x] `PARALLEL_WORKERS=1 bin/rails test` — **252 runs, 1084 assertions, 0 failures** (up from 172/657/1)
 - [x] `bin/rubocop` — 0 offenses (127 files)
 - [x] `bin/brakeman --no-pager` — 0 warnings
 - [x] `bin/importmap audit` and `bundle exec bundler-audit check` — clean
@@ -545,6 +545,39 @@ stored. Guard is `request.get? || request.head?`.
 - [x] A10 has landed, so the tag itself is CI-gated
 - [ ] **Human review before tagging** ← the remaining gate
 
+### ⚠️ A6 was incomplete — a server-side sink found during the visual pass
+
+The browser check did its job on the first run. `/pantry_items` and `/admin` both
+fired `alert('xss')`. A6 swept `app/javascript` and **never swept `app/helpers`**:
+
+```ruby
+# app/helpers/application_helper.rb, pantry_icon_tag
+return raw(%(<span class="...">#{explicit_emoji}</span>))
+```
+
+`explicit_emoji` is `pantry_items.emoji` — free text from the pantry form.
+Interpolated into `raw()`, that is stored XSS reachable by any household member,
+firing for everyone who opens the pantry. **No review reported it**, and neither
+did Brakeman. It is now built with `tag.span`, which escapes.
+
+A full sweep of `raw` / `html_safe` / `<%==` / `simple_format` / `sanitize` across
+views, helpers, controllers and models leaves 39 sites: 38 static SVGs
+interpolating only `css_class` (every caller verified to pass a string literal)
+and one static `&times;`. `icon_tag`'s fallback was checked too — static SVG, and
+it does not interpolate the icon name.
+
+`test/integration/stored_xss_test.rb` now plants payloads in pantry emoji and
+name, recipe title, tags and instructions, and ingredient name and unit, then
+asserts ten server-rendered pages emit no live markup. Confirmed failing against
+the old helper.
+
+**`/admin` could not be reproduced as an independent sink** — it renders no
+pantry emoji and every value on it is ERB-escaped. Most likely Turbo Drive
+restoring the cached `/pantry_items` snapshot on navigation, which re-runs an
+`onerror` that was already in the DOM. Same root cause either way. Both pages now
+serve zero raw payloads and the escaped form where expected, verified against the
+running dev server.
+
 ### Owed before the tag — two things I could not do here
 
 1. **The red-tag rehearsal (A10).** Proving a failing tree cannot publish needs a
@@ -552,12 +585,9 @@ stored. Guard is `request.get? || request.head?`.
    halt before `docker/build-push-action`, then a green re-run. Not attempted —
    it requires a push. `actionlint` is not installed here either, so the workflow
    YAML has had no schema lint, only a parse.
-2. **The visual pass on A6.** Seven `innerHTML` sites were rebuilt as DOM nodes.
-   The escaping contract is proved under Node against a DOM stand-in, but there
-   is no browser or system-test harness in this repo, so nobody has confirmed the
-   rebuilt markup still *looks* right. Click through: the recipe form's tag box
-   and ingredient autofill, the meal-planner slot modal, the pantry icon picker,
-   and the admin calendar test/sync buttons.
+2. **The visual pass on A6.** ~~Not done.~~ **Done, and it found the sink above.**
+   Still owed: a look at whether the rebuilt markup *renders* correctly — the
+   security half now passes, the cosmetic half is the user's judgement.
 
 ### One flaky test found and fixed during this checkpoint
 

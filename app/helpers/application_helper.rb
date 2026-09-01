@@ -80,7 +80,10 @@ module ApplicationHelper
       when "spice-jar"
         return raw(%(<svg class="#{css_class} inline-block shrink-0" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Spice Jar"><path d="M10 4C10 3.44772 10.4477 3 11 3H21C21.5523 3 22 3.44772 22 4V8H10V4Z" fill="#B45309"/><rect x="8" y="9" width="16" height="19" rx="3" fill="#F8FAFC" fill-opacity="0.4" stroke="#94A3B8" stroke-width="1.5"/><rect x="9.5" y="13" width="13" height="13.5" rx="1.5" fill="#FDE68A"/><rect x="8" y="16" width="16" height="7" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.75"/><rect x="10.5" y="18.5" width="11" height="2" rx="1" fill="#64748B"/></svg>))
       else
-        return raw(%(<span class="text-xl select-none leading-none inline-flex items-center justify-center">#{explicit_emoji}</span>))
+        # emoji is a free-text column the user types into, so it is escaped
+        # rather than interpolated into raw markup. It used to be the latter,
+        # which made the pantry page and the admin dashboard stored-XSS sinks.
+        return emoji_span(explicit_emoji)
       end
     end
 
@@ -95,8 +98,14 @@ module ApplicationHelper
     when "spice-jar", /garlic powder|onion powder|garlic salt|onion flakes/
       raw(%(<svg class="#{css_class} inline-block shrink-0" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Spice Jar"><path d="M10 4C10 3.44772 10.4477 3 11 3H21C21.5523 3 22 3.44772 22 4V8H10V4Z" fill="#B45309"/><rect x="8" y="9" width="16" height="19" rx="3" fill="#F8FAFC" fill-opacity="0.4" stroke="#94A3B8" stroke-width="1.5"/><rect x="9.5" y="13" width="13" height="13.5" rx="1.5" fill="#FDE68A"/><rect x="8" y="16" width="16" height="7" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.75"/><rect x="10.5" y="18.5" width="11" height="2" rx="1" fill="#64748B"/></svg>))
     else
-      emoji = PantryItem.emoji_for(name, cat)
-      raw(%(<span class="text-xl select-none leading-none inline-flex items-center justify-center">#{emoji}</span>))
+      emoji_span(PantryItem.emoji_for(name, cat))
     end
+  end
+
+  private
+
+  # tag.span escapes its content, so nothing reaching this can carry markup.
+  def emoji_span(emoji)
+    tag.span(emoji, class: "text-xl select-none leading-none inline-flex items-center justify-center")
   end
 end
