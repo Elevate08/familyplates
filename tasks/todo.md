@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 252 runs, 1084 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
+GREEN at 244 runs, 1183 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -530,7 +530,7 @@ stored. Guard is `request.get? || request.head?`.
 
 ## ✅ Checkpoint: Stream A ready to tag `v1.1.1` — **REACHED, awaiting human review**
 
-- [x] `PARALLEL_WORKERS=1 bin/rails test` — **252 runs, 1084 assertions, 0 failures** (up from 172/657/1)
+- [x] `PARALLEL_WORKERS=1 bin/rails test` — **244 runs, 1183 assertions, 0 failures** (up from 172/657/1)
 - [x] `bin/rubocop` — 0 offenses (127 files)
 - [x] `bin/brakeman --no-pager` — 0 warnings
 - [x] `bin/importmap audit` and `bundle exec bundler-audit check` — clean
@@ -566,17 +566,30 @@ interpolating only `css_class` (every caller verified to pass a string literal)
 and one static `&times;`. `icon_tag`'s fallback was checked too — static SVG, and
 it does not interpolate the icon name.
 
-`test/integration/stored_xss_test.rb` now plants payloads in pantry emoji and
-name, recipe title, tags and instructions, and ingredient name and unit, then
-asserts ten server-rendered pages emit no live markup. Confirmed failing against
-the old helper.
+`test/integration/stored_xss_test.rb` deliberately does not sample, because a
+hand-picked scope is exactly what failed here. It enumerates **every
+user-settable free-text column** in the schema — household name/calendar
+id/credential, member name/avatar_colour/avatar_icon, pantry name/emoji, recipe
+title/description/instructions/equipment/meal_types/tags/image_url/source_url,
+ingredient name/raw_text/unit, plan notes, slot custom_title/notes — plants a
+payload in each, and requests **every authenticated GET page** (20 of them) plus
+`/select_profile` as an anonymous visitor. Two payload shapes: one for text
+context, one for attribute context, since `avatar_color` lands in a `style=""`
+and `image_url` in a `src=""`. A third test asserts the escaped payload *is*
+present, so the others cannot pass by rendering nothing. 151 assertions.
+Confirmed failing against the pre-fix helper (`3f75480~1`).
 
 **`/admin` could not be reproduced as an independent sink** — it renders no
 pantry emoji and every value on it is ERB-escaped. Most likely Turbo Drive
 restoring the cached `/pantry_items` snapshot on navigation, which re-runs an
 `onerror` that was already in the DOM. Same root cause either way. Both pages now
 serve zero raw payloads and the escaped form where expected, verified against the
-running dev server.
+running dev server, and the user confirmed no page pops an alert any more.
+
+**Also noted, not fixed:** `resources :meal_plans` routes `new`, `edit`, `create`,
+`update` and `destroy`, but `MealPlansController` defines none of them and no
+views exist. They 404 cleanly, so this is dead routing surface rather than a
+defect — worth trimming in Stream B.
 
 ### Owed before the tag — two things I could not do here
 
