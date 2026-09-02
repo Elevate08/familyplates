@@ -518,6 +518,47 @@ All rehearsal refs deleted: no `v0.0.0-citest` tag, no `ci-gate-rehearsal` branc
 locally or on the remote. `actionlint` is still not installed, so there has been no
 schema-level lint — the live run supersedes that.
 
+## Task A12: Refuse to boot on a guessable SECRET_KEY_BASE  ✅ DONE
+
+**Description:** Added mid-Stream-B, backported to Stream A because it meets that
+stream's own bar: reachable with no credentials, and code-only. Found while
+checking how the app sources key material for B2's Active Record encryption.
+
+`docker-compose.yml` defaulted `SECRET_KEY_BASE` to
+`replace_with_a_secure_random_hex_string` — a literal published in this public
+repository — and `README.md:51` and `docs/getting-started.md:24` both printed that
+literal on the line an operator copies. `secret_key_base` derives the key that
+signs `cookies.signed[:active_family_member_id]`, and `set_current_family_member`
+trusts that cookie outright, so a known value lets anyone mint an organizer
+session.
+
+**This defeats all of Stream A.** A1, A3 and A4 close the routes an attacker
+walks; this one hands them a valid session without touching any of them. No
+review caught it — all three reviewed the application, not the deployment
+manifest.
+
+**Acceptance criteria:**
+- [x] Compose refuses to start without `SECRET_KEY_BASE` (`${VAR:?...}`, no default)
+- [x] The app aborts in production on a known placeholder or a value under 32 chars
+- [x] Asset precompile (`SECRET_KEY_BASE_DUMMY=1`) and dev/test are unaffected
+- [x] README and getting-started no longer print a copyable placeholder
+- [x] Release notes tell affected operators to rotate and treat the install as compromised
+
+**Verification:**
+- [x] Booted production with the published placeholder → aborts; with `abc123` → aborts; with a real key → boots; with `SECRET_KEY_BASE_DUMMY=1` → boots
+- [x] `docker compose config` errors without the variable, passes with one
+- [x] Forgery confirmed against the old default before fixing: the app's
+      `secret_key_base` equalled the published literal, and a valid signed cookie
+      for `family_member_id=1` was generated from it alone
+- [x] Suite **244 runs, 0 failures**; RuboCop and Brakeman clean
+
+**Note:** the first cut of the compose change broke `docker compose config` — a
+`: ` inside the `${VAR:?message}` text made YAML parse the list item as a map.
+Caught by running `docker compose config` rather than eyeballing it.
+
+**Files:** `docker-compose.yml`, `config/initializers/secret_key_base_guard.rb`, `README.md`, `docs/getting-started.md`, `docs/RELEASE_NOTES_v1.1.1.md`
+**Scope:** S
+
 ## Task A11: Only store GET URLs for post-login redirect  ✅ DONE
 
 **Description:** Fixes **F8** (verified: an unauthenticated `POST

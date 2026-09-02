@@ -11,6 +11,23 @@ This release contains **no database migration**.
 
 ## Fixed
 
+### The shipped compose file used a publicly known secret key
+
+`docker-compose.yml` defaulted `SECRET_KEY_BASE` to a fixed string that is
+published in this repository, and both the README and the getting-started guide
+printed that same string on the line you copy. That value signs the cookie
+saying which family member you are, so **anyone who knew it could forge an
+organizer session** without a PIN and without touching any part of the app.
+
+Compose now refuses to start without a real key, and the app refuses to boot on a
+known placeholder or anything under 32 characters.
+
+> **If you deployed without setting `SECRET_KEY_BASE` yourself, treat the install
+> as compromised.** Generate a key with `openssl rand -hex 64`, set it, restart,
+> and review your family roster for profiles you did not create. Everyone will be
+> signed out — that is the point.
+
+
 ### Anyone could make themselves an organizer (no credentials required)
 
 Two separate paths, either of which gave a stranger full admin:
