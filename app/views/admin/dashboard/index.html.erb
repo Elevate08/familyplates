@@ -105,7 +105,7 @@
               </div>
               <div class="flex items-center gap-2 mt-0.5">
                 <% if member.admin? %>
-                  <% if member.pin.present? %>
+                  <% if member.pin_digest.present? %>
                     <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                       <span>🔒</span> PIN Protected
                     </span>

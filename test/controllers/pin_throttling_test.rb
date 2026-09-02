@@ -30,7 +30,7 @@ class PinThrottlingTest < ActionDispatch::IntegrationTest
     (PinThrottling::MAX_ATTEMPTS + 1).times { guess(@admin) }
     wrong_pin_response = [ response.status, response.location, flash[:alert] ]
 
-    guess(@admin, pin: @admin.pin)
+    guess(@admin, pin: SessionTestHelper::FIXTURE_PIN)
 
     assert_equal wrong_pin_response, [ response.status, response.location, flash[:alert] ]
     assert_nil active_family_member_id, "the correct PIN must not sign in while throttled"
@@ -82,7 +82,7 @@ class PinThrottlingTest < ActionDispatch::IntegrationTest
 
     PinThrottling::MAX_ATTEMPTS.times { guess(@admin) }
 
-    post switch_family_member_url(@admin), params: { pin: @admin.pin }
+    post switch_family_member_url(@admin), params: { pin: SessionTestHelper::FIXTURE_PIN }
 
     assert_redirected_to select_profile_url
     assert_equal "Too many attempts. Please wait a few minutes and try again.", flash[:alert]
@@ -118,6 +118,6 @@ class PinThrottlingTest < ActionDispatch::IntegrationTest
     end
 
     assert auth_messages.none? { |m| m.include?("8642") }, "a submitted PIN must never reach the log"
-    assert auth_messages.none? { |m| m.include?(@admin.pin) }, "a stored PIN must never reach the log"
+    assert auth_messages.none? { |m| m.include?(SessionTestHelper::FIXTURE_PIN) }, "a stored PIN must never reach the log"
   end
 end

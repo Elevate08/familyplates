@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 244 runs, 1183 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
+GREEN at 250 runs, 1199 assertions, 0 failures** (Stream A complete; Stream B: B1). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -646,7 +646,7 @@ the file and **45 consecutive full-suite runs**, against a flake that was roughl
 
 Requires a profile, or is not externally reachable. May carry migrations.
 
-## Task B1: Store PIN digests
+## Task B1: Store PIN digests  ✅ DONE
 
 **Description:** Completes **F16** per **D3** (Stream A shipped constant-time
 comparison only). Add `pin_digest`, backfill from `pin`, verify against the
@@ -655,19 +655,44 @@ rollback on a live SQLite volume does not strand anyone out of their admin
 profile.
 
 **Acceptance criteria:**
-- [ ] Migration adds `pin_digest` and backfills every existing admin row
-- [ ] `verify_pin` compares against the digest; the plaintext `pin` column is dropped in a **second** migration
-- [ ] The 4-digit format validation still applies at the input boundary
-- [ ] Release notes instruct operators to back up the SQLite volume first
+- [x] Migration adds `pin_digest` and backfills every existing admin row
+- [x] `verify_pin` compares against the digest; the plaintext `pin` column is dropped in a **second** migration
+- [x] The 4-digit format validation still applies at the input boundary
+- [x] Release notes instruct operators to back up the SQLite volume first
 
 **Verification:**
-- [ ] Migration test: seed a plaintext PIN, migrate, assert `verify_pin` still succeeds with the original value
-- [ ] Assert `pin` is absent from `db/schema.rb` after phase two
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Migration test: seed a plaintext PIN, migrate, assert `verify_pin` still succeeds with the original value
+- [x] Assert `pin` is absent from `db/schema.rb` after phase two
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** A4
 **Files:** `db/migrate/*`, `db/schema.rb`, `app/models/family_member.rb`, `app/controllers/admin/family_members_controller.rb`, tests
 **Scope:** M
+
+**Outcome:** `has_secure_password :pin, validations: false` on `FamilyMember`;
+`pin` is now a write-only virtual attribute over a `pin_digest` column. Two
+migrations: `AddPinDigestToFamilyMembers` adds and backfills, then
+`RemovePlaintextPinFromFamilyMembers` drops `pin`. Both verified to roll back and
+re-apply cleanly. Suite **250 runs, 1199 assertions, 0 failures**; RuboCop and
+Brakeman clean.
+
+**Three things this surfaced that the task description did not anticipate:**
+
+1. **Two forms were rendering the stored PIN back into the page** — `preferences/edit`
+   and `admin/family_members/edit` both did `f.password_field :pin, value: @family_member.pin`,
+   with an `onfocus` handler to blank it. Same defect class as B2's Google
+   credential, on a different secret. There is now nothing to render.
+2. **A blank field has to mean "keep current PIN"**, since the digest cannot be
+   read back to prefill. `required: true` on the preferences field would have
+   forced an admin to retype their PIN to change their avatar colour. Removed,
+   placeholder says "(unchanged)", and the format validation uses `allow_blank`
+   so an untouched field cannot trip it.
+3. **`sign_in_as` defaulted its PIN to `member.pin`**, which is now always nil.
+   Replaced with `SessionTestHelper::FIXTURE_PIN`, flagged in A2 as the thing B1
+   would have to revisit.
+
+`config.active_model.secure_password_min_cost = true` in the test environment,
+or bcrypt's real cost factor adds ~100ms to each of the suite's many sign-ins.
 
 ## Task B2: Encrypt the Google service-account credential and stop echoing it
 

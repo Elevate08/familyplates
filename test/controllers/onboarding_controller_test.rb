@@ -32,7 +32,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     admin = FamilyMember.last
     assert_equal "Captain Chef", admin.name
     assert_equal "admin", admin.role
-    assert_equal "4321", admin.pin
+    assert admin.verify_pin("4321")
     assert_equal "#3B82F6", admin.avatar_color
     assert_equal "chef-hat", admin.avatar_icon
   end

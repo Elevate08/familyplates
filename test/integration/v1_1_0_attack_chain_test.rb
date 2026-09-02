@@ -22,7 +22,7 @@ class V110AttackChainTest < ActionDispatch::IntegrationTest
     # 2. From there, v1.1.0 let a member rewrite the organizer's PIN.
     patch "/family_members/#{@admin.id}", params: { family_member: { pin: "0000" } }
     assert_response :not_found
-    assert_equal "1234", @admin.reload.pin
+    assert @admin.reload.verify_pin("1234"), "the organizer PIN must be unchanged"
 
     # 3. ...or mint a fresh admin through the onboarding wizard.
     assert_no_difference "FamilyMember.count" do
@@ -51,7 +51,7 @@ class V110AttackChainTest < ActionDispatch::IntegrationTest
 
     patch "/family_members/#{@admin.id}", params: { family_member: { pin: "0000" } }
     assert_response :not_found
-    assert_equal "1234", @admin.reload.pin
+    assert @admin.reload.verify_pin("1234"), "the organizer PIN must be unchanged"
   end
 
   test "the organizer PIN cannot be brute forced" do
@@ -64,7 +64,7 @@ class V110AttackChainTest < ActionDispatch::IntegrationTest
 
     # Even the right PIN gets nothing while throttled, so the response is not an
     # oracle for whether a guess was correct.
-    post set_profile_url(@admin), params: { pin: @admin.pin }
+    post set_profile_url(@admin), params: { pin: SessionTestHelper::FIXTURE_PIN }
     assert_nil active_family_member_id
   end
 

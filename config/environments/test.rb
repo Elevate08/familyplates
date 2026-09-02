@@ -22,6 +22,10 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :null_store
 
+  # bcrypt's real cost factor would add roughly a tenth of a second to every
+  # sign-in, and the suite signs in constantly. Correctness is unaffected.
+  config.active_model.secure_password_min_cost = true
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

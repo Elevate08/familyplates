@@ -28,7 +28,7 @@ class SessionTestHelperTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts an explicit PIN" do
-    sign_in_as(@admin, pin: @admin.pin)
+    sign_in_as(@admin, pin: SessionTestHelper::FIXTURE_PIN)
 
     assert_equal @admin.id, active_family_member_id
   end

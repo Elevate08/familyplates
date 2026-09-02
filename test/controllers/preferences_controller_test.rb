@@ -48,7 +48,7 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_preferences_url
     @admin_member.reload
-    assert_equal "4321", @admin_member.pin
+    assert @admin_member.verify_pin("4321")
     assert @admin_member.requires_pin?
   end
 
@@ -63,7 +63,7 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_preferences_url
     @regular_member.reload
-    assert_nil @regular_member.pin
+    assert_nil @regular_member.pin_digest
     assert_not @regular_member.requires_pin?
   end
 end

@@ -38,7 +38,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     new_member = FamilyMember.last
     assert_equal "Little Alex", new_member.name
     assert_equal "member", new_member.role
-    assert_nil new_member.pin
+    assert_nil new_member.pin_digest
   end
 
   test "should create admin with PIN" do
@@ -60,7 +60,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     new_admin = FamilyMember.last
     assert_equal "Grandpa Admin", new_admin.name
     assert_equal "admin", new_admin.role
-    assert_equal "7890", new_admin.pin
+    assert new_admin.verify_pin("7890")
     assert new_admin.requires_pin?
   end
 
@@ -85,7 +85,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     # Set new PIN
     patch reset_pin_admin_family_member_url(@admin), params: { pin: "9876" }
     assert_redirected_to admin_family_members_url
-    assert_equal "9876", @admin.reload.pin
+    assert @admin.reload.verify_pin("9876")
     assert @admin.requires_pin?
   end
 
@@ -96,7 +96,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     patch reset_pin_admin_family_member_url(@admin), params: { pin: "" }
     assert_redirected_to admin_family_members_url
     assert_equal "A valid 4-digit PIN is required for admin profiles.", flash[:alert]
-    assert_equal "1234", @admin.reload.pin
+    assert @admin.reload.verify_pin("1234")
   end
 
   test "should reject PIN reset for non-admin" do
@@ -105,7 +105,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     patch reset_pin_admin_family_member_url(@member), params: { pin: "1234" }
     assert_redirected_to admin_family_members_url
     assert_equal "Non-admin members do not have a PIN.", flash[:alert]
-    assert_nil @member.reload.pin
+    assert_nil @member.reload.pin_digest
   end
 
   test "should destroy member but protect last admin" do

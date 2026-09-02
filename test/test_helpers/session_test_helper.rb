@@ -6,14 +6,19 @@ module SessionTestHelper
   # whatever else the profile entry path grows (throttling, audit logging), so a
   # change that breaks sign-in fails the suite instead of being papered over.
   #
+  # The PIN every admin fixture is seeded with. It cannot be read back off a
+  # record any more - only a digest is stored - so a caller that needs a
+  # different PIN has to say so.
+  FIXTURE_PIN = "1234".freeze
+
   # Admin profiles need a PIN. Pass one explicitly to test a specific value;
-  # otherwise the member's own PIN is used, which is what a test setup means.
+  # otherwise the fixture PIN is used, which is what a test setup means.
   def sign_in_as(member, pin: nil)
     unless member.is_a?(FamilyMember)
       raise ArgumentError, "sign_in_as expects a FamilyMember, got #{member.class}: #{member.inspect}"
     end
 
-    post set_profile_path(member), params: { pin: pin || member.pin }
+    post set_profile_path(member), params: { pin: pin || FIXTURE_PIN }
 
     unless signed_in_as?(member)
       flunk <<~MESSAGE
