@@ -38,11 +38,16 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # latest=auto moves :latest only for a non-prerelease semver tag. The
+          # previous rule moved it for any ref starting with "v", so v1.1.1-rc1
+          # or a throwaway v0.0.0-citest would have shipped to every user
+          # pulling :latest.
+          flavor: |
+            latest=auto
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
