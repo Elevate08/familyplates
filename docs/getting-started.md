@@ -21,7 +21,7 @@ FamilyPlates is packaged as a lightweight, production-ready container powered by
          - "3000:80"
        environment:
          - RAILS_ENV=production
-         - SECRET_KEY_BASE=replace_with_a_secure_random_hex_string
+         - "SECRET_KEY_BASE=${SECRET_KEY_BASE:?required - generate one with openssl rand -hex 64}"
          - RAILS_SERVE_STATIC_FILES=true
          - RAILS_LOG_TO_STDOUT=true
        volumes:
