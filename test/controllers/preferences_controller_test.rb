@@ -66,4 +66,22 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_nil @regular_member.pin_digest
     assert_not @regular_member.requires_pin?
   end
+
+  test "the PIN field shows a Configured badge for an admin who has one" do
+    sign_in_as(@admin_member)
+
+    get edit_preferences_path
+
+    assert_select "[data-controller=configured-field]", 1
+    assert_select "[data-configured-field-target=indicator]", 1
+    assert_not_includes response.body, "unchanged", "the badge replaced the placeholder wording"
+  end
+
+  test "a member with no PIN sees no PIN field at all" do
+    sign_in_as(@regular_member)
+
+    get edit_preferences_path
+
+    assert_select "[data-configured-field-target=indicator]", 0
+  end
 end

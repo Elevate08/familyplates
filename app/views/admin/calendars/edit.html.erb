@@ -79,11 +79,18 @@
         <%# value: nil - the stored key is never rendered back into the page. It
             used to be, on every visit, which put a private key into the DOM, the
             browser cache and any screenshot of this screen. %>
-        <%= f.text_area :google_service_account_json, value: nil, rows: 4,
-              placeholder: GoogleCalendarService.configured?(@household) ?
-                "A key is stored. Paste a new one here only to replace it." :
-                'Paste the contents of your downloaded Google Service Account JSON file here (starts with {"type": "service_account", ...})',
-              class: "w-full font-mono text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <div class="relative" data-controller="configured-field">
+          <%= f.text_area :google_service_account_json, value: nil, rows: 4,
+                placeholder: 'Paste the contents of your downloaded Google Service Account JSON file here (starts with {"type": "service_account", ...})',
+                data: { configured_field_target: "input", action: "focus->configured-field#hide blur->configured-field#update input->configured-field#update" },
+                class: "w-full font-mono text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+          <% if GoogleCalendarService.configured?(@household) %>
+            <span data-configured-field-target="indicator"
+                  class="pointer-events-none absolute top-2.5 right-3 flex items-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Configured
+            </span>
+          <% end %>
+        </div>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
           Generated from Google Cloud Console > IAM & Admin > Service Accounts > Keys > Create JSON Key.
           <% if GoogleCalendarService.configured?(@household) %>
