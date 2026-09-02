@@ -4,6 +4,7 @@
     twenty-ingredient recipe. %>
 <div data-ingredient-row="true"
      data-controller="ingredient-autofill"
+     data-action="focusout->ingredient-autofill#onFocusOut"
      class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/80 transition-all hover:border-primary-300 dark:hover:border-primary-600 relative group">
   
   <% if f.object.persisted? %>
@@ -35,7 +36,10 @@
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-56 max-w-[80vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
       <div class="max-h-48 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
         <!-- Create Custom Unit Option -->
-        <div data-ingredient-autofill-target="createUnitOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
+
+        <!-- Matching Units List -->
+        <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
+        <div data-ingredient-autofill-target="createUnitOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
           <button type="button"
                   data-action="click->ingredient-autofill#handleCreateUnitClick"
                   class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
@@ -46,9 +50,6 @@
             <span class="text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 font-extrabold shrink-0 ml-1">Enter</span>
           </button>
         </div>
-
-        <!-- Matching Units List -->
-        <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
       </div>
     </div>
   </div>
@@ -70,7 +71,10 @@
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-full min-w-[18rem] max-w-[90vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
       <div class="max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
         <!-- Create Option -->
-        <div data-ingredient-autofill-target="createNameOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
+
+        <!-- Matching List -->
+        <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
+        <div data-ingredient-autofill-target="createNameOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
           <button type="button"
                   data-action="click->ingredient-autofill#handleCreateNameClick"
                   class="w-full text-left px-3 py-2 rounded-2xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
@@ -81,9 +85,6 @@
             <span class="text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 font-extrabold shrink-0 ml-1">Enter</span>
           </button>
         </div>
-
-        <!-- Matching List -->
-        <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
       </div>
     </div>
   </div>

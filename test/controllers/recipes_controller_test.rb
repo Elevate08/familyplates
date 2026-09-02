@@ -241,4 +241,35 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_operator queries, :<=, 2,
       "#{queries} catalogue queries - the failure path should load it once, not per row"
   end
+
+  test "the ingredient dropdowns put Add below the matches, not above them" do
+    sign_in_as(@admin)
+    recipe = households(:one).recipes.create!(title: "Ordering", instructions: "x")
+    recipe.recipe_ingredients.create!(name: "Chicken")
+
+    get edit_recipe_url(recipe)
+    assert_response :success
+
+    # "Add" first meant Enter created a new ingredient before it would pick an
+    # existing one, so a partial name silently made a near-duplicate.
+    name_list = response.body.index('data-ingredient-autofill-target="nameList"')
+    name_create = response.body.index('data-ingredient-autofill-target="createNameOption"')
+    assert name_list && name_create
+    assert_operator name_list, :<, name_create, "the match list must come before the Add option"
+
+    unit_list = response.body.index('data-ingredient-autofill-target="unitList"')
+    unit_create = response.body.index('data-ingredient-autofill-target="createUnitOption"')
+    assert_operator unit_list, :<, unit_create
+  end
+
+  test "an ingredient row closes its dropdowns when focus leaves" do
+    sign_in_as(@admin)
+    recipe = households(:one).recipes.create!(title: "Focus", instructions: "x")
+    recipe.recipe_ingredients.create!(name: "Chicken")
+
+    get edit_recipe_url(recipe)
+
+    assert_includes response.body, "focusout->ingredient-autofill#onFocusOut",
+      "without this the menu stays open behind whatever the user tabs to next"
+  end
 end
