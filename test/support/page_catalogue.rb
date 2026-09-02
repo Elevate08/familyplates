@@ -45,7 +45,14 @@ module PageCatalogue
   UNIMPLEMENTED = %w[/meal_plans/new /meal_plans/:id/edit].freeze
 
   # Follows redirects so an assertion runs against what a browser would show.
+  # Integration tests only - a real browser has already followed them, and the
+  # NameError this used to raise there pointed at `response` rather than at the
+  # actual mistake.
   def settle!(limit: 3)
+    unless respond_to?(:follow_redirect!)
+      raise "settle! is for integration tests; a browser follows redirects on its own"
+    end
+
     limit.times { break unless response.redirect?; follow_redirect! }
   end
 end
