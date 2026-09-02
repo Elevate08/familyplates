@@ -92,4 +92,17 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     assert_not_includes script_src, "unsafe-eval"
     assert_includes csp, "object-src 'none'"
   end
+
+  test "the viewport does not block pinch-zoom" do
+    sign_in_as(@admin)
+    get root_path
+    settle
+
+    viewport = response.body[/<meta name="viewport"[^>]*>/]
+    assert viewport.present?
+    assert_not_includes viewport, "maximum-scale",
+      "blocking user scaling is a WCAG 1.4.4 failure"
+    assert_not_includes viewport, "user-scalable=no"
+    assert_includes viewport, "viewport-fit=cover", "safe-area insets must survive"
+  end
 end

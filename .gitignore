@@ -41,6 +41,13 @@ config/*.json
 !/scratch/.keep
 .notes/
 
+# Ignore local debugging and test artifacts that can hold session data.
+# cookies.txt in particular holds a live session cookie; a reviewer found one
+# world-readable in a working copy.
+/cookies.txt
+/test_output.txt
+/*.log
+
 # Ignore system artifacts
 .DS_Store
 *.swp

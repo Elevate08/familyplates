@@ -2,7 +2,9 @@
 <html class="h-full bg-slate-50 dark:bg-slate-950 antialiased">
   <head>
     <title><%= content_for(:title) || "FamilyPlates | 5-Minute Family Meal Planner" %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <%# No maximum-scale: it blocks pinch-zoom on iOS and Android, which is a
+        WCAG 1.4.4 failure on a UI that leans on text-[10px] and text-xs. %>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     
     <!-- PWA & Mobile Web App Meta -->
     <meta name="application-name" content="FamilyPlates">

@@ -112,9 +112,20 @@ class RecipeIngredient < ApplicationRecord
   end
 
   def sync_aisle_mappings
-    return if name.blank?
     return if self.class.aisle_sync_suspended?
 
-    IngredientAisleMapping.sync_ingredient_usage!(name, recipe&.household)
+    # Both names, when one replaced the other. Re-syncing only the current name
+    # left the old one's mapping behind at its full count forever - correcting
+    # "chikcen breast" to "chicken breast" kept the typo in the autocomplete
+    # list, and it sorts by weight so it stayed near the top.
+    [ name, previous_name ].compact_blank.uniq.each do |ingredient_name|
+      IngredientAisleMapping.sync_ingredient_usage!(ingredient_name, recipe&.household)
+    end
+  end
+
+  # The name this record had before the save that is now committing. nil unless
+  # the name actually changed.
+  def previous_name
+    saved_change_to_name? ? saved_changes["name"]&.first : nil
   end
 end

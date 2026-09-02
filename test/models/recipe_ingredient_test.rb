@@ -95,4 +95,27 @@ class RecipeIngredientTest < ActiveSupport::TestCase
       assert_equal aisle, ingredient.reload.aisle_category, "#{name} changed aisle"
     end
   end
+
+  test "renaming an ingredient does not leave its old mapping behind" do
+    ingredient = @recipe.recipe_ingredients.create!(name: "Chikcen Breast", aisle_category: "Meat & Seafood")
+    assert IngredientAisleMapping.exists?(name: "chikcen breast", household: @recipe.household),
+      "precondition: the typo was learned"
+
+    ingredient.update!(name: "Chicken Breast")
+
+    assert_not IngredientAisleMapping.exists?(name: "chikcen breast", household: @recipe.household),
+      "the typo would otherwise stay in autocomplete forever, sorted by its stale weight"
+    assert IngredientAisleMapping.exists?(name: "chicken breast", household: @recipe.household)
+  end
+
+  test "renaming leaves a mapping alone if another ingredient still uses the old name" do
+    keeper = @recipe.recipe_ingredients.create!(name: "Paprika", aisle_category: "Spices & Baking")
+    mover = @recipe.recipe_ingredients.create!(name: "Paprika", aisle_category: "Spices & Baking")
+
+    mover.update!(name: "Smoked Paprika")
+
+    assert IngredientAisleMapping.exists?(name: "paprika", household: @recipe.household),
+      "#{keeper.name} still uses it"
+    assert IngredientAisleMapping.exists?(name: "smoked paprika", household: @recipe.household)
+  end
 end
