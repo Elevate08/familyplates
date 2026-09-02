@@ -20,8 +20,7 @@ class OnboardingController < ApplicationController
     @admin_member = FamilyMember.new(
       role: "admin",
       avatar_color: "#3B82F6",
-      avatar_icon: "chef-hat",
-      pin: "1234"
+      avatar_icon: "chef-hat"
     )
   end
 
@@ -31,7 +30,7 @@ class OnboardingController < ApplicationController
       @household.save!
 
       initial_name = admin_member_params[:name].presence || "Head Chef"
-      initial_pin = admin_member_params[:pin].presence || "1234"
+      initial_pin = admin_member_params[:pin]
       initial_color = admin_member_params[:avatar_color].presence || "#3B82F6"
       initial_icon = admin_member_params[:avatar_icon].presence || "chef-hat"
 
@@ -131,7 +130,7 @@ class OnboardingController < ApplicationController
       end
     end
 
-    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm your household pantry staples."
+    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end
 
   # Step 4: Pantry Staples

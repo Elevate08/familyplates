@@ -28,10 +28,22 @@ Rails.application.configure do
     policy.frame_ancestors :self
   end
 
-  # A fresh random nonce per request, not request.session.id. The session id is
-  # nil until a session actually exists - on /select_profile, the one page an
-  # unauthenticated visitor sees, it emitted a bare "nonce-" that matched nothing
-  # and would have blocked every inline script on the page.
-  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  # The nonce has to satisfy two constraints at once.
+  #
+  # It must exist before a session does: request.session.id, which the generated
+  # initializer suggests, is nil until something is written to the session, so on
+  # /select_profile it emitted a bare "nonce-" matching nothing.
+  #
+  # And it must stay the same across a Turbo Drive navigation. Turbo replaces the
+  # body without reloading the document, so the policy still being enforced is the
+  # one the *first* page arrived with. A fresh random nonce per request means the
+  # scripts Turbo injects carry the new page's nonce while the browser is checking
+  # against the old one, and every one of them is refused.
+  #
+  # Storing it in the session satisfies both: writing forces the session into
+  # existence, and the value then holds for as long as the visitor is browsing.
+  config.content_security_policy_nonce_generator = lambda do |request|
+    request.session[:csp_nonce] ||= SecureRandom.base64(16)
+  end
   config.content_security_policy_nonce_directives = %w[script-src]
 end

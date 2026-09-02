@@ -279,4 +279,27 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to onboarding_family_url
   end
+
+  test "setup will not create a household without a PIN" do
+    Household.destroy_all
+
+    assert_no_difference [ "Household.count", "FamilyMember.count" ] do
+      post onboarding_save_family_url, params: {
+        household: { name: "No PIN Kitchen", breakfast_time: "08:00", lunch_time: "12:30", dinner_time: "18:00" },
+        admin_member: { name: "Chef", pin: "", avatar_color: "#3B82F6", avatar_icon: "chef-hat" }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "the setup form never suggests a PIN" do
+    Household.destroy_all
+
+    get onboarding_family_url
+
+    assert_response :success
+    assert_not_includes response.body, "1234",
+      "a prefilled or suggested PIN becomes the real one for anyone who clicks through"
+  end
 end
