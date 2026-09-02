@@ -85,16 +85,52 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_includes pantry_icon_tag("spice-jar", css_class: "w-9 h-9"), "w-9 h-9"
   end
 
-  test "css_class is ignored on the emoji fallback, which is a known inconsistency" do
-    # Documented, not endorsed: emoji_span hardcodes text-xl, so an emoji item
-    # does not take the footprint its caller asked for and sits at a different
-    # size from a hand-drawn icon next to it in the same list (grocery_lists и
-    # recipes both pass w-5 h-5). Sizing the span is a visual change and wants
-    # an eyeball, so this locks in today's behaviour and will fail loudly if
-    # someone fixes it - at which point swap the assertion.
+  test "the emoji fallback takes the box it was asked for" do
     markup = pantry_icon_tag("Salt", "Other", css_class: "w-9 h-9")
 
-    assert_no_match(/w-9 h-9/, markup)
+    assert_includes markup, "w-9 h-9"
+    assert_match(/\A<span /, markup)
+  end
+
+  test "the emoji's font size tracks its box, so it matches an svg beside it" do
+    # An emoji sized only by the box would render at whatever font size it
+    # inherited, which is what left the grocery list and recipe pages mixing
+    # footprints. Each box gets the text size that fills it.
+    {
+      "w-5 h-5" => "text-base",
+      "w-6 h-6" => "text-xl",
+      "w-9 h-9" => "text-3xl"
+    }.each do |box, text_size|
+      markup = pantry_icon_tag("Salt", "Other", css_class: box)
+
+      assert_includes markup, box
+      assert_includes markup, text_size, "#{box} should carry #{text_size}"
+    end
+  end
+
+  test "an unrecognised box falls back to a readable size rather than none" do
+    markup = pantry_icon_tag("Salt", "Other", css_class: "size-7")
+
+    assert_includes markup, "size-7"
     assert_includes markup, "text-xl"
+  end
+
+  test "the default size is unchanged for callers that pass no css_class" do
+    # pantry_items/_pantry_item.html.erb relies on this.
+    item = PantryItem.new(name: "Salt", aisle_category: "Other")
+
+    markup = pantry_icon_tag(item)
+
+    assert_includes markup, "w-6 h-6"
+    assert_includes markup, "text-xl"
+  end
+
+  test "a user-chosen emoji is still escaped at every size" do
+    item = PantryItem.new(name: "Salt", emoji: PAYLOAD)
+
+    markup = pantry_icon_tag(item, css_class: "w-5 h-5")
+
+    assert_no_match(/<img/, markup)
+    assert_includes markup, "text-base"
   end
 end
