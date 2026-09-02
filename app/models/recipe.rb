@@ -1,4 +1,13 @@
 class Recipe < ApplicationRecord
+  # Re-derives the aisle mappings for this recipe's ingredients, once per
+  # distinct name. Used after a bulk save that suspended the per-ingredient
+  # callback.
+  def resync_aisle_mappings!
+    recipe_ingredients.map(&:name).compact_blank.uniq.each do |name|
+      IngredientAisleMapping.sync_ingredient_usage!(name, household)
+    end
+  end
+
   belongs_to :household
   has_many :recipe_ingredients, dependent: :destroy
   has_many :recipe_requests, dependent: :destroy

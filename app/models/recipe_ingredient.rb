@@ -59,6 +59,23 @@ class RecipeIngredient < ApplicationRecord
   validates :name, presence: true
   validates :aisle_category, inclusion: { in: AISLE_CATEGORIES }
 
+  # Saving a recipe saves every ingredient, and each one used to re-derive the
+  # aisle mappings for its own name - so importing a fifteen-ingredient recipe
+  # did that fifteen times over, most of it recomputing counts that the next
+  # ingredient would recompute again. Bulk callers suspend it and resync each
+  # distinct name once when the whole recipe has landed.
+  def self.without_aisle_sync
+    previous = Thread.current[:familyplates_suspend_aisle_sync]
+    Thread.current[:familyplates_suspend_aisle_sync] = true
+    yield
+  ensure
+    Thread.current[:familyplates_suspend_aisle_sync] = previous
+  end
+
+  def self.aisle_sync_suspended?
+    Thread.current[:familyplates_suspend_aisle_sync].present?
+  end
+
   before_validation :normalize_fields
   after_save :sync_aisle_mappings
   after_destroy :sync_aisle_mappings
@@ -96,6 +113,8 @@ class RecipeIngredient < ApplicationRecord
 
   def sync_aisle_mappings
     return if name.blank?
+    return if self.class.aisle_sync_suspended?
+
     IngredientAisleMapping.sync_ingredient_usage!(name, recipe&.household)
   end
 end

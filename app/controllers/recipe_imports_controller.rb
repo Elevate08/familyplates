@@ -54,7 +54,10 @@ class RecipeImportsController < ApplicationController
       )
     end
 
-    if @recipe.save
+    saved = RecipeIngredient.without_aisle_sync { @recipe.save }
+    @recipe.resync_aisle_mappings! if saved
+
+    if saved
       target_path = current_family_member&.admin? ? edit_recipe_path(@recipe) : recipe_path(@recipe)
       redirect_to target_path, notice: "🎉 Imported \"#{@recipe.title}\" into your recipe box!"
     else

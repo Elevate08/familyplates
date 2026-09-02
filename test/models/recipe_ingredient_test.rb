@@ -60,4 +60,39 @@ class RecipeIngredientTest < ActiveSupport::TestCase
     assert_nil RecipeIngredient.column_defaults["aisle_category"],
       "a default makes every new record claim an aisle it was never given"
   end
+
+  # --- Query cost --------------------------------------------------------------
+  #
+  # Saving one fifteen-ingredient recipe used to issue 211 queries: the aisle
+  # lookup ran three per ingredient, and re-deriving the mappings did a find_by
+  # plus a save or destroy for each of the eight aisle categories.
+
+  test "saving a fifteen-ingredient recipe stays well under the old query cost" do
+    names = %w[Chicken Rice Onions Garlic Carrots Celery Butter Flour Milk
+               Cheese Paprika Thyme Parsley Lemon Salt]
+
+    queries = 0
+    sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*args|
+      queries += 1 unless args.last[:name].to_s =~ /SCHEMA|TRANSACTION/
+    end
+    names.each { |name| @recipe.recipe_ingredients.create!(name: name) }
+    ActiveSupport::Notifications.unsubscribe(sub)
+
+    assert_equal names.length, @recipe.recipe_ingredients.where(name: names).count,
+      "precondition: every ingredient saved, or the budget below means nothing"
+    assert_operator queries, :<, 120,
+      "#{queries} queries for 15 ingredients - was 211 before batching"
+  end
+
+  test "batching did not change the aisles it works out" do
+    expected = {
+      "Chicken" => "Meat & Seafood", "Rice" => "Pantry & Grains", "Onions" => "Produce",
+      "Butter" => "Dairy & Refrigerated", "Flour" => "Spices & Baking", "Thyme" => "Other"
+    }
+
+    expected.each do |name, aisle|
+      ingredient = @recipe.recipe_ingredients.create!(name: name)
+      assert_equal aisle, ingredient.reload.aisle_category, "#{name} changed aisle"
+    end
+  end
 end

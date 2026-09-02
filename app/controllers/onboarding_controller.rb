@@ -102,7 +102,10 @@ class OnboardingController < ApplicationController
   def save_recipes
     selected_ids = Array(params[:recipe_ids]).map(&:to_s)
 
+    created = []
+
     ActiveRecord::Base.transaction do
+      RecipeIngredient.without_aisle_sync do
       @starter_recipes.each do |starter|
         next unless selected_ids.include?(starter["id"])
 
@@ -127,8 +130,15 @@ class OnboardingController < ApplicationController
             )
           end
         end
+
+        created << recipe
+      end
       end
     end
+
+    # One resync per distinct ingredient name, after every starter recipe has
+    # landed, rather than one per ingredient as each was created.
+    created.each(&:resync_aisle_mappings!)
 
     redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end

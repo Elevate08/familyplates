@@ -21,20 +21,43 @@ class IngredientAisleMapping < ApplicationRecord
                                         .group("recipe_ingredients.aisle_category")
                                         .count
 
-    # Update or prune mappings for each category
-    RecipeIngredient::AISLE_CATEGORIES.each do |aisle|
-      actual_count = counts_by_aisle[aisle] || 0
-      mapping = find_by(household_id: h_id, name: clean_name, aisle_category: aisle)
-
-      if actual_count > 0
-        mapping ||= new(household_id: h_id, name: clean_name, aisle_category: aisle)
-        mapping.count = actual_count
-        mapping.save!
-      elsif mapping
-        mapping.destroy
-      end
-    end
+    reconcile!(h_id, clean_name, counts_by_aisle)
   end
+
+  # Brings the stored mappings for one ingredient name into line with the counts
+  # just computed, as three statements rather than a find_by plus a save or
+  # destroy for each of the eight aisle categories.
+  #
+  # insert_all and delete_all skip callbacks, which is safe here because the only
+  # callback is normalize_fields and both values are already normalized - the
+  # name by normalize_name above, the aisle by coming from AISLE_CATEGORIES.
+  def self.reconcile!(h_id, clean_name, counts_by_aisle)
+    wanted = counts_by_aisle.select { |aisle, n| n.to_i.positive? && RecipeIngredient::AISLE_CATEGORIES.include?(aisle) }
+    existing = where(household_id: h_id, name: clean_name).to_a
+
+    stale = existing.reject { |m| wanted.key?(m.aisle_category) }
+    where(id: stale.map(&:id)).delete_all if stale.any?
+
+    existing_by_aisle = existing.index_by(&:aisle_category)
+
+    changed = wanted.filter_map do |aisle, n|
+      mapping = existing_by_aisle[aisle]
+      next if mapping.nil? || mapping.count == n
+
+      [ mapping.id, n ]
+    end
+    changed.each { |id, n| where(id: id).update_all(count: n) }
+
+    missing = wanted.reject { |aisle, _| existing_by_aisle.key?(aisle) }
+    return if missing.empty?
+
+    now = Time.current
+    insert_all(missing.map do |aisle, n|
+      { household_id: h_id, name: clean_name, aisle_category: aisle, count: n,
+        created_at: now, updated_at: now }
+    end)
+  end
+  private_class_method :reconcile!
 
   def self.record_usage!(raw_name, aisle, household = nil)
     clean_name = normalize_name(raw_name)
@@ -75,15 +98,13 @@ class IngredientAisleMapping < ApplicationRecord
 
     h_id = extract_household_id(household)
 
-    # 1. Household weighted mapping
-    if h_id.present?
-      household_mapping = where(household_id: h_id, name: clean_name).order(count: :desc).first
-      return household_mapping.aisle_category if household_mapping
-    end
-
-    # 2. Global learned mapping
-    global_mapping = where(household_id: nil, name: clean_name).order(count: :desc).first
-    return global_mapping.aisle_category if global_mapping
+    # 1 & 2. Learned mappings, household first then global. One query rather than
+    # two: ordering household rows ahead of global ones reproduces the previous
+    # "check mine, then fall back to everyone's" precedence exactly.
+    learned = where(household_id: [ h_id, nil ].uniq, name: clean_name)
+                .order(Arel.sql("household_id IS NULL ASC"), count: :desc)
+                .first
+    return learned.aisle_category if learned
 
     # 3. Check existing recipe ingredients in household
     resolved_household = extract_household(household)
