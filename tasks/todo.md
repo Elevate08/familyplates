@@ -866,6 +866,15 @@ allowing them means either this or moving every colour to a CSS custom property.
 Style injection is a far weaker primitive than script injection, and `script-src` —
 the directive that matters for the XSS this follows from — is fully locked.
 
+**A second bug the tests could not catch.** The generated initializer's suggested
+nonce generator is `request.session.id.to_s`. The session id is nil until a session
+exists, so on `/select_profile` — the one page an unauthenticated visitor sees —
+the header went out as a bare `'nonce-'` matching nothing, and every inline script
+on the page would have been blocked. The request tests passed throughout, because
+they assert the nonce *attribute* is present, not that the header's value is
+non-empty. Found by curling the running server. Now `SecureRandom.base64(16)` per
+request, verified matching header-to-tag across six pages.
+
 **Browser verification owed.** The test proves no handler survives in the rendered
 HTML and that every inline script is nonced. It cannot prove a converted handler
 still *does* what it did. See the checklist handed to the user.

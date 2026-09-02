@@ -28,6 +28,10 @@ Rails.application.configure do
     policy.frame_ancestors :self
   end
 
-  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  # A fresh random nonce per request, not request.session.id. The session id is
+  # nil until a session actually exists - on /select_profile, the one page an
+  # unauthenticated visitor sees, it emitted a bare "nonce-" that matched nothing
+  # and would have blocked every inline script on the page.
+  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
   config.content_security_policy_nonce_directives = %w[script-src]
 end
