@@ -285,10 +285,16 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     # wrapping its input. The browser reports each unassociated one, and the
     # ingredient rows produced four per row.
     doc = Nokogiri::HTML5(response.body)
-    ids = doc.css("[id]").map { |n| n["id"] }.to_set
+
+    # A hidden input has an id but cannot be labelled, and the browser reports a
+    # label pointing at one as dangling. Counting it as a valid target is what
+    # let the tags label through this check while Chrome complained about it.
+    labelable = doc.css("[id]").reject { |n| n.name == "input" && n["type"] == "hidden" }
+    ids = labelable.map { |n| n["id"] }.to_set
 
     dangling = doc.css("label[for]").reject { |l| ids.include?(l["for"]) }
-    assert_empty dangling.map { |l| l["for"] }, "label for= pointing at no such id"
+    assert_empty dangling.map { |l| l["for"] },
+      "label for= pointing at no labelable element"
 
     orphaned = doc.css("label:not([for])").reject { |l| l.css("input,select,textarea").any? }
     assert_empty orphaned.map { |l| l.text.strip[0, 40] },
