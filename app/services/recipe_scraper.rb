@@ -300,24 +300,6 @@ class RecipeScraper
   end
 
   def categorize_ingredient(name)
-    n = name.downcase
-    case n
-    when /chicken|beef|pork|steak|turkey|salmon|fish|shrimp|bacon|sausage|kielbasa|tuna|lamb|prosciutto|meatball/
-      "Meat & Seafood"
-    when /milk|cream|cheese|cheddar|mozzarella|parmesan|butter|margarine|yogurt|sour cream|feta|ricotta|egg/
-      "Dairy & Refrigerated"
-    when /onion|garlic|tomato|potato|lettuce|bell pepper|pepper|spinach|carrot|broccoli|avocado|lime|lemon|cilantro|basil|parsley|cucumber|asparagus|zucchini|mushroom|ginger|celery/
-      "Produce"
-    when /bread|tortilla|bun|pita|bagel|crust|baguette|roll/
-      "Bakery"
-    when /flour|sugar|baking powder|baking soda|salt|black pepper|cumin|chili powder|oregano|paprika|cinnamon|vanilla|cinnamon|nutmeg|seasoning/
-      "Spices & Baking"
-    when /frozen|peas|corn|ice cream/
-      "Frozen"
-    when /rice|pasta|spaghetti|noodle|oil|olive oil|vinegar|soy sauce|broth|stock|tomato paste|crushed tomato|canned|bean|honey|sauce|salsa|sesame oil/
-      "Pantry & Grains"
-    else
-      "Other"
-    end
+    IngredientClassifier.call(name)
   end
 end

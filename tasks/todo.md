@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 268 runs, 1332 assertions, 0 failures** (Stream A complete; Stream B: B1–B5, B9). Every
+GREEN at 276 runs, 1365 assertions, 0 failures** (Stream A complete; Stream B: B1–B7, B9). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -917,7 +917,7 @@ That also exposed a second defect: nothing caught `InvalidForeignKey`, so a bogu
 The test drives HTTP rather than calling `#move`, so it is a regression test
 against the old controller rather than a test of the new method's signature.
 
-## Task B6: Preserve an explicitly chosen "Other" aisle
+## Task B6: Preserve an explicitly chosen "Other" aisle  ✅ DONE
 
 **Description:** Fixes **F15** (verified: an ingredient created with
 `aisle_category: "Other"` persisted as `"Meat & Seafood"`).
@@ -927,19 +927,36 @@ and a selectable option at `_recipe_ingredient_fields.html.erb:97`, so a
 deliberate choice is overwritten on every save.
 
 **Acceptance criteria:**
-- [ ] Auto-fill fires only when `aisle_category` is blank
-- [ ] Scraped ingredients that arrive with a defaulted `"Other"` still get classified — distinguish "defaulted" from "chosen" at the import boundary rather than in the callback
+- [x] Auto-fill fires only when `aisle_category` is blank
+- [x] Scraped ingredients that arrive with a defaulted `"Other"` still get classified — distinguish "defaulted" from "chosen" at the import boundary rather than in the callback
 
 **Verification:**
-- [ ] Unit test: `create!(name: "Chicken Breast", aisle_category: "Other")` persists as `"Other"`
-- [ ] Unit test: `create!(name: "Chicken Breast")` still classifies as `"Meat & Seafood"`
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Unit test: `create!(name: "Chicken Breast", aisle_category: "Other")` persists as `"Other"`
+- [x] Unit test: `create!(name: "Chicken Breast")` still classifies as `"Meat & Seafood"`
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/recipe_ingredient.rb`, `app/controllers/recipe_imports_controller.rb`, `test/models/recipe_ingredient_test.rb`
 **Scope:** S
 
-## Task B7: Extract `IngredientClassifier`
+**Outcome:** Auto-fill fires only when `aisle_category` is genuinely blank, and
+both import paths pass `nil` rather than `"Other"` so the model can tell "no
+opinion" from "the user chose Other". Suite **276 runs, 1365 assertions, 0
+failures**.
+
+**The original code was not careless — it was compensating for the schema.**
+`recipe_ingredients.aisle_category` carried `default: "Other"`, so a new record
+was never blank; it arrived already claiming an aisle. That is precisely why the
+callback treated `"Other"` as a synonym for unset, and why simply removing the
+`|| aisle_category == "Other"` clause broke an existing test instead of fixing
+anything. Dropping the column default is the actual fix, and it needed a
+migration — which is why this task belongs in Stream B and not A.
+
+Four tests: a chosen "Other" survives repeated saves, an unset aisle is still
+classified, an unclassifiable name still falls back to "Other", and
+`column_defaults["aisle_category"]` is nil so the ambiguity cannot return.
+
+## Task B7: Extract `IngredientClassifier`  ✅ DONE
 
 **Description:** Fixes **F19**. `ingredient_aisle_mapping.rb:101` does
 `RecipeScraper.new("").send(:categorize_ingredient, clean_name)` — instantiating
@@ -948,18 +965,35 @@ heuristic into its own service that both callers use. Ordered before B11 and B13
 which both build on this call site.
 
 **Acceptance criteria:**
-- [ ] A public `IngredientClassifier` (or class method) owns the keyword heuristic
-- [ ] No `.send` to a private method remains; `grep -rn "\.send(:" app/` is clean
-- [ ] `RecipeScraper` delegates to it rather than owning it
-- [ ] Classification results are unchanged for the existing keyword set
+- [x] A public `IngredientClassifier` (or class method) owns the keyword heuristic
+- [x] No `.send` to a private method remains; `grep -rn "\.send(:" app/` is clean
+- [x] `RecipeScraper` delegates to it rather than owning it
+- [x] Classification results are unchanged for the existing keyword set
 
 **Verification:**
-- [ ] Characterization test over a representative ingredient set, asserting identical output before and after
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
+- [x] Characterization test over a representative ingredient set, asserting identical output before and after
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
 
 **Dependencies:** None (after Stream A)
 **Files:** new `app/services/ingredient_classifier.rb`, `app/services/recipe_scraper.rb`, `app/models/ingredient_aisle_mapping.rb`, tests
 **Scope:** M
+
+**Outcome:** The keyword table is now `IngredientClassifier`, a plain class with
+`.call` and `.unknown?`. `RecipeScraper#categorize_ingredient` delegates to it and
+`IngredientAisleMapping` calls it directly, so
+`RecipeScraper.new("").send(:categorize_ingredient, name)` — building a scraper
+with an empty URL purely to bypass access control — is gone.
+
+**Verified by recording, not by reading.** All 82 classifications were captured
+from the old private method before the extraction and diffed against the new one
+afterwards: identical. Worth doing, because writing the expectations by hand got
+one wrong — "Ice cream" classifies as **Dairy**, not Frozen, since the Dairy rule
+matches "cream" and is checked first. The characterization test records that quirk
+rather than correcting it; a test that "fixes" the behaviour it exists to pin
+proves nothing.
+
+Includes a test asserting no `.send(:` survives anywhere in `app/` — which first
+failed on its own explanatory comment, so it now strips comment lines.
 
 ## Task B8: Remove duplicate calendar actions from `Admin::HouseholdsController`
 

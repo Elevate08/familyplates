@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_02_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -118,7 +118,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_020000) do
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|
-    t.string "aisle_category", default: "Other", null: false
+    t.string "aisle_category", null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.decimal "quantity"

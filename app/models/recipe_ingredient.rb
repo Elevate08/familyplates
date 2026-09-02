@@ -79,12 +79,19 @@ class RecipeIngredient < ApplicationRecord
       self.name = raw_text.strip
     end
 
-    if (aisle_category.blank? || aisle_category == "Other") && name.present?
+    # Only classify when no aisle was supplied. "Other" is a real option in the
+    # form's select, so treating it as "unset" meant a deliberate choice was
+    # overwritten on every save - file Truffle Oil under Other and it kept
+    # jumping back to whatever the heuristic guessed.
+    #
+    # Callers that mean "I have no opinion" pass nil; the import paths used to
+    # default to "Other", which is why this could not tell them apart.
+    if aisle_category.blank? && name.present?
       suggested = IngredientAisleMapping.most_likely_aisle(name, recipe&.household)
       self.aisle_category = suggested if suggested.present?
     end
 
-    self.aisle_category = "Other" if aisle_category.blank?
+    self.aisle_category = IngredientClassifier::UNKNOWN if aisle_category.blank?
   end
 
   def sync_aisle_mappings

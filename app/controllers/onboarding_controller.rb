@@ -123,7 +123,7 @@ class OnboardingController < ApplicationController
               name: ing["name"],
               quantity: ing["quantity"],
               unit: ing["unit"],
-              aisle_category: ing["aisle_category"] || "Other"
+              aisle_category: ing["aisle_category"].presence
             )
           end
         end

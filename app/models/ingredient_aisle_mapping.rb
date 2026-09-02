@@ -98,10 +98,10 @@ class IngredientAisleMapping < ApplicationRecord
     end
 
     # 4. Keyword heuristic categorization
-    heuristic = RecipeScraper.new("").send(:categorize_ingredient, clean_name)
-    return heuristic if heuristic.present? && heuristic != "Other"
+    heuristic = IngredientClassifier.call(clean_name)
+    return heuristic unless IngredientClassifier.unknown?(heuristic)
 
-    "Other"
+    IngredientClassifier::UNKNOWN
   end
 
   def self.available_ingredients_with_aisles(household = nil)
