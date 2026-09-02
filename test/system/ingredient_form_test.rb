@@ -97,10 +97,25 @@ class IngredientFormTest < ApplicationSystemTestCase
   end
 
   test "rows added in quick succession each keep their own name" do
+    before = name_inputs.length
     3.times { click_on "+ Add Ingredient" }
+
+    # Wait for all three rows before reading them. last(3) taken too early
+    # returns a mix of new rows and existing ones, and the test then types into
+    # somebody else's field.
+    assert_selector "input[name*='[name]'][data-ingredient-autofill-target='nameInput']",
+      count: before + 3, wait: 5
 
     fresh = name_inputs.last(3)
     fresh.each_with_index { |input, i| input.fill_in(with: "Rapid Ingredient #{i}") }
+
+    # Typing has to land where it was aimed. Checking here means a row that
+    # appears late, or focus that moves mid-type, fails next to its cause
+    # rather than as a puzzling mismatch after the save.
+    fresh.each_with_index do |input, i|
+      assert_equal "Rapid Ingredient #{i}", input.value,
+        "text landed in the wrong field - something moved focus while the test was typing"
+    end
 
     click_on "Save Recipe"
     assert_no_current_path edit_recipe_path(@recipe), wait: 5

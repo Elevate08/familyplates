@@ -42,11 +42,13 @@ export default class extends Controller {
 
     this.containerTarget.appendChild(newRow)
 
-    // Focus on first input in the new row
-    setTimeout(() => {
-      const firstInput = newRow.querySelector("input")
-      if (firstInput) firstInput.focus()
-    }, 50)
+    // Focus the new row's first field. This used to be deferred 50ms, which
+    // meant three quick clicks queued three focus jumps that landed after the
+    // form looked settled - the third could steal focus out from under someone
+    // already typing in another row, appending their text to whatever field it
+    // grabbed. The row is in the document by now, so focus it straight away.
+    const firstInput = newRow.querySelector("input")
+    if (firstInput) firstInput.focus()
   }
 
   removeRow(event) {
