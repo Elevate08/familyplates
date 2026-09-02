@@ -1,6 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 import { el, replaceChildren } from "helpers/dom"
 
+function parseList(json) {
+  if (!json) return []
+
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 export default class extends Controller {
   static targets = [
     "nameInput",
@@ -16,8 +27,32 @@ export default class extends Controller {
     "createUnitText"
   ]
 
-  static values = {
-    ingredients: { type: Array, default: [] },
+  // The catalogue lives on the form container, not on each row - a
+  // twenty-ingredient recipe would otherwise ship twenty copies of it. Parsed
+  // once per container and cached there, so twenty rows do not parse it twenty
+  // times either.
+  get ingredientsValue() {
+    return this.catalogue.ingredients
+  }
+
+  get unitsValue() {
+    return this.catalogue.units
+  }
+
+  get catalogue() {
+    const host = this.element.closest("[data-ingredient-catalogue]")
+    if (!host) return { ingredients: [], units: [] }
+
+    if (!host.__ingredientCatalogue) {
+      host.__ingredientCatalogue = {
+        ingredients: parseList(host.dataset.ingredientCatalogueIngredients),
+        units: parseList(host.dataset.ingredientCatalogueUnits)
+      }
+    }
+
+    return host.__ingredientCatalogue
+  }
+
     units: { type: Array, default: [] }
   }
 

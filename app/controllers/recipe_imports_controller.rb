@@ -1,4 +1,8 @@
 class RecipeImportsController < ApplicationController
+  # The failure path renders "recipes/new", which needs the ingredient
+  # catalogue. Without this the view fell back to querying for it inline.
+  before_action :set_available_ingredients, only: %i[create]
+
   def new
   end
 
@@ -66,5 +70,13 @@ class RecipeImportsController < ApplicationController
       end
       render "recipes/new", status: :unprocessable_entity
     end
+  end
+
+  private
+
+  def set_available_ingredients
+    @available_ingredients = IngredientAisleMapping.available_ingredients_with_aisles(current_household)
+    @available_units = RecipeIngredient.available_units(current_household)
+    @available_tags = current_household.recipes.pluck(:tags).compact_blank.flat_map { |t| t.split(",").map(&:strip) }.uniq.sort
   end
 end

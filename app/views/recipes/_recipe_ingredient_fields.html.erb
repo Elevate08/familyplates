@@ -1,12 +1,9 @@
-<% 
-  available_ingredients_json = (@available_ingredients || IngredientAisleMapping.available_ingredients_with_aisles(current_household)).to_json 
-  available_units_json = (@available_units || RecipeIngredient.available_units(current_household)).to_json
-%>
-
+<%# The ingredient catalogue is emitted once on the form container, not here.
+    This partial renders per ingredient row, so carrying 150+ staples plus every
+    household ingredient meant shipping the same JSON twenty times over on a
+    twenty-ingredient recipe. %>
 <div data-ingredient-row="true"
      data-controller="ingredient-autofill"
-     data-ingredient-autofill-ingredients-value="<%= available_ingredients_json %>"
-     data-ingredient-autofill-units-value="<%= available_units_json %>"
      class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/80 transition-all hover:border-primary-300 dark:hover:border-primary-600 relative group">
   
   <% if f.object.persisted? %>

@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 285 runs, 1383 assertions, 0 failures** (Stream A complete; Stream B: B1–B11). Every
+GREEN at 290 runs, 1402 assertions, 0 failures** (Stream A complete; Stream B: B1–B16 — all tasks). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -1167,7 +1167,7 @@ count forever. Since the autocomplete sorts by `-weight`, correcting a typo like
 **Files:** `app/models/recipe_ingredient.rb`, `test/models/recipe_ingredient_test.rb`
 **Scope:** S
 
-## Task B13: Hoist the ingredient catalogue out of the per-row partial
+## Task B13: Hoist the ingredient catalogue out of the per-row partial  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F25**. `_recipe_ingredient_fields.html.erb:1-4` computes
 and emits `@available_ingredients.to_json` and `@available_units.to_json` into
@@ -1179,19 +1179,33 @@ has no `set_available_tags` before_action, so on its failure path (`render
 aggregate queries **per row**.
 
 **Acceptance criteria:**
-- [ ] Both JSON payloads are emitted once, on the `data-controller` container element
-- [ ] The Stimulus controllers read them from the container, not the row
-- [ ] `RecipeImportsController#create`'s failure path sets `@available_ingredients`/`@available_units` so the per-row fallback query cannot fire
+- [x] Both JSON payloads are emitted once, on the `data-controller` container element
+- [x] The Stimulus controllers read them from the container, not the row
+- [x] `RecipeImportsController#create`'s failure path sets `@available_ingredients`/`@available_units` so the per-row fallback query cannot fire
 
 **Verification:**
-- [ ] Request test: a 20-ingredient recipe form contains exactly one copy of the catalogue JSON
-- [ ] Query-count assertion on the import failure path
-- [ ] Manual: ingredient and unit autofill still work on existing and newly added rows
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Request test: a 20-ingredient recipe form contains exactly one copy of the catalogue JSON
+- [x] Query-count assertion on the import failure path
+- [x] Manual: ingredient and unit autofill still work on existing and newly added rows
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B7
 **Files:** `app/views/recipes/_recipe_ingredient_fields.html.erb`, `app/views/recipes/_form.html.erb`, `app/javascript/controllers/ingredient_autofill_controller.js`, `app/controllers/recipe_imports_controller.rb`
 **Scope:** M
+
+**Outcome:** The catalogue is emitted once on the form container. **A
+20-ingredient recipe's edit page went from 455 KB to 235 KB — 48% smaller.**
+Suite **290 runs, 1402 assertions, 0 failures**.
+
+The controller stays per-row (it manages that row's inputs) but reads the
+catalogue from the nearest `[data-ingredient-catalogue]` ancestor and caches the
+parsed arrays on that element, so twenty rows parse the JSON once rather than
+twenty times. `closest()` resolves for cloned rows too, since Stimulus connects
+after the row is appended.
+
+`RecipeImportsController` now sets the catalogue in a `before_action`. Its failure
+path renders `recipes/new`, which previously had no `@available_ingredients` and
+fell through to querying inline — once per row.
 
 ## Task B14: Ignore local cookie and test artifacts
 
@@ -1234,7 +1248,7 @@ change; if a Stream A build is being cut anyway, it is safe to carry along.
 **Files:** `app/views/layouts/application.html.erb`
 **Scope:** XS
 
-## Task B16: Use a monotonic index for new ingredient rows
+## Task B16: Use a monotonic index for new ingredient rows  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F27**. `recipe_ingredients_form_controller.js:10` uses
 `new Date().getTime()` as the `NEW_RECORD` replacement, so two rows added within
@@ -1243,16 +1257,28 @@ the same millisecond (Enter held down, or a double-click) share a
 overwrites the first on submit.
 
 **Acceptance criteria:**
-- [ ] A monotonic counter seeded from the existing row count replaces the timestamp
-- [ ] The counter cannot collide with a server-rendered index on an edit form
+- [x] A monotonic counter seeded from the existing row count replaces the timestamp
+- [x] The counter cannot collide with a server-rendered index on an edit form
 
 **Verification:**
-- [ ] Manual: add 5 rows as fast as possible, fill each, submit — all 5 persist
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: add 5 rows as fast as possible, fill each, submit — all 5 persist
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/javascript/controllers/recipe_ingredients_form_controller.js`
 **Scope:** XS
+
+**Outcome:** A counter seeded above the highest server-rendered index replaces
+`new Date().getTime()`.
+
+The timestamp was not merely theoretical: two rows added inside the same
+millisecond — Enter held down, or a double-click — produced the same
+`recipe[recipe_ingredients_attributes][<ts>]` key, and the second silently
+replaced the first on submit. Seeding from the existing rows rather than from
+zero keeps new rows clear of the indices Rails already rendered.
+
+**Needs the browser check below**: the failure is only observable by adding rows
+faster than a millisecond apart and submitting.
 
 ---
 

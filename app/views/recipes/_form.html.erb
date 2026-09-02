@@ -154,7 +154,10 @@
   </div>
 
   <!-- Ingredients Section with Dynamic Add/Remove and Smart Aisle Learning -->
-  <div data-controller="recipe-ingredients-form" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+  <div data-controller="recipe-ingredients-form"
+       data-ingredient-catalogue
+       data-ingredient-catalogue-ingredients="<%= (@available_ingredients || IngredientAisleMapping.available_ingredients_with_aisles(current_household)).to_json %>"
+       data-ingredient-catalogue-units="<%= (@available_units || RecipeIngredient.available_units(current_household)).to_json %>" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
       <div>
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Ingredients</h2>

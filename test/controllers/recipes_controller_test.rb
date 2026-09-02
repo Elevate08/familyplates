@@ -202,4 +202,43 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to root_url
   end
+
+  # --- Ingredient catalogue payload -------------------------------------------
+  #
+  # The catalogue is 150+ default staples plus every household ingredient. It was
+  # emitted into a data attribute on every ingredient row, so a twenty-ingredient
+  # recipe shipped twenty identical copies of it.
+
+  test "the recipe form emits the ingredient catalogue exactly once" do
+    sign_in_as(@admin)
+    recipe = households(:one).recipes.create!(title: "Many Ingredients", instructions: "x")
+    12.times { |i| recipe.recipe_ingredients.create!(name: "Ingredient #{i}") }
+
+    get edit_recipe_url(recipe)
+    assert_response :success
+
+    # Thirteen: the twelve saved rows plus the hidden <template> row the add
+    # button clones. Each of those used to carry its own copy of the catalogue.
+    assert_equal 13, response.body.scan(/data-ingredient-row="true"/).length,
+      "precondition: twelve rows plus the add-row template"
+    assert_equal 1, response.body.scan(/data-ingredient-catalogue-ingredients=/).length,
+      "the catalogue must be emitted once on the container, not once per row"
+    assert_equal 1, response.body.scan(/data-ingredient-catalogue-units=/).length
+    assert_equal 0, response.body.scan(/data-ingredient-autofill-ingredients-value=/).length,
+      "no row should still carry its own copy"
+  end
+
+  test "the import failure page does not query for the catalogue per row" do
+    sign_in_as(@admin)
+
+    queries = 0
+    sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*args|
+      queries += 1 if args.last[:sql].to_s.include?("ingredient_aisle_mappings")
+    end
+    post recipe_imports_url, params: { url: "http://169.254.169.254/blocked" }
+    ActiveSupport::Notifications.unsubscribe(sub)
+
+    assert_operator queries, :<=, 2,
+      "#{queries} catalogue queries - the failure path should load it once, not per row"
+  end
 end
