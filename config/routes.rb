@@ -32,10 +32,8 @@ Rails.application.routes.draw do
         patch :reset_pin
       end
     end
-    resource :household, only: %i[edit update] do
-      post :test_google_calendar
-      post :sync_google_calendar
-    end
+    # Calendar testing and syncing live only on Admin::CalendarsController.
+    resource :household, only: %i[edit update]
     resource :calendar, only: %i[show edit update], controller: "calendars" do
       post :test_connection
       post :sync_plan

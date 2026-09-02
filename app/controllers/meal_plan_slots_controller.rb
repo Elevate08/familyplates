@@ -10,7 +10,7 @@ class MealPlanSlotsController < ApplicationController
     @slot.assign_attributes(slot_params)
 
     if @slot.save
-      RecipeRequest.auto_fulfill_passed_slots!
+      RecipeRequest.auto_fulfill_passed_slots!(current_household)
       respond_to do |format|
         if params[:return_to] == "recipe" && @slot.recipe.present?
           format.turbo_stream do

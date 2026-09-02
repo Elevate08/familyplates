@@ -55,27 +55,4 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "12:15", @household.lunch_time
     assert_equal "18:30", @household.dinner_time
   end
-
-  test "should test google calendar connection" do
-    sign_in_as(@admin)
-
-    post test_google_calendar_admin_household_url, params: {
-      google_calendar_id: "family-meals@group.calendar.google.com"
-    }
-
-    assert_redirected_to edit_admin_household_url
-  end
-
-  test "should sync google calendar full week" do
-    sign_in_as(@admin)
-
-    post sync_google_calendar_admin_household_url
-    assert_redirected_to edit_admin_household_url
-    assert_equal "Full meal plan sync to Google Calendar completed! 📅", flash[:notice]
-
-    post sync_google_calendar_admin_household_url, as: :json
-    assert_response :success
-    json = JSON.parse(response.body)
-    assert_equal true, json["success"]
-  end
 end

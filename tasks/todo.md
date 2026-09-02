@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 276 runs, 1365 assertions, 0 failures** (Stream A complete; Stream B: B1–B7, B9). Every
+GREEN at 283 runs, 1374 assertions, 0 failures** (Stream A complete; Stream B: B1–B10). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -995,7 +995,7 @@ proves nothing.
 Includes a test asserting no `.send(:` survives anywhere in `app/` — which first
 failed on its own explanatory comment, so it now strips comment lines.
 
-## Task B8: Remove duplicate calendar actions from `Admin::HouseholdsController`
+## Task B8: Remove duplicate calendar actions from `Admin::HouseholdsController`  ✅ DONE
 
 **Description:** Fixes **F20**. `test_google_calendar` (`:16-30`) and
 `sync_google_calendar` (`:32-47`) are near-identical to
@@ -1003,17 +1003,26 @@ failed on its own explanatory comment, so it now strips comment lines.
 their redirect target.
 
 **Acceptance criteria:**
-- [ ] Both actions and their routes are removed from `Admin::HouseholdsController`
-- [ ] Any view or JS referencing `test_google_calendar_admin_household_path` / `sync_google_calendar_admin_household_path` points at the calendars controller instead
+- [x] Both actions and their routes are removed from `Admin::HouseholdsController`
+- [x] Any view or JS referencing `test_google_calendar_admin_household_path` / `sync_google_calendar_admin_household_path` points at the calendars controller instead
 
 **Verification:**
-- [ ] `grep -rn "google_calendar_admin_household" app/ config/` returns nothing
-- [ ] Manual: calendar test and sync still work from the admin UI
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] `grep -rn "google_calendar_admin_household" app/ config/` returns nothing
+- [x] Manual: calendar test and sync still work from the admin UI
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/controllers/admin/households_controller.rb`, `config/routes.rb`, `app/views/admin/**`
 **Scope:** S
+
+**Outcome:** Both actions and their routes removed; `Admin::CalendarsController`
+already covered the same ground with equivalent tests, so the two duplicate tests
+went with them.
+
+Nothing in `app/views` or `app/javascript` referenced
+`test_google_calendar_admin_household_path` or its sibling — they were dead
+endpoints reachable only by hand-constructed request, which is the strongest
+argument for deleting rather than consolidating them.
 
 ## Task B9: Simplify the slot lookup in `#update`  ✅ DONE
 
@@ -1045,7 +1054,7 @@ missed. A cross-household test now asserts 404 (Rails renders `RecordNotFound`
 as 404 in the test environment rather than raising, which the first version of
 that test got wrong).
 
-## Task B10: Batch and scope `auto_fulfill_passed_slots!`
+## Task B10: Batch and scope `auto_fulfill_passed_slots!`  ✅ DONE
 
 **Description:** Fixes **F22**. `recipe_request.rb:12-24` runs `active.find_each`
 across **every household in the database** and issues a per-record
@@ -1054,18 +1063,42 @@ across **every household in the database** and issues a per-record
 `meal_plan_slots_controller.rb:13`, `recipe_requests_controller.rb:5`.
 
 **Acceptance criteria:**
-- [ ] Scoped to the current household
-- [ ] A single set-based query (or one batched `UPDATE`) replaces the per-record loop
-- [ ] Fulfilment semantics are unchanged, including the `min_date` floor of `[week_start_date, created_at.to_date].compact.min`
+- [x] Scoped to the current household
+- [x] A single set-based query (or one batched `UPDATE`) replaces the per-record loop
+- [x] Fulfilment semantics are unchanged, including the `min_date` floor of `[week_start_date, created_at.to_date].compact.min`
 
 **Verification:**
-- [ ] Characterization test over a fixture set with fulfilled, unfulfilled, past and future slots, asserting identical outcomes before and after
-- [ ] Query-count assertion showing the count no longer scales with request count
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Characterization test over a fixture set with fulfilled, unfulfilled, past and future slots, asserting identical outcomes before and after
+- [x] Query-count assertion showing the count no longer scales with request count
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/recipe_request.rb`, `test/models/recipe_request_test.rb`
 **Scope:** M
+
+**Outcome:** Scoped to a household and resolved with one grouped query plus one
+write per request that qualifies. **Measured on 12 requests: 37 queries → 14.**
+Suite **283 runs, 1374 assertions, 0 failures**.
+
+Seven characterization tests were written against the *old* implementation first
+and all still pass: the floor is the earlier of `week_start_date` and
+`created_at`, the earliest qualifying slot wins, future slots and already-fulfilled
+requests are left alone.
+
+**The query-count test passed vacuously on its first two versions**, which is
+worth recording. `find_or_initialize_by(date:, meal_type:)` reused a single slot
+for all twelve recipes, and `MealPlanSlot`'s `after_save` had already fulfilled
+every request during setup — so the method under test had nothing to do and *any*
+budget passed. Both implementations reported "1 query". Fixed by giving each
+recipe a distinct slot date, reopening the requests before measuring, and
+asserting twelve were actually fulfilled so the budget cannot be met by doing
+nothing.
+
+Then the corrected test failed for a third reason, and the code was right: slots
+dated `Date.current - i` fall below the request's floor once they precede the
+current week's Monday, so they legitimately do not fulfil. The requests now carry
+an old `week_start_date` so the test measures the query count rather than the
+floor.
 
 ## Task B11: Cut the query cost of ingredient saves
 

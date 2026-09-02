@@ -15,7 +15,7 @@ class MealPlansController < ApplicationController
     @next_week = @week_start + 7.days
 
     @recipes = current_household.recipes.alphabetical
-    RecipeRequest.auto_fulfill_passed_slots!
+    RecipeRequest.auto_fulfill_passed_slots!(current_household)
     @cravings = current_household.recipes.joins(:recipe_requests)
                                  .where(recipe_requests: { fulfilled_at: nil })
                                  .distinct
