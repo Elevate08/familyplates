@@ -66,14 +66,17 @@ class Admin::CalendarCredentialTest < ActionDispatch::IntegrationTest
     assert_nil @household.reload.google_service_account_json
   end
 
-  test "the field shows a Configured badge when a key is stored, and not otherwise" do
+  test "exactly one indicator says a key is stored" do
     get edit_admin_calendar_path
-    assert_select "[data-configured-field-target=indicator]", 1
-    assert_select "[data-controller=configured-field]", 1
+
+    assert_includes response.body, "Key Configured"
+    assert_select "[data-configured-field-target=indicator]", 0,
+      "the label row already says it - a second badge over the field is redundant"
 
     @household.update!(google_service_account_json: nil)
     get edit_admin_calendar_path
-    assert_select "[data-configured-field-target=indicator]", 0,
-      "nothing is stored, so nothing should claim to be configured"
+
+    assert_not_includes response.body, "Key Configured"
+    assert_includes response.body, "Key Required"
   end
 end
