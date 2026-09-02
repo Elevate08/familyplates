@@ -17,6 +17,7 @@
       <div class="absolute top-3 left-3 z-10" data-controller="stop-propagation" data-action="click->stop-propagation#stop">
         <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs shadow-md border border-white/60 dark:border-slate-700 cursor-pointer hover:scale-110 transition-transform">
           <input type="checkbox"
+                 id="recipe_select_<%= recipe.id %>"
                  value="<%= recipe.id %>"
                  data-meal-types="<%= recipe.meal_types_list.join(',') %>"
                  data-tags="<%= recipe.tag_list.join(',') %>"

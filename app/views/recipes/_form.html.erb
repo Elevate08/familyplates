@@ -58,7 +58,7 @@
         <div class="flex flex-wrap items-center gap-3">
           <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
             <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
-              <%= check_box_tag "recipe[meal_types][]", type, recipe.for_meal_type?(type), class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
+              <%= check_box_tag "recipe[meal_types][]", type, recipe.for_meal_type?(type), id: "recipe_meal_type_#{type}", class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
               <span><%= label %></span>
             </label>
           <% end %>

@@ -175,7 +175,7 @@
 
       <!-- Icon Picker -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</label>
+        <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</span>
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
           <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
             <label class="cursor-pointer group flex flex-col items-center">
@@ -193,7 +193,7 @@
 
       <!-- Color Swatches -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Theme Accent Color</label>
+        <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Theme Accent Color</span>
         <div class="flex flex-wrap items-center gap-2.5">
           <% FamilyMember::AVATAR_COLORS.each_with_index do |color, idx| %>
             <label class="cursor-pointer">

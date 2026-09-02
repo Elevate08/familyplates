@@ -32,7 +32,7 @@
 
     <!-- Icon Picker -->
     <div>
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</label>
+      <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</span>
       <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
         <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
           <% is_selected = (new_member.avatar_icon == icon_name) || (new_member.avatar_icon.blank? && idx == 0) %>
@@ -51,7 +51,7 @@
 
     <!-- Color Swatches -->
     <div>
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Profile Accent Color</label>
+      <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Profile Accent Color</span>
       <div class="flex flex-wrap items-center gap-2.5">
         <% FamilyMember::AVATAR_COLORS.each_with_index do |color, idx| %>
           <% is_selected = (new_member.avatar_color == color) || (new_member.avatar_color.blank? && idx == 0) %>
