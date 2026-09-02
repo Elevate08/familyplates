@@ -80,6 +80,27 @@ docker run -d \
 | `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |
 | `PORT` | `80` | Internal listening port inside the container. |
 
+## Running the tests
+
+```bash
+bin/rails test          # models, controllers, integration - fast, no browser
+bin/rails test:system   # browser-driven, needs Chrome or Chromium
+```
+
+System tests are excluded from `bin/rails test` on purpose, so the common case
+stays quick. They drive a real browser and **fail on anything the browser logs at
+SEVERE** — an uncaught exception, a Stimulus controller that will not register, a
+script the Content Security Policy refuses. That check is what catches the class
+of defect a request test cannot see, since request tests render HTML but never
+run it.
+
+Point `CHROME_BIN` at your browser if it is not the default:
+
+```bash
+CHROME_BIN=/usr/bin/chromium bin/rails test:system
+```
+
+
 ---
 
 ## 💻 Local Bare-Metal Development (Developers)

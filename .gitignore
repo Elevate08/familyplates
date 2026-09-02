@@ -48,7 +48,11 @@ config/*.json
 /test_output.txt
 /*.log
 
+# System test failure screenshots
+tmp/screenshots/
+
 # Ignore system artifacts
 .DS_Store
 *.swp
 *~
+tmp/screenshots/

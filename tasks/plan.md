@@ -397,6 +397,57 @@ its name. This is a deliberate exception, not an oversight.
 
 ---
 
+## System Test Harness (added after Stream B)
+
+Built at the user's direction, after browser testing found **six defects the
+294-test suite could not see**: a Stimulus controller that failed to register, two
+CSP misconfigurations, broken `<div>` nesting, and three query-count tests that
+passed while doing no work. Request tests render HTML; they never run it.
+
+`test/application_system_test_case.rb` drives headless Chromium via Capybara and
+Selenium — both gems were already in the Gemfile, but Rails' harness had never
+been set up.
+
+**The most valuable part is not any individual test.** It is
+`assert_no_browser_errors`, which runs in `teardown` on every system test and
+fails on anything the browser logged at SEVERE. Verified against the real
+regressions:
+
+| Reverted to | Caught by |
+|---|---|
+| The ESM syntax error that stopped `ingredient-autofill` registering | `Failed to register controller … SyntaxError: Unexpected identifier 'units'` |
+| The random-per-request CSP nonce that broke Turbo | `Executing inline script violates … Content Security Policy` |
+| The pre-fix dropdowns (Add on top, no arrows, menu sticks open) | 5 of the 8 interaction tests |
+
+External asset failures are filtered out — recipe images point at Unsplash and a
+test run should not need the internet — but the filter is scoped to
+`Failed to load resource` from a non-local host, so a **CSP refusal still fails**
+even for an external URL. That distinction is the point of the check.
+
+`bin/rails test` does not run these, so the common case stays fast. CI runs them
+as a separate `system_test` job that uploads failure screenshots.
+
+### Finding: `current_household` falls back to `Household.first`
+
+Building the harness surfaced a latent bug. `Authentication#current_household`
+returns `Current.household || Household.first`, and for an **unauthenticated**
+visitor there is no `Current.household` — so `/select_profile` lists the roster of
+whichever household sorts first by id.
+
+The fixtures carry two households, and the one with no members happened to sort
+first, so every browser test saw an empty profile picker. Request tests never hit
+it because signing in sets `Current.household` from the member.
+
+**In production this is harmless today** — the app locks to a single household
+after onboarding. It is a landmine rather than a live defect: any second
+`Household` row, from a bug or a manual insert, would silently change which
+family the sign-in page shows. Not fixed, because doing so means deciding what
+"the household" means for an app that assumes exactly one, which is a product
+question. The system test base deletes the extra fixture household so browser
+flows exercise the production shape.
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

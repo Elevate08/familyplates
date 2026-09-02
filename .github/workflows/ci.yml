@@ -88,3 +88,35 @@ jobs:
         env:
           RAILS_ENV: test
         run: bin/rails db:test:prepare test
+
+  # Separate job because these drive a real browser and are slower than the rest.
+  # They exist to catch what a request test structurally cannot: JavaScript that
+  # fails to load, scripts the Content Security Policy refuses, and interactions
+  # that render fine but do not work.
+  system_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Run system tests
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:test:prepare test:system
+
+      - name: Keep the failure screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: system-test-screenshots
+          path: tmp/screenshots
+          if-no-files-found: ignore
