@@ -303,14 +303,26 @@ export default class extends Controller {
     this.setHighlight(kind, null)
   }
 
-  // Closes both menus once focus has genuinely left the row, rather than moving
-  // between the input and its own dropdown. They used to stay open behind
-  // whatever the user tabbed to next.
+  // Each menu closes as soon as focus leaves *its own* input and menu - not when
+  // focus leaves the row. Scoping this to the row was too broad: tabbing from
+  // the name field to the aisle select stays inside the row, so the menu stayed
+  // open, sitting over the select the user had just moved to.
   onFocusOut(event) {
-    if (event.relatedTarget && this.element.contains(event.relatedTarget)) return
+    const moved = event.relatedTarget
 
-    this.closeNameDropdown()
-    this.closeUnitDropdown()
+    if (!this.stillWithin(moved, this.nameInputTarget, this.hasNameDropdownTarget && this.nameDropdownTarget)) {
+      this.closeNameDropdown()
+    }
+
+    if (!this.stillWithin(moved, this.unitInputTarget, this.hasUnitDropdownTarget && this.unitDropdownTarget)) {
+      this.closeUnitDropdown()
+    }
+  }
+
+  stillWithin(node, ...regions) {
+    if (!node) return false
+
+    return regions.some(region => region && (region === node || region.contains(node)))
   }
 
   updateUnitDropdown(query) {

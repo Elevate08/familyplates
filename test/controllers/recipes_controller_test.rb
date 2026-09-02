@@ -281,10 +281,22 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     get edit_recipe_url(recipe)
     assert_response :success
 
-    # The ingredient rows used bare <label> tags with no `for`, so nothing tied
-    # them to the field beneath - four per row, on every row. Labels elsewhere in
-    # this form wrap their input instead, which associates them correctly, so
-    # this checks the rows rather than banning bare labels outright.
+    # Every label must be associated: by `for` pointing at a real id, or by
+    # wrapping its input. The browser reports each unassociated one, and the
+    # ingredient rows produced four per row.
+    doc = Nokogiri::HTML5(response.body)
+    ids = doc.css("[id]").map { |n| n["id"] }.to_set
+
+    dangling = doc.css("label[for]").reject { |l| ids.include?(l["for"]) }
+    assert_empty dangling.map { |l| l["for"] }, "label for= pointing at no such id"
+
+    orphaned = doc.css("label:not([for])").reject { |l| l.css("input,select,textarea").any? }
+    assert_empty orphaned.map { |l| l.text.strip[0, 40] },
+      "labels associated with nothing - use for=, wrap the input, or use a legend"
+
+    nameless = doc.css("input,select,textarea").reject { |f| f["id"] || f["name"] }
+    assert_empty nameless.map { |f| f["class"].to_s[0, 40] },
+      "form fields with neither id nor name"
 
     %w[quantity unit name aisle_category].each do |field|
       assert_match(/<label[^>]+for="[^"]*_#{field}"/, response.body,
