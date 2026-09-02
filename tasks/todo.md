@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 250 runs, 1199 assertions, 0 failures** (Stream A complete; Stream B: B1). Every
+GREEN at 255 runs, 1218 assertions, 0 failures** (Stream A complete; Stream B: B1, B2). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -735,7 +735,7 @@ Brakeman clean.
 `config.active_model.secure_password_min_cost = true` in the test environment,
 or bcrypt's real cost factor adds ~100ms to each of the suite's many sign-ins.
 
-## Task B2: Encrypt the Google service-account credential and stop echoing it
+## Task B2: Encrypt the Google service-account credential and stop echoing it  ✅ DONE
 
 **Description:** Fixes **F17**. `households.google_service_account_json` is a
 plaintext `text` column (`db/schema.rb:60`), and
@@ -743,18 +743,41 @@ plaintext `text` column (`db/schema.rb:60`), and
 into a `text_area` on every visit to the admin calendar page.
 
 **Acceptance criteria:**
-- [ ] `encrypts :google_service_account_json` on `Household`, with a migration re-encrypting existing values
-- [ ] The form field is never repopulated; it shows only a configured/not-configured indicator plus explicit "replace" and "remove" actions
-- [ ] Submitting the form blank leaves the stored credential untouched
+- [x] `encrypts :google_service_account_json` on `Household`, with a migration re-encrypting existing values
+- [x] The form field is never repopulated; it shows only a configured/not-configured indicator plus explicit "replace" and "remove" actions
+- [x] Submitting the form blank leaves the stored credential untouched
 
 **Verification:**
-- [ ] Request test: `GET /admin/calendar/edit` response body does not contain `"private_key"` or any stored key material
-- [ ] Request test: submitting the form with a blank credential field preserves the existing value
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Request test: `GET /admin/calendar/edit` response body does not contain `"private_key"` or any stored key material
+- [x] Request test: submitting the form with a blank credential field preserves the existing value
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/household.rb`, `app/views/admin/calendars/edit.html.erb`, `app/controllers/admin/calendars_controller.rb`, `db/migrate/*`, tests
 **Scope:** M
+
+**Outcome:** `encrypts :google_service_account_json`; the field is never rendered
+back; blank means unchanged and removal is an explicit checkbox. Suite **255 runs,
+1218 assertions, 0 failures**; RuboCop and Brakeman clean.
+
+**Key strategy — environment variables, not credentials, not derived.** Rails'
+default reads the keys from `credentials.yml.enc`, which needs `RAILS_MASTER_KEY`;
+this app ships none and deploys with `SECRET_KEY_BASE` alone, so credentials are
+unreadable in production. Env vars are also what comparable self-hosted Rails apps
+use. **Deliberately not derived from `SECRET_KEY_BASE`**: A12 tells anyone who ran
+the default compose file to rotate that key, and rotation must not also destroy
+every encrypted value. Two keys, not three — `deterministic_key` is only needed
+for `deterministic: true`, and nothing is queried by this value.
+
+**Upgrades degrade rather than break.** Verified in Rails' source that missing keys
+raise lazily, on first encrypt/decrypt, not at boot — so an install that never uses
+Google Calendar is unaffected. `support_unencrypted_data` keeps existing plaintext
+rows readable, the migration skips with a printed explanation when keys are absent,
+and `Admin::CalendarsController#update` catches the configuration error and says
+what to set instead of returning a 500 naming an internal error class.
+
+**The migration refuses to roll back** — reversing it would write private keys back
+to the database in clear text, which is the state it exists to remove.
 
 ## Task B3: Correct the encryption claims in `docs/architecture.md`
 

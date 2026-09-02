@@ -26,6 +26,11 @@ Rails.application.configure do
   # sign-in, and the suite signs in constantly. Correctness is unaffected.
   config.active_model.secure_password_min_cost = true
 
+  # Fixed, non-secret keys so encrypted attributes work in tests. Production
+  # takes these from the environment - see config/initializers/active_record_encryption.rb.
+  config.active_record.encryption.primary_key = "test-only-primary-key-not-a-secret"
+  config.active_record.encryption.key_derivation_salt = "test-only-derivation-salt-not-a-secret"
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

@@ -73,6 +73,8 @@ docker run -d \
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `SECRET_KEY_BASE` | *(Required in prod)* | 64-byte random key used for encrypted cookies and credentials. |
+| `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` | *(Required for Google Calendar)* | Encrypts the stored Google service account key. `openssl rand -hex 32`. Must not change once set. |
+| `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` | *(Required for Google Calendar)* | Paired with the key above. `openssl rand -hex 32`. Must not change once set. |
 | `RAILS_ENV` | `production` | Environment mode (`production`, `development`, `test`). |
 | `RAILS_SERVE_STATIC_FILES` | `true` | Serves compiled CSS/JS assets directly from the application. |
 | `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |

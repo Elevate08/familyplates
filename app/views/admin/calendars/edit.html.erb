@@ -76,11 +76,28 @@
             </span>
           <% end %>
         </div>
-        <%= f.text_area :google_service_account_json, rows: 4, placeholder: 'Paste the contents of your downloaded Google Service Account JSON file here (starts with {"type": "service_account", ...})',
+        <%# value: nil - the stored key is never rendered back into the page. It
+            used to be, on every visit, which put a private key into the DOM, the
+            browser cache and any screenshot of this screen. %>
+        <%= f.text_area :google_service_account_json, value: nil, rows: 4,
+              placeholder: GoogleCalendarService.configured?(@household) ?
+                "A key is stored. Paste a new one here only to replace it." :
+                'Paste the contents of your downloaded Google Service Account JSON file here (starts with {"type": "service_account", ...})',
               class: "w-full font-mono text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
           Generated from Google Cloud Console > IAM & Admin > Service Accounts > Keys > Create JSON Key.
+          <% if GoogleCalendarService.configured?(@household) %>
+            Leave blank to keep the stored key.
+          <% end %>
         </p>
+
+        <% if GoogleCalendarService.configured?(@household) %>
+          <div class="mt-2">
+            <%= f.check_box :remove_google_service_account_json, { class: "rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5 cursor-pointer align-middle" }, "1", "0" %>
+            <%= f.label :remove_google_service_account_json, "Remove the stored key",
+                  class: "text-xs font-semibold text-rose-600 dark:text-rose-400 cursor-pointer align-middle ml-1" %>
+          </div>
+        <% end %>
       </div>
 
       <!-- Step 2: Service Account Email Display -->

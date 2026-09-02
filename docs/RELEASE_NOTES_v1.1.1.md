@@ -82,6 +82,29 @@ these are now inserted as text.
 - **Recipe import of an unreachable link created a blank placeholder recipe**
   instead of reporting the failure.
 
+### Google Calendar credentials are encrypted at rest
+
+The service account private key was stored in clear text and rendered back into
+the admin settings page on every visit. It is now encrypted in the database and
+never returned to the page — the field shows whether a key is stored, and a blank
+field means "keep it".
+
+**If you use Google Calendar sync, set two new variables before upgrading:**
+
+```bash
+openssl rand -hex 32   # ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+openssl rand -hex 32   # ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+```
+
+They must not change once set, or the stored key becomes unreadable. They are
+deliberately separate from `SECRET_KEY_BASE`, so rotating that (see above) does
+not destroy them. If you upgrade without setting them, everything else works and
+your existing key stays readable — the app will tell you what to set when you next
+save calendar settings.
+
+**Rotate your Google service account key regardless.** It has been rendered into
+the settings page on every visit up to this release.
+
 ## Still outstanding, planned for v1.2.0
 
 - PINs and Google service-account credentials are still stored unencrypted. Both
