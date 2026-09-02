@@ -53,9 +53,6 @@ export default class extends Controller {
     return host.__ingredientCatalogue
   }
 
-    units: { type: Array, default: [] }
-  }
-
   connect() {
     this._handleClickOutside = this.handleClickOutside.bind(this)
     document.addEventListener("click", this._handleClickOutside)
