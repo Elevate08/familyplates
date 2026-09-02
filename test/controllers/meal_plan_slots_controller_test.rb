@@ -3,6 +3,7 @@ require "test_helper"
 class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @admin = family_members(:one)
+    @household = households(:one)
     @meal_plan = meal_plans(:one)
     sign_in_as(@admin)
   end
@@ -179,5 +180,58 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
       delete meal_plan_meal_plan_slot_url(@meal_plan, slot)
     end
     assert_redirected_to root_url
+  end
+
+  # --- Moving a slot -----------------------------------------------------------
+  #
+  # A move can displace whatever occupies the destination. The controller used to
+  # destroy that occupant and only then attempt the update, outside a
+  # transaction, so a failure on the second half lost the destination for good.
+
+  test "moving onto an occupied slot replaces it" do
+    plan = @household.current_meal_plan
+    source = plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "lunch", custom_title: "Soup")
+    dest = plan.meal_plan_slots.create!(date: plan.week_start_date + 1, meal_type: "lunch", custom_title: "Salad")
+
+    patch meal_plan_meal_plan_slot_url(plan, source), params: {
+      meal_plan_slot: { date: (plan.week_start_date + 1).to_s, meal_type: "lunch" }
+    }
+
+    assert_nil MealPlanSlot.find_by(id: dest.id), "the displaced slot should be gone"
+    assert_equal plan.week_start_date + 1, source.reload.date
+    assert_equal "Soup", source.custom_title
+  end
+
+  test "a failed move leaves both slots exactly as they were" do
+    plan = @household.current_meal_plan
+    source = plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "lunch", custom_title: "Soup")
+    dest = plan.meal_plan_slots.create!(date: plan.week_start_date + 1, meal_type: "lunch", custom_title: "Salad")
+
+    # The failure has to land *after* the destination is destroyed, so the move
+    # target must match it exactly and something else must break. A recipe id
+    # that does not exist trips the foreign key on the source update. Driven over
+    # HTTP so this is a regression test against the old two-step controller
+    # rather than a test of the new method's signature.
+    patch meal_plan_meal_plan_slot_url(plan, source), params: {
+      meal_plan_slot: { date: (plan.week_start_date + 1).to_s, meal_type: "lunch", recipe_id: 999_999 }
+    }
+
+    assert MealPlanSlot.exists?(dest.id), "the destination must survive a failed move"
+    assert_equal "Salad", dest.reload.custom_title
+    assert_equal plan.week_start_date, source.reload.date, "and the source must not have moved"
+    assert_equal "lunch", source.meal_type
+    assert_nil source.recipe_id
+  end
+
+  test "a slot from another household cannot be updated" do
+    other = households(:two)
+    other_plan = other.meal_plans.create!(week_start_date: Date.new(2026, 3, 2))
+    other_slot = other_plan.meal_plan_slots.create!(date: Date.new(2026, 3, 2), meal_type: "dinner", custom_title: "Not Yours")
+
+    patch meal_plan_meal_plan_slot_url(@household.current_meal_plan, other_slot),
+          params: { meal_plan_slot: { custom_title: "Hijacked" } }
+
+    assert_response :not_found
+    assert_equal "Not Yours", other_slot.reload.custom_title
   end
 end

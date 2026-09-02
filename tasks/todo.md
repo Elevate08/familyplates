@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 259 runs, 1298 assertions, 0 failures** (Stream A complete; Stream B: B1–B4). Every
+GREEN at 268 runs, 1332 assertions, 0 failures** (Stream A complete; Stream B: B1–B5, B9). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -879,7 +879,7 @@ request, verified matching header-to-tag across six pages.
 HTML and that every inline script is nonced. It cannot prove a converted handler
 still *does* what it did. See the checklist handed to the user.
 
-## Task B5: Make the meal-slot move atomic
+## Task B5: Make the meal-slot move atomic  ✅ DONE
 
 **Description:** Fixes **F7**. `meal_plan_slots_controller.rb:63` destroys the
 destination slot and only then attempts `@slot.update` at `:73`, outside any
@@ -887,16 +887,35 @@ transaction — so a validation or persistence failure permanently loses the
 destination while the source stays put.
 
 **Acceptance criteria:**
-- [ ] Destination replacement and source update happen inside one transaction; a failure leaves both records untouched
-- [ ] The move is extracted to a model/domain operation rather than living in the controller
+- [x] Destination replacement and source update happen inside one transaction; a failure leaves both records untouched
+- [x] The move is extracted to a model/domain operation rather than living in the controller
 
 **Verification:**
-- [ ] New test forcing the source update to fail: both slots present and unchanged afterwards
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New test forcing the source update to fail: both slots present and unchanged afterwards
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/controllers/meal_plan_slots_controller.rb`, `app/models/meal_plan_slot.rb`, `test/controllers/meal_plan_slots_controller_test.rb`
 **Scope:** M
+
+**Outcome:** `MealPlanSlot#move` wraps destination replacement and source update
+in one transaction and returns true/false like `#update`, so the controller reads
+the same way. Suite **268 runs, 1332 assertions, 0 failures**.
+
+**Finding the real failure mode took three attempts, and the first two were
+worthless tests.** An invalid `meal_type` does not reproduce the bug: the
+destination lookup keys on `(date, meal_type)`, so an invalid one matches nothing
+and there is no destroy to roll back. The bug needs a failure that lands *after*
+the destroy — the move target must match the destination exactly and something
+else must break. A `recipe_id` that does not exist trips the foreign key on the
+source update. Confirmed against the old controller: it destroys the destination
+and then raises `InvalidForeignKey`, losing the slot for good.
+
+That also exposed a second defect: nothing caught `InvalidForeignKey`, so a bogus
+`recipe_id` returned a 500. `#move` now reports it as a validation error.
+
+The test drives HTTP rather than calling `#move`, so it is a regression test
+against the old controller rather than a test of the new method's signature.
 
 ## Task B6: Preserve an explicitly chosen "Other" aisle
 
@@ -962,7 +981,7 @@ their redirect target.
 **Files:** `app/controllers/admin/households_controller.rb`, `config/routes.rb`, `app/views/admin/**`
 **Scope:** S
 
-## Task B9: Simplify the slot lookup in `#update`
+## Task B9: Simplify the slot lookup in `#update`  ✅ DONE
 
 **Description:** Fixes **F21**. `meal_plan_slots_controller.rb:49` chains a join,
 a `first`, an association `find_by` and an `||` fallback. `Household` already
@@ -971,17 +990,26 @@ this reduces to `current_household.meal_plan_slots.find(params[:id])`. Ordered
 after B5, which restructures the same action.
 
 **Acceptance criteria:**
-- [ ] The lookup is a single association query
-- [ ] A slot belonging to another household still raises `RecordNotFound`
+- [x] The lookup is a single association query
+- [x] A slot belonging to another household still raises `RecordNotFound`
 
 **Verification:**
-- [ ] Existing meal-plan-slot tests pass unchanged
-- [ ] New test: updating a slot from another household → 404
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Existing meal-plan-slot tests pass unchanged
+- [x] New test: updating a slot from another household → 404
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B5
 **Files:** `app/controllers/meal_plan_slots_controller.rb`, `test/controllers/meal_plan_slots_controller_test.rb`
 **Scope:** XS
+
+**Outcome:** Done alongside B5, same action. Four chained clauses became
+`current_household.meal_plan_slots.find(params[:id])`.
+
+The old chain did more than repeat itself: its `|| @meal_plan.meal_plan_slots.find(...)`
+fallback quietly widened the scope to the current plan whenever the first lookup
+missed. A cross-household test now asserts 404 (Rails renders `RecordNotFound`
+as 404 in the test environment rather than raising, which the first version of
+that test got wrong).
 
 ## Task B10: Batch and scope `auto_fulfill_passed_slots!`
 
