@@ -13,7 +13,7 @@
 
   <!-- Numerical Quantity -->
   <div class="w-full sm:w-24 shrink-0">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Quantity</label>
+    <%= f.label :quantity, "Quantity", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :quantity, value: (f.object.quantity.present? ? f.object.display_quantity : nil),
           placeholder: "Qty (1)",
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold" %>
@@ -21,7 +21,7 @@
 
   <!-- Measurement Unit with Live Autocomplete and Custom Unit Creation -->
   <div class="w-full sm:w-32 shrink-0 relative">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Measurement</label>
+    <%= f.label :unit, "Measurement", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :unit, 
           placeholder: "Unit (cups, count)",
           data: { 
@@ -40,7 +40,7 @@
         <!-- Matching Units List -->
         <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
         <div data-ingredient-autofill-target="createUnitOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
-          <button type="button"
+          <button type="button" tabindex="-1"
                   data-action="click->ingredient-autofill#handleCreateUnitClick"
                   class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
             <span class="flex items-center gap-1.5 truncate">
@@ -56,7 +56,7 @@
 
   <!-- Ingredient Name with Live Autocomplete and Inline Creation -->
   <div class="flex-1 w-full relative">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Ingredient Name</label>
+    <%= f.label :name, "Ingredient Name", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :name, 
           placeholder: "Ingredient name (e.g. Chicken Breast, Garlic)",
           data: { 
@@ -75,7 +75,7 @@
         <!-- Matching List -->
         <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
         <div data-ingredient-autofill-target="createNameOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
-          <button type="button"
+          <button type="button" tabindex="-1"
                   data-action="click->ingredient-autofill#handleCreateNameClick"
                   class="w-full text-left px-3 py-2 rounded-2xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
             <span class="flex items-center gap-1.5 truncate">
@@ -91,7 +91,7 @@
 
   <!-- Grocery Aisle Category Selector -->
   <div class="w-full sm:w-44 shrink-0">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Grocery Aisle</label>
+    <%= f.label :aisle_category, "Grocery Aisle", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.select :aisle_category, RecipeIngredient::AISLE_CATEGORIES.map { |c| [c, c] }, {},
           data: { "ingredient-autofill-target": "aisleSelect" },
           class: "themed-select w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold cursor-pointer" %>

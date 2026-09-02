@@ -81,6 +81,12 @@ export default class extends Controller {
 
     if (event.key === "Enter") {
       event.preventDefault()
+      const highlighted = this.highlightedOption("name")
+      if (highlighted?.dataset?.ingredientName) {
+        this.selectIngredient(highlighted.dataset.ingredientName, highlighted.dataset.ingredientAisle)
+        return
+      }
+
       const query = this.nameInputTarget.value.trim()
       if (query.length === 0) return
 
@@ -118,6 +124,7 @@ export default class extends Controller {
     matching.slice(0, 8).forEach(item => {
       const btn = document.createElement("button")
       btn.type = "button"
+      btn.tabIndex = -1
       btn.dataset.ingredientName = item.name
       btn.dataset.ingredientAisle = item.aisle
       btn.className = "w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
@@ -223,6 +230,12 @@ export default class extends Controller {
 
     if (event.key === "Enter") {
       event.preventDefault()
+      const highlighted = this.highlightedOption("unit")
+      if (highlighted?.dataset?.unitName) {
+        this.selectUnit(highlighted.dataset.unitName)
+        return
+      }
+
       const query = this.unitInputTarget.value.trim()
       if (query.length === 0) return
 
@@ -316,6 +329,7 @@ export default class extends Controller {
     matching.slice(0, 8).forEach(unit => {
       const btn = document.createElement("button")
       btn.type = "button"
+      btn.tabIndex = -1
       btn.dataset.unitName = unit
       btn.className = "w-full text-left px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
       replaceChildren(btn,

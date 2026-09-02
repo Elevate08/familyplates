@@ -272,4 +272,29 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "focusout->ingredient-autofill#onFocusOut",
       "without this the menu stays open behind whatever the user tabs to next"
   end
+
+  test "every ingredient field is associated with a label and dropdown options are not tab stops" do
+    sign_in_as(@admin)
+    recipe = households(:one).recipes.create!(title: "Labelled", instructions: "x")
+    recipe.recipe_ingredients.create!(name: "Chicken", unit: "lbs", quantity: 1)
+
+    get edit_recipe_url(recipe)
+    assert_response :success
+
+    # The ingredient rows used bare <label> tags with no `for`, so nothing tied
+    # them to the field beneath - four per row, on every row. Labels elsewhere in
+    # this form wrap their input instead, which associates them correctly, so
+    # this checks the rows rather than banning bare labels outright.
+
+    %w[quantity unit name aisle_category].each do |field|
+      assert_match(/<label[^>]+for="[^"]*_#{field}"/, response.body,
+        "#{field} has no associated label")
+    end
+
+    # The menus are navigated with arrow keys. Leaving their buttons in the tab
+    # order meant Tab walked into an open menu rather than out of it, so the menu
+    # never saw focus leave.
+    assert_operator response.body.scan(/tabindex="-1"/).length, :>=, 2,
+      "the create options should be out of the tab order"
+  end
 end
