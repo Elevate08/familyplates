@@ -302,4 +302,22 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "1234",
       "a prefilled or suggested PIN becomes the real one for anyone who clicks through"
   end
+
+  test "the recipes step renders well-formed markup with an image per starter recipe" do
+    sign_in_as(family_members(:one))
+
+    get onboarding_recipes_url
+    assert_response :success
+
+    # A stray closing tag still parses as ERB and still passes a status
+    # assertion; it only shows up as a mangled page. Count the tags instead.
+    assert_equal response.body.scan(/<div\b/).length, response.body.scan("</div>").length,
+      "unbalanced <div> tags - the layout will be broken"
+
+    starters = YAML.load_file(Rails.root.join("config/starter_recipes.yml"))["starter_recipes"]
+    with_images = starters.count { |r| r["image_url"].present? }
+    assert_operator with_images, :>, 0, "precondition: starter recipes ship with images"
+    assert_equal with_images, response.body.scan(/<img[^>]+images\.unsplash/).length,
+      "every starter recipe with an image_url should render its image"
+  end
 end
