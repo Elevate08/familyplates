@@ -40,7 +40,7 @@
           <!-- Recipe Image Banner -->
           <div class="relative h-44 sm:h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <% if recipe["image_url"].present? %>
-              <img src="<%= recipe["image_url"] %>" alt="<%= recipe["title"] %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+              <img src="<%= recipe["image_url"] %>" alt="<%= recipe["title"] %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-controller="image-fallback" data-action="error->image-fallback#failed">
               <div class="hidden absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-amber-500/20 via-primary-500/15 to-orange-500/20 dark:from-slate-800 dark:to-slate-700 p-4 text-center">
                 <div class="w-12 h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm mb-1.5">
                   <%= icon_tag("utensils", css_class: "w-6 h-6") %>

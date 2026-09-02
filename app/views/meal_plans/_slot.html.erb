@@ -132,7 +132,7 @@
                             is_leftover: true
                           }
                         },
-                        onclick: "event.stopPropagation()",
+                        data: { controller: "stop-propagation", action: "click->stop-propagation#stop" },
                         title: "Use leftovers from #{cand[:source_label]}: #{cand[:recipe].title}",
                         class: "w-full flex flex-col items-center justify-center p-2 rounded-xl text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200/80 dark:border-purple-800 transition-all cursor-pointer shadow-2xs group/leftover text-center" do %>
                     <div class="w-full text-center">
@@ -208,7 +208,7 @@
                     <button type="button"
                             data-action="click->slot-modal#selectRecipe"
                             data-recipe-id="<%= cand[:recipe].id %>"
-                            onclick="const cb = this.closest('form').querySelector('input[name=\'meal_plan_slot[is_leftover]\']'); if (cb) cb.checked = true;"
+                            data-action="click->slot-modal#markAsLeftover"
                             class="flex flex-col items-start px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-300 transition-all shadow-2xs cursor-pointer group/cand text-left">
                       <span class="text-xs font-extrabold group-hover/cand:text-purple-700 dark:group-hover/cand:text-purple-200"><%= cand[:recipe].title %></span>
                       <span class="text-[9.5px] text-purple-500 dark:text-purple-400 font-semibold mt-0.5">(<%= cand[:source_label] %>)</span>

@@ -21,7 +21,7 @@
     <%= yield :head %>
 
     <!-- Immediate Theme Initialization (Follows System Setting by Default without FOUC) -->
-    <script>
+    <script nonce="<%= content_security_policy_nonce %>">
       (function() {
         const theme = localStorage.getItem('familyplates_theme') || 'system';
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -41,7 +41,7 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
 
-    <script>
+    <script nonce="<%= content_security_policy_nonce %>">
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/service-worker.js").catch(() => {});

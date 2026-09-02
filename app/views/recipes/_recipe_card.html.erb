@@ -2,7 +2,7 @@
   <!-- Recipe Image Banner (Uniform Height & Scaling) -->
   <div class="relative w-full h-48 sm:h-52 overflow-hidden bg-slate-100 dark:bg-slate-700 shrink-0">
     <%= link_to recipe_path(recipe), class: "block w-full h-full cursor-pointer relative", aria: { label: "View #{recipe.title}" } do %>
-      <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+      <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" data-controller="image-fallback" data-action="error->image-fallback#failed">
       <div class="hidden absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-amber-500/20 via-primary-500/15 to-orange-500/20 dark:from-slate-800 dark:to-slate-700 p-4 text-center">
         <div class="w-10 h-10 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm mb-1">
           <%= icon_tag("utensils", css_class: "w-5 h-5") %>
@@ -14,7 +14,7 @@
 
     <!-- Multi-select checkbox top left (Admins only) -->
     <% if current_family_member&.admin? %>
-      <div class="absolute top-3 left-3 z-10" onclick="event.stopPropagation()">
+      <div class="absolute top-3 left-3 z-10" data-controller="stop-propagation" data-action="click->stop-propagation#stop">
         <label class="inline-flex items-center justify-center p-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs shadow-md border border-white/60 dark:border-slate-700 cursor-pointer hover:scale-110 transition-transform">
           <input type="checkbox"
                  value="<%= recipe.id %>"
@@ -48,7 +48,7 @@
     <% end %>
 
     <!-- Craving Heart overlay on image top right -->
-    <div class="absolute top-3 right-3 z-10" onclick="event.stopPropagation()">
+    <div class="absolute top-3 right-3 z-10" data-controller="stop-propagation" data-action="click->stop-propagation#stop">
       <%= render "recipe_requests/heart_button", recipe: recipe %>
     </div>
   </div>

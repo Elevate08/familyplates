@@ -54,7 +54,7 @@
           </div>
         <% elsif member.requires_pin? %>
           <button type="button"
-                  onclick="openNavPinModal('<%= member.id %>', '<%= j member.name %>', '<%= member.avatar_color %>', '<%= member.initial %>')"
+                  data-controller="pin-launcher" data-pin-launcher-modal-value="nav" data-pin-launcher-member-id-value="<%= member.id %>" data-pin-launcher-member-name-value="<%= member.name %>" data-pin-launcher-member-color-value="<%= member.avatar_color %>" data-pin-launcher-member-initial-value="<%= member.initial %>" data-action="click->pin-launcher#open"
                   class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 transition-all cursor-pointer text-left shadow-2xs group">
             <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0 group-hover:scale-105 transition-transform"
                   style="background-color: <%= member.avatar_color %>">
@@ -211,7 +211,7 @@
           <% admin_member = @family_members.find(&:admin?) %>
           <% if admin_member %>
             <button type="button"
-                    onclick="openNavPinModal('<%= admin_member.id %>', '<%= j admin_member.name %>', '<%= admin_member.avatar_color %>', '<%= admin_member.initial %>')"
+                    data-controller="pin-launcher" data-pin-launcher-modal-value="nav" data-pin-launcher-member-id-value="<%= admin_member.id %>" data-pin-launcher-member-name-value="<%= admin_member.name %>" data-pin-launcher-member-color-value="<%= admin_member.avatar_color %>" data-pin-launcher-member-initial-value="<%= admin_member.initial %>" data-action="click->pin-launcher#open"
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer">
               <span>🔒 Unlock Admin as <%= admin_member.name %></span>
             </button>

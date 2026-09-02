@@ -123,6 +123,13 @@ export default class extends Controller {
     }
   }
 
+  // Was an inline onclick that walked up to the form and ticked the checkbox.
+  markAsLeftover(event) {
+    const form = event.target.closest("form")
+    const checkbox = form?.querySelector("input[name='meal_plan_slot[is_leftover]']")
+    if (checkbox) checkbox.checked = true
+  }
+
   syncSelectedRecipeDisplay() {
     if (!this.hasRecipeInputTarget || !this.hasRecipeSelectedDisplayTarget) return
 

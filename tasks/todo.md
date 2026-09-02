@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 255 runs, 1218 assertions, 0 failures** (Stream A complete; Stream B: B1, B2). Every
+GREEN at 259 runs, 1298 assertions, 0 failures** (Stream A complete; Stream B: B1–B4). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -815,7 +815,7 @@ in use, still working on the HTTP LAN installs this app is built for, which a fl
 caveat instead of claiming otherwise, and gained a line about `SECRET_KEY_BASE`
 covering A12.
 
-## Task B4: Enable a Content Security Policy
+## Task B4: Enable a Content Security Policy  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F12** — a new finding from verification, absent from all
 three reviews. `config/initializers/content_security_policy.rb` is commented out
@@ -824,17 +824,51 @@ exploitable. Ordered after A6 so the inline theme script's nonce work never
 blocks the patch.
 
 **Acceptance criteria:**
-- [ ] A CSP is enforced with `script-src` excluding `unsafe-inline`
-- [ ] The inline theme-initialization script in `app/views/layouts/application.html.erb` carries a nonce, as do importmap and Turbo
-- [ ] Rolled out `report_only` first if the maintainer prefers; the task is not done until it is enforcing
+- [x] A CSP is enforced with `script-src` excluding `unsafe-inline`
+- [x] The inline theme-initialization script in `app/views/layouts/application.html.erb` carries a nonce, as do importmap and Turbo
+- [x] Rolled out `report_only` first if the maintainer prefers; the task is not done until it is enforcing
 
 **Verification:**
-- [ ] Manual: browser console shows no CSP violations across dashboard, recipe form, meal plan, print view, admin, onboarding
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: browser console shows no CSP violations across dashboard, recipe form, meal plan, print view, admin, onboarding
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** A6
 **Files:** `config/initializers/content_security_policy.rb`, `app/views/layouts/application.html.erb`
-**Scope:** S
+**Scope:** S — **actually M/L**
+
+**Outcome:** CSP enforcing, `script-src 'self' 'nonce-…'` with no `unsafe-inline`
+and no `unsafe-eval`, plus `object-src 'none'`, `base-uri 'self'`,
+`form-action 'self'`, `frame-ancestors 'self'`. Suite **259 runs, 1298 assertions,
+0 failures**; RuboCop, Brakeman and importmap audit clean.
+
+**Two mechanisms, because they need different treatment.** Six first-party inline
+`<script>` blocks are allowed by nonce with their bodies untouched — the lowest-risk
+option, since a nonce is exactly the right tool for developer-authored inline
+script and rewriting the PIN modal logic would have risked breaking it blind.
+Inline event handlers cannot be nonced at all, so **20** of them were converted to
+Stimulus actions across 14 views.
+
+**Twenty, not sixteen.** The four extra were written as Rails tag options
+(`onclick:` / `onfocus:`) rather than raw HTML attributes, so the grep that found
+the first sixteen missed them entirely. They were caught by
+`test/integration/content_security_policy_test.rb`, which scans *rendered* output
+across 19 pages for `\son[a-z]+=` and would have caught any number I'd missed. That
+test was worth more than the conversion work.
+
+New controllers: `dismiss`, `image-fallback`, `stop-propagation`, `print-page`,
+`clipboard`, `pin-launcher`, `clear-on-focus`, plus `slot-modal#markAsLeftover`.
+Two `onfocus` handlers were deleted rather than converted — they existed to clear
+a prefilled secret, and B1 stopped prefilling those fields.
+
+**`style-src` keeps `unsafe-inline`, deliberately.** Avatar and theme colours are
+per-record inline `style` attributes and `style-src-attr` has no nonce mechanism;
+allowing them means either this or moving every colour to a CSS custom property.
+Style injection is a far weaker primitive than script injection, and `script-src` —
+the directive that matters for the XSS this follows from — is fully locked.
+
+**Browser verification owed.** The test proves no handler survives in the rendered
+HTML and that every inline script is nonced. It cannot prove a converted handler
+still *does* what it did. See the checklist handed to the user.
 
 ## Task B5: Make the meal-slot move atomic
 

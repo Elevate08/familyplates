@@ -110,10 +110,11 @@
           <p class="text-xs text-emerald-800 dark:text-emerald-400 leading-relaxed">
             In Google Calendar settings under <em>"Share with specific people or groups"</em>, add this email and set permission to <strong>"Make changes to events"</strong>:
           </p>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" data-controller="clipboard" data-clipboard-confirmation-value="Copied!">
             <input type="text" readonly value="<%= @service_email %>" id="service-account-email"
+                   data-clipboard-target="source"
                    class="w-full font-mono text-xs px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-100 select-all font-semibold">
-            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('service-account-email').value); alert('Service Account email copied to clipboard!');"
+            <button type="button" data-action="click->clipboard#copy" data-clipboard-target="feedback"
                     class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 shadow-xs">
               Copy Email
             </button>
