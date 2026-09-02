@@ -77,7 +77,13 @@ module Authentication
   def start_new_session_for(member)
     Current.family_member = member
     Current.household = member.household
-    cookies.signed.permanent[:active_family_member_id] = { value: member.id, httponly: true, same_site: :lax }
+    # secure: request.ssl? rather than a flat true - a Secure cookie is never
+    # sent over plain HTTP, and plenty of these run on a LAN with no TLS at all.
+    # This marks it Secure wherever TLS is actually in use and stays working
+    # where it is not.
+    cookies.signed.permanent[:active_family_member_id] = {
+      value: member.id, httponly: true, same_site: :lax, secure: request.ssl?
+    }
   end
 
   def terminate_session

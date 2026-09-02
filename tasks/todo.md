@@ -779,7 +779,7 @@ what to set instead of returning a 500 naming an internal error class.
 **The migration refuses to roll back** — reversing it would write private keys back
 to the database in clear text, which is the state it exists to remove.
 
-## Task B3: Correct the encryption claims in `docs/architecture.md`
+## Task B3: Correct the encryption claims in `docs/architecture.md`  ✅ DONE
 
 **Description:** Fixes **F18**. `docs/architecture.md:43` says "PIN Encryption &
 Verification" and `:44` says service-account keys "are encrypted in database" —
@@ -787,15 +787,33 @@ neither was true at v1.1.0. Update the document to describe what B1 and B2
 actually deliver.
 
 **Acceptance criteria:**
-- [ ] Both lines describe the shipped mechanism (digest for PINs, Active Record encryption for the credential)
-- [ ] No other security claim in the document is unsupported by code
+- [x] Both lines describe the shipped mechanism (digest for PINs, Active Record encryption for the credential)
+- [x] No other security claim in the document is unsupported by code
 
 **Verification:**
-- [ ] Read the security section against `app/models/family_member.rb` and `app/models/household.rb`
+- [x] Read the security section against `app/models/family_member.rb` and `app/models/household.rb`
 
 **Dependencies:** B1, B2
 **Files:** `docs/architecture.md`
 **Scope:** XS
+
+**Outcome:** Both encryption claims are now true, and checking the rest of the
+section against the code — which the second acceptance criterion asked for —
+found **two more claims that were false**:
+
+- *"Rails 8 `has_secure_password` on `User` model, managing the primary household
+  login session."* There is no `User` model. It was deleted in v1.1.0 by
+  `20260828170000_remove_users_and_sessions.rb`. The line described an
+  architecture that no longer existed.
+- *"HttpOnly **secure** signed cookies."* The session cookie set no `secure` flag,
+  and `force_ssl` is commented out in `production.rb`, so on a LAN install it
+  travelled in the clear.
+
+The cookie is now `secure: request.ssl?` — marked Secure wherever TLS is actually
+in use, still working on the HTTP LAN installs this app is built for, which a flat
+`secure: true` would have silently broken. The document now states the plaintext
+caveat instead of claiming otherwise, and gained a line about `SECRET_KEY_BASE`
+covering A12.
 
 ## Task B4: Enable a Content Security Policy
 
