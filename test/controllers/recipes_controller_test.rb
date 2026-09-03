@@ -233,6 +233,12 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
     queries = 0
     sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*args|
+      # SCHEMA is excluded because the four PRAGMA/sqlite_master lookups Rails
+      # issues the first time a process touches this table also carry its name.
+      # Counting them made the budget depend on whether an earlier test in the
+      # same worker had already warmed the schema cache.
+      next if args.last[:name].to_s =~ /SCHEMA|TRANSACTION/
+
       queries += 1 if args.last[:sql].to_s.include?("ingredient_aisle_mappings")
     end
     post recipe_imports_url, params: { url: "http://169.254.169.254/blocked" }
