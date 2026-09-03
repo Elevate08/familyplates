@@ -32,6 +32,12 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     @other_pantry_item = @other.pantry_items.create!(
       name: "Miller Flour", aisle_category: "Pantry & Grains"
     )
+    # A PIN-less profile in the other household. This is the cheapest possible
+    # target: no credential stands between a stranger and it except scoping.
+    @other_child = @other.family_members.create!(
+      name: "Miller Kid", role: "member",
+      avatar_color: "#84CC16", avatar_icon: "smile"
+    )
 
     sign_in_as(@intruder)
     assert_equal households(:one), @intruder.household,
@@ -134,6 +140,41 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
       recipe_ids: [ @other_recipe.id ], bulk_action: "add_tag", tag: "Owned"
     }
     assert_not_includes @other_recipe.reload.tags.to_s, "Owned"
+  end
+
+  # The front door. /select_profile and /set_profile are open by design on an
+  # appliance install - the operator has not opted into REQUIRE_LOGIN - so the
+  # only thing standing between a stranger and a profile is which household the
+  # picker is willing to look in.
+  test "an anonymous visitor cannot take a PIN-less profile in another household" do
+    sign_out
+
+    post set_profile_url(@other_child)
+    assert_response :not_found
+    assert_nil active_family_member_id, "no session may be issued for another household"
+  end
+
+  test "an anonymous visitor cannot take an admin profile in another household even with its PIN" do
+    sign_out
+
+    post set_profile_url(@other_member), params: { pin: "4321" }
+    assert_response :not_found
+    assert_nil active_family_member_id, "a correct PIN must not help across households"
+  end
+
+  test "a signed-in member cannot switch into another household's profile" do
+    post set_profile_url(@other_child)
+    assert_response :not_found
+    assert signed_in_as?(@intruder), "the original session must be untouched"
+  end
+
+  test "the picker does not list another household's profiles" do
+    sign_out
+
+    get select_profile_url
+    assert_response :success
+    assert_no_match(/Miller Kid/, response.body)
+    assert_no_match(/Miller Mum/, response.body)
   end
 
   # Listings must not leak the other household's rows, which no :id-based test

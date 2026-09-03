@@ -37,7 +37,8 @@ module PinThrottling
   private
 
   def pin_protected_target?
-    FamilyMember.find_by(id: params[:id])&.requires_pin? || false
+    scope = Current.household || Household.installation
+    scope&.family_members&.find_by(id: params[:id])&.requires_pin? || false
   end
 
   # Runs as a before_action, so it cannot know whether the submitted PIN was

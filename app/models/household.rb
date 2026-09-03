@@ -16,6 +16,25 @@ class Household < ApplicationRecord
 
   validates :name, presence: true
 
+  # The household this installation serves.
+  #
+  # An appliance install has exactly one, and it is the answer to "whose roster
+  # does the front door show?" - a different question from "whose data may this
+  # request see?", which is current_household and is nil until someone signs in.
+  # Conflating the two is what left three implicit `|| Household.first`
+  # fallbacks scattered through Authentication.
+  #
+  # Ordered rather than `first`, because `first` means "lowest id" and ids are
+  # not creation order - in the test fixtures alone it picks the second
+  # household. The oldest row is the one the setup wizard created.
+  #
+  # This is not a temporary crutch: it is how tenancy resolves whenever
+  # REQUIRE_LOGIN is off, which is the default and stays the default. Phase 1
+  # adds a session-resolved branch beside it; it does not delete this one.
+  def self.installation
+    order(:created_at, :id).first
+  end
+
   def current_meal_plan(week_date = Date.current.beginning_of_week)
     meal_plans.find_or_create_by!(week_start_date: week_date)
   end

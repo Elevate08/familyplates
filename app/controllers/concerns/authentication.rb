@@ -22,7 +22,7 @@ module Authentication
   end
 
   def current_household
-    Current.household || Household.first
+    Current.household || Household.installation
   end
 
   def current_family_member
@@ -33,10 +33,10 @@ module Authentication
     member_id = cookies.signed[:active_family_member_id]
     if member_id.present?
       Current.family_member = FamilyMember.find_by(id: member_id)
-      Current.household = Current.family_member&.household || Household.first
+      Current.household = Current.family_member&.household || Household.installation
     else
       Current.family_member = nil
-      Current.household = Household.first
+      Current.household = Household.installation
     end
   end
 

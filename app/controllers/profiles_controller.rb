@@ -8,12 +8,17 @@ class ProfilesController < ApplicationController
     if Household.none?
       redirect_to onboarding_path and return
     end
-    household = current_household
+    household = Household.installation
     @family_members = household ? household.family_members.order(:id) : []
   end
 
   def set
-    member = FamilyMember.find(params[:id])
+    # Scoped to the installation rather than FamilyMember.find, which was a
+    # global finder taking a user-supplied id. On a single-household install the
+    # two return the same row; with a second household the unscoped version is
+    # account takeover by id enumeration.
+    member = Household.installation&.family_members&.find(params[:id])
+    raise ActiveRecord::RecordNotFound if member.nil?
 
     if member.requires_pin? && params[:pin].blank?
       flash[:alert] = "This profile is protected by a PIN."
