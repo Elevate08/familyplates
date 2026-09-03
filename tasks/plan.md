@@ -514,6 +514,28 @@ name. A class assertion would have passed on markup that still rendered wrong.
 
 ---
 
+### Decision: pinch-zoom stays, and fixed chrome goes off-screen while zoomed
+
+Checked on a phone against the deployed v1.2.0. Zoom in and the sticky navbar and
+fixed bottom nav become unreachable until you zoom back out — they are positioned
+against the layout viewport, and zooming creates a smaller visual viewport inside
+it. Every mobile site with fixed chrome does this.
+
+**Rejected: re-adding `maximum-scale=1, user-scalable=no`.** It would restore the
+WCAG 1.4.4 failure this release removed, and it hurts the people who need
+magnification most — for them there is no workaround, whereas zooming back out is
+one. A test asserts both are absent
+(`test/integration/content_security_policy_test.rb`).
+
+**Also rejected, for now: making the chrome pannable** (static navbar, bottom nav
+folded into it). It genuinely fixes reachability at any zoom, because non-fixed
+elements pan with the page — but it is a mobile navigation redesign, not a fix,
+and wants a mockup first. Revisit if the annoyance proves real in daily use.
+
+Still unverified: **landscape and safe-area insets.** The test device had rotation
+locked. `manifest.json` sets `"orientation": "any"`, so nothing in the app
+prevents it.
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

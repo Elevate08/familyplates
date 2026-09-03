@@ -1241,7 +1241,7 @@ change; if a Stream A build is being cut anyway, it is safe to carry along.
 - [x] Safe-area insets still work on notched devices
 
 **Verification:**
-- [ ] **DEFERRED to after the next release, by the owner's call (2026-09-02)** — easier to check on a phone once it is deployed. A request test asserts `maximum-scale` and `user-scalable=no` are absent and `viewport-fit=cover` survives, but only a real device confirms pinch-zoom and the safe-area insets. Not a merge blocker; revisit post-deploy.
+- [x] **Checked on a physical phone against the deployed v1.2.0 (2026-09-02).** Pinch-zoom works. The mobile-only recipe filter dropdown, the native slot pickers, icon sizing, the version badge and the ingredient form all behave. **Accepted limitation:** while zoomed, the sticky navbar and the fixed bottom nav sit outside the visual viewport and cannot be reached until you zoom back out. That is how `position: fixed`/`sticky` behave against the layout viewport on every mobile browser, not something this app does. Owner's decision was to leave it rather than disable zoom — see the note in `plan.md`. Landscape and safe-area insets were **not** covered: the test device had rotation locked.
 - [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
