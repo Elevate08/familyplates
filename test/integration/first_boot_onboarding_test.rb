@@ -1,6 +1,40 @@
 require "test_helper"
 
 class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
+  # The five hand-rolled `Household.none?` checks this replaced each guarded one
+  # controller, and three of them sat in controllers that skip
+  # require_authentication - so a sixth controller added with
+  # allow_unauthenticated_access and no inline check would simply have been
+  # unguarded. require_installation runs regardless, and this asserts it across
+  # the paths a stranger can actually reach on a fresh install.
+  test "every route outside the wizard sends a fresh install to onboarding" do
+    Household.destroy_all
+
+    [
+      root_path,           # HomeController          - allow_unauthenticated_access
+      select_profile_path, # ProfilesController      - allow_unauthenticated_access
+      new_session_path,    # SessionsController      - allow_unauthenticated_access
+      recipes_path,        # an ordinary authenticated controller
+      meal_plans_path,
+      pantry_items_path,
+      grocery_list_path,
+      admin_root_path,
+      family_members_path,
+      edit_preferences_path
+    ].each do |path|
+      get path
+      assert_redirected_to onboarding_url,
+        "#{path} must route to the wizard before a household exists"
+    end
+  end
+
+  test "the wizard itself is the one thing reachable on a fresh install" do
+    Household.destroy_all
+
+    get onboarding_path
+    assert_response :success
+  end
+
   test "end-to-end first boot onboarding flow and profile login" do
     # 1. Clean state: No database records exist
     Household.destroy_all

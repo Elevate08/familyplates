@@ -2,8 +2,8 @@ class OnboardingController < ApplicationController
   WIZARD_STEPS_AFTER_SETUP = %i[members add_member remove_member recipes save_recipes pantry save_pantry complete].freeze
 
   allow_unauthenticated_access only: %i[family save_family]
+  allow_unconfigured_access only: %i[family save_family]
   before_action :ensure_household_unconfigured, only: %i[family save_family]
-  before_action :require_household_exists, only: WIZARD_STEPS_AFTER_SETUP
   # save_family signs the new organizer in, so the rest of the wizard runs as an
   # authenticated admin on a first boot and is closed to everyone else after it.
   before_action :require_admin, only: WIZARD_STEPS_AFTER_SETUP
@@ -190,12 +190,6 @@ class OnboardingController < ApplicationController
       redirect_to root_path, alert: "Your family kitchen is already set up."
     else
       redirect_to select_profile_path, alert: "This kitchen is already configured. Please select your profile."
-    end
-  end
-
-  def require_household_exists
-    unless Household.exists?
-      redirect_to onboarding_family_path
     end
   end
 

@@ -16,6 +16,13 @@ class Household < ApplicationRecord
 
   validates :name, presence: true
 
+  # Has this deployment been set up yet? Distinct from `installation`, which
+  # answers *which* household - this only answers whether there is one at all,
+  # and is the question the first-boot guard and the navbar are both asking.
+  def self.installed?
+    exists?
+  end
+
   # The household this installation serves.
   #
   # An appliance install has exactly one, and it is the answer to "whose roster

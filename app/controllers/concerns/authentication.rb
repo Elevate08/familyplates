@@ -2,6 +2,7 @@ module Authentication
   extend ActiveSupport::Concern
 
   included do
+    before_action :require_installation
     before_action :set_current_family_member
     before_action :require_authentication
     before_action :require_active_family_member
@@ -12,6 +13,13 @@ module Authentication
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
       skip_before_action :require_active_family_member, **options
+    end
+
+    # For the setup wizard, the only thing that runs before a household exists.
+    # Declared per action rather than matched on controller path, because a path
+    # prefix cannot say "these two actions but not the other eight".
+    def allow_unconfigured_access(**options)
+      skip_before_action :require_installation, **options
     end
   end
 
@@ -41,16 +49,17 @@ module Authentication
   end
 
   # Before the first household exists there is nothing to protect and no profile
-  # to sign in as, so the setup wizard is open and everything else routes to it.
-  # Once a household exists, controllers opt out one action at a time with
-  # allow_unauthenticated_access — never by controller name, which cannot express
-  # "these two actions but not the other eight".
-  def require_authentication
-    if Household.none?
-      redirect_to onboarding_path and return unless request.path.start_with?("/onboarding")
-      return
-    end
+  # to sign in as, so every request routes to the setup wizard. This used to be
+  # asked separately in five places - here, in require_active_family_member, and
+  # inline in the home, sessions and profiles controllers, which skip
+  # require_authentication and so each re-checked by hand. Concentrating it is
+  # Campfire's FirstRunsController lesson: the predicate was never the defect,
+  # scattering it was.
+  def require_installation
+    redirect_to onboarding_path unless Household.installed?
+  end
 
+  def require_authentication
     return if Current.family_member.present?
 
     # Only GETs are worth returning to. profiles#set consumes this with a
@@ -63,8 +72,6 @@ module Authentication
   end
 
   def require_active_family_member
-    return if Household.none?
-
     if Current.family_member.nil?
       redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
     end

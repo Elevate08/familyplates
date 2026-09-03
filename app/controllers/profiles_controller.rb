@@ -5,9 +5,6 @@ class ProfilesController < ApplicationController
   throttle_pin_attempts only: :set
 
   def select
-    if Household.none?
-      redirect_to onboarding_path and return
-    end
     household = Household.installation
     @family_members = household ? household.family_members.order(:id) : []
   end

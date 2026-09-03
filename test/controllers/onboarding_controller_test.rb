@@ -277,7 +277,10 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
 
     get onboarding_members_url
 
-    assert_redirected_to onboarding_family_url
+    # /onboarding rather than /onboarding/family: both render step one, and the
+    # two first-boot guards that used to disagree about which URL to name are
+    # now a single require_installation.
+    assert_redirected_to onboarding_url
   end
 
   test "setup will not create a household without a PIN" do
