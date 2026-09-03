@@ -320,9 +320,9 @@ Excluded from all of the above: churn, refunds, failed payments, VAT/sales tax, 
 
 ## Phase 0 As Built
 
-Phase 0 is implemented bar the UUID migration. The predictions above are left as
-they were written; what building it actually found is recorded here, because the
-gap between the two is the useful part.
+Phase 0 is complete. The predictions above are left as they were written; what
+building it actually found is recorded here, because the gap between the two is
+the useful part.
 
 | Prediction | What building it found | Where |
 | :--- | :--- | :--- |
@@ -349,14 +349,16 @@ which the fallback had blurred into one:
 tenancy resolves for them permanently; Phase 1 adds a session-resolved branch
 beside it rather than replacing it.
 
-**Still open from Phase 0:** the UUID primary-key migration, deliberately taken
-last so that isolation does not depend on a migration landing, and so that a
-change rewriting every foreign key runs against a cross-tenant suite that is
-already green.
+**Final Phase 0 slice:** commit `4ba770f` migrated `households` and
+`family_members` to UUID primary keys and converted all seven dependent foreign
+keys. It preserved the affected indexes, constraints, nullability, and
+relationships; its rollback restores integer autoincrement keys. The migration
+was rehearsed upgrade → rollback → re-upgrade against a saved pre-v1.2.0
+development database, not only the test schema.
 
 ## Phased Plan
 
-**Phase 0 — Isolation. No new UI.** *(built, bar UUIDs — see "Phase 0 As Built" for what the plan below got wrong)*
+**Phase 0 — Isolation. No new UI.** *(complete — see "Phase 0 As Built" for what the plan below got wrong)*
 Scope `set_profile` to an authorized household. Delete the `Household.first` fallback and let `current_household` return `nil` when unauthenticated. Scope the ActionCable connection. Migrate `households` and `family_members` to UUID primary keys. Consolidate the six scattered `Household.none?` checks into a single Campfire-style `FirstRun` guard. Add the cross-tenant test harness. Ships independently as a patch release.
 
 **Phase 1 — Identity, opt-in.**
@@ -421,4 +423,4 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 * **Credential choice for appliance mode** is the one genuinely open decision left: magic codes with a logged fallback, or `has_secure_password` as both appliance reference apps do. Resolve by attempting the no-SMTP install before Phase 1 schema work.
 * Willingness to pay is entirely unmeasured, and the free self-hosted tier is the real competitor. Cheapest test: a pricing page with an email capture before any billing code is written.
 * Per-household flat pricing or per-seat — changes what `households` must store.
-* ~~Should `docs/architecture.md:44` be corrected now, or as part of Phase 1?~~ **Done upstream.** `docs/architecture.md:41-42` now records that there is no `User` model and that PINs are bcrypt digests. The one leftover is the ER diagram at `docs/architecture.md:23`, which still draws a `User` entity — fold that into the regeneration the UUID migration already requires.
+* ~~Should `docs/architecture.md:44` be corrected now, or as part of Phase 1?~~ **Done.** The architecture documentation records that there is no `User` model and that PINs are bcrypt digests. Commit `4ba770f` also removed the stale `User` entity from the ER diagram and regenerated it with the UUID key types.
