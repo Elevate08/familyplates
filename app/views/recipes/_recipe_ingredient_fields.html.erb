@@ -1,12 +1,10 @@
-<% 
-  available_ingredients_json = (@available_ingredients || IngredientAisleMapping.available_ingredients_with_aisles(current_household)).to_json 
-  available_units_json = (@available_units || RecipeIngredient.available_units(current_household)).to_json
-%>
-
+<%# The ingredient catalogue is emitted once on the form container, not here.
+    This partial renders per ingredient row, so carrying 150+ staples plus every
+    household ingredient meant shipping the same JSON twenty times over on a
+    twenty-ingredient recipe. %>
 <div data-ingredient-row="true"
      data-controller="ingredient-autofill"
-     data-ingredient-autofill-ingredients-value="<%= available_ingredients_json %>"
-     data-ingredient-autofill-units-value="<%= available_units_json %>"
+     data-action="focusout->ingredient-autofill#onFocusOut"
      class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/80 transition-all hover:border-primary-300 dark:hover:border-primary-600 relative group">
   
   <% if f.object.persisted? %>
@@ -15,7 +13,7 @@
 
   <!-- Numerical Quantity -->
   <div class="w-full sm:w-24 shrink-0">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Quantity</label>
+    <%= f.label :quantity, "Quantity", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :quantity, value: (f.object.quantity.present? ? f.object.display_quantity : nil),
           placeholder: "Qty (1)",
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold" %>
@@ -23,7 +21,7 @@
 
   <!-- Measurement Unit with Live Autocomplete and Custom Unit Creation -->
   <div class="w-full sm:w-32 shrink-0 relative">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Measurement</label>
+    <%= f.label :unit, "Measurement", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :unit, 
           placeholder: "Unit (cups, count)",
           data: { 
@@ -36,10 +34,13 @@
     <!-- Unit Autocomplete Dropdown Menu (Uniform Rounded-3xl Shell) -->
     <div data-ingredient-autofill-target="unitDropdown"
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-56 max-w-[80vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
-      <div class="max-h-48 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
+      <div tabindex="-1" class="max-h-48 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
         <!-- Create Custom Unit Option -->
-        <div data-ingredient-autofill-target="createUnitOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
-          <button type="button"
+
+        <!-- Matching Units List -->
+        <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
+        <div data-ingredient-autofill-target="createUnitOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" tabindex="-1"
                   data-action="click->ingredient-autofill#handleCreateUnitClick"
                   class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
             <span class="flex items-center gap-1.5 truncate">
@@ -49,16 +50,13 @@
             <span class="text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 font-extrabold shrink-0 ml-1">Enter</span>
           </button>
         </div>
-
-        <!-- Matching Units List -->
-        <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
       </div>
     </div>
   </div>
 
   <!-- Ingredient Name with Live Autocomplete and Inline Creation -->
   <div class="flex-1 w-full relative">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Ingredient Name</label>
+    <%= f.label :name, "Ingredient Name", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :name, 
           placeholder: "Ingredient name (e.g. Chicken Breast, Garlic)",
           data: { 
@@ -71,10 +69,13 @@
     <!-- Autocomplete & Instant Create Dropdown Menu (Uniform Rounded-3xl Shell) -->
     <div data-ingredient-autofill-target="nameDropdown"
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-full min-w-[18rem] max-w-[90vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
-      <div class="max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
+      <div tabindex="-1" class="max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
         <!-- Create Option -->
-        <div data-ingredient-autofill-target="createNameOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
-          <button type="button"
+
+        <!-- Matching List -->
+        <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
+        <div data-ingredient-autofill-target="createNameOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" tabindex="-1"
                   data-action="click->ingredient-autofill#handleCreateNameClick"
                   class="w-full text-left px-3 py-2 rounded-2xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 flex items-center justify-between transition-colors cursor-pointer">
             <span class="flex items-center gap-1.5 truncate">
@@ -84,16 +85,13 @@
             <span class="text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 font-extrabold shrink-0 ml-1">Enter</span>
           </button>
         </div>
-
-        <!-- Matching List -->
-        <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
       </div>
     </div>
   </div>
 
   <!-- Grocery Aisle Category Selector -->
   <div class="w-full sm:w-44 shrink-0">
-    <label class="block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Grocery Aisle</label>
+    <%= f.label :aisle_category, "Grocery Aisle", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.select :aisle_category, RecipeIngredient::AISLE_CATEGORIES.map { |c| [c, c] }, {},
           data: { "ingredient-autofill-target": "aisleSelect" },
           class: "themed-select w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold cursor-pointer" %>

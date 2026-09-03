@@ -397,6 +397,123 @@ its name. This is a deliberate exception, not an oversight.
 
 ---
 
+## System Test Harness (added after Stream B)
+
+Built at the user's direction, after browser testing found **six defects the
+294-test suite could not see**: a Stimulus controller that failed to register, two
+CSP misconfigurations, broken `<div>` nesting, and three query-count tests that
+passed while doing no work. Request tests render HTML; they never run it.
+
+`test/application_system_test_case.rb` drives headless Chromium via Capybara and
+Selenium — both gems were already in the Gemfile, but Rails' harness had never
+been set up.
+
+**The most valuable part is not any individual test.** It is
+`assert_no_browser_errors`, which runs in `teardown` on every system test and
+fails on anything the browser logged at SEVERE. Verified against the real
+regressions:
+
+| Reverted to | Caught by |
+|---|---|
+| The ESM syntax error that stopped `ingredient-autofill` registering | `Failed to register controller … SyntaxError: Unexpected identifier 'units'` |
+| The random-per-request CSP nonce that broke Turbo | `Executing inline script violates … Content Security Policy` |
+| The pre-fix dropdowns (Add on top, no arrows, menu sticks open) | 5 of the 8 interaction tests |
+
+External asset failures are filtered out — recipe images point at Unsplash and a
+test run should not need the internet — but the filter is scoped to
+`Failed to load resource` from a non-local host, so a **CSP refusal still fails**
+even for an external URL. That distinction is the point of the check.
+
+`bin/rails test` does not run these, so the common case stays fast. CI runs them
+as a separate `system_test` job that uploads failure screenshots.
+
+### Finding: `current_household` falls back to `Household.first`
+
+Building the harness surfaced a latent bug. `Authentication#current_household`
+returns `Current.household || Household.first`, and for an **unauthenticated**
+visitor there is no `Current.household` — so `/select_profile` lists the roster of
+whichever household sorts first by id.
+
+The fixtures carry two households, and the one with no members happened to sort
+first, so every browser test saw an empty profile picker. Request tests never hit
+it because signing in sets `Current.household` from the member.
+
+**In production this is harmless today** — the app locks to a single household
+after onboarding. It is a landmine rather than a live defect: any second
+`Household` row, from a bug or a manual insert, would silently change which
+family the sign-in page shows. Not fixed, because doing so means deciding what
+"the household" means for an app that assumes exactly one, which is a product
+question. The system test base deletes the extra fixture household so browser
+flows exercise the production shape.
+
+---
+
+## Coverage Expansion and What It Found (after the harness)
+
+Built at the user's direction — "learn from our mistakes and cover everything we
+can". Every defect this branch found late was found by a person clicking, so the
+work targeted the flows that had cost repeated manual passes. Suite went from
+294 runs / 1431 assertions to **319 / 1994, plus 33 system tests**.
+
+### Deferred focus: one bug in four controllers
+
+`addRow` in `recipe_ingredients_form_controller` appended a row synchronously
+but focused it from a `setTimeout(50)`. Three quick clicks queued three focus
+jumps that landed after the form looked settled; one stole focus mid-typing and
+the text went to whichever row the timer had just focused. This surfaced as an
+intermittent system-test failure (~1 run in 12) reading
+
+    Expected ["Chicken Breast", "Olive OilRapid Ingredient 0", ...]
+      to include "Rapid Ingredient 0"
+
+`dropdown`, `pantry_item_form` and `bulk_select` deferred focus the same way
+after revealing a panel. All four now focus in the handler.
+
+**The hazard is not a panel that gets closed again** — `focus()` on a hidden
+element is a no-op, so that case was always harmless, and a test asserting it
+proves nothing. It is a panel still open with the reader already elsewhere: the
+timer fires and drags the caret back. `test/system/focus_test.rb` demonstrates
+exactly that against the old code.
+
+**`bulk_select` was worse than deferred.** It focused `tagsInput`, a
+`hidden_field_tag`; `focus()` on `type="hidden"` does nothing, so opening the
+bulk tag modal had *never* placed the caret. Fixed by focusing `#bulk_tag_search`
+through a new `tagsSearchInput` target.
+
+### Decision: measure flakes, do not eyeball them
+
+The first control on the flake — reverting one change and seeing a clean run —
+was worthless: at an 8% failure rate, 0/12 clean has p = 0.37. Re-measured at
+n = 40, where zero failures means p = 0.036. Both the JS fix and the test's row
+wait cleared it independently, which fits one cause rather than two: the wait
+delays typing until the pending timers have already fired.
+
+**Any future flake gets the same treatment** — establish the rate first, then
+size the sample so a clean run means something.
+
+### Stimulus registration, tested directly
+
+`node --check` does not parse ES modules, and even `--input-type=module` cannot
+see a bad import specifier. Stimulus can: it leaves a failed identifier out of
+its router. `test/system/stimulus_registration_test.rb` asks the router for every
+controller file in the repo. Verified against two negative controls — an orphaned
+object literal, and an import of a package that does not exist.
+
+### Finding: `pantry_icon_tag` ignored `css_class` on the emoji path
+
+`emoji_span` hardcoded `text-xl` and set no box at all, so an emoji item took
+whatever size it inherited while a hand-drawn SVG beside it in the same list took
+the size the page asked for. Measured at 25x20 against a 20x20 SVG on the recipe
+page. An emoji is a glyph, so passing `css_class` through alone would have shrunk
+the box and left the glyph — the span now gets both the box and a text size that
+fills it.
+
+**Sizing is a visual property, so it is asserted in pixels**
+(`test/system/icon_sizing_test.rb` reads `getBoundingClientRect`), not by class
+name. A class assertion would have passed on markup that still rendered wrong.
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

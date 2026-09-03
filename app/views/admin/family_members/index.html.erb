@@ -41,7 +41,7 @@
               </div>
               <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 <% if member.admin? %>
-                  <% if member.pin.present? %>
+                  <% if member.pin_digest.present? %>
                     <span class="text-emerald-700 dark:text-emerald-400 font-semibold">🔒 4-digit PIN Active</span>
                   <% else %>
                     <span class="text-slate-400 dark:text-slate-500">No PIN configured</span>
@@ -78,7 +78,6 @@
                     <%= form_with url: reset_pin_admin_family_member_path(member), method: :patch, class: "space-y-4" do %>
                       <div>
                         <input type="password" name="pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="4-digit PIN" required
-                               onfocus="this.value = '';"
                                class="w-full text-center text-xl font-mono tracking-widest px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                       </div>
 
@@ -176,7 +175,7 @@
 
       <!-- Icon Picker -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</label>
+        <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Avatar Icon</span>
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
           <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
             <label class="cursor-pointer group flex flex-col items-center">
@@ -194,7 +193,7 @@
 
       <!-- Color Swatches -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Theme Accent Color</label>
+        <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Theme Accent Color</span>
         <div class="flex flex-wrap items-center gap-2.5">
           <% FamilyMember::AVATAR_COLORS.each_with_index do |color, idx| %>
             <label class="cursor-pointer">
@@ -209,8 +208,7 @@
       <div>
         <%= f.label :pin, "4-Digit PIN (Required if role is Admin)", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
         <div class="max-w-xs">
-          <%= f.password_field :pin, maxlength: 4, placeholder: "e.g. 1234", pattern: "[0-9]*", inputmode: "numeric",
-                onfocus: "this.value = '';",
+          <%= f.password_field :pin, maxlength: 4, placeholder: "••••", pattern: "[0-9]*", inputmode: "numeric",
                 class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
         </div>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Non-admin members will ignore this field automatically.</p>

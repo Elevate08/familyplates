@@ -41,6 +41,18 @@ config/*.json
 !/scratch/.keep
 .notes/
 
+# Ignore local debugging and test artifacts that can hold session data.
+# A curl cookie jar will hold a live session cookie if the request that wrote it
+# had one. The jar a reviewer found world-readable in a working copy turned out
+# to be empty - three header lines and nothing else - but the next one need not
+# be, and it was not ignored on the branch it sat on.
+/cookies.txt
+/test_output.txt
+/*.log
+
+# System test failure screenshots
+tmp/screenshots/
+
 # Ignore system artifacts
 .DS_Store
 *.swp

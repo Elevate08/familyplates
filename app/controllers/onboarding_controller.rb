@@ -20,8 +20,7 @@ class OnboardingController < ApplicationController
     @admin_member = FamilyMember.new(
       role: "admin",
       avatar_color: "#3B82F6",
-      avatar_icon: "chef-hat",
-      pin: "1234"
+      avatar_icon: "chef-hat"
     )
   end
 
@@ -31,7 +30,7 @@ class OnboardingController < ApplicationController
       @household.save!
 
       initial_name = admin_member_params[:name].presence || "Head Chef"
-      initial_pin = admin_member_params[:pin].presence || "1234"
+      initial_pin = admin_member_params[:pin]
       initial_color = admin_member_params[:avatar_color].presence || "#3B82F6"
       initial_icon = admin_member_params[:avatar_icon].presence || "chef-hat"
 
@@ -103,7 +102,10 @@ class OnboardingController < ApplicationController
   def save_recipes
     selected_ids = Array(params[:recipe_ids]).map(&:to_s)
 
+    created = []
+
     ActiveRecord::Base.transaction do
+      RecipeIngredient.without_aisle_sync do
       @starter_recipes.each do |starter|
         next unless selected_ids.include?(starter["id"])
 
@@ -124,14 +126,21 @@ class OnboardingController < ApplicationController
               name: ing["name"],
               quantity: ing["quantity"],
               unit: ing["unit"],
-              aisle_category: ing["aisle_category"] || "Other"
+              aisle_category: ing["aisle_category"].presence
             )
           end
         end
+
+        created << recipe
+      end
       end
     end
 
-    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm your household pantry staples."
+    # One resync per distinct ingredient name, after every starter recipe has
+    # landed, rather than one per ingredient as each was created.
+    created.each(&:resync_aisle_mappings!)
+
+    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end
 
   # Step 4: Pantry Staples

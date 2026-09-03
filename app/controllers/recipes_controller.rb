@@ -19,7 +19,7 @@ class RecipesController < ApplicationController
     elsif params[:filter].present?
       case params[:filter]
       when "requested"
-        RecipeRequest.auto_fulfill_passed_slots!
+        RecipeRequest.auto_fulfill_passed_slots!(current_household)
         recipe_ids = current_household.recipes.joins(:recipe_requests)
                                       .where(recipe_requests: { fulfilled_at: nil })
                                       .distinct.pluck(:id)

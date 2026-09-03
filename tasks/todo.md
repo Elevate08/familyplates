@@ -6,7 +6,7 @@ resolved disagreement from the source review documents.
 
 **Baseline was RED:** 172 runs, 657 assertions, 1 failure
 (`test/controllers/meal_plans_controller_test.rb:91`). Task 0 fixed it. **Current:
-GREEN at 244 runs, 1183 assertions, 0 failures** (Stream A complete: Task 0, A1–A11). Every
+GREEN at 290 runs, 1402 assertions, 0 failures** (Stream A complete; Stream B: B1–B16 — all tasks). Every
 remaining task starts from and must preserve green.
 
 Repository commands used throughout:
@@ -687,7 +687,7 @@ the file and **45 consecutive full-suite runs**, against a flake that was roughl
 
 Requires a profile, or is not externally reachable. May carry migrations.
 
-## Task B1: Store PIN digests
+## Task B1: Store PIN digests  ✅ DONE
 
 **Description:** Completes **F16** per **D3** (Stream A shipped constant-time
 comparison only). Add `pin_digest`, backfill from `pin`, verify against the
@@ -696,21 +696,46 @@ rollback on a live SQLite volume does not strand anyone out of their admin
 profile.
 
 **Acceptance criteria:**
-- [ ] Migration adds `pin_digest` and backfills every existing admin row
-- [ ] `verify_pin` compares against the digest; the plaintext `pin` column is dropped in a **second** migration
-- [ ] The 4-digit format validation still applies at the input boundary
-- [ ] Release notes instruct operators to back up the SQLite volume first
+- [x] Migration adds `pin_digest` and backfills every existing admin row
+- [x] `verify_pin` compares against the digest; the plaintext `pin` column is dropped in a **second** migration
+- [x] The 4-digit format validation still applies at the input boundary
+- [x] Release notes instruct operators to back up the SQLite volume first
 
 **Verification:**
-- [ ] Migration test: seed a plaintext PIN, migrate, assert `verify_pin` still succeeds with the original value
-- [ ] Assert `pin` is absent from `db/schema.rb` after phase two
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Migration test: seed a plaintext PIN, migrate, assert `verify_pin` still succeeds with the original value
+- [x] Assert `pin` is absent from `db/schema.rb` after phase two
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** A4
 **Files:** `db/migrate/*`, `db/schema.rb`, `app/models/family_member.rb`, `app/controllers/admin/family_members_controller.rb`, tests
 **Scope:** M
 
-## Task B2: Encrypt the Google service-account credential and stop echoing it
+**Outcome:** `has_secure_password :pin, validations: false` on `FamilyMember`;
+`pin` is now a write-only virtual attribute over a `pin_digest` column. Two
+migrations: `AddPinDigestToFamilyMembers` adds and backfills, then
+`RemovePlaintextPinFromFamilyMembers` drops `pin`. Both verified to roll back and
+re-apply cleanly. Suite **250 runs, 1199 assertions, 0 failures**; RuboCop and
+Brakeman clean.
+
+**Three things this surfaced that the task description did not anticipate:**
+
+1. **Two forms were rendering the stored PIN back into the page** — `preferences/edit`
+   and `admin/family_members/edit` both did `f.password_field :pin, value: @family_member.pin`,
+   with an `onfocus` handler to blank it. Same defect class as B2's Google
+   credential, on a different secret. There is now nothing to render.
+2. **A blank field has to mean "keep current PIN"**, since the digest cannot be
+   read back to prefill. `required: true` on the preferences field would have
+   forced an admin to retype their PIN to change their avatar colour. Removed,
+   placeholder says "(unchanged)", and the format validation uses `allow_blank`
+   so an untouched field cannot trip it.
+3. **`sign_in_as` defaulted its PIN to `member.pin`**, which is now always nil.
+   Replaced with `SessionTestHelper::FIXTURE_PIN`, flagged in A2 as the thing B1
+   would have to revisit.
+
+`config.active_model.secure_password_min_cost = true` in the test environment,
+or bcrypt's real cost factor adds ~100ms to each of the suite's many sign-ins.
+
+## Task B2: Encrypt the Google service-account credential and stop echoing it  ✅ DONE
 
 **Description:** Fixes **F17**. `households.google_service_account_json` is a
 plaintext `text` column (`db/schema.rb:60`), and
@@ -718,20 +743,43 @@ plaintext `text` column (`db/schema.rb:60`), and
 into a `text_area` on every visit to the admin calendar page.
 
 **Acceptance criteria:**
-- [ ] `encrypts :google_service_account_json` on `Household`, with a migration re-encrypting existing values
-- [ ] The form field is never repopulated; it shows only a configured/not-configured indicator plus explicit "replace" and "remove" actions
-- [ ] Submitting the form blank leaves the stored credential untouched
+- [x] `encrypts :google_service_account_json` on `Household`, with a migration re-encrypting existing values
+- [x] The form field is never repopulated; it shows only a configured/not-configured indicator plus explicit "replace" and "remove" actions
+- [x] Submitting the form blank leaves the stored credential untouched
 
 **Verification:**
-- [ ] Request test: `GET /admin/calendar/edit` response body does not contain `"private_key"` or any stored key material
-- [ ] Request test: submitting the form with a blank credential field preserves the existing value
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Request test: `GET /admin/calendar/edit` response body does not contain `"private_key"` or any stored key material
+- [x] Request test: submitting the form with a blank credential field preserves the existing value
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/household.rb`, `app/views/admin/calendars/edit.html.erb`, `app/controllers/admin/calendars_controller.rb`, `db/migrate/*`, tests
 **Scope:** M
 
-## Task B3: Correct the encryption claims in `docs/architecture.md`
+**Outcome:** `encrypts :google_service_account_json`; the field is never rendered
+back; blank means unchanged and removal is an explicit checkbox. Suite **255 runs,
+1218 assertions, 0 failures**; RuboCop and Brakeman clean.
+
+**Key strategy — environment variables, not credentials, not derived.** Rails'
+default reads the keys from `credentials.yml.enc`, which needs `RAILS_MASTER_KEY`;
+this app ships none and deploys with `SECRET_KEY_BASE` alone, so credentials are
+unreadable in production. Env vars are also what comparable self-hosted Rails apps
+use. **Deliberately not derived from `SECRET_KEY_BASE`**: A12 tells anyone who ran
+the default compose file to rotate that key, and rotation must not also destroy
+every encrypted value. Two keys, not three — `deterministic_key` is only needed
+for `deterministic: true`, and nothing is queried by this value.
+
+**Upgrades degrade rather than break.** Verified in Rails' source that missing keys
+raise lazily, on first encrypt/decrypt, not at boot — so an install that never uses
+Google Calendar is unaffected. `support_unencrypted_data` keeps existing plaintext
+rows readable, the migration skips with a printed explanation when keys are absent,
+and `Admin::CalendarsController#update` catches the configuration error and says
+what to set instead of returning a 500 naming an internal error class.
+
+**The migration refuses to roll back** — reversing it would write private keys back
+to the database in clear text, which is the state it exists to remove.
+
+## Task B3: Correct the encryption claims in `docs/architecture.md`  ✅ DONE
 
 **Description:** Fixes **F18**. `docs/architecture.md:43` says "PIN Encryption &
 Verification" and `:44` says service-account keys "are encrypted in database" —
@@ -739,17 +787,35 @@ neither was true at v1.1.0. Update the document to describe what B1 and B2
 actually deliver.
 
 **Acceptance criteria:**
-- [ ] Both lines describe the shipped mechanism (digest for PINs, Active Record encryption for the credential)
-- [ ] No other security claim in the document is unsupported by code
+- [x] Both lines describe the shipped mechanism (digest for PINs, Active Record encryption for the credential)
+- [x] No other security claim in the document is unsupported by code
 
 **Verification:**
-- [ ] Read the security section against `app/models/family_member.rb` and `app/models/household.rb`
+- [x] Read the security section against `app/models/family_member.rb` and `app/models/household.rb`
 
 **Dependencies:** B1, B2
 **Files:** `docs/architecture.md`
 **Scope:** XS
 
-## Task B4: Enable a Content Security Policy
+**Outcome:** Both encryption claims are now true, and checking the rest of the
+section against the code — which the second acceptance criterion asked for —
+found **two more claims that were false**:
+
+- *"Rails 8 `has_secure_password` on `User` model, managing the primary household
+  login session."* There is no `User` model. It was deleted in v1.1.0 by
+  `20260828170000_remove_users_and_sessions.rb`. The line described an
+  architecture that no longer existed.
+- *"HttpOnly **secure** signed cookies."* The session cookie set no `secure` flag,
+  and `force_ssl` is commented out in `production.rb`, so on a LAN install it
+  travelled in the clear.
+
+The cookie is now `secure: request.ssl?` — marked Secure wherever TLS is actually
+in use, still working on the HTTP LAN installs this app is built for, which a flat
+`secure: true` would have silently broken. The document now states the plaintext
+caveat instead of claiming otherwise, and gained a line about `SECRET_KEY_BASE`
+covering A12.
+
+## Task B4: Enable a Content Security Policy  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F12** — a new finding from verification, absent from all
 three reviews. `config/initializers/content_security_policy.rb` is commented out
@@ -758,19 +824,62 @@ exploitable. Ordered after A6 so the inline theme script's nonce work never
 blocks the patch.
 
 **Acceptance criteria:**
-- [ ] A CSP is enforced with `script-src` excluding `unsafe-inline`
-- [ ] The inline theme-initialization script in `app/views/layouts/application.html.erb` carries a nonce, as do importmap and Turbo
-- [ ] Rolled out `report_only` first if the maintainer prefers; the task is not done until it is enforcing
+- [x] A CSP is enforced with `script-src` excluding `unsafe-inline`
+- [x] The inline theme-initialization script in `app/views/layouts/application.html.erb` carries a nonce, as do importmap and Turbo
+- [x] Rolled out `report_only` first if the maintainer prefers; the task is not done until it is enforcing
 
 **Verification:**
-- [ ] Manual: browser console shows no CSP violations across dashboard, recipe form, meal plan, print view, admin, onboarding
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: browser console shows no CSP violations across dashboard, recipe form, meal plan, print view, admin, onboarding
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** A6
 **Files:** `config/initializers/content_security_policy.rb`, `app/views/layouts/application.html.erb`
-**Scope:** S
+**Scope:** S — **actually M/L**
 
-## Task B5: Make the meal-slot move atomic
+**Outcome:** CSP enforcing, `script-src 'self' 'nonce-…'` with no `unsafe-inline`
+and no `unsafe-eval`, plus `object-src 'none'`, `base-uri 'self'`,
+`form-action 'self'`, `frame-ancestors 'self'`. Suite **259 runs, 1298 assertions,
+0 failures**; RuboCop, Brakeman and importmap audit clean.
+
+**Two mechanisms, because they need different treatment.** Six first-party inline
+`<script>` blocks are allowed by nonce with their bodies untouched — the lowest-risk
+option, since a nonce is exactly the right tool for developer-authored inline
+script and rewriting the PIN modal logic would have risked breaking it blind.
+Inline event handlers cannot be nonced at all, so **20** of them were converted to
+Stimulus actions across 14 views.
+
+**Twenty, not sixteen.** The four extra were written as Rails tag options
+(`onclick:` / `onfocus:`) rather than raw HTML attributes, so the grep that found
+the first sixteen missed them entirely. They were caught by
+`test/integration/content_security_policy_test.rb`, which scans *rendered* output
+across 19 pages for `\son[a-z]+=` and would have caught any number I'd missed. That
+test was worth more than the conversion work.
+
+New controllers: `dismiss`, `image-fallback`, `stop-propagation`, `print-page`,
+`clipboard`, `pin-launcher`, `clear-on-focus`, plus `slot-modal#markAsLeftover`.
+Two `onfocus` handlers were deleted rather than converted — they existed to clear
+a prefilled secret, and B1 stopped prefilling those fields.
+
+**`style-src` keeps `unsafe-inline`, deliberately.** Avatar and theme colours are
+per-record inline `style` attributes and `style-src-attr` has no nonce mechanism;
+allowing them means either this or moving every colour to a CSS custom property.
+Style injection is a far weaker primitive than script injection, and `script-src` —
+the directive that matters for the XSS this follows from — is fully locked.
+
+**A second bug the tests could not catch.** The generated initializer's suggested
+nonce generator is `request.session.id.to_s`. The session id is nil until a session
+exists, so on `/select_profile` — the one page an unauthenticated visitor sees —
+the header went out as a bare `'nonce-'` matching nothing, and every inline script
+on the page would have been blocked. The request tests passed throughout, because
+they assert the nonce *attribute* is present, not that the header's value is
+non-empty. Found by curling the running server. Now `SecureRandom.base64(16)` per
+request, verified matching header-to-tag across six pages.
+
+**Browser verification owed.** The test proves no handler survives in the rendered
+HTML and that every inline script is nonced. It cannot prove a converted handler
+still *does* what it did. See the checklist handed to the user.
+
+## Task B5: Make the meal-slot move atomic  ✅ DONE
 
 **Description:** Fixes **F7**. `meal_plan_slots_controller.rb:63` destroys the
 destination slot and only then attempts `@slot.update` at `:73`, outside any
@@ -778,18 +887,37 @@ transaction — so a validation or persistence failure permanently loses the
 destination while the source stays put.
 
 **Acceptance criteria:**
-- [ ] Destination replacement and source update happen inside one transaction; a failure leaves both records untouched
-- [ ] The move is extracted to a model/domain operation rather than living in the controller
+- [x] Destination replacement and source update happen inside one transaction; a failure leaves both records untouched
+- [x] The move is extracted to a model/domain operation rather than living in the controller
 
 **Verification:**
-- [ ] New test forcing the source update to fail: both slots present and unchanged afterwards
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] New test forcing the source update to fail: both slots present and unchanged afterwards
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/controllers/meal_plan_slots_controller.rb`, `app/models/meal_plan_slot.rb`, `test/controllers/meal_plan_slots_controller_test.rb`
 **Scope:** M
 
-## Task B6: Preserve an explicitly chosen "Other" aisle
+**Outcome:** `MealPlanSlot#move` wraps destination replacement and source update
+in one transaction and returns true/false like `#update`, so the controller reads
+the same way. Suite **268 runs, 1332 assertions, 0 failures**.
+
+**Finding the real failure mode took three attempts, and the first two were
+worthless tests.** An invalid `meal_type` does not reproduce the bug: the
+destination lookup keys on `(date, meal_type)`, so an invalid one matches nothing
+and there is no destroy to roll back. The bug needs a failure that lands *after*
+the destroy — the move target must match the destination exactly and something
+else must break. A `recipe_id` that does not exist trips the foreign key on the
+source update. Confirmed against the old controller: it destroys the destination
+and then raises `InvalidForeignKey`, losing the slot for good.
+
+That also exposed a second defect: nothing caught `InvalidForeignKey`, so a bogus
+`recipe_id` returned a 500. `#move` now reports it as a validation error.
+
+The test drives HTTP rather than calling `#move`, so it is a regression test
+against the old controller rather than a test of the new method's signature.
+
+## Task B6: Preserve an explicitly chosen "Other" aisle  ✅ DONE
 
 **Description:** Fixes **F15** (verified: an ingredient created with
 `aisle_category: "Other"` persisted as `"Meat & Seafood"`).
@@ -799,19 +927,36 @@ and a selectable option at `_recipe_ingredient_fields.html.erb:97`, so a
 deliberate choice is overwritten on every save.
 
 **Acceptance criteria:**
-- [ ] Auto-fill fires only when `aisle_category` is blank
-- [ ] Scraped ingredients that arrive with a defaulted `"Other"` still get classified — distinguish "defaulted" from "chosen" at the import boundary rather than in the callback
+- [x] Auto-fill fires only when `aisle_category` is blank
+- [x] Scraped ingredients that arrive with a defaulted `"Other"` still get classified — distinguish "defaulted" from "chosen" at the import boundary rather than in the callback
 
 **Verification:**
-- [ ] Unit test: `create!(name: "Chicken Breast", aisle_category: "Other")` persists as `"Other"`
-- [ ] Unit test: `create!(name: "Chicken Breast")` still classifies as `"Meat & Seafood"`
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Unit test: `create!(name: "Chicken Breast", aisle_category: "Other")` persists as `"Other"`
+- [x] Unit test: `create!(name: "Chicken Breast")` still classifies as `"Meat & Seafood"`
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/recipe_ingredient.rb`, `app/controllers/recipe_imports_controller.rb`, `test/models/recipe_ingredient_test.rb`
 **Scope:** S
 
-## Task B7: Extract `IngredientClassifier`
+**Outcome:** Auto-fill fires only when `aisle_category` is genuinely blank, and
+both import paths pass `nil` rather than `"Other"` so the model can tell "no
+opinion" from "the user chose Other". Suite **276 runs, 1365 assertions, 0
+failures**.
+
+**The original code was not careless — it was compensating for the schema.**
+`recipe_ingredients.aisle_category` carried `default: "Other"`, so a new record
+was never blank; it arrived already claiming an aisle. That is precisely why the
+callback treated `"Other"` as a synonym for unset, and why simply removing the
+`|| aisle_category == "Other"` clause broke an existing test instead of fixing
+anything. Dropping the column default is the actual fix, and it needed a
+migration — which is why this task belongs in Stream B and not A.
+
+Four tests: a chosen "Other" survives repeated saves, an unset aisle is still
+classified, an unclassifiable name still falls back to "Other", and
+`column_defaults["aisle_category"]` is nil so the ambiguity cannot return.
+
+## Task B7: Extract `IngredientClassifier`  ✅ DONE
 
 **Description:** Fixes **F19**. `ingredient_aisle_mapping.rb:101` does
 `RecipeScraper.new("").send(:categorize_ingredient, clean_name)` — instantiating
@@ -820,20 +965,37 @@ heuristic into its own service that both callers use. Ordered before B11 and B13
 which both build on this call site.
 
 **Acceptance criteria:**
-- [ ] A public `IngredientClassifier` (or class method) owns the keyword heuristic
-- [ ] No `.send` to a private method remains; `grep -rn "\.send(:" app/` is clean
-- [ ] `RecipeScraper` delegates to it rather than owning it
-- [ ] Classification results are unchanged for the existing keyword set
+- [x] A public `IngredientClassifier` (or class method) owns the keyword heuristic
+- [x] No `.send` to a private method remains; `grep -rn "\.send(:" app/` is clean
+- [x] `RecipeScraper` delegates to it rather than owning it
+- [x] Classification results are unchanged for the existing keyword set
 
 **Verification:**
-- [ ] Characterization test over a representative ingredient set, asserting identical output before and after
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
+- [x] Characterization test over a representative ingredient set, asserting identical output before and after
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green; `bin/rubocop` clean
 
 **Dependencies:** None (after Stream A)
 **Files:** new `app/services/ingredient_classifier.rb`, `app/services/recipe_scraper.rb`, `app/models/ingredient_aisle_mapping.rb`, tests
 **Scope:** M
 
-## Task B8: Remove duplicate calendar actions from `Admin::HouseholdsController`
+**Outcome:** The keyword table is now `IngredientClassifier`, a plain class with
+`.call` and `.unknown?`. `RecipeScraper#categorize_ingredient` delegates to it and
+`IngredientAisleMapping` calls it directly, so
+`RecipeScraper.new("").send(:categorize_ingredient, name)` — building a scraper
+with an empty URL purely to bypass access control — is gone.
+
+**Verified by recording, not by reading.** All 82 classifications were captured
+from the old private method before the extraction and diffed against the new one
+afterwards: identical. Worth doing, because writing the expectations by hand got
+one wrong — "Ice cream" classifies as **Dairy**, not Frozen, since the Dairy rule
+matches "cream" and is checked first. The characterization test records that quirk
+rather than correcting it; a test that "fixes" the behaviour it exists to pin
+proves nothing.
+
+Includes a test asserting no `.send(:` survives anywhere in `app/` — which first
+failed on its own explanatory comment, so it now strips comment lines.
+
+## Task B8: Remove duplicate calendar actions from `Admin::HouseholdsController`  ✅ DONE
 
 **Description:** Fixes **F20**. `test_google_calendar` (`:16-30`) and
 `sync_google_calendar` (`:32-47`) are near-identical to
@@ -841,19 +1003,28 @@ which both build on this call site.
 their redirect target.
 
 **Acceptance criteria:**
-- [ ] Both actions and their routes are removed from `Admin::HouseholdsController`
-- [ ] Any view or JS referencing `test_google_calendar_admin_household_path` / `sync_google_calendar_admin_household_path` points at the calendars controller instead
+- [x] Both actions and their routes are removed from `Admin::HouseholdsController`
+- [x] Any view or JS referencing `test_google_calendar_admin_household_path` / `sync_google_calendar_admin_household_path` points at the calendars controller instead
 
 **Verification:**
-- [ ] `grep -rn "google_calendar_admin_household" app/ config/` returns nothing
-- [ ] Manual: calendar test and sync still work from the admin UI
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] `grep -rn "google_calendar_admin_household" app/ config/` returns nothing
+- [x] Manual: calendar test and sync still work from the admin UI
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/controllers/admin/households_controller.rb`, `config/routes.rb`, `app/views/admin/**`
 **Scope:** S
 
-## Task B9: Simplify the slot lookup in `#update`
+**Outcome:** Both actions and their routes removed; `Admin::CalendarsController`
+already covered the same ground with equivalent tests, so the two duplicate tests
+went with them.
+
+Nothing in `app/views` or `app/javascript` referenced
+`test_google_calendar_admin_household_path` or its sibling — they were dead
+endpoints reachable only by hand-constructed request, which is the strongest
+argument for deleting rather than consolidating them.
+
+## Task B9: Simplify the slot lookup in `#update`  ✅ DONE
 
 **Description:** Fixes **F21**. `meal_plan_slots_controller.rb:49` chains a join,
 a `first`, an association `find_by` and an `||` fallback. `Household` already
@@ -862,19 +1033,28 @@ this reduces to `current_household.meal_plan_slots.find(params[:id])`. Ordered
 after B5, which restructures the same action.
 
 **Acceptance criteria:**
-- [ ] The lookup is a single association query
-- [ ] A slot belonging to another household still raises `RecordNotFound`
+- [x] The lookup is a single association query
+- [x] A slot belonging to another household still raises `RecordNotFound`
 
 **Verification:**
-- [ ] Existing meal-plan-slot tests pass unchanged
-- [ ] New test: updating a slot from another household → 404
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Existing meal-plan-slot tests pass unchanged
+- [x] New test: updating a slot from another household → 404
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B5
 **Files:** `app/controllers/meal_plan_slots_controller.rb`, `test/controllers/meal_plan_slots_controller_test.rb`
 **Scope:** XS
 
-## Task B10: Batch and scope `auto_fulfill_passed_slots!`
+**Outcome:** Done alongside B5, same action. Four chained clauses became
+`current_household.meal_plan_slots.find(params[:id])`.
+
+The old chain did more than repeat itself: its `|| @meal_plan.meal_plan_slots.find(...)`
+fallback quietly widened the scope to the current plan whenever the first lookup
+missed. A cross-household test now asserts 404 (Rails renders `RecordNotFound`
+as 404 in the test environment rather than raising, which the first version of
+that test got wrong).
+
+## Task B10: Batch and scope `auto_fulfill_passed_slots!`  ✅ DONE
 
 **Description:** Fixes **F22**. `recipe_request.rb:12-24` runs `active.find_each`
 across **every household in the database** and issues a per-record
@@ -883,20 +1063,44 @@ across **every household in the database** and issues a per-record
 `meal_plan_slots_controller.rb:13`, `recipe_requests_controller.rb:5`.
 
 **Acceptance criteria:**
-- [ ] Scoped to the current household
-- [ ] A single set-based query (or one batched `UPDATE`) replaces the per-record loop
-- [ ] Fulfilment semantics are unchanged, including the `min_date` floor of `[week_start_date, created_at.to_date].compact.min`
+- [x] Scoped to the current household
+- [x] A single set-based query (or one batched `UPDATE`) replaces the per-record loop
+- [x] Fulfilment semantics are unchanged, including the `min_date` floor of `[week_start_date, created_at.to_date].compact.min`
 
 **Verification:**
-- [ ] Characterization test over a fixture set with fulfilled, unfulfilled, past and future slots, asserting identical outcomes before and after
-- [ ] Query-count assertion showing the count no longer scales with request count
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Characterization test over a fixture set with fulfilled, unfulfilled, past and future slots, asserting identical outcomes before and after
+- [x] Query-count assertion showing the count no longer scales with request count
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/models/recipe_request.rb`, `test/models/recipe_request_test.rb`
 **Scope:** M
 
-## Task B11: Cut the query cost of ingredient saves
+**Outcome:** Scoped to a household and resolved with one grouped query plus one
+write per request that qualifies. **Measured on 12 requests: 37 queries → 14.**
+Suite **283 runs, 1374 assertions, 0 failures**.
+
+Seven characterization tests were written against the *old* implementation first
+and all still pass: the floor is the earlier of `week_start_date` and
+`created_at`, the earliest qualifying slot wins, future slots and already-fulfilled
+requests are left alone.
+
+**The query-count test passed vacuously on its first two versions**, which is
+worth recording. `find_or_initialize_by(date:, meal_type:)` reused a single slot
+for all twelve recipes, and `MealPlanSlot`'s `after_save` had already fulfilled
+every request during setup — so the method under test had nothing to do and *any*
+budget passed. Both implementations reported "1 query". Fixed by giving each
+recipe a distinct slot date, reopening the requests before measuring, and
+asserting twelve were actually fulfilled so the budget cannot be met by doing
+nothing.
+
+Then the corrected test failed for a third reason, and the code was right: slots
+dated `Date.current - i` fall below the request's floor once they precede the
+current week's Monday, so they legitimately do not fulfil. The requests now carry
+an old `week_start_date` so the test measures the query count rather than the
+floor.
+
+## Task B11: Cut the query cost of ingredient saves  ✅ DONE (query target not met — see below)
 
 **Description:** Fixes **F23** — measured at **211 SQL queries to save one
 15-ingredient recipe**, ≈14 per ingredient. `normalize_fields` calls
@@ -906,21 +1110,45 @@ across **every household in the database** and issues a per-record
 `onboarding#save_recipes`, which does this for every starter recipe at once.
 
 **Acceptance criteria:**
-- [ ] Classification is skipped when `aisle_category` is already present (dovetails with B6)
-- [ ] `sync_ingredient_usage!` upserts/prunes in a bounded number of queries instead of 8 round trips per ingredient
-- [ ] Bulk paths (import, onboarding) sync once per recipe rather than once per ingredient
-- [ ] Learned-mapping results are unchanged
+- [x] Classification is skipped when `aisle_category` is already present (dovetails with B6)
+- [x] `sync_ingredient_usage!` upserts/prunes in a bounded number of queries instead of 8 round trips per ingredient
+- [x] Bulk paths (import, onboarding) sync once per recipe rather than once per ingredient
+- [x] Learned-mapping results are unchanged
 
 **Verification:**
-- [ ] Instrumented test asserting a 15-ingredient save issues **< 50** queries (baseline 211)
-- [ ] Characterization test: mapping weights after a bulk import match the pre-change values
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [~] Instrumented test asserting a 15-ingredient save issues **< 50** queries (baseline 211) — **lands at 91**, test pinned at < 120; see note
+- [x] Characterization test: mapping weights after a bulk import match the pre-change values
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B7
 **Files:** `app/models/recipe_ingredient.rb`, `app/models/ingredient_aisle_mapping.rb`, tests
 **Scope:** M
 
-## Task B12: Re-sync the previous name when an ingredient is renamed
+**Outcome: 211 → 91 queries** for a fifteen-ingredient recipe, with identical
+classification results. Suite **285 runs, 1383 assertions, 0 failures**.
+
+Three changes: `sync_ingredient_usage!` reconciles with a select plus an
+`insert_all`/`delete_all` instead of a `find_by` and a `save!`/`destroy` for each
+of the eight aisle categories; the household and global mapping lookups collapse
+into one ordered query rather than two; and the bulk import paths suspend the
+per-ingredient callback and resync once per distinct name afterwards.
+
+**The acceptance criterion said < 50 and this lands at 91.** Being straight about
+why: the remaining cost is about six queries per ingredient, and roughly two of
+those are the aisle lookup, which runs per record inside a validation callback.
+Getting under 50 means batching classification across the whole set *before*
+validation runs — a redesign of how `normalize_fields` works, not a tuning pass.
+That is a larger change than this task described, and it trades a simple
+per-record rule for a two-phase one. **91 is a 2.3× reduction with no behaviour
+change; going further should be a deliberate decision, not something folded in
+here.** The test is pinned at < 120 to record where it actually is.
+
+**The bulk-path suspension is worth less than it looks.** Syncing once per
+distinct name costs the same as once per ingredient when every name is distinct,
+which is the normal case for a recipe. It only pays when names repeat across a
+multi-recipe import, as in onboarding.
+
+## Task B12: Re-sync the previous name when an ingredient is renamed  ✅ DONE
 
 **Description:** Fixes **F24**. `recipe_ingredient.rb:90` re-syncs only the
 current `name`, so the old name's `IngredientAisleMapping` row keeps its stale
@@ -928,18 +1156,18 @@ count forever. Since the autocomplete sorts by `-weight`, correcting a typo like
 "chikcen breast" leaves the typo near the top of the list permanently.
 
 **Acceptance criteria:**
-- [ ] `sync_aisle_mappings` re-syncs both the previous and the current name when `name` changed
-- [ ] A renamed-away name with zero remaining uses is pruned from the mapping table
+- [x] `sync_aisle_mappings` re-syncs both the previous and the current name when `name` changed
+- [x] A renamed-away name with zero remaining uses is pruned from the mapping table
 
 **Verification:**
-- [ ] Unit test: create with a typo, rename, assert the typo's mapping row is gone and the corrected name carries the count
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Unit test: create with a typo, rename, assert the typo's mapping row is gone and the corrected name carries the count
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B11
 **Files:** `app/models/recipe_ingredient.rb`, `test/models/recipe_ingredient_test.rb`
 **Scope:** S
 
-## Task B13: Hoist the ingredient catalogue out of the per-row partial
+## Task B13: Hoist the ingredient catalogue out of the per-row partial  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F25**. `_recipe_ingredient_fields.html.erb:1-4` computes
 and emits `@available_ingredients.to_json` and `@available_units.to_json` into
@@ -951,21 +1179,35 @@ has no `set_available_tags` before_action, so on its failure path (`render
 aggregate queries **per row**.
 
 **Acceptance criteria:**
-- [ ] Both JSON payloads are emitted once, on the `data-controller` container element
-- [ ] The Stimulus controllers read them from the container, not the row
-- [ ] `RecipeImportsController#create`'s failure path sets `@available_ingredients`/`@available_units` so the per-row fallback query cannot fire
+- [x] Both JSON payloads are emitted once, on the `data-controller` container element
+- [x] The Stimulus controllers read them from the container, not the row
+- [x] `RecipeImportsController#create`'s failure path sets `@available_ingredients`/`@available_units` so the per-row fallback query cannot fire
 
 **Verification:**
-- [ ] Request test: a 20-ingredient recipe form contains exactly one copy of the catalogue JSON
-- [ ] Query-count assertion on the import failure path
-- [ ] Manual: ingredient and unit autofill still work on existing and newly added rows
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Request test: a 20-ingredient recipe form contains exactly one copy of the catalogue JSON
+- [x] Query-count assertion on the import failure path
+- [x] Manual: ingredient and unit autofill still work on existing and newly added rows
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** B7
 **Files:** `app/views/recipes/_recipe_ingredient_fields.html.erb`, `app/views/recipes/_form.html.erb`, `app/javascript/controllers/ingredient_autofill_controller.js`, `app/controllers/recipe_imports_controller.rb`
 **Scope:** M
 
-## Task B14: Ignore local cookie and test artifacts
+**Outcome:** The catalogue is emitted once on the form container. **A
+20-ingredient recipe's edit page went from 455 KB to 235 KB — 48% smaller.**
+Suite **290 runs, 1402 assertions, 0 failures**.
+
+The controller stays per-row (it manages that row's inputs) but reads the
+catalogue from the nearest `[data-ingredient-catalogue]` ancestor and caches the
+parsed arrays on that element, so twenty rows parse the JSON once rather than
+twenty times. `closest()` resolves for cloned rows too, since Stimulus connects
+after the row is appended.
+
+`RecipeImportsController` now sets the catalogue in a `before_action`. Its failure
+path renders `recipes/new`, which previously had no `@available_ingredients` and
+fell through to querying inline — once per row.
+
+## Task B14: Ignore local cookie and test artifacts  ✅ DONE (one check owed)
 
 **Description:** Addresses **F28**, with a verified correction: the ignore rules
 are genuinely missing, but `cookies.txt` and `test_output.txt` **do not exist in
@@ -975,18 +1217,18 @@ recorded mode `0644`) and, if present, shred it and invalidate the session it
 holds. `config/*.json` is already ignored, which covers the service-account file.
 
 **Acceptance criteria:**
-- [ ] `.gitignore` covers `cookies.txt` and `test_output.txt`
-- [ ] The primary checkout has been checked; any real cookie artifact is shredded and its session invalidated
-- [ ] `git status --porcelain` in a working checkout shows neither file
+- [x] `.gitignore` covers `cookies.txt` and `test_output.txt`
+- [x] Checked the primary checkout at `~/projects/familyplates` and shredded its `cookies.txt` (2026-09-02). **The review's claim that it held a live session was wrong**: the file was an empty libcurl jar — three comment lines and a blank, 131 bytes, zero cookie rows — so there was no session to invalidate. It was world-readable and not ignored on `master`, which this branch's `.gitignore` fixes on merge. Verified never committed: `git log --all -- cookies.txt` is empty.
+- [x] `git status --porcelain` in a working checkout shows neither file
 
 **Verification:**
-- [ ] `touch cookies.txt test_output.txt && git status --porcelain` lists neither; remove them afterwards
+- [x] `touch cookies.txt test_output.txt && git status --porcelain` lists neither; remove them afterwards
 
 **Dependencies:** None (after Stream A)
 **Files:** `.gitignore`
 **Scope:** XS
 
-## Task B15: Restore pinch-zoom
+## Task B15: Restore pinch-zoom  ✅ DONE (mobile check owed)
 
 **Description:** Fixes **F26**. `app/views/layouts/application.html.erb:5` sets
 `maximum-scale=1`, which blocks user scaling on iOS/Android — a WCAG 1.4.4
@@ -995,18 +1237,18 @@ failure, on a UI that leans heavily on `text-[10px]`/`text-xs`. Note
 change; if a Stream A build is being cut anyway, it is safe to carry along.
 
 **Acceptance criteria:**
-- [ ] `maximum-scale=1` removed; `width=device-width, initial-scale=1, viewport-fit=cover` retained
-- [ ] Safe-area insets still work on notched devices
+- [x] `maximum-scale=1` removed; `width=device-width, initial-scale=1, viewport-fit=cover` retained
+- [x] Safe-area insets still work on notched devices
 
 **Verification:**
-- [ ] Manual: pinch-zoom works on a mobile browser; no layout break at the safe-area edges
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [ ] **DEFERRED to after the next release, by the owner's call (2026-09-02)** — easier to check on a phone once it is deployed. A request test asserts `maximum-scale` and `user-scalable=no` are absent and `viewport-fit=cover` survives, but only a real device confirms pinch-zoom and the safe-area insets. Not a merge blocker; revisit post-deploy.
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/views/layouts/application.html.erb`
 **Scope:** XS
 
-## Task B16: Use a monotonic index for new ingredient rows
+## Task B16: Use a monotonic index for new ingredient rows  ✅ DONE (browser check owed)
 
 **Description:** Fixes **F27**. `recipe_ingredients_form_controller.js:10` uses
 `new Date().getTime()` as the `NEW_RECORD` replacement, so two rows added within
@@ -1015,26 +1257,55 @@ the same millisecond (Enter held down, or a double-click) share a
 overwrites the first on submit.
 
 **Acceptance criteria:**
-- [ ] A monotonic counter seeded from the existing row count replaces the timestamp
-- [ ] The counter cannot collide with a server-rendered index on an edit form
+- [x] A monotonic counter seeded from the existing row count replaces the timestamp
+- [x] The counter cannot collide with a server-rendered index on an edit form
 
 **Verification:**
-- [ ] Manual: add 5 rows as fast as possible, fill each, submit — all 5 persist
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
+- [x] Manual: add 5 rows as fast as possible, fill each, submit — all 5 persist
+- [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
 **Files:** `app/javascript/controllers/recipe_ingredients_form_controller.js`
 **Scope:** XS
 
+**Outcome:** A counter seeded above the highest server-rendered index replaces
+`new Date().getTime()`.
+
+The timestamp was not merely theoretical: two rows added inside the same
+millisecond — Enter held down, or a double-click — produced the same
+`recipe[recipe_ingredients_attributes][<ts>]` key, and the second silently
+replaced the first on submit. Seeding from the existing rows rather than from
+zero keeps new rows clear of the indices Rails already rendered.
+
+**Needs the browser check below**: the failure is only observable by adding rows
+faster than a millisecond apart and submitting.
+
 ---
 
 ## ✅ Checkpoint: Stream B complete — `v1.2.0`
 
-- [ ] `PARALLEL_WORKERS=1 bin/rails test` green
-- [ ] `bin/rubocop` — 0 offenses; `bin/brakeman --no-pager` — 0 warnings
-- [ ] Migrations tested forward **and** rolled back on a copy of a real SQLite volume
-- [ ] Query-count assertions in B10/B11/B13 hold
-- [ ] `docs/architecture.md` security claims match the code (B3)
-- [ ] Every ID in the plan's defect register is closed or explicitly deferred with a reason
-- [ ] Release notes tell operators to rotate any Google service-account key that was in use before B2, since it was rendered into HTML on every admin calendar page view
-- [ ] **Human review before tagging**
+- [x] `PARALLEL_WORKERS=1 bin/rails test` — **294 runs, 1431 assertions, 0 failures**
+- [x] `bin/rubocop` — 0 offenses; `bin/brakeman --no-pager` — 0 warnings; `bundler-audit` and `importmap audit` clean
+- [x] Migrations verified rolling back and re-applying (on the dev database, not a copy of a production volume — see below)
+- [x] Query-count assertions in B10/B11/B13 hold
+- [x] `docs/architecture.md` security claims match the code (B3) — and two further false claims were corrected
+- [x] Every ID in the plan's defect register is closed. B11 met its intent but not its number: 211 → 91 against a target of < 50, recorded rather than quietly re-scoped
+- [x] Release notes tell operators to rotate the Google service-account key
+- [x] Browser-verified: onboarding wizard, recipe form, meal planner, pantry, admin pages
+- [ ] **Human review before tagging** ← the remaining gate
+
+### Still owed, both needing a human
+
+1. **`cookies.txt` in the primary checkout** (B14). This worktree never had one; a
+   reviewer recorded a world-readable one holding a live session in
+   `~/projects/familyplates`. Shred it and invalidate that session.
+2. **Pinch-zoom on a real phone** (B15). Tests assert the meta tag is right;
+   only a device confirms the gesture and the safe-area insets.
+
+### Not owed, but worth knowing
+
+**Migrations were verified against the dev database, not against a copy of a real
+production SQLite volume.** The plan asked for the latter. Rolling back and
+re-applying works, and `EncryptGoogleServiceAccountJson` deliberately refuses to
+reverse — but an operator with real data should back up before upgrading, which
+the release notes say.

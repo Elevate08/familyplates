@@ -20,8 +20,18 @@ class FamilyMember < ApplicationRecord
 
   AVATAR_ICONS = %w[chef-hat utensils heart star smile flame sparkles award].freeze
 
+  # Stores only a digest. `pin` is a write-only virtual attribute, so a PIN that
+  # has been saved cannot be read back out of the record, out of a database copy,
+  # or out of a page that renders the model.
+  has_secure_password :pin, validations: false
+
   validates :name, presence: true
-  validates :pin, presence: true, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, if: :admin?
+  # allow_blank, because `pin` reads back as nil on a record loaded from the
+  # database and blank on a form submitted without changing it - only a PIN
+  # actually being set is format-checked. Presence is asserted against the
+  # digest instead, which survives a reload.
+  validates :pin, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, allow_blank: true, if: :admin?
+  validate :admin_requires_a_pin
   before_validation :clear_pin_unless_admin
 
   def initial
@@ -36,18 +46,25 @@ class FamilyMember < ApplicationRecord
     admin?
   end
 
-  # Constant-time, so a wrong PIN cannot be narrowed down by timing how long the
-  # comparison takes. secure_compare returns false on a length mismatch rather
-  # than raising, and PINs are a fixed four digits, so nothing is leaked by that.
+  # bcrypt compares in constant time, so this keeps the timing property the
+  # plaintext secure_compare gave, and adds resistance to offline guessing if a
+  # database copy leaks. The deliberate slowness is affordable because PIN entry
+  # is rate-limited (see PinThrottling).
   def verify_pin(input)
-    stored = pin.to_s
     given = input.to_s.strip
-    return false if stored.empty? || given.empty?
+    return false if pin_digest.blank? || given.empty?
 
-    ActiveSupport::SecurityUtils.secure_compare(stored, given)
+    authenticate_pin(given).present?
   end
 
   private
+
+  def admin_requires_a_pin
+    return unless admin?
+    return if pin_digest.present?
+
+    errors.add(:pin, "can't be blank")
+  end
 
   def clear_pin_unless_admin
     self.pin = nil unless admin?

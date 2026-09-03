@@ -77,6 +77,7 @@
                          value="<%= item_id %>"
                          <%= 'checked' if item[:is_staple] %>
                          <%= 'disabled' unless is_admin %>
+                         id="grocery_item_<%= item_id %>"
                          data-checklist-target="checkbox"
                          data-is-staple="<%= item[:is_staple] %>"
                          class="w-5 h-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 <%= is_admin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' %>">

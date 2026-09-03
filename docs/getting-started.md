@@ -73,10 +73,33 @@ docker run -d \
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `SECRET_KEY_BASE` | *(Required in prod)* | 64-byte random key used for encrypted cookies and credentials. |
+| `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` | *(Required for Google Calendar)* | Encrypts the stored Google service account key. `openssl rand -hex 32`. Must not change once set. |
+| `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` | *(Required for Google Calendar)* | Paired with the key above. `openssl rand -hex 32`. Must not change once set. |
 | `RAILS_ENV` | `production` | Environment mode (`production`, `development`, `test`). |
 | `RAILS_SERVE_STATIC_FILES` | `true` | Serves compiled CSS/JS assets directly from the application. |
 | `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |
 | `PORT` | `80` | Internal listening port inside the container. |
+
+## Running the tests
+
+```bash
+bin/rails test          # models, controllers, integration - fast, no browser
+bin/rails test:system   # browser-driven, needs Chrome or Chromium
+```
+
+System tests are excluded from `bin/rails test` on purpose, so the common case
+stays quick. They drive a real browser and **fail on anything the browser logs at
+SEVERE** — an uncaught exception, a Stimulus controller that will not register, a
+script the Content Security Policy refuses. That check is what catches the class
+of defect a request test cannot see, since request tests render HTML but never
+run it.
+
+Point `CHROME_BIN` at your browser if it is not the default:
+
+```bash
+CHROME_BIN=/usr/bin/chromium bin/rails test:system
+```
+
 
 ---
 

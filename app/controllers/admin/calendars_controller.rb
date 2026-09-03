@@ -17,6 +17,15 @@ module Admin
         @service_email = GoogleCalendarService.service_account_email(@household)
         render :edit, status: :unprocessable_entity
       end
+    rescue ActiveRecord::Encryption::Errors::Configuration
+      # An install upgraded past the release that started encrypting this, but
+      # without setting the keys. Say so plainly instead of returning a 500 that
+      # names an internal error class.
+      redirect_to edit_admin_calendar_path,
+        alert: "This server is not set up to store credentials securely yet. " \
+               "Set ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY and " \
+               "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT, restart, and try again. " \
+               "See the deployment guide."
     end
 
     def test_connection
@@ -59,11 +68,25 @@ module Admin
     end
 
     def calendar_params
-      params.require(:household).permit(
+      permitted = params.require(:household).permit(
         :google_calendar_id,
         :google_calendar_enabled,
-        :google_service_account_json
+        :google_service_account_json,
+        :remove_google_service_account_json
       )
+
+      removing = permitted.delete(:remove_google_service_account_json) == "1"
+
+      # The form cannot show the stored key, so a blank field means "leave it
+      # alone" rather than "clear it" - otherwise saving a calendar ID would
+      # silently wipe the credential. Removing is an explicit choice.
+      if removing
+        permitted[:google_service_account_json] = nil
+      elsif permitted[:google_service_account_json].blank?
+        permitted.delete(:google_service_account_json)
+      end
+
+      permitted
     end
   end
 end

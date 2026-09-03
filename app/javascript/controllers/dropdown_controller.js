@@ -12,10 +12,12 @@ export default class extends Controller {
     const isOpening = this.menuTarget.classList.contains("hidden")
     this.menuTarget.classList.toggle("hidden")
 
+    // Focused straight away rather than from a timer. A deferred focus outlives
+    // the click that scheduled it: toggle twice quickly and the stale callback
+    // lands after the menu has closed again, pulling the caret back into a menu
+    // the reader has already dismissed.
     if (isOpening && this.hasSearchInputTarget) {
-      setTimeout(() => {
-        this.searchInputTarget.focus()
-      }, 50)
+      this.searchInputTarget.focus()
     }
   }
 

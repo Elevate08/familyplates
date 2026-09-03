@@ -76,7 +76,9 @@ export default class extends Controller {
       if (!isHidden && this.hasIconSearchInputTarget) {
         this.iconSearchInputTarget.value = ""
         this.filterIcons()
-        setTimeout(() => this.iconSearchInputTarget.focus(), 50)
+        // Straight away, not from a timer: a stale callback from a quick
+        // second toggle would drag focus back into a picker just closed.
+        this.iconSearchInputTarget.focus()
       }
     }
   }

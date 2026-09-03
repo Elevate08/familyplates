@@ -7,6 +7,7 @@ export default class extends Controller {
     "toolbar",
     "count",
     "tagsModal",
+    "tagsSearchInput",
     "mealTypesModal",
     "deleteForm",
     "tagsForm",
@@ -189,7 +190,10 @@ export default class extends Controller {
       this.tagsModalTarget.classList.remove("hidden")
       this.tagsModalTarget.classList.add("flex")
       document.body.classList.add("overflow-hidden")
-      setTimeout(() => this.tagsInputTarget?.focus(), 100)
+      // tagsInput is a hidden field - focus() on type="hidden" does nothing, so
+      // this modal has never actually put the caret anywhere. Focus the tag box
+      // a reader can type into, and do it now rather than from a timer.
+      if (this.hasTagsSearchInputTarget) this.tagsSearchInputTarget.focus()
     }
   }
 

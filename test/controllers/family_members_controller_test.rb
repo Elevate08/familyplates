@@ -59,7 +59,7 @@ class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     patch "/family_members/#{@admin.id}", params: { family_member: { pin: "0000" } }
 
     assert_response :not_found
-    assert_equal "1234", @admin.reload.pin
+    assert @admin.reload.verify_pin("1234"), "the organizer PIN must be unchanged"
   end
 
   test "a member cannot delete a family member here" do
@@ -86,7 +86,7 @@ class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     patch "/family_members/#{@admin.id}", params: { family_member: { pin: "0000" } }
 
     assert_response :not_found
-    assert_equal "1234", @admin.reload.pin
+    assert @admin.reload.verify_pin("1234"), "the organizer PIN must be unchanged"
   end
 
   test "roster mutation is still available to admins in the control center" do

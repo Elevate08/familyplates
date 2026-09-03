@@ -7,7 +7,7 @@
     <%= csp_meta_tag %>
 
     <!-- Immediate Theme Initialization (Follows System Setting by Default) -->
-    <script>
+    <script nonce="<%= content_security_policy_nonce %>">
       (function() {
         const theme = localStorage.getItem('familyplates_theme') || 'system';
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

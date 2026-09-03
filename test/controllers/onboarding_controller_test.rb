@@ -32,7 +32,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     admin = FamilyMember.last
     assert_equal "Captain Chef", admin.name
     assert_equal "admin", admin.role
-    assert_equal "4321", admin.pin
+    assert admin.verify_pin("4321")
     assert_equal "#3B82F6", admin.avatar_color
     assert_equal "chef-hat", admin.avatar_icon
   end
@@ -278,5 +278,46 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     get onboarding_members_url
 
     assert_redirected_to onboarding_family_url
+  end
+
+  test "setup will not create a household without a PIN" do
+    Household.destroy_all
+
+    assert_no_difference [ "Household.count", "FamilyMember.count" ] do
+      post onboarding_save_family_url, params: {
+        household: { name: "No PIN Kitchen", breakfast_time: "08:00", lunch_time: "12:30", dinner_time: "18:00" },
+        admin_member: { name: "Chef", pin: "", avatar_color: "#3B82F6", avatar_icon: "chef-hat" }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "the setup form never suggests a PIN" do
+    Household.destroy_all
+
+    get onboarding_family_url
+
+    assert_response :success
+    assert_not_includes response.body, "1234",
+      "a prefilled or suggested PIN becomes the real one for anyone who clicks through"
+  end
+
+  test "the recipes step renders well-formed markup with an image per starter recipe" do
+    sign_in_as(family_members(:one))
+
+    get onboarding_recipes_url
+    assert_response :success
+
+    # A stray closing tag still parses as ERB and still passes a status
+    # assertion; it only shows up as a mangled page. Count the tags instead.
+    assert_equal response.body.scan(/<div\b/).length, response.body.scan("</div>").length,
+      "unbalanced <div> tags - the layout will be broken"
+
+    starters = YAML.load_file(Rails.root.join("config/starter_recipes.yml"))["starter_recipes"]
+    with_images = starters.count { |r| r["image_url"].present? }
+    assert_operator with_images, :>, 0, "precondition: starter recipes ship with images"
+    assert_equal with_images, response.body.scan(/<img[^>]+images\.unsplash/).length,
+      "every starter recipe with an image_url should render its image"
   end
 end

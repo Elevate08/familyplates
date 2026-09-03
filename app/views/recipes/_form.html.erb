@@ -53,16 +53,18 @@
     </div>
 
     <div>
-      <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Can be planned for (Meal Types):</label>
-      <div class="flex flex-wrap items-center gap-3">
-        <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
-          <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
-            <%= check_box_tag "recipe[meal_types][]", type, recipe.for_meal_type?(type), class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
-            <span><%= label %></span>
-          </label>
-        <% end %>
-      </div>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">Determines which meal slots this recipe appears in when planning your schedule.</p>
+      <fieldset>
+        <legend class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Can be planned for (Meal Types):</legend>
+        <div class="flex flex-wrap items-center gap-3">
+          <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
+            <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
+              <%= check_box_tag "recipe[meal_types][]", type, recipe.for_meal_type?(type), id: "recipe_meal_type_#{type}", class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
+              <span><%= label %></span>
+            </label>
+          <% end %>
+        </div>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">Determines which meal slots this recipe appears in when planning your schedule.</p>
+      </fieldset>
     </div>
 
     <!-- Yields Leftovers Setting -->
@@ -107,7 +109,7 @@
          data-tag-picker-available-tags-value="<%= (@available_tags || Recipe::POPULAR_TAGS).to_json %>"
          class="space-y-2 relative">
       <div class="flex items-center justify-between">
-        <%= f.label :tags, "Recipe Tags", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider" %>
+        <%= label_tag "recipe_tag_search", "Recipe Tags", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider" %>
         <span class="text-xs text-slate-400 dark:text-slate-500">Search existing tags or type to create new</span>
       </div>
 
@@ -123,6 +125,7 @@
         <!-- Inline Tag Search / Typing Input -->
         <div class="flex-1 min-w-[140px] relative">
           <input type="text"
+                 id="recipe_tag_search"
                  data-tag-picker-target="textInput"
                  data-action="input->tag-picker#onInput keydown->tag-picker#onKeydown focus->tag-picker#onFocus"
                  placeholder="Type a tag..."
@@ -154,7 +157,10 @@
   </div>
 
   <!-- Ingredients Section with Dynamic Add/Remove and Smart Aisle Learning -->
-  <div data-controller="recipe-ingredients-form" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+  <div data-controller="recipe-ingredients-form"
+       data-ingredient-catalogue
+       data-ingredient-catalogue-ingredients="<%= (@available_ingredients || IngredientAisleMapping.available_ingredients_with_aisles(current_household)).to_json %>"
+       data-ingredient-catalogue-units="<%= (@available_units || RecipeIngredient.available_units(current_household)).to_json %>" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
       <div>
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Ingredients</h2>
