@@ -10,6 +10,17 @@
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage kitchen branding, family roster, security PINs, and Google Calendar sync.</p>
       </div>
     </div>
+
+    <!-- Build version. Quiet enough not to compete with the heading, but always
+         in the same place so it can be read out when reporting a problem. -->
+    <div class="shrink-0 self-start sm:self-center">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700"
+            title="Application version">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Version</span>
+        <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 select-all"
+              data-app-version><%= HomeMealPlanner::VERSION %></span>
+      </span>
+    </div>
   </div>
 
   <!-- 3 Dedicated Management Gateways -->
