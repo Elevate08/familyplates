@@ -80,4 +80,13 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       RecipeScraper.define_singleton_method(:call, original_call)
     end
   end
+
+  test "a blocked import URL is refused with the ordinary error and creates nothing" do
+    assert_no_difference "Recipe.count" do
+      post recipe_imports_url, params: { url: "http://169.254.169.254/latest/meta-data/" }
+    end
+
+    assert_redirected_to new_recipe_import_url
+    assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.", flash[:alert]
+  end
 end

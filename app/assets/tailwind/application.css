@@ -15,3 +15,103 @@
   --color-primary-900: color-mix(in srgb, var(--user-accent, #ea580c) 40%, black);
   --color-primary-950: color-mix(in srgb, var(--user-accent, #ea580c) 20%, black);
 }
+
+/* Native controls follow the app's theme. Without this the browser paints the
+   date and time picker popups, their calendar grids and spin buttons, in light
+   colours regardless of the dark class. */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@layer components {
+  /* One scrollbar treatment for every scrollable menu in the app. The default
+     platform scrollbar is a heavy light-grey bar that reads as a rendering bug
+     inside a dark rounded dropdown. */
+  .themed-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-slate-300) transparent;
+  }
+
+  .dark .themed-scrollbar {
+    scrollbar-color: var(--color-slate-600) transparent;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--color-slate-300);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-slate-400);
+  }
+
+  .dark .themed-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--color-slate-600);
+  }
+
+  .dark .themed-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-slate-500);
+  }
+
+  /* A select that matches the bordered trigger buttons beside it: same radius
+     and border weight, with a chevron in place of the platform arrow. */
+  .themed-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem 1rem;
+    padding-right: 2.25rem;
+  }
+
+  .dark .themed-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  }
+
+  /* The popup a <select> opens is drawn by the platform, so its shape is out of
+     reach - but its colours are not. Setting them explicitly, on top of the
+     color-scheme declared above, gets the list matching the app's palette
+     instead of whatever the OS defaults to. Chromium and Firefox on Linux and
+     Windows honour this; Safari and Chromium on macOS largely ignore it and
+     fall back to the platform list, which color-scheme still darkens. */
+  .themed-select option {
+    background-color: white;
+    color: var(--color-slate-900);
+    font-weight: 600;
+    padding-block: 0.35rem;
+  }
+
+  .dark .themed-select option {
+    background-color: var(--color-slate-900);
+    color: var(--color-slate-100);
+  }
+
+  .themed-select option:checked {
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+  }
+
+  .dark .themed-select option:checked {
+    background-color: var(--color-primary-950);
+    color: var(--color-primary-300);
+  }
+
+  .themed-select option:disabled {
+    color: var(--color-slate-400);
+  }
+}

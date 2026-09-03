@@ -1,5 +1,4 @@
 require "nokogiri"
-require "open-uri"
 require "json"
 
 class RecipeScraper
@@ -20,6 +19,12 @@ class RecipeScraper
 
   def scrape
     @html ||= fetch_html
+    # Without this, a refused or failed fetch fell through to Nokogiri::HTML(nil)
+    # and produced a placeholder "Imported Recipe" carrying the rejected URL,
+    # which made RecipeImportsController's "Could not fetch recipe" branch dead
+    # code - nothing ever returned nil for it to catch.
+    return nil if @html.blank?
+
     doc = Nokogiri::HTML(@html)
 
     recipe_data = extract_json_ld_recipe(doc)
@@ -33,13 +38,17 @@ class RecipeScraper
 
   private
 
+  USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0".freeze
+
   def fetch_html
-    URI.parse(url).open(
-      "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0",
-      read_timeout: 10
-    ).read
+    SafeHttpFetcher.get(url, headers: { "User-Agent" => USER_AGENT })
+  rescue OutboundUrlPolicy::Rejected => e
+    # Distinct from a site simply being down: something asked this server to
+    # fetch a target it is not allowed to reach.
+    Rails.logger.warn("[egress] RecipeScraper refused #{url.inspect}: #{e.message}")
+    nil
   rescue StandardError => e
-    Rails.logger.warn("RecipeScraper failed to fetch #{url}: #{e.message}")
+    Rails.logger.warn("RecipeScraper failed to fetch #{url}: #{e.class}: #{e.message}")
     nil
   end
 
@@ -291,24 +300,6 @@ class RecipeScraper
   end
 
   def categorize_ingredient(name)
-    n = name.downcase
-    case n
-    when /chicken|beef|pork|steak|turkey|salmon|fish|shrimp|bacon|sausage|kielbasa|tuna|lamb|prosciutto|meatball/
-      "Meat & Seafood"
-    when /milk|cream|cheese|cheddar|mozzarella|parmesan|butter|margarine|yogurt|sour cream|feta|ricotta|egg/
-      "Dairy & Refrigerated"
-    when /onion|garlic|tomato|potato|lettuce|bell pepper|pepper|spinach|carrot|broccoli|avocado|lime|lemon|cilantro|basil|parsley|cucumber|asparagus|zucchini|mushroom|ginger|celery/
-      "Produce"
-    when /bread|tortilla|bun|pita|bagel|crust|baguette|roll/
-      "Bakery"
-    when /flour|sugar|baking powder|baking soda|salt|black pepper|cumin|chili powder|oregano|paprika|cinnamon|vanilla|cinnamon|nutmeg|seasoning/
-      "Spices & Baking"
-    when /frozen|peas|corn|ice cream/
-      "Frozen"
-    when /rice|pasta|spaghetti|noodle|oil|olive oil|vinegar|soy sauce|broth|stock|tomato paste|crushed tomato|canned|bean|honey|sauce|salsa|sesame oil/
-      "Pantry & Grains"
-    else
-      "Other"
-    end
+    IngredientClassifier.call(name)
   end
 end

@@ -2,6 +2,49 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [v1.2.0] - 2026-09-02
+
+A security, correctness and performance release. Three independent reviews of the
+v1.1.0 tree were reconciled into one plan; every finding was verified against the
+code before it was acted on, and each fix was confirmed failing against the
+pre-fix version first.
+
+### 🔐 Security
+* **Refuse to boot on a guessable `SECRET_KEY_BASE`.** The published default let anyone forge a signed session cookie and take over an install without credentials.
+* **PINs are stored as bcrypt digests** (`has_secure_password :pin`), not plaintext, and compared with `secure_compare`. Two migrations add the digest and drop the plaintext column.
+* **Google service-account JSON is encrypted at rest** via Active Record Encryption.
+* **Rate-limited PIN attempts** by IP and by profile, so a 4-digit PIN cannot be walked through.
+* **Closed five stored-XSS sinks**, including a `raw()` helper that rendered a user-typed pantry icon straight into the page.
+* **SSRF egress filtering on recipe import.** Requests are checked by *resolved* address and pinned to it, so a public hostname cannot redirect into private space or the cloud metadata service.
+* **The onboarding wizard is no longer reachable without a session** once a household exists. It was exempted by controller path, which left the roster, recipe and pantry steps open.
+* Session cookies are marked `secure` over TLS, and the CSP nonce is stable across a Turbo navigation.
+
+### 🐛 Correctness
+* Moving a meal slot happens in one transaction; a failed move no longer destroys the original.
+* A renamed ingredient re-syncs its old aisle mapping instead of stranding it.
+* Starter recipe images render again, with the utensils placeholder behind them.
+* Ingredient rows added in quick succession keep their own names — the row index was time-based and could collide inside a millisecond.
+* Panels focus their input directly instead of from a timer, so a deferred callback can no longer pull the caret out of the field you are typing in. The bulk tag modal focused a hidden field and had never placed the caret at all.
+* Emoji pantry icons take the size their caller asks for, matching the drawn icons beside them.
+
+### ⚡ Performance
+* Saving a 15-ingredient recipe: **211 queries → 91**.
+* Grocery auto-fulfilment: **37 queries → 14**, batched and scoped.
+* A 20-ingredient edit page: **455KB → 235KB**, emitting the ingredient catalogue once.
+
+### ♿ Accessibility & UI
+* Pinch-zoom restored (`maximum-scale` and `user-scalable=no` removed, WCAG 1.4.4).
+* Every form field carries a label that points at it; scrollable menus stay out of the tab order.
+* Dropdowns are keyboard-navigable and close when focus leaves them.
+* Native controls stay native, themed to match the app rather than replaced.
+
+### 🧪 Testing
+* **319 unit and integration tests, plus 33 system tests** in a new headless-browser harness (up from 244 at v1.1.0), covering flows that had only ever been checked by hand.
+* Every Stimulus controller is asserted to actually register — a dead controller shipped in v1.1.0 because request tests render HTML but never run it.
+* The app version is now visible on the admin dashboard, and a test fails if the `VERSION` file, this changelog and the constant drift apart.
+
+---
+
 ## [v1.1.0] - 2026-08-30
 
 ### 🚀 Highlights

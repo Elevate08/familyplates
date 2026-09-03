@@ -1,4 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
+
+function parseList(json) {
+  if (!json) return []
+
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 export default class extends Controller {
   static targets = [
@@ -15,9 +27,30 @@ export default class extends Controller {
     "createUnitText"
   ]
 
-  static values = {
-    ingredients: { type: Array, default: [] },
-    units: { type: Array, default: [] }
+  // The catalogue lives on the form container, not on each row - a
+  // twenty-ingredient recipe would otherwise ship twenty copies of it. Parsed
+  // once per container and cached there, so twenty rows do not parse it twenty
+  // times either.
+  get ingredientsValue() {
+    return this.catalogue.ingredients
+  }
+
+  get unitsValue() {
+    return this.catalogue.units
+  }
+
+  get catalogue() {
+    const host = this.element.closest("[data-ingredient-catalogue]")
+    if (!host) return { ingredients: [], units: [] }
+
+    if (!host.__ingredientCatalogue) {
+      host.__ingredientCatalogue = {
+        ingredients: parseList(host.dataset.ingredientCatalogueIngredients),
+        units: parseList(host.dataset.ingredientCatalogueUnits)
+      }
+    }
+
+    return host.__ingredientCatalogue
   }
 
   connect() {
@@ -44,16 +77,30 @@ export default class extends Controller {
   }
 
   onNameKeydown(event) {
+    if (this.handleNavigationKey(event, "name")) return
+
     if (event.key === "Enter") {
       event.preventDefault()
+      const highlighted = this.highlightedOption("name")
+      if (highlighted?.dataset?.ingredientName) {
+        this.selectIngredient(highlighted.dataset.ingredientName, highlighted.dataset.ingredientAisle)
+        return
+      }
+
       const query = this.nameInputTarget.value.trim()
-      if (query.length > 0) {
-        const firstMatch = this.hasNameListTarget ? this.nameListTarget.querySelector("[data-ingredient-name]") : null
-        if (firstMatch && firstMatch.dataset.ingredientName.toLowerCase() === query.toLowerCase()) {
-          this.selectIngredient(firstMatch.dataset.ingredientName, firstMatch.dataset.ingredientAisle)
-        } else {
-          this.createCustomIngredient(query)
-        }
+      if (query.length === 0) return
+
+      // Enter takes the best existing match. Creating something new needs a name
+      // that matches nothing, or picking "Add" deliberately - otherwise typing
+      // "Chick" and pressing Enter silently created a second ingredient called
+      // "Chick" alongside the "Chicken" the household already knows.
+      const chosen = this.highlightedOption("name") ||
+                     (this.hasNameListTarget ? this.nameListTarget.querySelector("[data-ingredient-name]") : null)
+
+      if (chosen?.dataset?.ingredientName) {
+        this.selectIngredient(chosen.dataset.ingredientName, chosen.dataset.ingredientAisle)
+      } else {
+        this.createCustomIngredient(query)
       }
     } else if (event.key === "Escape") {
       this.closeNameDropdown()
@@ -62,6 +109,9 @@ export default class extends Controller {
 
   updateNameDropdown(query) {
     if (!this.hasNameDropdownTarget || !this.hasNameListTarget) return
+
+    // Every re-render invalidates the highlight - the option it pointed at is gone.
+    this.clearHighlight("name")
 
     const q = (query || "").toLowerCase()
     const matching = this.ingredientsValue.filter(item => {
@@ -74,15 +124,16 @@ export default class extends Controller {
     matching.slice(0, 8).forEach(item => {
       const btn = document.createElement("button")
       btn.type = "button"
+      btn.tabIndex = -1
       btn.dataset.ingredientName = item.name
       btn.dataset.ingredientAisle = item.aisle
       btn.className = "w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
       
       const aisleColor = this.getAisleBadgeColor(item.aisle)
-      btn.innerHTML = `
-        <span class="font-bold text-slate-900 dark:text-white truncate">${item.name}</span>
-        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${aisleColor} shrink-0 ml-2 shadow-2xs">${item.aisle}</span>
-      `
+      replaceChildren(btn,
+        el("span", { className: "font-bold text-slate-900 dark:text-white truncate", text: item.name }),
+        el("span", { className: `text-[10px] font-bold px-2 py-0.5 rounded-full ${aisleColor} shrink-0 ml-2 shadow-2xs`, text: item.aisle })
+      )
       
       btn.addEventListener("click", (e) => {
         e.preventDefault()
@@ -175,24 +226,109 @@ export default class extends Controller {
   }
 
   onUnitKeydown(event) {
+    if (this.handleNavigationKey(event, "unit")) return
+
     if (event.key === "Enter") {
       event.preventDefault()
-      const query = this.unitInputTarget.value.trim()
-      if (query.length > 0) {
-        const firstMatch = this.hasUnitListTarget ? this.unitListTarget.querySelector("[data-unit-name]") : null
-        if (firstMatch && firstMatch.dataset.unitName.toLowerCase() === query.toLowerCase()) {
-          this.selectUnit(firstMatch.dataset.unitName)
-        } else {
-          this.selectUnit(query)
-        }
+      const highlighted = this.highlightedOption("unit")
+      if (highlighted?.dataset?.unitName) {
+        this.selectUnit(highlighted.dataset.unitName)
+        return
       }
+
+      const query = this.unitInputTarget.value.trim()
+      if (query.length === 0) return
+
+      const chosen = this.highlightedOption("unit") ||
+                     (this.hasUnitListTarget ? this.unitListTarget.querySelector("[data-unit-name]") : null)
+
+      this.selectUnit(chosen?.dataset?.unitName || query)
     } else if (event.key === "Escape") {
       this.closeUnitDropdown()
     }
   }
 
+  // --- Keyboard navigation and focus ------------------------------------------
+  //
+  // Both menus behave the same way, so the mechanics live here once. Arrow keys
+  // move a highlight through the matches and on into the "Add" button, which is
+  // the only way to create something that collides with an existing name.
+
+  handleNavigationKey(event, kind) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return false
+
+    const options = this.optionsFor(kind)
+    if (options.length === 0) return false
+
+    event.preventDefault()
+
+    const current = options.indexOf(this.highlightedOption(kind))
+    const step = event.key === "ArrowDown" ? 1 : -1
+    const next = current === -1
+      ? (step === 1 ? 0 : options.length - 1)
+      : (current + step + options.length) % options.length
+
+    this.setHighlight(kind, options[next])
+    return true
+  }
+
+  optionsFor(kind) {
+    const list = kind === "name" ? this.nameListTarget : this.unitListTarget
+    const create = kind === "name" ? this.createNameOptionTarget : this.createUnitOptionTarget
+    const options = Array.from(list?.querySelectorAll("button") || [])
+
+    if (create && !create.classList.contains("hidden")) {
+      options.push(...create.querySelectorAll("button"))
+    }
+
+    return options
+  }
+
+  highlightedOption(kind) {
+    return this.optionsFor(kind).find(option => option.dataset.highlighted === "true") || null
+  }
+
+  setHighlight(kind, option) {
+    this.optionsFor(kind).forEach(candidate => {
+      const active = candidate === option
+      candidate.dataset.highlighted = active ? "true" : "false"
+      candidate.classList.toggle("ring-2", active)
+      candidate.classList.toggle("ring-primary-500", active)
+    })
+
+    option?.scrollIntoView({ block: "nearest" })
+  }
+
+  clearHighlight(kind) {
+    this.setHighlight(kind, null)
+  }
+
+  // Each menu closes as soon as focus leaves *its own* input and menu - not when
+  // focus leaves the row. Scoping this to the row was too broad: tabbing from
+  // the name field to the aisle select stays inside the row, so the menu stayed
+  // open, sitting over the select the user had just moved to.
+  onFocusOut(event) {
+    const moved = event.relatedTarget
+
+    if (!this.stillWithin(moved, this.nameInputTarget, this.hasNameDropdownTarget && this.nameDropdownTarget)) {
+      this.closeNameDropdown()
+    }
+
+    if (!this.stillWithin(moved, this.unitInputTarget, this.hasUnitDropdownTarget && this.unitDropdownTarget)) {
+      this.closeUnitDropdown()
+    }
+  }
+
+  stillWithin(node, ...regions) {
+    if (!node) return false
+
+    return regions.some(region => region && (region === node || region.contains(node)))
+  }
+
   updateUnitDropdown(query) {
     if (!this.hasUnitDropdownTarget || !this.hasUnitListTarget) return
+
+    this.clearHighlight("unit")
 
     const q = (query || "").toLowerCase()
     const matching = this.unitsValue.filter(unit => {
@@ -205,12 +341,13 @@ export default class extends Controller {
     matching.slice(0, 8).forEach(unit => {
       const btn = document.createElement("button")
       btn.type = "button"
+      btn.tabIndex = -1
       btn.dataset.unitName = unit
       btn.className = "w-full text-left px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
-      btn.innerHTML = `
-        <span class="font-bold text-slate-900 dark:text-white">${unit}</span>
-        <span class="text-[10px] text-slate-400 font-medium">Use</span>
-      `
+      replaceChildren(btn,
+        el("span", { className: "font-bold text-slate-900 dark:text-white", text: unit }),
+        el("span", { className: "text-[10px] text-slate-400 font-medium", text: "Use" })
+      )
 
       btn.addEventListener("click", (e) => {
         e.preventDefault()

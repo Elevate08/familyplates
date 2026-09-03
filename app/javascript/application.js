@@ -82,7 +82,16 @@ window.showConfirmDialog = function(message, options = {}) {
   })
 }
 
-// Intercept all Turbo form confirmations across the entire app
-Turbo.setConfirmMethod((message, _element) => {
-  return window.showConfirmDialog(message)
-})
+// Intercept all Turbo form confirmations across the entire app.
+//
+// Turbo.config.forms.confirm replaces the deprecated top-level
+// Turbo.setConfirmMethod, which warns on every page load and is slated for
+// removal. Falls back to the old call on a Turbo that predates the config
+// object, so this does not pin a minimum version.
+const confirmWithDialog = (message, _element) => window.showConfirmDialog(message)
+
+if (Turbo.config?.forms) {
+  Turbo.config.forms.confirm = confirmWithDialog
+} else {
+  Turbo.setConfirmMethod(confirmWithDialog)
+}

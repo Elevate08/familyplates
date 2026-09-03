@@ -66,6 +66,8 @@
         <div class="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div class="relative">
             <input type="text"
+                   id="recipe_category_filter"
+                   aria-label="Filter categories and tags"
                    data-dropdown-target="searchInput"
                    data-action="input->dropdown#filter keydown.esc->dropdown#hide"
                    placeholder="Type to filter categories & tags..."
@@ -76,7 +78,7 @@
           </div>
         </div>
 
-        <div class="max-h-80 overflow-y-auto p-2 space-y-2 overscroll-contain">
+        <div class="max-h-80 overflow-y-auto themed-scrollbar p-2 space-y-2 overscroll-contain">
           <!-- Category Group -->
           <div data-dropdown-target="group" class="space-y-0.5">
             <div class="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -181,12 +183,14 @@
               <!-- Live Search inside Desktop Tags Dropdown -->
               <div class="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <input type="text"
+                       id="recipe_tag_filter"
+                       aria-label="Filter tags"
                        data-dropdown-target="searchInput"
                        data-action="input->dropdown#filter keydown.esc->dropdown#hide"
                        placeholder="Filter tags..."
                        class="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500">
               </div>
-              <div class="max-h-60 overflow-y-auto p-1.5 overscroll-contain">
+              <div class="max-h-60 overflow-y-auto themed-scrollbar p-1.5 overscroll-contain">
                 <% @available_tags.each do |tag| %>
                   <% is_selected = (current_tag_active == tag) %>
                   <%= link_to recipes_path(tag: is_selected ? nil : tag, view: current_view, query: params[:query]), 
@@ -210,9 +214,9 @@
       <!-- Search Bar & View Mode Toggle -->
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <%= form_with url: recipes_path, method: :get, class: "flex-1 sm:w-64" do %>
-          <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
-          <%= hidden_field_tag :tag, params[:tag] if params[:tag].present? %>
-          <%= hidden_field_tag :view, current_view %>
+          <%= hidden_field_tag :filter, params[:filter], id: nil if params[:filter].present? %>
+          <%= hidden_field_tag :tag, params[:tag], id: nil if params[:tag].present? %>
+          <%= hidden_field_tag :view, current_view, id: nil %>
           <div class="relative">
             <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
                   class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
@@ -259,6 +263,7 @@
     <% if current_family_member&.admin? && @recipes.any? %>
       <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
         <input type="checkbox"
+               id="recipes_select_all"
                data-bulk-select-target="selectAllCheckbox"
                data-action="change->bulk-select#toggleAll"
                class="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer">
@@ -360,17 +365,17 @@
                close_action: "bulk-select#closeMealTypesModal" do %>
       
       <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "mealTypesForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
-        <%= hidden_field_tag :filter, params[:filter] %>
-        <%= hidden_field_tag :query, params[:query] %>
-        <%= hidden_field_tag :view, current_view %>
-        <%= hidden_field_tag :update_meal_types, "1" %>
+        <%= hidden_field_tag :filter, params[:filter], id: nil %>
+        <%= hidden_field_tag :query, params[:query], id: nil %>
+        <%= hidden_field_tag :view, current_view, id: nil %>
+        <%= hidden_field_tag :update_meal_types, "1", id: nil %>
 
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Assigned Meal Periods:</label>
+          <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Assigned Meal Periods:</span>
           <div class="space-y-2">
             <% [["breakfast", "☀️ Breakfast"], ["lunch", "🥪 Lunch"], ["dinner", "🍽️ Dinner"]].each do |type, label| %>
               <label class="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-700 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors">
-                <%= check_box_tag "meal_types[]", type, false, class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
+                <%= check_box_tag "meal_types[]", type, false, id: "bulk_meal_type_#{type}", class: "rounded text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer" %>
                 <span class="text-sm"><%= label %></span>
               </label>
             <% end %>
@@ -397,17 +402,17 @@
                close_action: "bulk-select#closeTagsModal" do %>
 
       <%= form_with url: bulk_update_recipes_path, method: :post, data: { "bulk-select-target": "tagsForm", action: "submit->bulk-select#beforeFormSubmit" }, class: "space-y-4" do |f| %>
-        <%= hidden_field_tag :filter, params[:filter] %>
-        <%= hidden_field_tag :query, params[:query] %>
-        <%= hidden_field_tag :view, current_view %>
-        <%= hidden_field_tag :update_tags, "1" %>
+        <%= hidden_field_tag :filter, params[:filter], id: nil %>
+        <%= hidden_field_tag :query, params[:query], id: nil %>
+        <%= hidden_field_tag :view, current_view, id: nil %>
+        <%= hidden_field_tag :update_tags, "1", id: nil %>
 
         <!-- Interactive Search & Creation Tag Picker for Bulk Edit -->
         <div data-controller="tag-picker" 
              data-tag-picker-available-tags-value="<%= (@available_tags || Recipe::POPULAR_TAGS).to_json %>"
              class="space-y-2 relative">
           <div class="flex items-center justify-between">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Tags:</label>
+            <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Tags:</span>
             <span class="text-xs text-slate-400 dark:text-slate-500">Search existing tags or type to create new</span>
           </div>
 
@@ -419,7 +424,10 @@
             <div data-tag-picker-target="badgesContainer" class="flex flex-wrap items-center gap-1.5"></div>
             <div class="flex-1 min-w-[140px] relative">
               <input type="text"
+                     id="bulk_tag_search"
+                     aria-label="Search or add a tag"
                      data-tag-picker-target="textInput"
+                     data-bulk-select-target="tagsSearchInput"
                      data-action="input->tag-picker#onInput keydown->tag-picker#onKeydown focus->tag-picker#onFocus"
                      placeholder="Type a tag..."
                      class="w-full bg-transparent border-none p-1 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium">
@@ -440,7 +448,7 @@
                 <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 font-extrabold">Press Enter</span>
               </button>
             </div>
-            <div data-tag-picker-target="suggestionsList" class="max-h-52 overflow-y-auto space-y-0.5 overscroll-contain"></div>
+            <div data-tag-picker-target="suggestionsList" class="max-h-52 overflow-y-auto themed-scrollbar space-y-0.5 overscroll-contain"></div>
           </div>
 
           <!-- Quick Suggested / Available Tag Chips -->
@@ -461,9 +469,9 @@
     <!-- HIDDEN FORM: Bulk Delete Form                  -->
     <!-- ============================================== -->
     <%= form_with url: bulk_destroy_recipes_path, method: :post, data: { "bulk-select-target": "deleteForm" }, class: "hidden" do %>
-      <%= hidden_field_tag :filter, params[:filter] %>
-      <%= hidden_field_tag :query, params[:query] %>
-      <%= hidden_field_tag :view, current_view %>
+      <%= hidden_field_tag :filter, params[:filter], id: nil %>
+      <%= hidden_field_tag :query, params[:query], id: nil %>
+      <%= hidden_field_tag :view, current_view, id: nil %>
     <% end %>
   <% end %>
 

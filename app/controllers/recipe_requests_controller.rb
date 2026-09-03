@@ -2,7 +2,7 @@ class RecipeRequestsController < ApplicationController
   before_action :set_recipe
 
   def create
-    RecipeRequest.auto_fulfill_passed_slots!
+    RecipeRequest.auto_fulfill_passed_slots!(current_household)
     @recipe_request = @recipe.recipe_requests.find_or_initialize_by(
       family_member: current_family_member,
       fulfilled_at: nil

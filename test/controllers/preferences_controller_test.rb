@@ -48,7 +48,7 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_preferences_url
     @admin_member.reload
-    assert_equal "4321", @admin_member.pin
+    assert @admin_member.verify_pin("4321")
     assert @admin_member.requires_pin?
   end
 
@@ -63,7 +63,25 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_preferences_url
     @regular_member.reload
-    assert_nil @regular_member.pin
+    assert_nil @regular_member.pin_digest
     assert_not @regular_member.requires_pin?
+  end
+
+  test "the PIN field shows a Configured badge for an admin who has one" do
+    sign_in_as(@admin_member)
+
+    get edit_preferences_path
+
+    assert_select "[data-controller=configured-field]", 1
+    assert_select "[data-configured-field-target=indicator]", 1
+    assert_not_includes response.body, "unchanged", "the badge replaced the placeholder wording"
+  end
+
+  test "a member with no PIN sees no PIN field at all" do
+    sign_in_as(@regular_member)
+
+    get edit_preferences_path
+
+    assert_select "[data-configured-field-target=indicator]", 0
   end
 end

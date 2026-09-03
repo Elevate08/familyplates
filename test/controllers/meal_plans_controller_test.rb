@@ -79,14 +79,18 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get print month view with centered month title, no family name/top-left clutter, and spelled out meal types" do
-    test_date = @meal_plan.week_start_date + 4.days
+    # Anchored on a week that straddles a month boundary (Aug 31 - Sep 6, 2026)
+    # so this covers the print-out of a majority-month week, not just the easy
+    # case of a week sitting wholly inside one month.
+    plan = boundary_meal_plan
+    test_date = plan.week_start_date + 4.days
     member = family_members(:one)
     recipe = recipes(:one)
-    @meal_plan.meal_plan_slots.create!(date: test_date, meal_type: "breakfast", custom_title: "Blueberry Oatmeal with Toasted Almonds", family_member: member)
-    @meal_plan.meal_plan_slots.create!(date: test_date, meal_type: "lunch", custom_title: "Turkey Sandwich on Sourdough", family_member: member)
-    @meal_plan.meal_plan_slots.create!(date: test_date, meal_type: "dinner", recipe: recipe, family_member: member)
+    plan.meal_plan_slots.create!(date: test_date, meal_type: "breakfast", custom_title: "Blueberry Oatmeal with Toasted Almonds", family_member: member)
+    plan.meal_plan_slots.create!(date: test_date, meal_type: "lunch", custom_title: "Turkey Sandwich on Sourdough", family_member: member)
+    plan.meal_plan_slots.create!(date: test_date, meal_type: "dinner", recipe: recipe, family_member: member)
 
-    get print_meal_plan_url(@meal_plan, view: "month")
+    get print_meal_plan_url(plan, view: "month")
     assert_response :success
     assert_includes response.body, "Blueberry Oatmeal with Toasted Almonds"
     assert_includes response.body, "Turkey Sandwich on Sourdough"
@@ -125,5 +129,67 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     post sync_calendar_meal_plan_url(@meal_plan)
     assert_redirected_to meal_plan_url(@meal_plan)
     assert_equal "Google Calendar sync is not configured yet. Set it up in the Admin Control Center.", flash[:alert]
+  end
+
+  # --- Default month selection for weeks that straddle a month boundary -------
+  #
+  # A week belongs to whichever month holds most of its seven days. Anchoring on
+  # the week's first day instead drops the tail of the current week out of the
+  # calendar for the several days a year a week starts near a month's end.
+
+  test "month view defaults to the month holding most of the week when the week ends in the next month" do
+    # Aug 31 - Sep 6, 2026: one day in August, six in September.
+    plan = boundary_meal_plan
+    plan.meal_plan_slots.create!(date: Date.new(2026, 9, 4), meal_type: "dinner", custom_title: "Friday Fish Tacos")
+
+    get meal_plan_url(plan, view: "month")
+
+    assert_response :success
+    assert_includes response.body, "September 2026"
+    assert_includes response.body, "Friday Fish Tacos"
+  end
+
+  test "month view defaults to the month holding most of the week when the week starts in the previous month" do
+    # Apr 27 - May 3, 2026: four days in April, three in May.
+    plan = @household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 4, 27))
+    plan.meal_plan_slots.create!(date: Date.new(2026, 4, 28), meal_type: "dinner", custom_title: "Tuesday Ratatouille")
+    plan.meal_plan_slots.create!(date: Date.new(2026, 5, 1), meal_type: "dinner", custom_title: "Friday Paella")
+
+    get meal_plan_url(plan, view: "month")
+
+    assert_response :success
+    assert_includes response.body, "April 2026"
+    assert_includes response.body, "Tuesday Ratatouille"
+    assert_not_includes response.body, "Friday Paella"
+  end
+
+  test "month view honours an explicit month over the week's majority month" do
+    plan = boundary_meal_plan
+    plan.meal_plan_slots.create!(date: Date.new(2026, 9, 4), meal_type: "dinner", custom_title: "Friday Fish Tacos")
+
+    get meal_plan_url(plan, view: "month", month: "2026-08-01")
+
+    assert_response :success
+    assert_includes response.body, "August 2026"
+    assert_not_includes response.body, "Friday Fish Tacos"
+  end
+
+  test "print month view uses the same default month as the planner" do
+    plan = boundary_meal_plan
+
+    get meal_plan_url(plan, view: "month")
+    assert_includes response.body, "September 2026"
+
+    get print_meal_plan_url(plan, view: "month")
+    assert_includes response.body, "September 2026"
+  end
+
+  private
+
+  # A plan whose week straddles a month boundary, with the majority of its days
+  # in the second month. find_or_create_by! because this is the current week
+  # whenever the suite happens to run during it.
+  def boundary_meal_plan
+    @household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 8, 31))
   end
 end

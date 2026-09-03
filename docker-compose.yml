@@ -10,7 +10,18 @@ services:
       - "3000:80"
     environment:
       - RAILS_ENV=production
-      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-replace_with_a_secure_random_hex_string}
+      # No default on purpose. A fallback here would be a published constant, and
+      # secret_key_base signs the session cookie that carries who you are signed
+      # in as - a known value lets anyone mint an organizer session.
+      # Generate one with: openssl rand -hex 64
+      - "SECRET_KEY_BASE=${SECRET_KEY_BASE:?required - generate one with openssl rand -hex 64}"
+      # Encrypts the Google service account key at rest. Optional - Google
+      # Calendar sync is the only feature that needs it - but once set they must
+      # not change, or stored credentials become unreadable. Deliberately
+      # separate from SECRET_KEY_BASE so rotating that does not destroy them.
+      # Generate each with: openssl rand -hex 32
+      - "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY:-}"
+      - "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT=${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT:-}"
       - RAILS_SERVE_STATIC_FILES=true
       - RAILS_LOG_TO_STDOUT=true
     volumes:

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { el, replaceChildren } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -8,8 +9,7 @@ export default class extends Controller {
     "suggestionsMenu",
     "suggestionsList",
     "createOption",
-    "createOptionText",
-    "popularContainer"
+    "createOptionText"
   ]
 
   static values = {
@@ -23,13 +23,11 @@ export default class extends Controller {
     if (this.hasHiddenInputTarget) {
       this._handleHiddenInputChange = () => {
         this.renderBadges()
-        this.renderPopularTags()
       }
       this.hiddenInputTarget.addEventListener("change", this._handleHiddenInputChange)
     }
 
     this.renderBadges()
-    this.renderPopularTags()
   }
 
   disconnect() {
@@ -51,7 +49,6 @@ export default class extends Controller {
     const unique = Array.from(new Set(tags.map(t => t.trim()))).filter(t => t.length > 0)
     this.hiddenInputTarget.value = unique.join(", ")
     this.renderBadges()
-    this.renderPopularTags()
   }
 
   addTag(tag) {
@@ -111,26 +108,6 @@ export default class extends Controller {
     })
   }
 
-  renderPopularTags() {
-    if (!this.hasPopularContainerTarget) return
-    const current = this.getTags().map(t => t.toLowerCase())
-    const unselected = this.availableTagsValue.filter(t => !current.includes(t.toLowerCase())).slice(0, 10)
-
-    this.popularContainerTarget.innerHTML = ""
-    if (unselected.length === 0) return
-
-    unselected.forEach(tag => {
-      const btn = document.createElement("button")
-      btn.type = "button"
-      btn.className = "text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 text-slate-600 dark:text-slate-300 hover:text-primary-700 dark:hover:text-primary-300 border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
-      btn.textContent = `+ ${tag}`
-      btn.addEventListener("click", (e) => {
-        e.preventDefault()
-        this.addTag(tag)
-      })
-      this.popularContainerTarget.appendChild(btn)
-    })
-  }
 
   focusInput(event) {
     if (this.hasTextInputTarget && event.target !== this.textInputTarget) {
@@ -188,7 +165,10 @@ export default class extends Controller {
       item.type = "button"
       item.dataset.tagItem = tag
       item.className = "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-between transition-colors cursor-pointer"
-      item.innerHTML = `<span>🏷️ ${tag}</span><span class="text-[10px] text-slate-400 font-normal">Add</span>`
+      replaceChildren(item,
+        el("span", { text: `🏷️ ${tag}` }),
+        el("span", { className: "text-[10px] text-slate-400 font-normal", text: "Add" })
+      )
       item.addEventListener("click", (e) => {
         e.preventDefault()
         this.addTag(tag)

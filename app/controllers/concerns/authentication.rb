@@ -40,6 +40,11 @@ module Authentication
     end
   end
 
+  # Before the first household exists there is nothing to protect and no profile
+  # to sign in as, so the setup wizard is open and everything else routes to it.
+  # Once a household exists, controllers opt out one action at a time with
+  # allow_unauthenticated_access — never by controller name, which cannot express
+  # "these two actions but not the other eight".
   def require_authentication
     if Household.none?
       redirect_to onboarding_path and return unless request.path.start_with?("/onboarding")
@@ -48,16 +53,17 @@ module Authentication
 
     return if Current.family_member.present?
 
-    # Allow unauthenticated profile selection & onboarding
-    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
-
-    session[:return_to_after_authenticating] = request.url
+    # Only GETs are worth returning to. profiles#set consumes this with a
+    # redirect, which is always a GET, so storing the URL of an expired POST
+    # sent the user to a path that has no GET route - a dead 404 after a
+    # successful sign-in. HEAD is included because Rails routes it to the GET
+    # action while request.get? is false for it.
+    session[:return_to_after_authenticating] = request.url if request.get? || request.head?
     redirect_to select_profile_path and return
   end
 
   def require_active_family_member
     return if Household.none?
-    return if controller_name.in?(%w[profiles sessions]) || controller_path.start_with?("onboarding") || controller_name == "feeds"
 
     if Current.family_member.nil?
       redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
@@ -71,7 +77,13 @@ module Authentication
   def start_new_session_for(member)
     Current.family_member = member
     Current.household = member.household
-    cookies.signed.permanent[:active_family_member_id] = { value: member.id, httponly: true, same_site: :lax }
+    # secure: request.ssl? rather than a flat true - a Secure cookie is never
+    # sent over plain HTTP, and plenty of these run on a LAN with no TLS at all.
+    # This marks it Secure wherever TLS is actually in use and stays working
+    # where it is not.
+    cookies.signed.permanent[:active_family_member_id] = {
+      value: member.id, httponly: true, same_site: :lax, secure: request.ssl?
+    }
   end
 
   def terminate_session

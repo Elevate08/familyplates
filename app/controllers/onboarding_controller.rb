@@ -1,7 +1,12 @@
 class OnboardingController < ApplicationController
+  WIZARD_STEPS_AFTER_SETUP = %i[members add_member remove_member recipes save_recipes pantry save_pantry complete].freeze
+
   allow_unauthenticated_access only: %i[family save_family]
   before_action :ensure_household_unconfigured, only: %i[family save_family]
-  before_action :require_household_exists, only: %i[members add_member remove_member recipes save_recipes pantry save_pantry complete]
+  before_action :require_household_exists, only: WIZARD_STEPS_AFTER_SETUP
+  # save_family signs the new organizer in, so the rest of the wizard runs as an
+  # authenticated admin on a first boot and is closed to everyone else after it.
+  before_action :require_admin, only: WIZARD_STEPS_AFTER_SETUP
   before_action :load_starter_recipes, only: %i[recipes save_recipes]
 
   # Step 1: Kitchen & Family Setup
@@ -15,8 +20,7 @@ class OnboardingController < ApplicationController
     @admin_member = FamilyMember.new(
       role: "admin",
       avatar_color: "#3B82F6",
-      avatar_icon: "chef-hat",
-      pin: "1234"
+      avatar_icon: "chef-hat"
     )
   end
 
@@ -26,7 +30,7 @@ class OnboardingController < ApplicationController
       @household.save!
 
       initial_name = admin_member_params[:name].presence || "Head Chef"
-      initial_pin = admin_member_params[:pin].presence || "1234"
+      initial_pin = admin_member_params[:pin]
       initial_color = admin_member_params[:avatar_color].presence || "#3B82F6"
       initial_icon = admin_member_params[:avatar_icon].presence || "chef-hat"
 
@@ -98,7 +102,10 @@ class OnboardingController < ApplicationController
   def save_recipes
     selected_ids = Array(params[:recipe_ids]).map(&:to_s)
 
+    created = []
+
     ActiveRecord::Base.transaction do
+      RecipeIngredient.without_aisle_sync do
       @starter_recipes.each do |starter|
         next unless selected_ids.include?(starter["id"])
 
@@ -119,14 +126,21 @@ class OnboardingController < ApplicationController
               name: ing["name"],
               quantity: ing["quantity"],
               unit: ing["unit"],
-              aisle_category: ing["aisle_category"] || "Other"
+              aisle_category: ing["aisle_category"].presence
             )
           end
         end
+
+        created << recipe
+      end
       end
     end
 
-    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm your household pantry staples."
+    # One resync per distinct ingredient name, after every starter recipe has
+    # landed, rather than one per ingredient as each was created.
+    created.each(&:resync_aisle_mappings!)
+
+    redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end
 
   # Step 4: Pantry Staples
@@ -141,8 +155,16 @@ class OnboardingController < ApplicationController
       PantryItem::DEFAULT_STAPLES.each do |staple|
         is_selected = selected_staple_names.include?(staple[:name])
         item = current_household.pantry_items.find_or_initialize_by(name: staple[:name])
-        item.aisle_category = staple[:aisle_category]
-        item.emoji = staple[:emoji]
+
+        # Seed the defaults only when creating. This step used to assign them
+        # unconditionally, so re-running the wizard reset a household's
+        # hand-picked category and icon back to the DEFAULT_STAPLES values. Only
+        # the checkbox is the user's answer on this screen.
+        if item.new_record?
+          item.aisle_category = staple[:aisle_category]
+          item.emoji = staple[:emoji]
+        end
+
         item.is_staple = is_selected
         item.save!
       end

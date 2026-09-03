@@ -56,4 +56,42 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     get root_url
     assert_redirected_to select_profile_url
   end
+
+  # --- Post-sign-in redirect --------------------------------------------------
+  #
+  # require_authentication stores request.url for any verb, and profiles#set now
+  # consumes it (it used to always go to root_path). The redirect is a GET, so a
+  # stored POST target lands on a route that does not accept GET.
+
+  test "a stored GET destination is returned to after sign-in" do
+    sign_out
+
+    get recipes_url
+    assert_redirected_to select_profile_url
+
+    post set_profile_url(@admin), params: { pin: "1234" }
+
+    assert_redirected_to recipes_url
+    follow_redirect!
+    assert_response :success
+  end
+
+  test "an expired non-GET request does not become a dead redirect target" do
+    sign_out
+
+    post meal_plan_slots_url, params: {
+      meal_plan_slot: { date: Date.current.to_s, meal_type: "dinner", custom_title: "Fish Tacos" }
+    }
+    assert_redirected_to select_profile_url
+    assert_nil session[:return_to_after_authenticating], "a POST target must not be stored"
+
+    post set_profile_url(@admin), params: { pin: "1234" }
+
+    assert_redirected_to root_url
+
+    # root redirects on to the current meal plan, so follow until it settles -
+    # the point is that sign-in lands somewhere real rather than on a 404.
+    3.times { break unless response.redirect?; follow_redirect! }
+    assert_response :success
+  end
 end

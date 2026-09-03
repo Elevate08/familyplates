@@ -12,7 +12,9 @@ Rails.application.routes.draw do
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
   post "set_profile/:id" => "profiles#set", as: :set_profile
-  resources :family_members, only: %i[index create update destroy] do
+  # Roster mutation lives only in Admin::FamilyMembersController. This is the
+  # read-only roster plus the profile switcher.
+  resources :family_members, only: %i[index] do
     member do
       post :switch
     end
@@ -30,10 +32,8 @@ Rails.application.routes.draw do
         patch :reset_pin
       end
     end
-    resource :household, only: %i[edit update] do
-      post :test_google_calendar
-      post :sync_google_calendar
-    end
+    # Calendar testing and syncing live only on Admin::CalendarsController.
+    resource :household, only: %i[edit update]
     resource :calendar, only: %i[show edit update], controller: "calendars" do
       post :test_connection
       post :sync_plan
