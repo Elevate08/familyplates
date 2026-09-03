@@ -1,4 +1,6 @@
 class Household < ApplicationRecord
+  attribute :id, default: -> { SecureRandom.uuid }
+
   # A Google service account private key. Encrypted at rest so a copy of the
   # SQLite volume - a backup, a synced folder, a support bundle - does not hand
   # over access to the household's calendar.

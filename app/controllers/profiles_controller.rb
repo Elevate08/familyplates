@@ -6,7 +6,7 @@ class ProfilesController < ApplicationController
 
   def select
     household = Household.installation
-    @family_members = household ? household.family_members.order(:id) : []
+    @family_members = household ? household.family_members.order(:created_at, :id) : []
   end
 
   def set

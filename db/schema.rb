@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -39,11 +39,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "family_members", force: :cascade do |t|
+  create_table "family_members", id: :string, force: :cascade do |t|
     t.string "avatar_color", default: "#3B82F6"
     t.string "avatar_icon", default: "chef-hat"
     t.datetime "created_at", null: false
-    t.integer "household_id", null: false
+    t.string "household_id", null: false
     t.string "name", null: false
     t.string "pin_digest"
     t.string "role", default: "member"
@@ -51,7 +51,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.index ["household_id"], name: "index_family_members_on_household_id"
   end
 
-  create_table "households", force: :cascade do |t|
+  create_table "households", id: :string, force: :cascade do |t|
     t.string "breakfast_time", default: "08:00", null: false
     t.datetime "created_at", null: false
     t.string "dinner_time", default: "18:00", null: false
@@ -67,7 +67,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.string "aisle_category", null: false
     t.integer "count", default: 1, null: false
     t.datetime "created_at", null: false
-    t.integer "household_id"
+    t.string "household_id"
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["household_id", "name"], name: "index_ingredient_aisle_mappings_on_household_id_and_name"
@@ -79,7 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.datetime "created_at", null: false
     t.string "custom_title"
     t.date "date", null: false
-    t.integer "family_member_id"
+    t.string "family_member_id"
     t.string "google_event_id"
     t.boolean "is_leftover", default: false, null: false
     t.integer "meal_plan_id", null: false
@@ -97,7 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
 
   create_table "meal_plans", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.integer "household_id", null: false
+    t.string "household_id", null: false
     t.text "notes"
     t.datetime "updated_at", null: false
     t.date "week_start_date", null: false
@@ -109,7 +109,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.string "aisle_category", default: "Pantry & Grains", null: false
     t.datetime "created_at", null: false
     t.string "emoji"
-    t.integer "household_id", null: false
+    t.string "household_id", null: false
     t.boolean "is_staple", default: true, null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
@@ -132,7 +132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
 
   create_table "recipe_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.integer "family_member_id", null: false
+    t.string "family_member_id", null: false
     t.datetime "fulfilled_at"
     t.integer "recipe_id", null: false
     t.datetime "updated_at", null: false
@@ -148,7 +148,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_030000) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "equipment"
-    t.integer "household_id", null: false
+    t.string "household_id", null: false
     t.string "image_url"
     t.text "instructions"
     t.string "meal_types", default: "breakfast,lunch,dinner"

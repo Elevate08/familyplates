@@ -54,7 +54,7 @@ class OnboardingController < ApplicationController
 
   # Step 2: Family Roster
   def members
-    @family_members = current_household.family_members.order(:id)
+    @family_members = current_household.family_members.order(:created_at, :id)
     @new_member = current_household.family_members.build(
       role: "member",
       avatar_color: (FamilyMember::AVATAR_COLORS - @family_members.pluck(:avatar_color)).first || FamilyMember::AVATAR_COLORS.sample,
@@ -77,7 +77,7 @@ class OnboardingController < ApplicationController
         format.turbo_stream
       end
     else
-      @family_members = current_household.family_members.where.not(id: nil).order(:id)
+      @family_members = current_household.family_members.where.not(id: nil).order(:created_at, :id)
       flash.now[:alert] = @new_member.errors.full_messages.to_sentence
       render :members, status: :unprocessable_entity
     end

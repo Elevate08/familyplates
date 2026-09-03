@@ -3,7 +3,7 @@ module Admin
     before_action :set_family_member, only: %i[edit update destroy reset_pin]
 
     def index
-      @family_members = current_household.family_members.order(:created_at)
+      @family_members = current_household.family_members.order(:created_at, :id)
       @new_member = current_household.family_members.build(role: "member", avatar_color: "#3B82F6", avatar_icon: "chef-hat")
     end
 
@@ -12,7 +12,7 @@ module Admin
       if @family_member.save
         redirect_to admin_family_members_path, notice: "#{@family_member.name} was added to the kitchen roster."
       else
-        @family_members = current_household.family_members.order(:created_at)
+        @family_members = current_household.family_members.order(:created_at, :id)
         @new_member = @family_member
         render :index, status: :unprocessable_entity
       end
@@ -66,7 +66,7 @@ module Admin
       @family_member.destroy
 
       if was_active
-        next_member = current_household.family_members.first
+        next_member = current_household.family_members.order(:created_at, :id).first
         cookies.signed[:active_family_member_id] = next_member&.id
         Current.family_member = next_member
       end

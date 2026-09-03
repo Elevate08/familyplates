@@ -3,7 +3,7 @@ class PreferencesController < ApplicationController
 
   def edit
     @household = current_household
-    @family_members = @household ? @household.family_members.order(:id) : []
+    @family_members = @household ? @household.family_members.order(:created_at, :id) : []
   end
 
   def update
@@ -13,7 +13,7 @@ class PreferencesController < ApplicationController
       redirect_to edit_preferences_path, notice: "Your preferences were saved successfully! 🎨"
     else
       @household = current_household
-      @family_members = @household ? @household.family_members.order(:id) : []
+      @family_members = @household ? @household.family_members.order(:created_at, :id) : []
       render :edit, status: :unprocessable_entity
     end
   end

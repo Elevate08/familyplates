@@ -1,6 +1,12 @@
 require "test_helper"
 
 class FamilyMemberTest < ActiveSupport::TestCase
+  test "assigns a UUID when created" do
+    member = FamilyMember.create!(household: households(:one), name: "New Member")
+
+    assert_match(/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/, member.id)
+  end
+
   test "validates name presence" do
     member = FamilyMember.new(household: households(:one), name: "")
     assert_not member.valid?

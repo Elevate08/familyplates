@@ -35,7 +35,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to admin_family_members_url
-    new_member = FamilyMember.last
+    new_member = FamilyMember.find_by!(name: "Little Alex")
     assert_equal "Little Alex", new_member.name
     assert_equal "member", new_member.role
     assert_nil new_member.pin_digest
@@ -57,7 +57,7 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to admin_family_members_url
-    new_admin = FamilyMember.last
+    new_admin = FamilyMember.find_by!(name: "Grandpa Admin")
     assert_equal "Grandpa Admin", new_admin.name
     assert_equal "admin", new_admin.role
     assert new_admin.verify_pin("7890")

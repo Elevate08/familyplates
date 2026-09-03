@@ -1,4 +1,6 @@
 class FamilyMember < ApplicationRecord
+  attribute :id, default: -> { SecureRandom.uuid }
+
   belongs_to :household
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify

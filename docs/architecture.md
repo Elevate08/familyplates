@@ -20,11 +20,11 @@ FamilyPlates is built with modern Rails best practices, adhering to simplicity, 
 
 ```mermaid
 erDiagram
-    Household ||--o{ User : has
     Household ||--o{ FamilyMember : has
     Household ||--o{ Recipe : owns
     Household ||--o{ MealPlan : tracks
     Household ||--o{ PantryItem : maintains
+    Household ||--o{ IngredientAisleMapping : learns
 
     MealPlan ||--o{ MealPlanSlot : contains
     Recipe ||--o{ RecipeIngredient : contains
@@ -32,6 +32,38 @@ erDiagram
     FamilyMember ||--o{ RecipeRequest : makes
     FamilyMember ||--o{ MealPlanSlot : cooks
     Recipe ||--o{ MealPlanSlot : fills
+
+    Household {
+        string id PK "UUID"
+    }
+    FamilyMember {
+        string id PK "UUID"
+        string household_id FK "UUID"
+    }
+    Recipe {
+        integer id PK
+        string household_id FK "UUID"
+    }
+    MealPlan {
+        integer id PK
+        string household_id FK "UUID"
+    }
+    PantryItem {
+        integer id PK
+        string household_id FK "UUID"
+    }
+    IngredientAisleMapping {
+        integer id PK
+        string household_id FK "UUID, nullable"
+    }
+    MealPlanSlot {
+        integer id PK
+        string family_member_id FK "UUID, nullable"
+    }
+    RecipeRequest {
+        integer id PK
+        string family_member_id FK "UUID"
+    }
 ```
 
 ---

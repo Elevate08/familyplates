@@ -11,6 +11,23 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "profile picker stays in creation order when UUIDs do not sort that way" do
+    household = households(:one)
+    older = household.family_members.create!(
+      id: "ffffffff-ffff-4fff-bfff-ffffffffffff", name: "Older Profile", created_at: 2.days.ago
+    )
+    newer = household.family_members.create!(
+      id: "00000000-0000-4000-8000-000000000000", name: "Newer Profile", created_at: 1.day.ago
+    )
+
+    get select_profile_url
+
+    cards = css_select("div.grid > div.group").map { |card| card.text.squish }
+    older_position = cards.index { |card| card.include?(older.name) }
+    newer_position = cards.index { |card| card.include?(newer.name) }
+    assert_operator older_position, :<, newer_position
+  end
+
   test "should set non-admin profile without pin" do
     member = family_members(:two)
     post set_profile_url(member)

@@ -23,13 +23,13 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to onboarding_members_url
-    household = Household.last
+    household = Household.find_by!(name: "The Robinson Family")
     assert_equal "The Robinson Family", household.name
     assert_equal "07:30", household.breakfast_time
     assert_equal "12:00", household.lunch_time
     assert_equal "17:30", household.dinner_time
 
-    admin = FamilyMember.last
+    admin = FamilyMember.find_by!(name: "Captain Chef")
     assert_equal "Captain Chef", admin.name
     assert_equal "admin", admin.role
     assert admin.verify_pin("4321")
@@ -59,7 +59,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to onboarding_members_url
-    member = FamilyMember.last
+    member = FamilyMember.find_by!(name: "Little Chef")
     assert_equal "Little Chef", member.name
     assert_equal "member", member.role
     assert_equal "#EC4899", member.avatar_color

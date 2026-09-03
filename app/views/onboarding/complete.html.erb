@@ -23,7 +23,7 @@
       <p class="text-2xl font-black text-slate-900 dark:text-white mb-3"><%= @members_count %> <%= 'Member'.pluralize(@members_count) %></p>
       
       <div class="flex items-center -space-x-2">
-        <% current_household.family_members.order(:id).each do |member| %>
+        <% current_household.family_members.order(:created_at, :id).each do |member| %>
           <div class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold shadow-xs"
                style="background-color: <%= member.avatar_color %>"
                title="<%= member.name %> (<%= member.role %>)">
