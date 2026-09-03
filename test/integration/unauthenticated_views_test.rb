@@ -38,6 +38,35 @@ class UnauthenticatedViewsTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # Both links in the picker's footer need a session: /preferences edits the
+  # signed-in member, and the admin one is already guarded. Offering a stranger
+  # a link that can only bounce them back to the page they are on is a dead end
+  # dressed up as an option.
+  test "the picker offers a stranger no links that require a session" do
+    get select_profile_url
+
+    assert_response :success
+    assert_select "a[href=?]", preferences_path, false,
+      "My Preferences needs a signed-in member, so a stranger should not be offered it"
+    assert_select "a[href=?]", admin_root_path, false
+  end
+
+  test "the picker still offers preferences to a signed-in member" do
+    sign_in_as(family_members(:two))
+
+    get select_profile_url
+
+    assert_response :success
+    assert_select "a[href=?]", preferences_path, true,
+      "switching profiles is done from this page, so the link belongs here when signed in"
+  end
+
+  test "following the stranger's preferences link would only bounce them back" do
+    get edit_preferences_url
+
+    assert_redirected_to select_profile_url
+  end
+
   test "the wizard renders on a fresh install" do
     Household.destroy_all
 
