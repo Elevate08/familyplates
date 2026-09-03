@@ -448,6 +448,72 @@ flows exercise the production shape.
 
 ---
 
+## Coverage Expansion and What It Found (after the harness)
+
+Built at the user's direction — "learn from our mistakes and cover everything we
+can". Every defect this branch found late was found by a person clicking, so the
+work targeted the flows that had cost repeated manual passes. Suite went from
+294 runs / 1431 assertions to **319 / 1994, plus 33 system tests**.
+
+### Deferred focus: one bug in four controllers
+
+`addRow` in `recipe_ingredients_form_controller` appended a row synchronously
+but focused it from a `setTimeout(50)`. Three quick clicks queued three focus
+jumps that landed after the form looked settled; one stole focus mid-typing and
+the text went to whichever row the timer had just focused. This surfaced as an
+intermittent system-test failure (~1 run in 12) reading
+
+    Expected ["Chicken Breast", "Olive OilRapid Ingredient 0", ...]
+      to include "Rapid Ingredient 0"
+
+`dropdown`, `pantry_item_form` and `bulk_select` deferred focus the same way
+after revealing a panel. All four now focus in the handler.
+
+**The hazard is not a panel that gets closed again** — `focus()` on a hidden
+element is a no-op, so that case was always harmless, and a test asserting it
+proves nothing. It is a panel still open with the reader already elsewhere: the
+timer fires and drags the caret back. `test/system/focus_test.rb` demonstrates
+exactly that against the old code.
+
+**`bulk_select` was worse than deferred.** It focused `tagsInput`, a
+`hidden_field_tag`; `focus()` on `type="hidden"` does nothing, so opening the
+bulk tag modal had *never* placed the caret. Fixed by focusing `#bulk_tag_search`
+through a new `tagsSearchInput` target.
+
+### Decision: measure flakes, do not eyeball them
+
+The first control on the flake — reverting one change and seeing a clean run —
+was worthless: at an 8% failure rate, 0/12 clean has p = 0.37. Re-measured at
+n = 40, where zero failures means p = 0.036. Both the JS fix and the test's row
+wait cleared it independently, which fits one cause rather than two: the wait
+delays typing until the pending timers have already fired.
+
+**Any future flake gets the same treatment** — establish the rate first, then
+size the sample so a clean run means something.
+
+### Stimulus registration, tested directly
+
+`node --check` does not parse ES modules, and even `--input-type=module` cannot
+see a bad import specifier. Stimulus can: it leaves a failed identifier out of
+its router. `test/system/stimulus_registration_test.rb` asks the router for every
+controller file in the repo. Verified against two negative controls — an orphaned
+object literal, and an import of a package that does not exist.
+
+### Finding: `pantry_icon_tag` ignored `css_class` on the emoji path
+
+`emoji_span` hardcoded `text-xl` and set no box at all, so an emoji item took
+whatever size it inherited while a hand-drawn SVG beside it in the same list took
+the size the page asked for. Measured at 25x20 against a 20x20 SVG on the recipe
+page. An emoji is a glyph, so passing `css_class` through alone would have shrunk
+the box and left the glyph — the span now gets both the box and a text size that
+fills it.
+
+**Sizing is a visual property, so it is asserted in pixels**
+(`test/system/icon_sizing_test.rb` reads `getBoundingClientRect`), not by class
+name. A class assertion would have passed on markup that still rendered wrong.
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

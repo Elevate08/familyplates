@@ -1218,7 +1218,7 @@ holds. `config/*.json` is already ignored, which covers the service-account file
 
 **Acceptance criteria:**
 - [x] `.gitignore` covers `cookies.txt` and `test_output.txt`
-- [ ] **NOT DONE — needs a human.** Check the primary checkout at `~/projects/familyplates` for a real `cookies.txt` (a reviewer recorded one, mode 0644, holding a live session). Shred it and invalidate that session. This worktree never had one.
+- [x] Checked the primary checkout at `~/projects/familyplates` and shredded its `cookies.txt` (2026-09-02). **The review's claim that it held a live session was wrong**: the file was an empty libcurl jar — three comment lines and a blank, 131 bytes, zero cookie rows — so there was no session to invalidate. It was world-readable and not ignored on `master`, which this branch's `.gitignore` fixes on merge. Verified never committed: `git log --all -- cookies.txt` is empty.
 - [x] `git status --porcelain` in a working checkout shows neither file
 
 **Verification:**
@@ -1241,7 +1241,7 @@ change; if a Stream A build is being cut anyway, it is safe to carry along.
 - [x] Safe-area insets still work on notched devices
 
 **Verification:**
-- [ ] **NOT DONE — needs a phone.** A request test asserts `maximum-scale` and `user-scalable=no` are absent and `viewport-fit=cover` survives, but only a real device confirms pinch-zoom and the safe-area insets.
+- [ ] **DEFERRED to after the next release, by the owner's call (2026-09-02)** — easier to check on a phone once it is deployed. A request test asserts `maximum-scale` and `user-scalable=no` are absent and `viewport-fit=cover` survives, but only a real device confirms pinch-zoom and the safe-area insets. Not a merge blocker; revisit post-deploy.
 - [x] `PARALLEL_WORKERS=1 bin/rails test` green
 
 **Dependencies:** None (after Stream A)
