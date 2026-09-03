@@ -1,6 +1,8 @@
 # Household Identity, Sessions & Multi-Tenancy
 
 > Status: ideation complete, not yet planned for implementation.
+> "What Exists Today" re-verified against `master` @ 56b9d23 on 2026-09-03.
+> Reference-app snippets re-verified against upstream `main` on the same date.
 > Supersedes the "Not Doing" entries on OAuth and per-member logins in
 > [`single-family-admin-and-preferences.md`](./single-family-admin-and-preferences.md).
 
@@ -12,16 +14,17 @@
 
 FamilyPlates has no authentication. It has a profile picker.
 
-* There is **no `User` model and no `users` table**. `docs/architecture.md:44` documents a Rails 8 `has_secure_password` `User` that does not exist. `bcrypt` is in the `Gemfile` and unused.
-* `Authentication#set_current_family_member` (`app/controllers/concerns/authentication.rb:35`) reads a signed cookie holding a `family_member_id`. Possession of that cookie *is* the session.
-* Any visitor reaching the app gets `/select_profile` and can one-tap into any non-admin profile. Only `role: "admin"` profiles require a PIN (`app/models/family_member.rb:41`), throttled 10 attempts / 3 minutes per IP and per profile (`app/controllers/concerns/pin_throttling.rb`).
+* There is **no `User` model and no `users` table**. `docs/architecture.md:41` now states this outright; the only residue is the ER diagram at `docs/architecture.md:23`, which still draws a `Household ||--o{ User` edge with no model behind it. `bcrypt` is in the `Gemfile` and *is* used — for `FamilyMember`'s PIN digest, not for any account model.
+* `Authentication#set_current_family_member` (`app/controllers/concerns/authentication.rb:32`) reads the signed, `HttpOnly`, `SameSite=Lax` `active_family_member_id` cookie. Possession of that cookie *is* the session — there is no `sessions` row to revoke.
+* Any visitor reaching the app gets `/select_profile` and can one-tap into any non-admin profile. Only `role: "admin"` profiles require a PIN (`app/models/family_member.rb:45`), and an admin profile can no longer be saved without one (`admin_requires_a_pin`). Entry is throttled to 10 attempts / 3 minutes, per IP *and* per profile, on one budget shared across both PIN paths (`app/controllers/concerns/pin_throttling.rb`).
 
-Four properties of the current code are load-bearing for single-tenancy and become defects the moment a second household exists:
+Three properties of the current code are load-bearing for single-tenancy and become defects the moment a second household exists:
 
 1. **`/set_profile/:id` is an unauthenticated global finder.** `ProfilesController#set` (`app/controllers/profiles_controller.rb:16`) calls `FamilyMember.find(params[:id])` under `allow_unauthenticated_access`, and non-admin members have no PIN. With one household this is harmless — it grants exactly what the open picker already grants by design. With two, it is cross-tenant account takeover by ID enumeration. `app/channels/application_cable/connection.rb:13` shares the pattern.
 2. **The second household can never onboard.** `Household.none?` / `Household.exists?` is the "is this deployment configured?" test in six places (`authentication.rb:49,66`, `home_controller.rb:5`, `sessions_controller.rb:5`, `profiles_controller.rb:8`, `shared/_navbar.html.erb:59`), and `OnboardingController#ensure_household_unconfigured` explicitly blocks setup once one exists. In multi-tenant that predicate is permanently false.
-3. **`Household.first` is the ambient fallback tenant** (`authentication.rb:25,36,39`). An unauthenticated request currently resolves `Current.household` to whichever household sorts first. 82 `current_household` call sites depend on that fallback.
-4. **PINs are stored in plaintext.** `t.string "pin"`, compared with `secure_compare` against the raw column. Acceptable for an appliance on a LAN; not acceptable for an operator holding thousands of families' PINs.
+3. **`Household.first` is the ambient fallback tenant** (`authentication.rb:25,36,39`). An unauthenticated request currently resolves `Current.household` to whichever household sorts first. 87 `current_household` call sites depend on that fallback.
+
+**Already fixed, since this doc was first drafted:** PINs are no longer plaintext. `family_members.pin_digest` holds a bcrypt digest written through `has_secure_password :pin` (`app/models/family_member.rb:26`); `pin` is a write-only virtual attribute that cannot be read back off a record, and verification goes through bcrypt's constant-time compare (`FamilyMember#verify_pin`). The Phase 0 PIN-migration task this doc originally carried is done and has been struck below.
 
 ## Prior Art: The Rails Reference Apps
 
@@ -55,7 +58,7 @@ The split matters: **the two appliances use `has_secure_password`; the dual-mode
 | Security PIN | None. fizzy's `Pin` model is card-pinning, unrelated | No precedent — ours to own |
 | Kiosk device pairing | None. `QrCodeLink` is a signed-URL-to-QR helper, not a device grant | No precedent — ours to own |
 
-Two patterns worth lifting close to verbatim: `QrCodeLink` (~20 lines, `MessageVerifier` with a `:qr_code` purpose, rendered via `RQRCode`), and fizzy's dev-mode leak guard — an `after_action` that **raises** if `flash[:magic_link_code]` is set outside `development`.
+Two patterns worth lifting close to verbatim: `QrCodeLink` (26 lines, an `ActiveSupport::MessageVerifier` keyed off `key_generator.generate_key("qr_codes")` with a `:qr_code` purpose — it signs the URL, and a `qr_code_image` helper renders it through the `rqrcode` gem), and fizzy's dev-mode leak guard — an `after_action :ensure_development_magic_link_not_leaked` that **raises** if `flash[:magic_link_code]` is set outside `development`.
 
 ### Campfire and Writebook — the appliance references
 
@@ -75,7 +78,7 @@ end
 
 The lesson corrects this doc's earlier framing: `Account.any?` / `Household.exists?` is *not* the defect. **Scattering it across six unrelated call sites is the defect.** The appliance fix is to concentrate it in one `FirstRun`-style controller; the hosted fix is then `households.onboarded_at` on top. Do them in that order.
 
-Worth noting in passing: both apps *seed* starter content (`DemoContent.create_manual`, a first room named "All Talk") rather than asking the user to supply it. FamilyPlates' wizard currently asks for recipes and pantry items across two of its four steps. Collapsing those into seeded, editable starter content is a real simplification — but it is a separate idea and out of scope here.
+Worth noting in passing: both apps *seed* starter content (`DemoContent.create_manual`, a first room named "All Talk") rather than asking the user to supply it. FamilyPlates is already halfway there — its Recipes step offers `config/starter_recipes.yml` with every recipe pre-selected, and its Pantry step offers `PantryItem::DEFAULT_STAPLES` as a checklist, so both are confirm-or-uncheck screens rather than blank forms. What differs is that they are still two of the wizard's four steps instead of content seeded on completion and edited later. That trade is settled under "Not Doing" below and is out of scope here.
 
 **Sliding session expiry, without a write per request.** This is the mechanism this doc needed and could not find in fizzy:
 
@@ -135,7 +138,7 @@ The PIN keeps its real job — keeping an eight-year-old out of Mum's admin pane
 
 > Every phase must be worth shipping to self-hosters even if the hosted business never happens.
 
-That single rule sorts the roadmap. The IDOR fix, PIN hashing, email login, account recovery, and kiosk pairing are all valuable to one family on a NAS. Multi-tenant onboarding, the `Household.none?` decoupling, and billing are worthless unless the hosted bet pays off — so they go last, and they are the only work that can be lost.
+That single rule sorts the roadmap. The IDOR fix, email login, account recovery, and kiosk pairing are all valuable to one family on a NAS. Multi-tenant onboarding, the `Household.none?` decoupling, and billing are worthless unless the hosted bet pays off — so they go last, and they are the only work that can be lost.
 
 ## Architecture Decisions
 
@@ -155,7 +158,6 @@ device_grants      id, user_code, device_code, household_id, approved_by_user_id
 
 family_members     + user_id (nullable FK)
                    unique [household_id, user_id] where user_id is not null
-family_members     pin -> pin_digest (bcrypt)
 ```
 
 This is not a novel design: fizzy's `users` table is `account_id` (not null) + `identity_id` (**nullable**) + `name` + `role` default `"member"` + `verified_at`, with a unique index on `[account_id, identity_id]`. Same shape, shipped.
@@ -242,7 +244,7 @@ Per-household databases via `connects_to` / `connected_to(shard:)` would give:
 * Migrations roll per tenant, progressively; a failure affects one family.
 * Backup, export, and GDPR erasure become file operations.
 * Blast radius is one household.
-* **Isolation by construction** — this is the big one. A missing `household_id` scope cannot leak across families when the data is not in the same file. Tenant resolution happens *once per request* instead of scoping being re-derived at 82 call sites, which cuts the attack surface from 82 places to one.
+* **Isolation by construction** — this is the big one. A missing `household_id` scope cannot leak across families when the data is not in the same file. Tenant resolution happens *once per request* instead of scoping being re-derived at 87 call sites, which cuts the attack surface from 87 places to one.
 
 Costs: a tenant resolver and connection-management layer, cross-tenant queries (ops dashboards, billing reconciliation, analytics) needing a shared database or fan-out, migration orchestration across N files, and connection-pool tuning.
 
@@ -256,7 +258,7 @@ Worth noting that the appliance mode is already database-per-tenant taken to its
 
 ### Isolation enforcement
 
-Scoped associations everywhere (`current_household.family_members.find(...)`, never `FamilyMember.find(...)`), plus a **generated cross-tenant request test**: build two households, then assert every member-scoped route returns 404 for the other household's IDs, enumerating from `Rails.application.routes.routes`. Discipline across 82 call sites and every future one is precisely the failure mode to expect; the harness is what makes the invariant hold.
+Scoped associations everywhere (`current_household.family_members.find(...)`, never `FamilyMember.find(...)`), plus a **generated cross-tenant request test**: build two households, then assert every member-scoped route returns 404 for the other household's IDs, enumerating from `Rails.application.routes.routes`. Discipline across 87 call sites and every future one is precisely the failure mode to expect; the harness is what makes the invariant hold.
 
 ### Billing (Phase 5)
 
@@ -317,7 +319,7 @@ Excluded from all of the above: churn, refunds, failed payments, VAT/sales tax, 
 ## Phased Plan
 
 **Phase 0 — Isolation. No new UI.**
-Scope `set_profile` to an authorized household. Delete the `Household.first` fallback and let `current_household` return `nil` when unauthenticated. Scope the ActionCable connection. Migrate `pin` → `pin_digest` with bcrypt. Migrate `households` and `family_members` to UUID primary keys. Consolidate the six scattered `Household.none?` checks into a single Campfire-style `FirstRun` guard. Add the cross-tenant test harness. Ships independently as a patch release.
+Scope `set_profile` to an authorized household. Delete the `Household.first` fallback and let `current_household` return `nil` when unauthenticated. Scope the ActionCable connection. Migrate `households` and `family_members` to UUID primary keys. Consolidate the six scattered `Household.none?` checks into a single Campfire-style `FirstRun` guard. Add the cross-tenant test harness. Ships independently as a patch release.
 
 **Phase 1 — Identity, opt-in.**
 `users`, `identities`, `sessions`, `family_members.user_id`. Magic codes (6 chars, 15 min, single-use, logged when SMTP is absent). Join code on `households` and `signed_id` profile transfer. Enumeration-safe sign-in. Sign in → land on your own profile by default → one-tap switch to any other profile in the household → PIN for admin profiles. Sliding 30/90 sessions with Campfire's throttled `last_active_at`, plus a device list. `households.onboarded_at`. `REQUIRE_LOGIN=false` by default.
@@ -349,7 +351,6 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 **In — Phase 0 and Phase 1 together:**
 * Household-scoped profile selection; no global `FamilyMember.find` on user input.
 * `Household.first` fallback removed; `current_household` may be `nil`.
-* bcrypt `pin_digest` migration.
 * Cross-tenant request test harness.
 * `users` / `identities` / `sessions` and `family_members.user_id`.
 * Magic-link sign-in, email verification, sliding 30/90-day sessions.
@@ -365,7 +366,7 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 * **Passwords in hosted mode** — a password column buys a reset flow, a strength policy, a credential-stuffing surface, and breach liability, in exchange for nothing magic codes don't already provide. *For appliance mode this is reopened — see "Credential choice".*
 * **A `memberships` join table** — a nullable `family_members.user_id` expresses the same model with one column and no impossible states.
 * **A `join_codes` table or a `transfers` table** — Campfire does both with one column and one `signed_id` respectively.
-* **Collapsing the recipes and pantry onboarding steps** — considered and **rejected**. Both appliance reference apps seed demo content instead of asking, but the two steps stay distinct here: they teach two different concepts (what you cook vs. what you already have), and the pantry step is what makes the grocery list useful on day one. Seeding *defaults within* each step is still open; merging the steps is not.
+* **Collapsing the recipes and pantry onboarding steps** — considered and **rejected**. Both appliance reference apps seed demo content instead of asking, but the two steps stay distinct here: they teach two different concepts (what you cook vs. what you already have), and the pantry step is what makes the grocery list useful on day one. Seeding *defaults within* each step turned out to be done already — both steps ship curated, pre-ticked defaults — so that sub-question is closed too. Merging the steps remains rejected.
 * **Requiring an email per family member** — kids and shared tablets must stay one-tap. Email is opt-in, per member, forever.
 * **PIN as the internet-facing gate** — 4 digits is a speed bump for a shared kitchen tablet, not an authentication boundary. In hosted mode `/admin` requires a fresh email session.
 * **Subdomain-per-tenant routing** — session-resolved tenancy is sufficient at this scale and avoids wildcard DNS and certificate complexity.
@@ -382,4 +383,4 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 * **Credential choice for appliance mode** is the one genuinely open decision left: magic codes with a logged fallback, or `has_secure_password` as both appliance reference apps do. Resolve by attempting the no-SMTP install before Phase 1 schema work.
 * Willingness to pay is entirely unmeasured, and the free self-hosted tier is the real competitor. Cheapest test: a pricing page with an email capture before any billing code is written.
 * Per-household flat pricing or per-seat — changes what `households` must store.
-* Should `docs/architecture.md:44` be corrected now, or as part of Phase 1? It currently documents a `User` model that does not exist.
+* ~~Should `docs/architecture.md:44` be corrected now, or as part of Phase 1?~~ **Done upstream.** `docs/architecture.md:41-42` now records that there is no `User` model and that PINs are bcrypt digests. The one leftover is the ER diagram at `docs/architecture.md:23`, which still draws a `User` entity — fold that into the regeneration the UUID migration already requires.
