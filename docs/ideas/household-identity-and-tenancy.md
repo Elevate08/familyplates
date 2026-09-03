@@ -3,6 +3,8 @@
 > Status: ideation complete, not yet planned for implementation.
 > "What Exists Today" re-verified against `master` @ 56b9d23 on 2026-09-03.
 > Reference-app snippets re-verified against upstream `main` on the same date.
+> Phase 0 was then built, and the original predictions are kept as written with
+> the findings recorded beside them - see "Phase 0 As Built".
 > Supersedes the "Not Doing" entries on OAuth and per-member logins in
 > [`single-family-admin-and-preferences.md`](./single-family-admin-and-preferences.md).
 
@@ -20,9 +22,9 @@ FamilyPlates has no authentication. It has a profile picker.
 
 Three properties of the current code are load-bearing for single-tenancy and become defects the moment a second household exists:
 
-1. **`/set_profile/:id` is an unauthenticated global finder.** `ProfilesController#set` (`app/controllers/profiles_controller.rb:16`) calls `FamilyMember.find(params[:id])` under `allow_unauthenticated_access`, and non-admin members have no PIN. With one household this is harmless — it grants exactly what the open picker already grants by design. With two, it is cross-tenant account takeover by ID enumeration. `app/channels/application_cable/connection.rb:13` shares the pattern.
+1. **`/set_profile/:id` is an unauthenticated global finder.** `ProfilesController#set` (`app/controllers/profiles_controller.rb:16`) calls `FamilyMember.find(params[:id])` under `allow_unauthenticated_access`, and non-admin members have no PIN. With one household this is harmless — it grants exactly what the open picker already grants by design. With two, it is cross-tenant account takeover by ID enumeration. `app/channels/application_cable/connection.rb:13` shares the pattern. **[Partly wrong - it shares the shape, but its input is a signed cookie and `app/channels` holds no channels at all. See "Phase 0 As Built".]**
 2. **The second household can never onboard.** `Household.none?` / `Household.exists?` is the "is this deployment configured?" test in six places (`authentication.rb:49,66`, `home_controller.rb:5`, `sessions_controller.rb:5`, `profiles_controller.rb:8`, `shared/_navbar.html.erb:59`), and `OnboardingController#ensure_household_unconfigured` explicitly blocks setup once one exists. In multi-tenant that predicate is permanently false.
-3. **`Household.first` is the ambient fallback tenant** (`authentication.rb:25,36,39`). An unauthenticated request currently resolves `Current.household` to whichever household sorts first. 87 `current_household` call sites depend on that fallback.
+3. **`Household.first` is the ambient fallback tenant** (`authentication.rb:25,36,39`). An unauthenticated request currently resolves `Current.household` to whichever household sorts first. 87 `current_household` call sites depend on that fallback. **[Wrong - see "Phase 0 As Built": they depend on `current_household`, not on the fallback, and removing it broke nothing.]**
 
 **Already fixed, since this doc was first drafted:** PINs are no longer plaintext. `family_members.pin_digest` holds a bcrypt digest written through `has_secure_password :pin` (`app/models/family_member.rb:26`); `pin` is a write-only virtual attribute that cannot be read back off a record, and verification goes through bcrypt's constant-time compare (`FamilyMember#verify_pin`). The Phase 0 PIN-migration task this doc originally carried is done and has been struck below.
 
@@ -316,9 +318,45 @@ Excluded from all of the above: churn, refunds, failed payments, VAT/sales tax, 
 
 **Decide the billing period before the provider.**
 
+## Phase 0 As Built
+
+Phase 0 is implemented bar the UUID migration. The predictions above are left as
+they were written; what building it actually found is recorded here, because the
+gap between the two is the useful part.
+
+| Prediction | What building it found | Where |
+| :--- | :--- | :--- |
+| Isolation is a discipline problem across 87 call sites | **Overstated.** Every resource controller already resolves through `current_household.<association>.find`, bulk endpoints included. All 17 cross-tenant assertions passed unmodified, against unchanged code. The 87 sites are the *fix* that was already applied, not the risk. | `21dd3ad` |
+| Four properties are load-bearing for single-tenancy | **Two were.** `/set_profile` was a genuine global finder on user input. `Household.none?` scattering was genuine. The signed-cookie lookups in `authentication.rb:35` and `connection.rb:13` are not holes - the input is a credential we issued, the household is derived from the member it names, and `app/channels` contains no channels, so nothing streams behind it. | `751372e` |
+| Two unscoped finders (`profiles#set`, the cable connection) | **A third the doc missed:** `PinThrottling#pin_protected_target?` took the same user-supplied id to the same unscoped `FamilyMember.find_by`. Scoping `profiles#set` alone would have left it. | `751372e` |
+| `Household.first` is "whichever household sorts first" | **More literally true than intended.** `first` means lowest id, and ids are not creation order - against the fixtures it returns the *second* household. So the fallback was arbitrary, not merely implicit. The replacement, `Household.installation`, orders by `created_at`. | `751372e` |
+| Six scattered `Household.none?` checks | **Seven.** `OnboardingController#require_household_exists` was another copy. Three of the seven sat in controllers that skip `require_authentication`, so they were not redundant duplicates - they were those controllers' only guard, and a new controller declaring `allow_unauthenticated_access` would have been silently unguarded. | `dbe0c8a` |
+| 87 call sites "depend on" the `Household.first` fallback | **None did.** They depend on `current_household`, which resolves through the signed-in member; every one runs authenticated. The only anonymous-reachable code needing a household was the picker, already moved to `Household.installation`. Removing the fallback broke nothing and needed no call-site changes. | `10a6c82` |
+
+**One tension in the phase list had to be resolved to build it.** Phase 0 asks both
+to scope `set_profile` to an authorized household *and* to let `current_household`
+return `nil` when unauthenticated. Taken together those close the front door: an
+anonymous visitor has no household, so a picker scoped to `current_household` has
+nothing to show. They are reconcilable because they are two different questions,
+which the fallback had blurred into one:
+
+* `current_household` - "whose data may this request see?" `nil` for a stranger.
+* `Household.installation` - "which household does this box serve?" Answered
+  regardless of session, and asked only by the front door.
+
+`Household.installation` is therefore not scaffolding awaiting Phase 4. Because
+`REQUIRE_LOGIN` defaults to off and stays off for appliance installs, it is how
+tenancy resolves for them permanently; Phase 1 adds a session-resolved branch
+beside it rather than replacing it.
+
+**Still open from Phase 0:** the UUID primary-key migration, deliberately taken
+last so that isolation does not depend on a migration landing, and so that a
+change rewriting every foreign key runs against a cross-tenant suite that is
+already green.
+
 ## Phased Plan
 
-**Phase 0 — Isolation. No new UI.**
+**Phase 0 — Isolation. No new UI.** *(built, bar UUIDs — see "Phase 0 As Built" for what the plan below got wrong)*
 Scope `set_profile` to an authorized household. Delete the `Household.first` fallback and let `current_household` return `nil` when unauthenticated. Scope the ActionCable connection. Migrate `households` and `family_members` to UUID primary keys. Consolidate the six scattered `Household.none?` checks into a single Campfire-style `FirstRun` guard. Add the cross-tenant test harness. Ships independently as a patch release.
 
 **Phase 1 — Identity, opt-in.**
