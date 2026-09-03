@@ -58,3 +58,69 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # The workflow was called "Release & Container Build" while only ever doing
+  # the second half: v1.1.0 and v1.2.0 both had to have their GitHub release
+  # created by hand afterwards, and v1.2.0's was missed until someone looked.
+  #
+  # Runs after build-and-push, so a release never points at an image that was
+  # never published. Uses the gh CLI rather than adding a third-party action for
+  # three commands' worth of work.
+  github-release:
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check the tag agrees with the VERSION file
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(cat VERSION | tr -d '[:space:]')"
+          if [ "$tag" != "$file" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME says $tag but VERSION says $file."
+            echo "The running app reports VERSION on its admin page, so these drifting"
+            echo "means the release is labelled one thing and reports another."
+            exit 1
+          fi
+          echo "tag and VERSION agree on $file"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          notes="docs/RELEASE_NOTES_${tag}.md"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:${tag#v}"
+
+          # A pre-release tag (v1.3.0-rc1) is marked as such and does not become
+          # Latest, matching what latest=auto does for the container image.
+          case "$tag" in
+            *-*) flag="--prerelease" ;;
+            *)   flag="--latest" ;;
+          esac
+
+          if [ -f "$notes" ]; then
+            echo "using $notes"
+            { cat "$notes"; printf '\n---\n\n**Container image:** `%s`\n' "$image"; } > /tmp/body.md
+            # The notes file leads with its own "# Title" - reuse it so the
+            # release is not just named after the tag.
+            title="$(sed -n 's/^# //p' "$notes" | head -1)"
+            [ -n "$title" ] || title="$tag"
+            args=(--notes-file /tmp/body.md --title "$title")
+          else
+            echo "no $notes - falling back to generated notes"
+            args=(--generate-notes --title "$tag")
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag exists - updating it so a re-run is not a failure"
+            gh release edit "$tag" "${args[@]}" "$flag"
+          else
+            gh release create "$tag" --verify-tag "${args[@]}" "$flag"
+          fi
