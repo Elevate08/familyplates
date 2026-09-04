@@ -16,7 +16,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     # Root redirects to session
     get root_path
     assert_redirected_to new_session_path
-    assert_equal "Please sign in to continue.", flash[:alert]
+    assert_nil flash[:alert]
 
     # Select profile redirects to session
     get select_profile_path

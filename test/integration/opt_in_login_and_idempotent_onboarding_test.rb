@@ -31,7 +31,7 @@ class OptInLoginAndIdempotentOnboardingTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_redirected_to new_session_path
-    assert_equal "Please sign in to continue.", flash[:alert]
+    assert_nil flash[:alert]
 
     get select_profile_path
     assert_redirected_to new_session_path
