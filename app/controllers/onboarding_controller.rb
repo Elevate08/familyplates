@@ -19,8 +19,8 @@ class OnboardingController < ApplicationController
     )
     @admin_member = FamilyMember.new(
       role: "admin",
-      avatar_color: "#3B82F6",
-      avatar_icon: "chef-hat"
+      avatar_color: FamilyMember::DEFAULT_COLOR,
+      avatar_icon: FamilyMember::DEFAULT_ICON
     )
   end
 
@@ -31,8 +31,8 @@ class OnboardingController < ApplicationController
 
       initial_name = admin_member_params[:name].presence || "Head Chef"
       initial_pin = admin_member_params[:pin]
-      initial_color = admin_member_params[:avatar_color].presence || "#3B82F6"
-      initial_icon = admin_member_params[:avatar_icon].presence || "chef-hat"
+      initial_color = admin_member_params[:avatar_color].presence || FamilyMember::DEFAULT_COLOR
+      initial_icon = admin_member_params[:avatar_icon].presence || FamilyMember::DEFAULT_ICON
 
       @admin_member = @household.family_members.create!(
         name: initial_name,

@@ -14,6 +14,8 @@ class SignupsController < ApplicationController
     organizer_name = params[:organizer_name].to_s.strip
     email = params[:email].to_s.strip.downcase
     pin = params[:pin].to_s.strip.presence || "1234"
+    avatar_color = params[:avatar_color].to_s.strip.presence || FamilyMember::DEFAULT_COLOR
+    avatar_icon = params[:avatar_icon].to_s.strip.presence || FamilyMember::DEFAULT_ICON
 
     if household_name.blank? || organizer_name.blank? || email.blank?
       flash.now[:alert] = "Please provide your household name, your name, and a valid email address."
@@ -38,8 +40,8 @@ class SignupsController < ApplicationController
           role: "admin",
           user: current_user,
           pin: pin,
-          avatar_color: "#3B82F6",
-          avatar_icon: "chef-hat"
+          avatar_color: avatar_color,
+          avatar_icon: avatar_icon
         )
         start_new_session_for_user(current_user)
         start_new_session_for(organizer)
@@ -55,7 +57,9 @@ class SignupsController < ApplicationController
         "household_name" => household_name,
         "organizer_name" => organizer_name,
         "email" => email,
-        "pin" => pin
+        "pin" => pin,
+        "avatar_color" => avatar_color,
+        "avatar_icon" => avatar_icon
       }
       redirect_to verify_signup_path, notice: "We sent a 6-character verification code to #{email}."
     else
@@ -67,8 +71,8 @@ class SignupsController < ApplicationController
         role: "admin",
         user: user,
         pin: pin,
-        avatar_color: "#3B82F6",
-        avatar_icon: "chef-hat"
+        avatar_color: avatar_color,
+        avatar_icon: avatar_icon
       )
       start_new_session_for_user(user)
       start_new_session_for(organizer)
@@ -105,8 +109,8 @@ class SignupsController < ApplicationController
         role: "admin",
         user: user,
         pin: @pending["pin"].presence || "1234",
-        avatar_color: "#3B82F6",
-        avatar_icon: "chef-hat"
+        avatar_color: @pending["avatar_color"].presence || FamilyMember::DEFAULT_COLOR,
+        avatar_icon: @pending["avatar_icon"].presence || FamilyMember::DEFAULT_ICON
       )
 
       start_new_session_for_user(user)

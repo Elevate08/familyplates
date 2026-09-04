@@ -1,13 +1,16 @@
 class FamilyMember < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
+  DEFAULT_COLOR = "#F97316"
+  DEFAULT_ICON = "chef-hat"
+
   belongs_to :household
   belongs_to :user, optional: true
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify
 
   AVATAR_COLORS = [
-    "#F97316", # Orange (Warm Carrot)
+    "#F97316", # Orange (Warm Carrot / Brand)
     "#3B82F6", # Blue (Ocean)
     "#10B981", # Emerald (Sage)
     "#F59E0B", # Amber (Golden)
