@@ -4,6 +4,7 @@ module PlatformAdmin
 
     def index
       @search = params[:search].to_s.strip
+      record_platform_audit!("households.indexed", metadata: { search: @search.presence })
       @households = filtered_households
         .includes(:family_members, :users)
         .order(created_at: :desc, id: :desc)
@@ -12,6 +13,7 @@ module PlatformAdmin
 
     def show
       @household = Household.includes(:family_members, :users).find(params[:id])
+      record_platform_audit!("household.viewed", target: @household)
       @family_members = @household.family_members.order(:created_at, :id)
       @recipes_count = @household.recipes.count
       @meal_plans_count = @household.meal_plans.count
@@ -21,12 +23,14 @@ module PlatformAdmin
     def suspend
       @household = Household.find(params[:id])
       @household.update!(suspended_at: Time.current, suspension_reason: params[:reason].to_s.strip.presence)
+      record_platform_audit!("household.suspended", target: @household, metadata: { reason: @household.suspension_reason })
       redirect_to platform_admin_household_path(@household), notice: "Household suspended."
     end
 
     def restore
       @household = Household.find(params[:id])
       @household.update!(suspended_at: nil, suspension_reason: nil)
+      record_platform_audit!("household.restored", target: @household)
       redirect_to platform_admin_household_path(@household), notice: "Household restored."
     end
 

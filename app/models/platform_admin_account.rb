@@ -6,6 +6,7 @@ class PlatformAdminAccount < ApplicationRecord
   has_secure_password validations: false
   has_many :sessions, class_name: "PlatformAdminSession", foreign_key: :platform_admin_id, dependent: :destroy
   has_many :support_messages, foreign_key: :platform_admin_id, dependent: :nullify
+  has_many :platform_audit_events, foreign_key: :platform_admin_id, dependent: :nullify
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 

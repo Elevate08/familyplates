@@ -12,8 +12,10 @@ module PlatformAdmin
       if admin&.active? && admin.authenticate(params[:password].to_s) && admin.valid_totp?(params[:otp_code])
         admin.update!(last_signed_in_at: Time.current)
         start_platform_admin_session_for(admin)
+        record_platform_audit!("platform_admin.signed_in", metadata: { email: admin.email })
         redirect_to platform_admin_root_path, notice: "Signed in to the platform console."
       else
+        record_platform_audit!("platform_admin.sign_in_failed", metadata: { email: email.presence })
         BCrypt::Password.create("dummy", cost: BCrypt::Engine::MIN_COST)
         flash.now[:alert] = "Invalid email, password, or verification code."
         render :new, status: :unprocessable_entity

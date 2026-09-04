@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_010000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -327,6 +327,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_000000) do
     t.index ["email"], name: "index_platform_admins_on_email", unique: true
   end
 
+  create_table "platform_audit_events", id: :string, force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.json "metadata", default: {}, null: false
+    t.string "platform_admin_id"
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
+    t.index ["action"], name: "index_platform_audit_events_on_action"
+    t.index ["created_at"], name: "index_platform_audit_events_on_created_at"
+    t.index ["platform_admin_id"], name: "index_platform_audit_events_on_platform_admin_id"
+    t.index ["target_type", "target_id"], name: "index_platform_audit_events_on_target_type_and_target_id"
+  end
+
   create_table "recipe_ingredients", force: :cascade do |t|
     t.string "aisle_category", null: false
     t.datetime "created_at", null: false
@@ -444,6 +460,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_000000) do
   add_foreign_key "pay_charges", "pay_subscriptions", column: "subscription_id"
   add_foreign_key "pay_payment_methods", "pay_customers", column: "customer_id"
   add_foreign_key "pay_subscriptions", "pay_customers", column: "customer_id"
+  add_foreign_key "platform_audit_events", "platform_admins"
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"

@@ -109,6 +109,7 @@ Rails.application.routes.draw do
   namespace :platform_admin do
     root to: "dashboard#index"
     resource :session, only: %i[new create destroy]
+    resources :audit_events, only: :index
     resources :households, only: %i[index show] do
       member do
         post :suspend

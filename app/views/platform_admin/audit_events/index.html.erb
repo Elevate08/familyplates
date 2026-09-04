@@ -1,0 +1,29 @@
+<% content_for :title, "Audit log | Platform Operator Console" %>
+
+<div class="mx-auto max-w-6xl space-y-6 py-6 sm:py-8">
+  <div class="flex items-end justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
+    <div>
+      <%= link_to "← Console", platform_admin_root_path, class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
+      <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Platform audit log</h1>
+      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Recent operator reads, support actions, and lifecycle changes. Sensitive values are intentionally omitted.</p>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      <% @events.each do |event| %>
+        <div class="grid gap-2 px-5 py-4 sm:grid-cols-[12rem_1fr_12rem] sm:items-center">
+          <time class="text-xs text-slate-500 dark:text-slate-400" datetime="<%= event.created_at.iso8601 %>"><%= event.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></time>
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200"><%= event.action.to_s.tr(".", " ").humanize %></p>
+            <p class="text-xs text-slate-500 dark:text-slate-400"><%= event.target_type.present? ? "#{event.target_type} #{event.target_id}" : "Platform access" %></p>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400"><%= event.platform_admin&.email || "Unauthenticated attempt" %></p>
+        </div>
+      <% end %>
+      <% if @events.empty? %>
+        <p class="px-5 py-10 text-center text-sm text-slate-500">No audit events yet.</p>
+      <% end %>
+    </div>
+  </div>
+</div>

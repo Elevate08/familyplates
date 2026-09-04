@@ -21,8 +21,9 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
 
     post reply_platform_admin_support_thread_path(@thread), params: { support_message: { body: "I am investigating this." } }
     assert_redirected_to platform_admin_support_thread_path(@thread)
-    assert_equal "I am investigating this.", SupportMessage.last.body
-    assert_equal @admin, SupportMessage.last.platform_admin
+    reply = @thread.messages.order(:created_at, :id).last
+    assert_equal "I am investigating this.", reply.body
+    assert_equal @admin, reply.platform_admin
   end
 
   test "operator can resolve a support thread" do
