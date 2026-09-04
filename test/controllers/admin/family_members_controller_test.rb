@@ -18,6 +18,8 @@ class Admin::FamilyMembersControllerTest < ActionDispatch::IntegrationTest
 
     get admin_family_members_url
     assert_response :success
+    assert_select "button", text: /Transfer/
+    assert_select "input[value*='/transfer/']"
   end
 
   test "should create member for admin" do
