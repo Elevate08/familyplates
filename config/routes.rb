@@ -99,6 +99,14 @@ Rails.application.routes.draw do
     end
   end
 
+  # Private hosted-platform operator console. This is intentionally separate
+  # from the household organizer admin namespace and authentication boundary.
+  namespace :platform_admin do
+    root to: "dashboard#index"
+    resource :session, only: %i[new create destroy]
+    resources :households, only: %i[index show]
+  end
+
   # Public iCalendar subscription feeds (token-authenticated)
   get "calendars/feed/:token", to: "calendar_feeds#show", as: :calendar_feed, defaults: { format: :ics }, constraints: { token: /[a-zA-Z0-9_-]+/ }
   get "calendars/feed/:token/members/:member_id", to: "calendar_feeds#member", as: :calendar_member_feed, defaults: { format: :ics }, constraints: { token: /[a-zA-Z0-9_-]+/ }

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_210000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -283,6 +283,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.string "event_type"
     t.string "processor"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "platform_admin_sessions", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "last_active_at", null: false
+    t.string "platform_admin_id", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["platform_admin_id"], name: "index_platform_admin_sessions_on_platform_admin_id"
+    t.index ["token"], name: "index_platform_admin_sessions_on_token", unique: true
+  end
+
+  create_table "platform_admins", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "last_signed_in_at"
+    t.string "otp_secret", null: false
+    t.string "password_digest", null: false
+    t.string "role", default: "owner", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_platform_admins_on_email", unique: true
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|
