@@ -62,7 +62,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_equal false, FamilyPlates.config.oidc_enabled?
     assert_equal false, FamilyPlates.config.forward_auth_enabled?
     assert_equal false, FamilyPlates.config.any_oauth_enabled?
-    assert_equal ["127.0.0.1", "::1"], FamilyPlates.config.forward_auth_trusted_proxies
+    assert_equal [ "127.0.0.1", "::1" ], FamilyPlates.config.forward_auth_trusted_proxies
     assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
   end
 

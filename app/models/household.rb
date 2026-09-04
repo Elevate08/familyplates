@@ -56,7 +56,7 @@ class Household < ApplicationRecord
   def admin_users_with_password
     users.joins(:family_members)
          .where(family_members: { role: "admin", household_id: id })
-         .where.not(password_digest: [nil, ""])
+         .where.not(password_digest: [ nil, "" ])
   end
 
   def can_require_login?
@@ -123,7 +123,7 @@ class Household < ApplicationRecord
   end
 
   def trial_days_left
-    [((trial_ends_at - Time.current) / 1.day).ceil, 0].max
+    [ ((trial_ends_at - Time.current) / 1.day).ceil, 0 ].max
   end
 
   def past_due_grace_active?

@@ -73,7 +73,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     starter_recipe_title = starter_file["starter_recipes"].first["title"]
 
     assert_difference -> { household.recipes.count } => 1 do
-      post onboarding_save_recipes_path, params: { recipe_ids: [starter_recipe_id] }
+      post onboarding_save_recipes_path, params: { recipe_ids: [ starter_recipe_id ] }
     end
 
     assert_redirected_to onboarding_pantry_path
@@ -82,7 +82,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
 
     # Save pantry staples
     assert_difference -> { household.pantry_items.staples.count } => 2 do
-      post onboarding_save_pantry_path, params: { staple_names: ["Olive Oil", "Garlic"] }
+      post onboarding_save_pantry_path, params: { staple_names: [ "Olive Oil", "Garlic" ] }
     end
 
     assert_redirected_to onboarding_complete_path

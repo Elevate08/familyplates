@@ -10,7 +10,7 @@ namespace :scale do
     puts "=" * 80
 
     db_path = Rails.root.join("storage/benchmark_scale.sqlite3")
-    [db_path, "#{db_path}-wal", "#{db_path}-shm"].each do |f|
+    [ db_path, "#{db_path}-wal", "#{db_path}-shm" ].each do |f|
       File.delete(f) if File.exist?(f)
     end
 
@@ -134,7 +134,7 @@ namespace :scale do
             servings: 4,
             tags: tmpl[:tags],
             meal_types: tmpl[:meal_types],
-            yields_leftovers: [true, false].sample,
+            yields_leftovers: [ true, false ].sample,
             created_at: now,
             updated_at: now
           }
@@ -214,7 +214,7 @@ namespace :scale do
               family_member_id: m.id,
               date: day,
               meal_type: meal_type,
-              is_leftover: [true, false, false, false].sample,
+              is_leftover: [ true, false, false, false ].sample,
               created_at: now,
               updated_at: now
             }
@@ -234,7 +234,7 @@ namespace :scale do
             name: s[:name],
             aisle_category: s[:aisle_category],
             emoji: s[:emoji],
-            is_staple: [true, true, false].sample,
+            is_staple: [ true, true, false ].sample,
             created_at: now,
             updated_at: now
           }
@@ -438,7 +438,7 @@ namespace :scale do
 
     # Cleanup benchmark database
     ActiveRecord::Base.connection_pool.disconnect!
-    [db_path, "#{db_path}-wal", "#{db_path}-shm"].each do |f|
+    [ db_path, "#{db_path}-wal", "#{db_path}-shm" ].each do |f|
       File.delete(f) if File.exist?(f)
     end
   end

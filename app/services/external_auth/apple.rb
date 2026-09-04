@@ -59,7 +59,7 @@ module ExternalAuth
         begin
           user_data = user_param.is_a?(String) ? JSON.parse(user_param) : user_param
           name_data = user_data["name"] || {}
-          parts = [name_data["firstName"], name_data["lastName"]].compact.map(&:presence).compact
+          parts = [ name_data["firstName"], name_data["lastName"] ].compact.map(&:presence).compact
           name = parts.join(" ") if parts.any?
         rescue JSON::ParserError
           # Ignore malformed user payload

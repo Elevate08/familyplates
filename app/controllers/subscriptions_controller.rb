@@ -46,7 +46,7 @@ class SubscriptionsController < ApplicationController
       @household.set_payment_processor :stripe
       checkout_session = @household.payment_processor.checkout(
         mode: :subscription,
-        line_items: [{ price: plan[:stripe_price_id], quantity: 1 }],
+        line_items: [ { price: plan[:stripe_price_id], quantity: 1 } ],
         success_url: subscription_url(success: true),
         cancel_url: subscription_url(canceled: true)
       )

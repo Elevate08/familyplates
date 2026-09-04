@@ -72,7 +72,7 @@ class DevicePairingsController < ApplicationController
     grant.update_columns(last_polled_at: Time.current)
 
     if grant.pending?
-      return render json: { error: "authorization_pending", error_description: "Waiting for user approval." }, status: :bad_request
+      render json: { error: "authorization_pending", error_description: "Waiting for user approval." }, status: :bad_request
     elsif grant.approved?
       session_record = grant.session
       if session_record.nil? || session_record.expired?

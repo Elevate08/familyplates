@@ -30,7 +30,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
   test "forward-auth headers are ignored when request comes from untrusted proxy IP" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = ["127.0.0.1", "10.0.0.0/8"]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1", "10.0.0.0/8" ]
 
     assert_no_difference -> { User.count } do
       # Client IP from untrusted public IP spoofing reverse proxy header
@@ -47,7 +47,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
   test "trusted forward-auth provisions user and establishes session" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = ["127.0.0.1"]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
 
     assert_difference -> { User.count } => 1, -> { Identity.count } => 1 do
       get root_path, headers: {
@@ -71,7 +71,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     @member.update!(user: existing_user)
 
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = ["127.0.0.1"]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
 
     assert_no_difference -> { User.count } do
       assert_difference -> { Identity.count } => 1 do
@@ -92,7 +92,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
   test "forward-auth sign out prevents immediate re-authentication until cleared" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = ["127.0.0.1"]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
 
     # Initial request creates session
     get root_path, headers: {
@@ -115,7 +115,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
   test "forward-auth sign out redirects to proxy logout URL when configured" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = ["127.0.0.1"]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
     FamilyPlates.config.forward_auth_logout_url = "https://auth.example.com/outpost.goauthentik.io/sign_out"
 
     get root_path, headers: {

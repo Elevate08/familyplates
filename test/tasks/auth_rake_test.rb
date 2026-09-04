@@ -5,7 +5,7 @@ class AuthRakeTest < ActiveSupport::TestCase
   setup do
     @rake = Rake::Application.new
     Rake.application = @rake
-    Rake.application.rake_require("tasks/auth", [Rails.root.join("lib").to_s])
+    Rake.application.rake_require("tasks/auth", [ Rails.root.join("lib").to_s ])
     Rake::Task.define_task(:environment)
   end
 

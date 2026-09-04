@@ -52,7 +52,7 @@ class DeviceGrant < ApplicationRecord
   end
 
   def expires_in_seconds
-    [((expires_at - Time.current).to_i), 0].max
+    [ ((expires_at - Time.current).to_i), 0 ].max
   end
 
   def interval_seconds
