@@ -186,6 +186,18 @@ class OnboardingController < ApplicationController
   private
 
   def ensure_household_unconfigured
+    if FamilyPlates.config.hosted?
+      if Current.user.nil?
+        redirect_to new_signup_path, alert: "In hosted mode, please sign up to create a household." and return
+      elsif current_household&.onboarded?
+        redirect_to root_path, alert: "Your family kitchen is already set up." and return
+      elsif current_household.present?
+        redirect_to onboarding_recipes_path and return
+      else
+        redirect_to new_signup_path and return
+      end
+    end
+
     target = current_household || Household.installation
     return unless target&.onboarded?
 

@@ -72,6 +72,17 @@ module Authentication
   def set_current_family_member
     member_id = cookies.signed[:active_family_member_id]
     Current.family_member = FamilyMember.find_by(id: member_id) if member_id.present?
+
+    if FamilyPlates.config.hosted?
+      if Current.user.nil?
+        Current.family_member = nil
+        cookies.delete(:active_family_member_id)
+      elsif Current.family_member.present? && !Current.user.household_ids.include?(Current.family_member.household_id)
+        Current.family_member = nil
+        cookies.delete(:active_family_member_id)
+      end
+    end
+
     Current.household = Current.family_member&.household
   end
 
@@ -83,7 +94,7 @@ module Authentication
   # Campfire's FirstRunsController lesson: the predicate was never the defect,
   # scattering it was.
   def require_installation
-    redirect_to onboarding_path unless Household.installed?
+    redirect_to onboarding_path unless FamilyPlates.installed?
   end
 
   def require_authentication
@@ -96,8 +107,12 @@ module Authentication
     # action while request.get? is false for it.
     session[:return_to_after_authenticating] = request.url if request.get? || request.head?
 
-    if FamilyPlates.config.require_login && Current.user.nil?
+    if (FamilyPlates.config.require_login || FamilyPlates.config.hosted?) && Current.user.nil?
       redirect_to new_session_path, alert: "Please sign in to continue." and return
+    end
+
+    if FamilyPlates.config.hosted? && Current.user.present? && Current.user.households.empty?
+      redirect_to new_signup_path, alert: "Please create or join a household." and return
     end
 
     redirect_to select_profile_path and return
@@ -105,7 +120,13 @@ module Authentication
 
   def require_active_family_member
     if Current.family_member.nil?
-      redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
+      if FamilyPlates.config.hosted? && Current.user.nil?
+        redirect_to new_session_path, alert: "Please sign in to continue."
+      elsif FamilyPlates.config.hosted? && Current.user.present? && Current.user.households.empty?
+        redirect_to new_signup_path, alert: "Please create or join a household."
+      else
+        redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
+      end
     end
   end
 
@@ -127,7 +148,7 @@ module Authentication
     Current.session = session_record
     Current.user = user
 
-    target_household = Current.household || Household.installation
+    target_household = Current.household || (FamilyPlates.config.hosted? ? user.households.first : Household.installation)
     if target_household && (member = user.family_members.find_by(household: target_household))
       start_new_session_for(member)
     end

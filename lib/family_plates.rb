@@ -188,6 +188,14 @@ module FamilyPlates
     yield config
   end
 
+  def self.installed?
+    if config.hosted?
+      true
+    else
+      Household.installed?
+    end
+  end
+
   def self.can_enable_require_login?(household = nil)
     target_household = household || Household.installation
     return false unless target_household

@@ -12,6 +12,13 @@ Rails.application.routes.draw do
     post :verify, to: "sessions#submit_verify"
   end
 
+  # Multi-tenant Signup & Email Verification
+  resource :signup, only: %i[new create] do
+    get :verify
+    post :verify, to: "signups#submit_verify"
+  end
+  get "signup" => "signups#new"
+
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
   post "set_profile/:id" => "profiles#set", as: :set_profile

@@ -56,6 +56,9 @@
         <% if authenticated? %>
           <!-- Single Active Profile & Kitchen Menu -->
           <%= render "family_members/switcher" %>
+        <% elsif FamilyPlates.config.hosted? %>
+          <%= link_to "Sign In", new_session_path, class: "text-xs font-bold text-slate-700 dark:text-slate-200 hover:underline px-2" %>
+          <%= link_to "Sign Up", new_signup_path, class: "text-xs font-semibold bg-primary-600 hover:bg-primary-500 text-white px-3.5 py-2 rounded-xl shadow-md transition-all hover:scale-105" %>
         <% elsif !Household.installed? %>
           <%= link_to "Set Up Kitchen", onboarding_path, class: "text-xs sm:text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-white px-3.5 py-2 rounded-xl shadow-md shadow-primary-500/20 transition-all hover:scale-105" %>
         <% else %>

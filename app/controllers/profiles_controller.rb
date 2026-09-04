@@ -5,24 +5,24 @@ class ProfilesController < ApplicationController
   throttle_pin_attempts only: :set
 
   def select
-    if FamilyPlates.config.require_login && Current.user.nil?
+    if (FamilyPlates.config.require_login || FamilyPlates.config.hosted?) && Current.user.nil?
       redirect_to new_session_path, alert: "Please sign in to select a profile." and return
     end
 
-    household = Current.household || Current.user&.households&.first || Household.installation
+    household = Current.household || Current.user&.households&.first || (Household.installation unless FamilyPlates.config.hosted?)
+    if household.nil? && FamilyPlates.config.hosted?
+      redirect_to new_signup_path, alert: "Please create or join a household." and return
+    end
+
     @family_members = household ? household.family_members.order(:created_at, :id) : []
   end
 
   def set
-    if FamilyPlates.config.require_login && Current.user.nil?
+    if (FamilyPlates.config.require_login || FamilyPlates.config.hosted?) && Current.user.nil?
       redirect_to new_session_path, alert: "Please sign in to select a profile." and return
     end
 
-    # Scoped to the installation rather than FamilyMember.find, which was a
-    # global finder taking a user-supplied id. On a single-household install the
-    # two return the same row; with a second household the unscoped version is
-    # account takeover by id enumeration.
-    household = Current.household || Current.user&.households&.first || Household.installation
+    household = Current.household || Current.user&.households&.first || (Household.installation unless FamilyPlates.config.hosted?)
     member = household&.family_members&.find(params[:id])
     raise ActiveRecord::RecordNotFound if member.nil?
 
