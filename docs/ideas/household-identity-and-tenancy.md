@@ -38,7 +38,7 @@ Rails maintains a curated library of exemplary open-source apps at [rubyonrails.
 | [once-campfire](https://github.com/basecamp/once-campfire) | Self-hosted appliance, single tenant | First-run setup, sliding sessions, join codes, profile transfer |
 | [writebook](https://github.com/basecamp/writebook) | Self-hosted appliance, single tenant | First-run setup, minimal session lookup |
 
-The split matters: **the two appliances use `has_secure_password`; the dual-mode app uses magic codes and passkeys.** 37signals chose passwords precisely where SMTP cannot be assumed. See "Credential choice" below — this reopens a decision this doc had closed.
+The split matters: **the two appliances use `has_secure_password`; the dual-mode app uses magic codes and passkeys.** 37signals chose passwords precisely where SMTP cannot be assumed. See "Credential choice" below for the production-path test that settled the same choice here.
 
 ### fizzy — the dual-mode reference
 
@@ -49,8 +49,8 @@ The split matters: **the two appliances use `has_secure_password`; the dual-mode
 | Question | fizzy's answer | Adopted here |
 | :--- | :--- | :--- |
 | Profile row without an email? | `users.identity_id` nullable, `unique [account_id, identity_id]`, `has_many :users, dependent: :nullify` | Yes — identical, as `family_members.user_id` |
-| Credential | 6-char base32 magic code, 15 min, single-use via `destroy`; plus passkeys; plus bearer tokens for API | Magic code + passkeys; tokens deferred |
-| No SMTP configured? | Sign-in code is readable in the container logs | Yes — replaces the recovery-code idea |
+| Credential | 6-char base32 magic code, 15 min, single-use via `destroy`; plus passkeys; plus bearer tokens for API | Hosted mode only; appliance mode uses a password |
+| No SMTP configured? | The Docker guide says the sign-in code is readable in the container logs | No — the asynchronous production path does not actually log it |
 | Session expiry | No `expires_at` at all. Permanent cookie; the `sessions` row is the revocation point | Yes, revised — see below |
 | Tenant vs. identity ordering | `require_account` before `require_authentication` (`# Checking and setting account must happen first`) | Yes |
 | Untenanted actions | `disallow_account_scope` class method + `redirect_tenanted_request` guard | Yes — this is the `Household.none?` fix |
@@ -130,7 +130,7 @@ Adopt a **three-layer identity model** that maps onto what already exists:
 
 | Layer | Question it answers | Mechanism |
 | :--- | :--- | :--- |
-| **Household identity** | Which family's data may this request see? | `User` via magic link or OAuth → reachable households |
+| **Household identity** | Which family's data may this request see? | `User` via appliance password or hosted magic link/OAuth → reachable households |
 | **Member identity** | Who is cooking right now? | One-tap profile pick, scoped to the authorized household |
 | **Admin elevation** | May this person change the roster or settings? | PIN on a trusted device; fresh email session in hosted mode |
 
@@ -147,7 +147,8 @@ That single rule sorts the roadmap. The IDOR fix, email login, account recovery,
 ### Schema
 
 ```
-users              id, email (unique, case-insensitive), verified_at, timestamps
+users              id, email (unique, case-insensitive), password_digest (nullable),
+                   verified_at, timestamps
 identities         id, user_id, provider, uid, timestamps
                    unique [provider, uid]           # "email" | "google" | "apple" | "oidc"
 sessions           id, user_id, token (unique), kind, user_agent, ip_address,
@@ -189,18 +190,39 @@ A single config object, `FamilyPlates.config.mode`, read in a handful of places 
 * **`appliance`** (default): one household, open first-boot onboarding, `REQUIRE_LOGIN=false`, OAuth off. Today's UX is byte-identical unless the operator opts in.
 * **`hosted`**: signup open, email verification required, tenant isolation enforced, OAuth available, billing hooks.
 
-`REQUIRE_LOGIN` **must default to off**, because magic links assume working outbound SMTP and a large share of self-hosters running a container on a NAS have none and will not configure a mail relay for a meal planner.
+`REQUIRE_LOGIN` **must default to off**, because requiring any credential changes
+the appliance's one-tap default and must be an operator choice.
 
-**The no-SMTP fallback is to log the code.** fizzy documents this plainly: *"If email is not configured, you can still sign in by finding the 6-character verification code in your Docker container's logs."* This works only because the credential is a short typeable **code**, not solely a clickable link — so design it that way from the start. It needs no extra schema, no extra flow, and no second code path to rot, which makes it strictly better than a one-time recovery code generated at onboarding. Passkeys (Phase 3) and trusted forward-auth headers are the other two email-free paths.
+### Credential choice — decided 2026-09-03
 
-### Credential choice — reopened
+**Decision:** appliance mode uses `has_secure_password`; hosted mode uses
+six-character, 15-minute, single-use magic codes. Passkeys remain the first
+additional credential in Phase 3.
 
-This doc previously listed passwords under "Not Doing". The reference apps split on exactly this line, so it is a live decision rather than a settled one:
+The deciding test was the real asynchronous production path, not the mailer in
+isolation. A fresh Fizzy production database was started with no SMTP settings,
+the signup form was submitted over HTTP, and Solid Queue ran the enqueued
+`ActionMailer::MailDeliveryJob`. Delivery failed against Rails' default
+`localhost:25`; the production log contained the filtered request and delivery
+error, but no subject, message body, or sign-in code. A synchronous
+`deliver_now` probe *did* include the code, which is precisely the misleading
+result the end-to-end check was meant to catch. This reproduces the operator
+report in [fizzy discussion #2947](https://github.com/basecamp/fizzy/discussions/2947): the documented log fallback is not the behavior an installed app delivers.
 
-* **Appliance mode**: Campfire and Writebook both use `has_secure_password`. A password needs no SMTP, no log-scraping, and no second delivery channel — which is the whole difficulty of magic codes on a NAS. The cost is a reset flow that itself needs email, or an admin-resets-it path.
-* **Hosted mode**: fizzy's magic-code-plus-passkey approach is clearly right. Email is guaranteed to work, and there is no password to breach.
+The mode split keeps each deployment honest about its operating environment:
 
-**Provisional recommendation:** magic codes as the primary credential in both modes, with the logged-code fallback for appliance installs, and passkeys added in Phase 3. But if the from-scratch no-SMTP install (see Key Assumptions) proves awkward, adopting `has_secure_password` for appliance mode is the proven path and should not be treated as a regression — two of the three reference apps do exactly that.
+* **Appliance mode:** Campfire and Writebook's password design is the proven
+  no-SMTP path. `users.password_digest` is nullable because login remains opt-in;
+  enabling `REQUIRE_LOGIN` requires at least one linked admin with a password.
+  Authentication uses a generic failure response, the existing rate-limit
+  pattern, and bcrypt. Phase 1 must also ship an operator-only CLI reset path so
+  recovery does not quietly depend on email.
+* **Hosted mode:** magic codes avoid a reusable password and its credential-
+  stuffing and breach surface. Hosted mode must fail fast when outbound email is
+  not configured rather than exposing a flow that cannot deliver its credential.
+* **Logs:** FamilyPlates does not log live authentication codes. Container-log
+  access is an administrative trust boundary, but logs are copied, retained, and
+  aggregated too broadly to make them a credential-delivery channel.
 
 ### Onboarding runs exactly once per household
 
@@ -362,7 +384,7 @@ development database, not only the test schema.
 Scope `set_profile` to an authorized household. Delete the `Household.first` fallback and let `current_household` return `nil` when unauthenticated. Scope the ActionCable connection. Migrate `households` and `family_members` to UUID primary keys. Consolidate the six scattered `Household.none?` checks into a single Campfire-style `FirstRun` guard. Add the cross-tenant test harness. Ships independently as a patch release.
 
 **Phase 1 — Identity, opt-in.**
-`users`, `identities`, `sessions`, `family_members.user_id`. Magic codes (6 chars, 15 min, single-use, logged when SMTP is absent). Join code on `households` and `signed_id` profile transfer. Enumeration-safe sign-in. Sign in → land on your own profile by default → one-tap switch to any other profile in the household → PIN for admin profiles. Sliding 30/90 sessions with Campfire's throttled `last_active_at`, plus a device list. `households.onboarded_at`. `REQUIRE_LOGIN=false` by default.
+`users`, `identities`, `sessions`, `family_members.user_id`. Appliance passwords and hosted magic codes (6 chars, 15 min, single-use). Join code on `households` and `signed_id` profile transfer. Enumeration-safe sign-in. Sign in → land on your own profile by default → one-tap switch to any other profile in the household → PIN for admin profiles. Sliding 30/90 sessions with Campfire's throttled `last_active_at`, plus a device list. `households.onboarded_at`. `REQUIRE_LOGIN=false` by default.
 
 **Phase 2 — Kiosk pairing.**
 RFC 8628 device authorization grant, built generically. Kiosk displays a QR code; an already-signed-in phone scans and approves; the kiosk receives a non-expiring restricted session. The same primitive covers "add my phone" and "sign in the laptop" — build it kiosk-specific and it gets built twice.
@@ -379,7 +401,7 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 
 - [ ] **The hosted business exists at all.** Currently unvalidated. Test: the phasing above is designed so this can be discovered false at Phase 3 with nothing lost — every prior phase stands on its own for self-hosters.
 - [ ] **Self-hosters will accept an email gate.** Test: ship Phase 1 with `REQUIRE_LOGIN=false` and measure how many operators turn it on. If nobody does, the hosted bet weakens considerably.
-- [ ] **Magic codes are deliverable in practice.** Largely retired as a risk: fizzy ships "read the code from the container logs" as its documented no-SMTP path. Test: a from-scratch Docker install with no SMTP, signing in via the logged code, and confirm the log line is findable without knowing the codebase.
+- [x] **Logged magic codes are not a viable appliance fallback.** A fresh no-SMTP production signup exercised Fizzy's real HTTP → Solid Queue → Action Mailer path. The job failed against `localhost:25` and the code was absent from the production log. Use an appliance password instead; require working outbound email before hosted magic-code login can be enabled.
 - [ ] **One SQLite DB carries multi-tenant load.** Test: seed 500 households with realistic recipe and meal-plan volume, profile the planner and grocery-list queries under WAL.
 - [ ] **Isolation actually holds.** Test: the generated cross-tenant route suite must pass with zero exemptions before Phase 4 opens signup.
 - [ ] **30/90 sliding expiry does not annoy real households.** Test: instrument how often a re-auth is actually triggered once a household is live. If the fridge tablet re-verifies monthly and that is unwelcome, `kind: "kiosk"` is the escape hatch rather than lengthening the window for everyone.
@@ -393,7 +415,7 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 * `Household.first` fallback removed; `current_household` may be `nil`.
 * Cross-tenant request test harness.
 * `users` / `identities` / `sessions` and `family_members.user_id`.
-* Magic-link sign-in, email verification, sliding 30/90-day sessions.
+* Appliance password sign-in, hosted magic-code verification, sliding 30/90-day sessions.
 * Sign-in defaults to your own profile; one-tap switch within the household; PIN unchanged for admins.
 * `REQUIRE_LOGIN` flag, default off — appliance UX unchanged.
 
@@ -401,9 +423,9 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 
 ## Not Doing (and Why)
 
-* **A one-time recovery code at onboarding** — superseded. Logging the sign-in code covers the no-SMTP case with no extra schema or second code path.
+* **A one-time recovery code at onboarding** — rejected. Appliance mode has a password plus an operator-only CLI reset path; hosted mode has working email. A second recovery credential would add another secret and another flow to secure.
 * **Merging kiosk pairing with join codes** — they look similar (both QR, both pair a thing to a household) and have different trust models: a join code grants a person ongoing access, a device grant gives a fixed screen a restricted session. Merging them produces a flow that is wrong for both.
-* **Passwords in hosted mode** — a password column buys a reset flow, a strength policy, a credential-stuffing surface, and breach liability, in exchange for nothing magic codes don't already provide. *For appliance mode this is reopened — see "Credential choice".*
+* **Passwords in hosted mode** — a password column buys a reset flow, a strength policy, a credential-stuffing surface, and breach liability, in exchange for nothing magic codes don't already provide. Appliance mode deliberately accepts that trade because it cannot assume SMTP — see "Credential choice".
 * **A `memberships` join table** — a nullable `family_members.user_id` expresses the same model with one column and no impossible states.
 * **A `join_codes` table or a `transfers` table** — Campfire does both with one column and one `signed_id` respectively.
 * **Collapsing the recipes and pantry onboarding steps** — considered and **rejected**. Both appliance reference apps seed demo content instead of asking, but the two steps stay distinct here: they teach two different concepts (what you cook vs. what you already have), and the pantry step is what makes the grocery list useful on day one. Seeding *defaults within* each step turned out to be done already — both steps ship curated, pre-ticked defaults — so that sub-question is closed too. Merging the steps remains rejected.
@@ -419,8 +441,8 @@ Split `FamilyPlates.installed?` from `Current.household.present?` across the six
 
 * ~~Which subscription provider?~~ **Provisionally the Pay gem pointed at Stripe** — see Billing above. Sub-question still open: per-household flat pricing or per-seat, which changes what `households` must store.
 * ~~Does `REQUIRE_LOGIN=true` still allow the PIN-less one-tap picker?~~ **Decided: yes.** The household session covers the device; members stay one-tap; admins still need a PIN.
-* ~~Account recovery when a self-hoster loses email access and their session?~~ **Decided: the sign-in code is logged**, per fizzy. Remaining sub-question: is a `bin/rails` console task also warranted for the case where logs have rotated?
-* **Credential choice for appliance mode** is the one genuinely open decision left: magic codes with a logged fallback, or `has_secure_password` as both appliance reference apps do. Resolve by attempting the no-SMTP install before Phase 1 schema work.
+* ~~Account recovery when a self-hoster loses email access and their session?~~ **Decided:** Phase 1 includes an operator-only CLI password reset. Recovery must work without SMTP and must not create a permanent recovery secret.
+* ~~Credential choice for appliance mode: logged magic codes or `has_secure_password`?~~ **Decided:** `has_secure_password` for appliance mode; magic codes only where hosted mode guarantees outbound email. The production-path spike above found that Fizzy's documented no-SMTP log fallback does not survive asynchronous delivery.
 * Willingness to pay is entirely unmeasured, and the free self-hosted tier is the real competitor. Cheapest test: a pricing page with an email capture before any billing code is written.
 * Per-household flat pricing or per-seat — changes what `households` must store.
 * ~~Should `docs/architecture.md:44` be corrected now, or as part of Phase 1?~~ **Done.** The architecture documentation records that there is no `User` model and that PINs are bcrypt digests. Commit `4ba770f` also removed the stale `User` entity from the ER diagram and regenerated it with the UUID key types.
