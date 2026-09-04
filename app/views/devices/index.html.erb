@@ -4,10 +4,13 @@
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Connected Devices</h1>
       <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Manage active sessions signed in to your account</p>
     </div>
-    <% if @sessions.size > 1 %>
-      <%= button_to "Sign Out All Other Devices", destroy_all_devices_path, method: :delete,
-            class: "px-4 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer" %>
-    <% end %>
+    <div class="flex items-center gap-3">
+      <% if @sessions.size > 1 %>
+        <%= button_to "Sign Out All Other Devices", destroy_all_devices_path, method: :delete,
+              class: "px-4 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer" %>
+      <% end %>
+      <%= link_to "← Preferences", preferences_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors" %>
+    </div>
   </div>
 
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 shadow-sm overflow-hidden">
