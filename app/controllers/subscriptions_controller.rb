@@ -9,6 +9,15 @@ class SubscriptionsController < ApplicationController
       redirect_to root_path, notice: "Subscriptions are only enabled in hosted mode." and return
     end
 
+    if params[:session_id].present? && defined?(Pay::Stripe::Subscription)
+      begin
+        Pay::Stripe::Subscription.sync_from_checkout_session(params[:session_id])
+        flash.now[:notice] = "Thank you for subscribing! Your kitchen is now fully activated. 🎉"
+      rescue StandardError => e
+        Rails.logger.warn("Could not sync checkout session: #{e.message}")
+      end
+    end
+
     @household = current_household
     @subscription = @household.payment_processor&.subscription
     @status = @household.subscription_status
