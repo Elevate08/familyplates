@@ -15,6 +15,11 @@ class ProfilesController < ApplicationController
     end
 
     @family_members = household ? household.family_members.order(:created_at, :id) : []
+    @other_user_members = if Current.user.present?
+      Current.user.family_members.where.not(household_id: household&.id).includes(:household)
+    else
+      []
+    end
   end
 
   def set
@@ -23,7 +28,8 @@ class ProfilesController < ApplicationController
     end
 
     household = Current.household || Current.user&.households&.first || (Household.installation unless FamilyPlates.config.hosted?)
-    member = household&.family_members&.find(params[:id])
+    member = household&.family_members&.find_by(id: params[:id]) ||
+             Current.user&.family_members&.find_by(id: params[:id])
     raise ActiveRecord::RecordNotFound if member.nil?
 
     if member.requires_pin? && params[:pin].blank?

@@ -23,6 +23,8 @@ class FamilyMembersController < ApplicationController
   private
 
   def set_family_member
-    @family_member = current_household.family_members.find(params[:id])
+    @family_member = current_household&.family_members&.find_by(id: params[:id]) ||
+                     current_user&.family_members&.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound unless @family_member
   end
 end

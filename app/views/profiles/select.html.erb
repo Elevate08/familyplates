@@ -55,6 +55,42 @@
     <% end %>
   </div>
 
+  <% if @other_user_members.present? %>
+    <div class="w-full max-w-xl mx-auto mb-8 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs text-center">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4">Your Other Kitchens</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <% @other_user_members.each do |m| %>
+          <% if m.requires_pin? %>
+            <button type="button"
+                    data-controller="pin-launcher" data-pin-launcher-modal-value="select" data-pin-launcher-member-id-value="<%= m.id %>" data-pin-launcher-member-name-value="<%= m.name %> (<%= m.household.name %>)" data-pin-launcher-member-color-value="<%= m.avatar_color %>" data-pin-launcher-member-initial-value="<%= m.initial %>" data-action="click->pin-launcher#open"
+                    class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 shadow-2xs transition-all cursor-pointer text-left">
+              <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0"
+                    style="background-color: <%= m.avatar_color %>">
+                <%= m.initial %>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 dark:text-white truncate"><%= m.household.name %></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Switch as <%= m.name %> 🔒</p>
+              </div>
+            </button>
+          <% else %>
+            <%= button_to set_profile_path(m), method: :post,
+                  class: "w-full flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 shadow-2xs transition-all cursor-pointer text-left" do %>
+              <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0"
+                    style="background-color: <%= m.avatar_color %>">
+                <%= m.initial %>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 dark:text-white truncate"><%= m.household.name %></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Switch as <%= m.name %></p>
+              </div>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <%# Both links need a session - /preferences edits the signed-in member - so
       the whole row is for someone who has already picked a profile and has come
       back here to switch. A stranger following My Preferences was redirected

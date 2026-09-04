@@ -101,6 +101,58 @@
       </div>
     <% end %>
 
+    <!-- Kitchen / Household Switcher (for multi-household users) -->
+    <% if current_user && current_user.households.distinct.count > 1 %>
+      <div class="py-2 border-b border-slate-100 dark:border-slate-700/80">
+        <div class="px-4 pb-1.5 flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Your Kitchens</span>
+        </div>
+        <div class="space-y-0.5 px-1">
+          <% current_user.family_members.includes(:household).each do |m| %>
+            <% is_active_kitchen = (m.household_id == current_household&.id) %>
+            <% if is_active_kitchen %>
+              <div class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold text-primary-900 dark:text-primary-300 bg-primary-50/60 dark:bg-primary-950/40">
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-xs">🏠</span>
+                  <div class="truncate">
+                    <span class="truncate"><%= m.household.name %></span>
+                    <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal ml-1">(as <%= m.name %>)</span>
+                  </div>
+                </div>
+                <span class="text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase">Active</span>
+              </div>
+            <% elsif m.requires_pin? %>
+              <button type="button"
+                      data-controller="pin-launcher" data-pin-launcher-modal-value="nav" data-pin-launcher-member-id-value="<%= m.id %>" data-pin-launcher-member-name-value="<%= m.name %> (<%= m.household.name %>)" data-pin-launcher-member-color-value="<%= m.avatar_color %>" data-pin-launcher-member-initial-value="<%= m.initial %>" data-action="click->pin-launcher#open"
+                      class="w-full text-left flex items-center justify-between px-3 py-1.5 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer">
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-xs">🏠</span>
+                  <div class="truncate">
+                    <span class="truncate font-semibold"><%= m.household.name %></span>
+                    <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal ml-1">(as <%= m.name %>)</span>
+                  </div>
+                </div>
+                <span class="text-[9.5px] text-slate-400 dark:text-slate-500 font-semibold uppercase">PIN 🔒</span>
+              </button>
+            <% else %>
+              <%= button_to switch_family_member_path(m), 
+                            method: :post,
+                            class: "w-full text-left flex items-center justify-between px-3 py-1.5 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer" do %>
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-xs">🏠</span>
+                  <div class="truncate">
+                    <span class="truncate font-semibold"><%= m.household.name %></span>
+                    <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal ml-1">(as <%= m.name %>)</span>
+                  </div>
+                </div>
+                <span class="text-primary-600 dark:text-primary-400 text-xs font-semibold">Switch →</span>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Navigation & Settings Links -->
     <div class="pt-2 px-2 space-y-0.5">
       <%= link_to preferences_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
