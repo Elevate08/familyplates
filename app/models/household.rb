@@ -23,6 +23,10 @@ class Household < ApplicationRecord
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true
 
+  def suspended?
+    suspended_at.present?
+  end
+
   has_secure_token :calendar_feed_token
 
   before_validation :generate_join_code, on: :create

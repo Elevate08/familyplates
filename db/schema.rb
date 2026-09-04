@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_000000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -104,9 +104,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_230000) do
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "onboarded_at"
+    t.datetime "suspended_at"
+    t.string "suspension_reason"
     t.datetime "updated_at", null: false
     t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
+    t.index ["suspended_at"], name: "index_households_on_suspended_at"
   end
 
   create_table "identities", id: :string, force: :cascade do |t|

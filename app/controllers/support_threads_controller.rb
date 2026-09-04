@@ -1,4 +1,6 @@
 class SupportThreadsController < ApplicationController
+  allow_suspended_access
+
   before_action :set_support_thread, only: :show
 
   def index

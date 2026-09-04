@@ -44,6 +44,16 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, @alpha.join_code
   end
 
+  test "operator can suspend and restore a household" do
+    post suspend_platform_admin_household_path(@alpha), params: { reason: "Support review" }
+    assert_redirected_to platform_admin_household_path(@alpha)
+    assert_equal "Support review", @alpha.reload.suspension_reason
+
+    post restore_platform_admin_household_path(@alpha)
+    assert_redirected_to platform_admin_household_path(@alpha)
+    assert_not @alpha.reload.suspended?
+  end
+
   private
 
   def sign_in_platform_admin(admin)

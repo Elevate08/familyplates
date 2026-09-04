@@ -1,4 +1,6 @@
 class SupportMessagesController < ApplicationController
+  allow_suspended_access
+
   def create
     thread = current_household.support_threads.find(params[:support_thread_id])
     if current_user && (message = thread.messages.create(user: current_user, body: message_params[:body]))

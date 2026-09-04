@@ -18,6 +18,18 @@ module PlatformAdmin
       @pantry_items_count = @household.pantry_items.count
     end
 
+    def suspend
+      @household = Household.find(params[:id])
+      @household.update!(suspended_at: Time.current, suspension_reason: params[:reason].to_s.strip.presence)
+      redirect_to platform_admin_household_path(@household), notice: "Household suspended."
+    end
+
+    def restore
+      @household = Household.find(params[:id])
+      @household.update!(suspended_at: nil, suspension_reason: nil)
+      redirect_to platform_admin_household_path(@household), notice: "Household restored."
+    end
+
     private
 
     def filtered_households
