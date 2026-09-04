@@ -82,10 +82,10 @@ class MealPlansController < ApplicationController
         format.json do
           render json: {
             success: false,
-            error: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center."
+            error: "Google Calendar sync is not configured yet. Set it up in the Admin Dashboard."
           }, status: :unprocessable_entity
         end
-        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), alert: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center." }
+        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), alert: "Google Calendar sync is not configured yet. Set it up in the Admin Dashboard." }
       end
     end
   end

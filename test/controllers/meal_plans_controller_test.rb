@@ -128,7 +128,7 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
 
     post sync_calendar_meal_plan_url(@meal_plan)
     assert_redirected_to meal_plan_url(@meal_plan)
-    assert_equal "Google Calendar sync is not configured yet. Set it up in the Admin Control Center.", flash[:alert]
+    assert_equal "Google Calendar sync is not configured yet. Set it up in the Admin Dashboard.", flash[:alert]
   end
 
   # --- Default month selection for weeks that straddle a month boundary -------

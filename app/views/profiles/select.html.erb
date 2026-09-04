@@ -101,7 +101,7 @@
       <%= link_to "🎨 My Preferences", preferences_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
       <% if current_family_member.admin? && !Current.session&.kiosk? %>
         <span class="text-slate-300 dark:text-slate-700">&bull;</span>
-        <%= link_to "⚙️ Admin Control Center", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
+        <%= link_to "⚙️ Admin Dashboard", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
       <% end %>
       <% unless Current.session&.kiosk? %>
         <span class="text-slate-300 dark:text-slate-700">&bull;</span>
