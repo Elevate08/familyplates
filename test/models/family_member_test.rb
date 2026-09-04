@@ -13,6 +13,16 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_includes member.errors[:name], "can't be blank"
   end
 
+  test "may belong to a user once per household" do
+    user = User.create!(email: "parent@example.com")
+    first = family_members(:one)
+    first.update!(user: user)
+    duplicate = FamilyMember.new(household: first.household, user: user, name: "Duplicate")
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:user_id], "has already been taken"
+  end
+
   test "calculates initial" do
     member = family_members(:one)
     assert_equal "D", member.initial

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_020000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -48,6 +48,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.string "pin_digest"
     t.string "role", default: "member"
     t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["household_id", "user_id"], name: "index_family_members_on_household_id_and_user_id", unique: true, where: "user_id IS NOT NULL"
     t.index ["household_id"], name: "index_family_members_on_household_id"
   end
 
@@ -58,9 +60,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.boolean "google_calendar_enabled", default: false, null: false
     t.string "google_calendar_id"
     t.text "google_service_account_json"
+    t.string "join_code", null: false
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
+    t.datetime "onboarded_at"
     t.datetime "updated_at", null: false
+    t.index ["join_code"], name: "index_households_on_join_code", unique: true
+  end
+
+  create_table "identities", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+    t.index ["user_id"], name: "index_identities_on_user_id"
   end
 
   create_table "ingredient_aisle_mappings", force: :cascade do |t|
@@ -164,9 +179,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.index ["household_id"], name: "index_recipes_on_household_id"
   end
 
+  create_table "sessions", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.string "ip_address"
+    t.string "kind", default: "browser", null: false
+    t.datetime "last_active_at", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.string "user_id", null: false
+    t.index ["token"], name: "index_sessions_on_token", unique: true
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "users", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false, collation: "NOCASE"
+    t.string "password_digest"
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["email"], name: "index_users_on_email", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "family_members", "households"
+  add_foreign_key "family_members", "users", on_delete: :nullify
+  add_foreign_key "identities", "users", on_delete: :cascade
   add_foreign_key "ingredient_aisle_mappings", "households"
   add_foreign_key "meal_plan_slots", "family_members"
   add_foreign_key "meal_plan_slots", "meal_plans"
@@ -177,4 +217,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"
   add_foreign_key "recipes", "households"
+  add_foreign_key "sessions", "users", on_delete: :cascade
 end

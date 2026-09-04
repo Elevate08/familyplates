@@ -11,12 +11,16 @@ class Household < ApplicationRecord
   attr_accessor :remove_google_service_account_json
 
   has_many :family_members, dependent: :destroy
+  has_many :users, through: :family_members
   has_many :pantry_items, dependent: :destroy
   has_many :recipes, dependent: :destroy
   has_many :meal_plans, dependent: :destroy
   has_many :meal_plan_slots, through: :meal_plans
 
   validates :name, presence: true
+  validates :join_code, presence: true, uniqueness: true
+
+  before_validation :generate_join_code, on: :create
 
   # Has this deployment been set up yet? Distinct from `installation`, which
   # answers *which* household - this only answers whether there is one at all,
@@ -46,5 +50,14 @@ class Household < ApplicationRecord
 
   def current_meal_plan(week_date = Date.current.beginning_of_week)
     meal_plans.find_or_create_by!(week_start_date: week_date)
+  end
+
+  private
+
+  def generate_join_code
+    self.join_code ||= loop do
+      candidate = SecureRandom.alphanumeric(12).upcase.scan(/.{4}/).join("-")
+      break candidate unless self.class.exists?(join_code: candidate)
+    end
   end
 end

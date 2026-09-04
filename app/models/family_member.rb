@@ -2,6 +2,7 @@ class FamilyMember < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
   belongs_to :household
+  belongs_to :user, optional: true
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify
 
@@ -28,6 +29,7 @@ class FamilyMember < ApplicationRecord
   has_secure_password :pin, validations: false
 
   validates :name, presence: true
+  validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
   # allow_blank, because `pin` reads back as nil on a record loaded from the
   # database and blank on a form submitted without changing it - only a PIN
   # actually being set is format-checked. Presence is asserted against the

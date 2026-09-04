@@ -4,6 +4,7 @@ class HouseholdTest < ActiveSupport::TestCase
   test "initializes with default meal schedule times" do
     household = Household.create!(name: "Test Family")
     assert_match(/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/, household.id)
+    assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, household.join_code)
     assert_equal "08:00", household.breakfast_time
     assert_equal "12:30", household.lunch_time
     assert_equal "18:00", household.dinner_time
@@ -14,5 +15,20 @@ class HouseholdTest < ActiveSupport::TestCase
     household = Household.new(name: "")
     assert_not household.valid?
     assert_includes household.errors[:name], "can't be blank"
+  end
+
+  test "assigns a unique join code" do
+    first = Household.create!(name: "First Family")
+    second = Household.create!(name: "Second Family")
+
+    assert_not_equal first.join_code, second.join_code
+  end
+
+  test "resolves users through family members" do
+    household = households(:one)
+    user = User.create!(email: "parent@example.com")
+    family_members(:one).update!(user: user)
+
+    assert_includes household.users, user
   end
 end
