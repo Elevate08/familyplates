@@ -55,4 +55,15 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "12:15", @household.lunch_time
     assert_equal "18:30", @household.dinner_time
   end
+
+  test "should reset join code for admin" do
+    sign_in_as(@admin)
+    old_code = @household.join_code
+
+    post reset_join_code_admin_household_url
+
+    assert_redirected_to edit_admin_household_url
+    assert_not_equal old_code, @household.reload.join_code
+    assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, @household.join_code)
+  end
 end

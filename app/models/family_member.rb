@@ -28,6 +28,20 @@ class FamilyMember < ApplicationRecord
   # or out of a page that renders the model.
   has_secure_password :pin, validations: false
 
+  TRANSFER_LINK_EXPIRY_DURATION = 4.hours
+
+  def transfer_id
+    signed_id(purpose: :transfer, expires_in: TRANSFER_LINK_EXPIRY_DURATION)
+  end
+
+  def self.find_by_transfer_id(id)
+    find_signed(id, purpose: :transfer)
+  end
+
+  def transfer_to!(new_user)
+    update!(user: new_user)
+  end
+
   validates :name, presence: true
   validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
   # allow_blank, because `pin` reads back as nil on a record loaded from the

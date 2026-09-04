@@ -62,6 +62,13 @@ class Household < ApplicationRecord
     admin_users_with_password.exists?
   end
 
+  def reset_join_code!
+    update!(join_code: loop do
+      candidate = SecureRandom.alphanumeric(12).upcase.scan(/.{4}/).join("-")
+      break candidate unless self.class.exists?(join_code: candidate)
+    end)
+  end
+
   private
 
   def generate_join_code

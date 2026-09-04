@@ -54,10 +54,12 @@ module Authentication
     return if token.blank?
 
     session_record = Session.find_by(token: token)
-    if session_record && (session_record.expires_at.nil? || session_record.expires_at > Time.current)
+    if session_record && !session_record.expired?
+      session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
       Current.session = session_record
       Current.user = session_record.user
     else
+      session_record&.destroy
       cookies.delete(:session_token)
     end
   end

@@ -23,6 +23,21 @@ Rails.application.routes.draw do
     end
   end
 
+  # Connected Devices
+  resources :devices, only: %i[index destroy] do
+    collection do
+      delete :destroy_all
+    end
+  end
+
+  # Household Join Code Redemption
+  get "join" => "joins#new", as: :join
+  post "join" => "joins#create"
+
+  # Signed Profile Transfer Links
+  get "transfer/:token" => "transfers#show", as: :transfer
+  post "transfer/:token" => "transfers#claim", as: :claim_transfer
+
   # User Preferences (for active family member)
   resource :preferences, only: %i[edit update]
   get "preferences" => "preferences#edit"
@@ -36,7 +51,9 @@ Rails.application.routes.draw do
       end
     end
     # Calendar testing and syncing live only on Admin::CalendarsController.
-    resource :household, only: %i[edit update]
+    resource :household, only: %i[edit update] do
+      post :reset_join_code
+    end
     resource :calendar, only: %i[show edit update], controller: "calendars" do
       post :test_connection
       post :sync_plan

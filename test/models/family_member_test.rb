@@ -23,6 +23,21 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:user_id], "has already been taken"
   end
 
+  test "generates signed transfer token and finds member" do
+    member = family_members(:two)
+    token = member.transfer_id
+
+    assert_equal member, FamilyMember.find_by_transfer_id(token)
+  end
+
+  test "transfer_to! reassigns profile to another user" do
+    user = User.create!(email: "newuser@example.com")
+    member = family_members(:two)
+
+    member.transfer_to!(user)
+    assert_equal user.id, member.reload.user_id
+  end
+
   test "calculates initial" do
     member = family_members(:one)
     assert_equal "D", member.initial

@@ -31,4 +31,14 @@ class HouseholdTest < ActiveSupport::TestCase
 
     assert_includes household.users, user
   end
+
+  test "resets join code to a new unique code" do
+    household = households(:one)
+    old_code = household.join_code
+
+    household.reset_join_code!
+
+    assert_not_equal old_code, household.join_code
+    assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, household.join_code)
+  end
 end

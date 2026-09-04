@@ -13,6 +13,11 @@ module Admin
       end
     end
 
+    def reset_join_code
+      @household.reset_join_code!
+      redirect_to edit_admin_household_path, notice: "Join code has been reset: #{@household.join_code}"
+    end
+
     private
 
     def set_household
