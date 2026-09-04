@@ -19,6 +19,11 @@ Rails.application.routes.draw do
   end
   get "signup" => "signups#new"
 
+  # Hosted Subscriptions & Billing
+  resource :subscription, only: %i[show create destroy] do
+    get :portal
+  end
+
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
   post "set_profile/:id" => "profiles#set", as: :set_profile

@@ -7,6 +7,7 @@ module Authentication
     before_action :set_current_family_member
     before_action :require_authentication
     before_action :require_active_family_member
+    before_action :ensure_household_entitled!
     helper_method :authenticated?, :current_household, :current_family_member, :current_user
   end
 
@@ -14,6 +15,7 @@ module Authentication
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
       skip_before_action :require_active_family_member, **options
+      skip_before_action :ensure_household_entitled!, **options, raise: false
     end
 
     # For the setup wizard, the only thing that runs before a household exists.
@@ -127,6 +129,18 @@ module Authentication
       else
         redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
       end
+    end
+  end
+
+  def ensure_household_entitled!
+    return unless FamilyPlates.config.hosted?
+    return if current_household.nil?
+    return if current_household.entitled?
+
+    if current_family_member&.admin?
+      redirect_to subscription_path, alert: "Your trial has expired. Please select a subscription to continue using your kitchen." and return
+    else
+      redirect_to select_profile_path, alert: "Your family's subscription is inactive. Please ask a household organizer to reactivate." and return
     end
   end
 

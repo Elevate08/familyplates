@@ -78,6 +78,83 @@ class Household < ApplicationRecord
     update!(onboarded_at: Time.current)
   end
 
+  # Hosted Subscriptions & Billing (Pay integration)
+  pay_customer default: true
+
+  FREE_TRIAL_DAYS = 14
+  PAST_DUE_GRACE_DAYS = 7
+
+  PLANS = {
+    monthly: {
+      name: "Monthly",
+      price: "$4",
+      interval: "month",
+      stripe_price_id: ENV["STRIPE_MONTHLY_PRICE_ID"].presence || "price_monthly",
+      description: "Full family kitchen access, billed monthly"
+    },
+    annual: {
+      name: "Annual",
+      price: "$35",
+      interval: "year",
+      discount: "Save 27%",
+      stripe_price_id: ENV["STRIPE_ANNUAL_PRICE_ID"].presence || "price_annual",
+      description: "Best value for families, billed once a year"
+    }
+  }.freeze
+
+  delegate :subscribed?, :on_trial?, :on_trial_or_subscribed?, to: :payment_processor, allow_nil: true
+
+  def pay_customer_name
+    name
+  end
+
+  def pay_customer_email
+    admin_members = family_members.where(role: "admin")
+    admin_user = admin_members.map(&:user).compact.first
+    admin_user&.email || users.first&.email
+  end
+
+  def trial_ends_at
+    (created_at || Time.current) + FREE_TRIAL_DAYS.days
+  end
+
+  def trial_active?
+    Time.current < trial_ends_at
+  end
+
+  def trial_days_left
+    [((trial_ends_at - Time.current) / 1.day).ceil, 0].max
+  end
+
+  def past_due_grace_active?
+    sub = payment_processor&.subscription
+    return false unless sub&.status == "past_due"
+
+    ref_time = sub.current_period_end || sub.updated_at
+    ref_time.present? && Time.current < (ref_time + PAST_DUE_GRACE_DAYS.days)
+  end
+
+  def active_subscription?
+    payment_processor&.subscribed? || false
+  end
+
+  def entitled?
+    return true unless FamilyPlates.config.hosted?
+
+    active_subscription? || trial_active? || past_due_grace_active?
+  end
+
+  def subscription_status
+    return :appliance unless FamilyPlates.config.hosted?
+    return :active if active_subscription?
+    return :past_due_grace if past_due_grace_active?
+    return :trialing if trial_active?
+    return :past_due if payment_processor&.subscription&.status == "past_due"
+    return :canceled if payment_processor&.subscription&.canceled?
+
+    :expired
+  end
+
   private
 
   def generate_join_code

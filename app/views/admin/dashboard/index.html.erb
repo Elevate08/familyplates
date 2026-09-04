@@ -83,6 +83,35 @@
         <%= link_to "Calendar Settings →", edit_admin_calendar_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       </div>
     </div>
+
+    <% if FamilyPlates.config.hosted? %>
+      <!-- Subscription & Billing Gateway -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Plan & Billing</span>
+            <span class="text-lg">💳</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-extrabold text-slate-900 dark:text-white capitalize">
+              <%= @household.subscription_status.to_s.humanize %>
+            </h2>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <% if @household.active_subscription? %>
+              <%= @household.payment_processor&.subscription&.processor_plan&.capitalize %> Plan &bull; Active
+            <% elsif @household.trial_active? %>
+              Free Trial (<%= pluralize(@household.trial_days_left, 'day') %> left)
+            <% else %>
+              Subscription Inactive
+            <% end %>
+          </p>
+        </div>
+        <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <%= link_to "Manage Subscription →", subscription_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
+        </div>
+      </div>
+    <% end %>
   </div>
 
   <!-- Family Members & PIN Management Section -->
