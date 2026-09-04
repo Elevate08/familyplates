@@ -1,5 +1,5 @@
 class AuthenticationMailer < ApplicationMailer
-  default from: "noreply@familyplates.app"
+  default from: -> { ENV.fetch("MAILER_DEFAULT_FROM", "noreply@familyplates.app") }
 
   def magic_code(magic_code)
     @code = magic_code.code

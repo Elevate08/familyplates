@@ -1,5 +1,19 @@
 require_relative "boot"
 
+# Load local environment variables from .env files when present
+begin
+  require "dotenv"
+  env = ENV["RAILS_ENV"] || ENV["RACK_ENV"] || "development"
+  Dotenv.load(
+    File.expand_path("../.env.#{env}.local", __dir__),
+    File.expand_path("../.env.local", __dir__),
+    File.expand_path("../.env.#{env}", __dir__),
+    File.expand_path("../.env", __dir__)
+  )
+rescue LoadError
+  # Dotenv not loaded
+end
+
 require "rails/all"
 
 # Require the gems listed in Gemfile, including any gems
