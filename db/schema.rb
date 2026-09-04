@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -79,6 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_020000) do
 
   create_table "households", id: :string, force: :cascade do |t|
     t.string "breakfast_time", default: "08:00", null: false
+    t.string "calendar_feed_token"
     t.datetime "created_at", null: false
     t.string "dinner_time", default: "18:00", null: false
     t.boolean "google_calendar_enabled", default: false, null: false
@@ -89,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_020000) do
     t.string "name", null: false
     t.datetime "onboarded_at"
     t.datetime "updated_at", null: false
+    t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
   end
 

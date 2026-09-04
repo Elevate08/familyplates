@@ -59,24 +59,19 @@
       </div>
     </div>
 
-    <!-- Google Calendar Direct Sync Card -->
+    <!-- Calendar Subscriptions & Direct Sync Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Google Calendar</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Calendar Sync</span>
           <span class="text-lg">📅</span>
         </div>
         <div class="flex items-center gap-2">
-          <% if @household.google_calendar_enabled? && @household.google_calendar_id.present? %>
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Direct Sync Active</h2>
-          <% else %>
-            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-            <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Sync Disabled</h2>
-          <% end %>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Universal Feeds Active</h2>
         </div>
-        <p class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 truncate">
-          <%= @household.google_calendar_id.presence || "No calendar configured" %>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+          Apple, Google, Outlook &bull; <%= @household.google_calendar_enabled? ? "Direct Sync Active" : "Direct Sync Off" %>
         </p>
       </div>
       <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

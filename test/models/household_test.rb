@@ -41,4 +41,29 @@ class HouseholdTest < ActiveSupport::TestCase
     assert_not_equal old_code, household.join_code
     assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, household.join_code)
   end
+
+  test "automatically generates a calendar feed token on create" do
+    household = Household.create!(name: "Feed Test Family")
+
+    assert household.calendar_feed_token.present?
+    assert_kind_of String, household.calendar_feed_token
+    assert household.calendar_feed_token.length >= 20
+  end
+
+  test "assigns unique calendar feed tokens to different households" do
+    first = Household.create!(name: "Alpha Family")
+    second = Household.create!(name: "Beta Family")
+
+    assert_not_equal first.calendar_feed_token, second.calendar_feed_token
+  end
+
+  test "regenerates calendar feed token" do
+    household = households(:one)
+    original_token = household.calendar_feed_token
+
+    household.regenerate_calendar_feed_token
+
+    assert_not_equal original_token, household.calendar_feed_token
+    assert household.calendar_feed_token.present?
+  end
 end

@@ -95,8 +95,13 @@ Rails.application.routes.draw do
     resource :calendar, only: %i[show edit update], controller: "calendars" do
       post :test_connection
       post :sync_plan
+      post :regenerate_feed_token
     end
   end
+
+  # Public iCalendar subscription feeds (token-authenticated)
+  get "calendars/feed/:token", to: "calendar_feeds#show", as: :calendar_feed, defaults: { format: :ics }, constraints: { token: /[a-zA-Z0-9_-]+/ }
+  get "calendars/feed/:token/members/:member_id", to: "calendar_feeds#member", as: :calendar_member_feed, defaults: { format: :ics }, constraints: { token: /[a-zA-Z0-9_-]+/ }
 
   # First-Boot Setup & Onboarding Wizard
   get "onboarding" => "onboarding#family", as: :onboarding
