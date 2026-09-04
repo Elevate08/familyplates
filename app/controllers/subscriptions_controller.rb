@@ -28,7 +28,8 @@ class SubscriptionsController < ApplicationController
     end
 
     # Test/simulated path or environments without live Stripe secret keys
-    if Rails.env.test? || ENV["STRIPE_SECRET_KEY"].blank?
+    stripe_key = ENV["STRIPE_SECRET_KEY"].presence || ENV["STRIPE_PRIVATE_KEY"].presence || (Pay::Stripe.private_key if defined?(Pay::Stripe))
+    if Rails.env.test? || stripe_key.blank?
       @household = current_household
       @household.set_payment_processor :fake_processor, allow_fake: true
       @household.payment_processor.subscriptions.destroy_all
