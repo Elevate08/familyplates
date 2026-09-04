@@ -4,12 +4,13 @@ require_relative "boot"
 begin
   require "dotenv"
   env = ENV["RAILS_ENV"] || ENV["RACK_ENV"] || "development"
-  Dotenv.load(
+  files = [
     File.expand_path("../.env.#{env}.local", __dir__),
-    File.expand_path("../.env.local", __dir__),
+    (File.expand_path("../.env.local", __dir__) unless env == "test"),
     File.expand_path("../.env.#{env}", __dir__),
     File.expand_path("../.env", __dir__)
-  )
+  ].compact
+  Dotenv.load(*files)
 rescue LoadError
   # Dotenv not loaded
 end

@@ -26,7 +26,19 @@ Rails.application.configure do
     policy.style_src   :self, :unsafe_inline
 
     policy.base_uri    :self
-    policy.form_action :self
+
+    # External form actions permitted for OAuth providers and Stripe Checkout redirects
+    allowed_form_actions = [ :self, "https://accounts.google.com", "https://appleid.apple.com", "https://checkout.stripe.com" ]
+    if (oidc_url = ENV["OIDC_ISSUER"].presence || ENV["OIDC_AUTH_URL"].presence)
+      begin
+        uri = URI.parse(oidc_url)
+        allowed_form_actions << "#{uri.scheme}://#{uri.host}#{":#{uri.port}" if uri.port && ![ 80, 443 ].include?(uri.port)}"
+      rescue URI::InvalidURIError
+        # Ignore malformed URI
+      end
+    end
+    policy.form_action(*allowed_form_actions)
+
     policy.frame_ancestors :self
   end
 
