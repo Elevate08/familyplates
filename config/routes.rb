@@ -115,6 +115,7 @@ Rails.application.routes.draw do
     resource :session, only: %i[new create destroy]
     resources :audit_events, only: :index
     resources :deletion_requests, only: %i[index destroy], controller: "deletion_requests"
+    resources :promotion_programs, only: %i[index create update]
     resources :households, only: %i[index show] do
       member do
         post :suspend

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -357,6 +357,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_020000) do
     t.index ["created_at"], name: "index_platform_audit_events_on_created_at"
     t.index ["platform_admin_id"], name: "index_platform_audit_events_on_platform_admin_id"
     t.index ["target_type", "target_id"], name: "index_platform_audit_events_on_target_type_and_target_id"
+  end
+
+  create_table "promotion_programs", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.integer "discount_percent"
+    t.datetime "ends_at"
+    t.integer "max_redemptions"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "provider_promotion_code_id"
+    t.integer "redeemed_count", default: 0, null: false
+    t.datetime "starts_at"
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_promotion_programs_on_active"
+    t.index ["code"], name: "index_promotion_programs_on_code", unique: true
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|

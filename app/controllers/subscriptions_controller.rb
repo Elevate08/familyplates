@@ -77,6 +77,7 @@ class SubscriptionsController < ApplicationController
       checkout_session = @household.payment_processor.checkout(
         mode: :subscription,
         line_items: line_items,
+        allow_promotion_codes: true,
         success_url: subscription_url(success: true),
         cancel_url: subscription_url(canceled: true)
       )
