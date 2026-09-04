@@ -36,6 +36,16 @@ class Recipe < ApplicationRecord
   ].freeze
 
   validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
+  validates :number, presence: true, uniqueness: { scope: :household_id }
+  before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
+
+  def assign_number
+    self.number = (household.recipes.maximum(:number) || 0) + 1
+  end
+
+  def to_param
+    number ? number.to_s : id.to_s
+  end
 
   scope :alphabetical, -> { order(:title) }
   scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30 OR LOWER(tags) LIKE '%quick%'") }

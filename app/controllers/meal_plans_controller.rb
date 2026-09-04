@@ -93,7 +93,8 @@ class MealPlansController < ApplicationController
   private
 
   def set_meal_plan
-    @meal_plan = current_household.meal_plans.find(params[:id])
+    @meal_plan = current_household.meal_plans.find_by(number: params[:id]) || current_household.meal_plans.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find MealPlan with 'id'=#{params[:id]}" unless @meal_plan
   end
 
   # The month shown by the calendar and its print-out. An explicit month always

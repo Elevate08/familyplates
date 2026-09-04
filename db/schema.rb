@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_011440) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_020000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -150,8 +150,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_011440) do
     t.datetime "created_at", null: false
     t.string "household_id", null: false
     t.text "notes"
+    t.integer "number"
     t.datetime "updated_at", null: false
     t.date "week_start_date", null: false
+    t.index ["household_id", "number"], name: "index_meal_plans_on_household_id_and_number", unique: true
     t.index ["household_id", "week_start_date"], name: "index_meal_plans_on_household_id_and_week_start_date", unique: true
     t.index ["household_id"], name: "index_meal_plans_on_household_id"
   end
@@ -316,6 +318,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_011440) do
     t.string "image_url"
     t.text "instructions"
     t.string "meal_types", default: "breakfast,lunch,dinner"
+    t.integer "number"
     t.integer "prep_time", default: 15
     t.integer "servings", default: 4
     t.string "source_url"
@@ -324,6 +327,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_011440) do
     t.integer "total_time"
     t.datetime "updated_at", null: false
     t.boolean "yields_leftovers", default: false, null: false
+    t.index ["household_id", "number"], name: "index_recipes_on_household_id_and_number", unique: true
     t.index ["household_id", "title"], name: "index_recipes_on_household_id_and_title"
     t.index ["household_id"], name: "index_recipes_on_household_id"
   end

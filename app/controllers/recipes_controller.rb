@@ -125,7 +125,8 @@ class RecipesController < ApplicationController
   private
 
   def set_recipe
-    @recipe = current_household.recipes.find(params[:id])
+    @recipe = current_household.recipes.find_by(number: params[:id]) || current_household.recipes.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find Recipe with 'id'=#{params[:id]}" unless @recipe
   end
 
   def set_available_tags

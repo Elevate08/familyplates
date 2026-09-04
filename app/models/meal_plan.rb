@@ -4,6 +4,16 @@ class MealPlan < ApplicationRecord
   has_many :recipes, through: :meal_plan_slots
 
   validates :week_start_date, presence: true, uniqueness: { scope: :household_id }
+  validates :number, presence: true, uniqueness: { scope: :household_id }
+  before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
+
+  def assign_number
+    self.number = (household.meal_plans.maximum(:number) || 0) + 1
+  end
+
+  def to_param
+    number ? number.to_s : id.to_s
+  end
 
   def days
     (0..6).map { |i| week_start_date + i.days }
