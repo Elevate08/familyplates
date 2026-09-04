@@ -4,6 +4,7 @@ module Authentication
   included do
     before_action :require_installation
     before_action :set_current_user
+    before_action :handle_revoked_session
     before_action :set_current_family_member
     before_action :require_authentication
     before_action :require_active_family_member
@@ -65,13 +66,47 @@ module Authentication
       session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
       Current.session = session_record
       Current.user = session_record.user
+      if cookies.signed[:device_kind] != session_record.kind
+        cookies.signed.permanent[:device_kind] = {
+          value: session_record.kind,
+          httponly: true,
+          same_site: :lax,
+          secure: request.ssl?
+        }
+      end
     else
+      was_kiosk = (session_record&.kiosk? || cookies.signed[:device_kind] == "kiosk")
       session_record&.destroy
       cookies.delete(:session_token)
+      cookies.delete(:active_family_member_id)
+      cookies.delete(:device_kind)
+      Current.session = nil
+      Current.user = nil
+      Current.family_member = nil
+      Current.household = nil
+      @session_revoked = true
+      @revoked_kiosk = was_kiosk
+    end
+  end
+
+  def handle_revoked_session
+    return unless @session_revoked
+
+    target_path = signed_out_path(kind: @revoked_kiosk ? "kiosk" : "browser")
+    message = @revoked_kiosk ? "This kitchen display's access has been revoked." : "Device access has been revoked."
+
+    return if request.path.in?([ signed_out_path, new_pair_path, "/kiosk", new_session_path, token_pair_path, device_authorization_pair_path ])
+
+    if request.format.json?
+      render json: { error: "session_revoked", message: message, redirect_url: target_path }, status: :unauthorized and return
+    else
+      redirect_to target_path, alert: message, status: :see_other and return
     end
   end
 
   def set_current_family_member
+    return if @session_revoked
+
     member_id = cookies.signed[:active_family_member_id]
     Current.family_member = FamilyMember.find_by(id: member_id) if member_id.present?
 
@@ -159,6 +194,9 @@ module Authentication
     cookies.signed.permanent[:session_token] = {
       value: session_record.token, httponly: true, same_site: :lax, secure: request.ssl?
     }
+    cookies.signed.permanent[:device_kind] = {
+      value: session_record.kind, httponly: true, same_site: :lax, secure: request.ssl?
+    }
     Current.session = session_record
     Current.user = user
 
@@ -184,6 +222,7 @@ module Authentication
     token = cookies.signed[:session_token]
     Session.find_by(token: token)&.destroy if token.present?
     cookies.delete(:session_token)
+    cookies.delete(:device_kind)
     Current.session = nil
     Current.user = nil
 

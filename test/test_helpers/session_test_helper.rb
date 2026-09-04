@@ -43,14 +43,18 @@ module SessionTestHelper
     active_family_member_id == member.id
   end
 
+  def signed_cookie(key)
+    raw = cookies[key.to_s]
+    return nil if raw.blank?
+
+    jar = ActionDispatch::Cookies::CookieJar.build(ActionDispatch::TestRequest.create, key.to_s => raw)
+    jar.signed[key.to_s]
+  end
+
   # Integration tests get a Rack::Test cookie jar, which has no #signed, so
   # unwrap the signed value through a jar that shares the app's secret.
   def active_family_member_id
-    raw = cookies[COOKIE_NAME]
-    return nil if raw.blank?
-
-    jar = ActionDispatch::Cookies::CookieJar.build(ActionDispatch::TestRequest.create, COOKIE_NAME => raw)
-    jar.signed[COOKIE_NAME]
+    signed_cookie(COOKIE_NAME)
   end
 end
 

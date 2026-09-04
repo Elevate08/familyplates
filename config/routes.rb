@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     get :verify
     post :verify, to: "sessions#submit_verify"
   end
+  get "signed_out" => "sessions#signed_out", as: :signed_out
 
   # Multi-tenant Signup & Email Verification
   resource :signup, only: %i[new create] do

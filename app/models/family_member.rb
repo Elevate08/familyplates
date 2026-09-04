@@ -30,6 +30,7 @@ class FamilyMember < ApplicationRecord
   # has been saved cannot be read back out of the record, out of a database copy,
   # or out of a page that renders the model.
   has_secure_password :pin, validations: false
+  attr_accessor :current_pin
 
   TRANSFER_LINK_EXPIRY_DURATION = 4.hours
 

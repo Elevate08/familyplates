@@ -136,4 +136,20 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:active_family_member_id].blank?
     assert cookies[:session_token].blank?
   end
+
+  test "signed_out renders kiosk signed out screen with pair again button" do
+    get signed_out_path(kind: "kiosk")
+    assert_response :success
+    assert_includes response.body, "Kitchen Display Signed Out"
+    assert_includes response.body, "Sign In Again"
+    assert_select "a[href=?]", new_pair_path(kind: "kiosk")
+  end
+
+  test "signed_out renders browser signed out screen with sign in again options" do
+    get signed_out_path(kind: "browser")
+    assert_response :success
+    assert_includes response.body, "Device Signed Out"
+    assert_includes response.body, "Sign In Again"
+    assert_select "a[href=?]", new_session_path
+  end
 end

@@ -4,7 +4,7 @@
     <div class="flex items-center gap-3.5">
       <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-lg transition-colors shrink-0"
            style="background-color: <%= @family_member.avatar_color %>">
-        <%= @family_member.initial %>
+        <%= icon_tag(@family_member.avatar_icon.presence || "chef-hat", css_class: "w-6 h-6") %>
       </div>
       <div>
         <div class="flex items-center gap-2">
@@ -32,7 +32,7 @@
         </h2>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Tap any family member to switch who is planning and cooking.</p>
       </div>
-      <% if @family_member.admin? %>
+      <% if @family_member.admin? && !Current.session&.kiosk? %>
         <%= link_to "+ Add Member", admin_family_members_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       <% end %>
     </div>
@@ -42,9 +42,9 @@
         <% is_active = (member.id == @family_member.id) %>
         <% if is_active %>
           <div class="p-3 rounded-2xl bg-primary-50 dark:bg-primary-950/50 border-2 border-primary-500 flex items-center gap-2.5 shadow-xs">
-            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0 shadow-2xs"
+            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-2xs"
                   style="background-color: <%= member.avatar_color %>">
-              <%= member.initial %>
+              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-4 h-4") %>
             </span>
             <div class="flex-1 min-w-0">
               <span class="block text-xs font-black text-primary-900 dark:text-primary-200 truncate"><%= member.name %></span>
@@ -56,9 +56,9 @@
           <button type="button"
                   data-controller="pin-launcher" data-pin-launcher-modal-value="nav" data-pin-launcher-member-id-value="<%= member.id %>" data-pin-launcher-member-name-value="<%= member.name %>" data-pin-launcher-member-color-value="<%= member.avatar_color %>" data-pin-launcher-member-initial-value="<%= member.initial %>" data-action="click->pin-launcher#open"
                   class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 transition-all cursor-pointer text-left shadow-2xs group">
-            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0 group-hover:scale-105 transition-transform"
+            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform"
                   style="background-color: <%= member.avatar_color %>">
-              <%= member.initial %>
+              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-4 h-4") %>
             </span>
             <div class="flex-1 min-w-0">
               <span class="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate"><%= member.name %></span>
@@ -68,9 +68,9 @@
         <% else %>
           <%= button_to switch_family_member_path(member), method: :post,
                 class: "w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 transition-all cursor-pointer text-left shadow-2xs group" do %>
-            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0 group-hover:scale-105 transition-transform"
+            <span class="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform"
                   style="background-color: <%= member.avatar_color %>">
-              <%= member.initial %>
+              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-4 h-4") %>
             </span>
             <div class="flex-1 min-w-0">
               <span class="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate"><%= member.name %></span>
@@ -161,28 +161,59 @@
         </div>
       </div>
 
-      <!-- Security / PIN Settings -->
+      <!-- Security / PIN Confirmation & Settings -->
       <% if @family_member.admin? %>
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-sm">🔒</span>
-            <label for="family_member_pin" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Admin 4-Digit Security PIN</label>
+        <div class="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-5">
+          <!-- Current PIN Confirmation (Required to save changes for admins) -->
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-sm">🔒</span>
+              <label for="current_pin" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Confirm with Admin 4-Digit PIN <span class="text-rose-500">*</span>
+              </label>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              Enter your 4-digit security PIN to confirm and save changes to this profile.
+            </p>
+            <div class="max-w-xs relative">
+              <input type="password" name="current_pin" id="current_pin" maxlength="4" placeholder="••••" pattern="[0-9]*" inputmode="numeric" autocomplete="current-password" required
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Your 4-digit PIN is required to unlock administrative privileges and switch into this profile.
-            Leave this blank to keep your current PIN.
-          </p>
-          <div class="max-w-xs relative" data-controller="configured-field">
-            <%= f.password_field :pin, value: nil, maxlength: 4, placeholder: "••••", pattern: "[0-9]*", inputmode: "numeric", autocomplete: "new-password",
-                  data: { configured_field_target: "input", action: "focus->configured-field#hide blur->configured-field#update input->configured-field#update" },
-                  class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
-            <% if @family_member.pin_digest.present? %>
-              <span data-configured-field-target="indicator"
-                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Configured
-              </span>
-            <% end %>
-          </div>
+
+          <!-- New PIN Setting (Only available on non-kiosk devices) -->
+          <% if Current.session&.kiosk? %>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
+              <span class="text-sm mt-0.5">📺</span>
+              <div>
+                <span class="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">Kiosk Device Protection</span>
+                <span>PIN updates cannot be performed from a shared kiosk display. Manage your PIN from an authenticated personal device.</span>
+              </div>
+            </div>
+          <% else %>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm">🔑</span>
+                <label for="family_member_pin" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  New 4-Digit Security PIN <span class="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                Leave this blank to keep your current PIN, or enter 4 new digits to update it.
+              </p>
+              <div class="max-w-xs relative" data-controller="configured-field">
+                <%= f.password_field :pin, value: nil, maxlength: 4, placeholder: "••••", pattern: "[0-9]*", inputmode: "numeric", autocomplete: "new-password",
+                      data: { configured_field_target: "input", action: "focus->configured-field#hide blur->configured-field#update input->configured-field#update" },
+                      class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                <% if @family_member.pin_digest.present? %>
+                  <span data-configured-field-target="indicator"
+                        class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Configured
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
         </div>
       <% end %>
 

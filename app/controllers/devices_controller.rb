@@ -10,11 +10,12 @@ class DevicesController < ApplicationController
   def destroy
     session_record = current_user.sessions.find(params[:id])
     was_current = (session_record == Current.session)
+    session_kind = session_record.kind
     session_record.destroy
 
     if was_current
       terminate_session
-      redirect_to new_session_path, notice: "You have signed out from this device."
+      redirect_to signed_out_path(kind: session_kind), notice: "You have signed out from this device."
     else
       redirect_to devices_path, notice: "Device access revoked."
     end

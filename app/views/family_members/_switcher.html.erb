@@ -4,9 +4,9 @@
           class="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-semibold transition-all border border-slate-200/80 dark:border-slate-700 cursor-pointer shadow-2xs hover:shadow-xs"
           title="Active Profile & Kitchen Settings">
     <% if current_family_member %>
-      <span class="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-xs sm:text-sm font-black text-white shadow-xs shrink-0"
+      <span class="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-white shadow-xs shrink-0"
             style="background-color: <%= current_family_member.avatar_color %>">
-        <%= current_family_member.initial %>
+        <%= icon_tag(current_family_member.avatar_icon.presence || "chef-hat", css_class: "w-4 h-4 sm:w-4.5 sm:h-4.5") %>
       </span>
       <div class="flex flex-col text-left leading-tight min-w-0">
         <span class="max-w-[85px] sm:max-w-[120px] truncate font-bold text-xs sm:text-sm text-slate-900 dark:text-white"><%= current_family_member.name %></span>
@@ -34,9 +34,9 @@
           </span>
         </div>
         <div class="flex items-center gap-2.5">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-2xl text-sm font-black text-white shadow-sm shrink-0"
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-2xl text-white shadow-sm shrink-0"
                 style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>">
-            <%= current_family_member&.initial || '?' %>
+            <%= icon_tag(current_family_member&.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
           </span>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
@@ -64,9 +64,9 @@
             <% if member == current_family_member %>
               <div class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold text-primary-900 dark:text-primary-300 bg-primary-50/60 dark:bg-primary-950/40">
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] font-bold text-white shadow-2xs"
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
-                    <%= member.initial %>
+                    <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
                   </span>
                   <span class="truncate"><%= member.name %></span>
                   <% if member.requires_pin? %>
@@ -80,9 +80,9 @@
                       data-controller="pin-launcher" data-pin-launcher-modal-value="nav" data-pin-launcher-member-id-value="<%= member.id %>" data-pin-launcher-member-name-value="<%= member.name %>" data-pin-launcher-member-color-value="<%= member.avatar_color %>" data-pin-launcher-member-initial-value="<%= member.initial %>" data-action="click->pin-launcher#open"
                       class="w-full text-left flex items-center justify-between px-3 py-1.5 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer">
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] font-bold text-white shadow-2xs"
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
-                    <%= member.initial %>
+                    <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
                   </span>
                   <span class="truncate"><%= member.name %></span>
                   <span class="text-[10px]" title="PIN Protected">🔒</span>
@@ -94,9 +94,9 @@
                             method: :post,
                             class: "w-full text-left flex items-center justify-between px-3 py-1.5 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer" do %>
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] font-bold text-white shadow-2xs"
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg text-white shadow-2xs"
                         style="background-color: <%= member.avatar_color %>">
-                    <%= member.initial %>
+                    <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
                   </span>
                   <span class="truncate"><%= member.name %></span>
                 </div>

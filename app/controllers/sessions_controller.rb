@@ -1,7 +1,7 @@
 class SessionsController < ApplicationController
   include LoginThrottling
 
-  allow_unauthenticated_access only: %i[new create verify submit_verify destroy]
+  allow_unauthenticated_access only: %i[new create verify submit_verify destroy signed_out]
   throttle_login_attempts only: %i[create submit_verify]
 
   after_action :ensure_development_magic_link_not_leaked, only: %i[create]
@@ -11,6 +11,10 @@ class SessionsController < ApplicationController
     if authenticated? && current_user
       redirect_to root_path and return
     end
+  end
+
+  def signed_out
+    @kind = params[:kind] == "kiosk" ? "kiosk" : "browser"
   end
 
   def create

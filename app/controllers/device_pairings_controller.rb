@@ -86,6 +86,12 @@ class DevicePairingsController < ApplicationController
         same_site: :lax,
         secure: request.ssl?
       }
+      cookies.signed.permanent[:device_kind] = {
+        value: session_record.kind,
+        httponly: true,
+        same_site: :lax,
+        secure: request.ssl?
+      }
 
       render json: {
         access_token: session_record.token,
