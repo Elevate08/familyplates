@@ -41,6 +41,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Alpha Kitchen"
     assert_includes response.body, "Members"
     assert_includes response.body, "Recipes"
+    assert_includes response.body, "Recent household activity"
     assert_not_includes response.body, @alpha.join_code
   end
 

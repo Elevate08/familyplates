@@ -21,6 +21,7 @@ module PlatformAdmin
       @meal_plans_count = @household.meal_plans.count
       @pantry_items_count = @household.pantry_items.count
       @last_activity_at = @household.activity_events.maximum(:created_at)
+      @recent_activity = @household.activity_events.includes(:actor).order(created_at: :desc, id: :desc).limit(20)
       @subscription_status = @household.subscription_status
       @subscription_plan = @household.subscription_plan_name
     end
