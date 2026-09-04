@@ -21,6 +21,8 @@ class Household < ApplicationRecord
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true
 
+  has_secure_token :calendar_feed_token
+
   before_validation :generate_join_code, on: :create
 
   # Has this deployment been set up yet? Distinct from `installation`, which

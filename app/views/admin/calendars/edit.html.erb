@@ -17,7 +17,90 @@
     <%= link_to "← Admin Dashboard", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
   </div>
 
-  <!-- Settings Card -->
+  <!-- Universal Calendar Subscriptions Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+          <%= icon_tag("calendar", css_class: "w-5 h-5") %>
+        </div>
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">Universal Calendar Subscriptions</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Zero-config live feeds for Apple Calendar, Google Calendar, Outlook, and more</p>
+        </div>
+      </div>
+      <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
+        Active
+      </span>
+    </div>
+
+    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+      Any family member can subscribe to the household's meal schedule directly from their phone or computer. The feed updates automatically as meals are planned or moved.
+    </p>
+
+    <% feed_url = calendar_feed_url(token: @household.calendar_feed_token, format: :ics) %>
+    <% webcal_url = feed_url.sub(/\Ahttps?:\/\//, "webcal://") %>
+    <% gcal_web_url = "https://calendar.google.com/calendar/r?cid=#{CGI.escape(webcal_url)}" %>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <a href="<%= webcal_url %>" 
+         class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700 flex items-center gap-3 transition-all hover:scale-[1.02] shadow-2xs group">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold text-lg shrink-0">
+          
+        </div>
+        <div class="min-w-0">
+          <span class="block text-xs font-bold text-slate-900 dark:text-white">Apple Calendar</span>
+          <span class="block text-[11px] text-slate-500 dark:text-slate-400">1-Tap Subscribe (iOS / Mac)</span>
+        </div>
+      </a>
+
+      <a href="<%= gcal_web_url %>" target="_blank" rel="noopener noreferrer"
+         class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700 flex items-center gap-3 transition-all hover:scale-[1.02] shadow-2xs group">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base shrink-0">
+          G
+        </div>
+        <div class="min-w-0">
+          <span class="block text-xs font-bold text-slate-900 dark:text-white">Google Calendar</span>
+          <span class="block text-[11px] text-slate-500 dark:text-slate-400">Subscribe on Web</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Feed Link and Copy -->
+    <div data-controller="clipboard" class="space-y-1.5">
+      <label for="household_calendar_feed_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+        Household Feed Link (.ics)
+      </label>
+      <div class="flex items-center gap-2">
+        <input type="text" readonly
+               id="household_calendar_feed_url"
+               name="household_calendar_feed_url"
+               data-clipboard-target="source"
+               value="<%= feed_url %>"
+               class="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 select-all focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="button" data-action="click->clipboard#copy"
+                class="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5">
+          <%= icon_tag("copy", css_class: "w-3.5 h-3.5") %>
+          <span data-clipboard-target="feedback">Copy</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Security / Revocation Section -->
+    <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h4 class="text-xs font-bold text-slate-900 dark:text-white">Feed Link Security</h4>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Need to revoke access? Regenerate this secret link to invalidate previous feeds.</p>
+      </div>
+      <%= button_to regenerate_feed_token_admin_calendar_path, method: :post,
+            data: { turbo_confirm: "Are you sure? Any calendars currently subscribed will stop receiving updates until resubscribed with the new link." },
+            class: "px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 text-xs font-bold transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 hover:border-rose-300 shrink-0" do %>
+        <span>Regenerate Feed Link</span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Google Calendar Direct Sync Settings Card -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <!-- Documentation Helper Banner -->
     <div class="mb-6 p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">

@@ -12,7 +12,9 @@
       </div>
 
       <!-- Mobile-only Print Action Button (Top Right) -->
-      <div class="sm:hidden shrink-0">
+      <!-- Mobile-only Action Buttons (Top Right) -->
+      <div class="sm:hidden flex items-center gap-1.5 shrink-0">
+        <%= render "subscribe_modal" %>
         <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month], autoprint: 1), target: "_blank", 
               class: "w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer active:scale-95",
               title: "Print #{@view == 'month' ? 'Monthly' : 'Weekly'} Schedule (Fridge Sheet)",
@@ -59,8 +61,9 @@
         <% end %>
       </div>
 
-      <!-- Desktop Print Action Button -->
-      <div class="hidden sm:flex items-center shrink-0">
+      <!-- Desktop Action Buttons -->
+      <div class="hidden sm:flex items-center gap-2 shrink-0">
+        <%= render "subscribe_modal" %>
         <%= link_to print_meal_plan_path(@meal_plan, view: @view, month: params[:month], autoprint: 1), target: "_blank", 
               class: "p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer group",
               title: "Print #{@view == 'month' ? 'Monthly' : 'Weekly'} Schedule (Fridge Sheet)",
