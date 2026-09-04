@@ -8,7 +8,7 @@ class HomeController < ApplicationController
     elsif (FamilyPlates.config.require_login || FamilyPlates.config.hosted?) && current_user.nil?
       redirect_to new_session_path, alert: "Please sign in to continue."
     elsif FamilyPlates.config.hosted? && current_user.present? && current_user.households.empty?
-      redirect_to new_signup_path, alert: "Please create or join a household."
+      redirect_to new_signup_path
     else
       redirect_to select_profile_path
     end

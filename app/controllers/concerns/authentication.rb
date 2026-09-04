@@ -114,7 +114,7 @@ module Authentication
     end
 
     if FamilyPlates.config.hosted? && Current.user.present? && Current.user.households.empty?
-      redirect_to new_signup_path, alert: "Please create or join a household." and return
+      redirect_to new_signup_path and return
     end
 
     redirect_to select_profile_path and return
@@ -125,7 +125,7 @@ module Authentication
       if FamilyPlates.config.hosted? && Current.user.nil?
         redirect_to new_session_path, alert: "Please sign in to continue."
       elsif FamilyPlates.config.hosted? && Current.user.present? && Current.user.households.empty?
-        redirect_to new_signup_path, alert: "Please create or join a household."
+        redirect_to new_signup_path
       else
         redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
       end

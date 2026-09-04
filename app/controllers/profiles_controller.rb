@@ -11,7 +11,7 @@ class ProfilesController < ApplicationController
 
     household = Current.household || Current.user&.households&.first || (Household.installation unless FamilyPlates.config.hosted?)
     if household.nil? && FamilyPlates.config.hosted?
-      redirect_to new_signup_path, alert: "Please create or join a household." and return
+      redirect_to new_signup_path and return
     end
 
     @family_members = household ? household.family_members.order(:created_at, :id) : []

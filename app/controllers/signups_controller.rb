@@ -31,6 +31,21 @@ class SignupsController < ApplicationController
     end
 
     if FamilyPlates.config.hosted?
+      if current_user.present? && current_user.email == email
+        household = Household.create!(name: household_name)
+        organizer = household.family_members.create!(
+          name: organizer_name,
+          role: "admin",
+          user: current_user,
+          pin: pin,
+          avatar_color: "#3B82F6",
+          avatar_icon: "chef-hat"
+        )
+        start_new_session_for_user(current_user)
+        start_new_session_for(organizer)
+        redirect_to onboarding_recipes_path, notice: "Welcome to #{household.name}, #{organizer.name}! Let's set up your recipes." and return
+      end
+
       FamilyPlates::OutboundEmail.validate!
       magic_code = MagicCode.create!(email: email)
       AuthenticationMailer.verification_code(magic_code).deliver_later
