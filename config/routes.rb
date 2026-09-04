@@ -101,9 +101,7 @@ Rails.application.routes.draw do
     resource :household, only: %i[edit update] do
       post :reset_join_code
     end
-    resource :calendar, only: %i[show edit update], controller: "calendars" do
-      post :test_connection
-      post :sync_plan
+    resource :calendar, only: %i[show edit], controller: "calendars" do
       post :regenerate_feed_token
     end
   end
@@ -172,7 +170,6 @@ Rails.application.routes.draw do
     resources :meal_plan_slots, only: %i[create update destroy]
     member do
       get :print
-      post :sync_calendar
     end
   end
   resources :meal_plan_slots, only: %i[create update destroy]

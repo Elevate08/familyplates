@@ -24,9 +24,7 @@ class StoredXssTest < ActionDispatch::IntegrationTest
     @admin = family_members(:one)
 
     @household.update!(
-      name: "Hostile #{TEXT_PAYLOAD}",
-      google_calendar_id: "cal#{TEXT_PAYLOAD}",
-      google_service_account_json: %({"type":"service_account","x":"#{TEXT_PAYLOAD}"})
+      name: "Hostile #{TEXT_PAYLOAD}"
     )
 
     @admin.update!(name: "Organizer #{TEXT_PAYLOAD}", avatar_color: ATTR_PAYLOAD, avatar_icon: TEXT_PAYLOAD)

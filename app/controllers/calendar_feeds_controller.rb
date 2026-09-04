@@ -1,5 +1,4 @@
 class CalendarFeedsController < ApplicationController
-  allow_browser versions: :all
   allow_unauthenticated_access
   skip_before_action :handle_revoked_session
   skip_before_action :set_current_family_member

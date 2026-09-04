@@ -263,8 +263,8 @@
                 <div class="flex items-center gap-3">
                   <span class="text-base">
                     <%= case identity.provider
-                        when "google" then "🌐"
-                        when "apple" then "🍎"
+                        when "google" then icon_tag("google", css_class: "w-4 h-4")
+                        when "apple" then icon_tag("apple", css_class: "w-4 h-4 text-black dark:text-white")
                         when "oidc" then "🛡️"
                         when "forward_auth" then "🔒"
                         else "🔗"
@@ -302,12 +302,14 @@
             <div class="flex flex-wrap gap-2 pt-2">
               <% if FamilyPlates.config.google_auth_enabled? && current_user.identities.where(provider: "google").none? %>
                 <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                  <%= icon_tag("google", css_class: "w-3.5 h-3.5") %>
                   <span>+ Connect Google</span>
                 <% end %>
               <% end %>
 
               <% if FamilyPlates.config.apple_auth_enabled? && current_user.identities.where(provider: "apple").none? %>
                 <%= button_to auth_request_path(provider: :apple), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-900 bg-black hover:bg-slate-900 text-white text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                  <%= icon_tag("apple", css_class: "w-3.5 h-3.5 fill-current") %>
                   <span>+ Connect Apple</span>
                 <% end %>
               <% end %>

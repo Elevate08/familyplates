@@ -27,9 +27,6 @@ module Admin
     def household_params
       params.require(:household).permit(
         :name,
-        :google_calendar_id,
-        :google_calendar_enabled,
-        :google_service_account_json,
         :breakfast_time,
         :lunch_time,
         :dinner_time

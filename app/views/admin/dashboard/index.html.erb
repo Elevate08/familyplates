@@ -59,11 +59,11 @@
       </div>
     </div>
 
-    <!-- Calendar Subscriptions & Direct Sync Card -->
+    <!-- Calendar Subscriptions Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Calendar Sync</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Calendar Subscriptions</span>
           <span class="text-lg">📅</span>
         </div>
         <div class="flex items-center gap-2">
@@ -71,7 +71,7 @@
           <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Universal Feeds Active</h2>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-          Apple, Google, Outlook &bull; <%= @household.google_calendar_enabled? ? "Direct Sync Active" : "Direct Sync Off" %>
+          Apple Calendar, Google Calendar, Outlook (.ics/webcal)
         </p>
       </div>
       <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

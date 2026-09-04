@@ -7,7 +7,6 @@ one:
   join_code: "TEST-ONE0-CODE"
   calendar_feed_token: "test_feed_token_one"
   onboarded_at: <%= 2.years.ago %>
-  google_calendar_enabled: false
   created_at: <%= 2.years.ago %>
 
 # Only ever the *other* household. Nothing outside the cross-tenant suite should
@@ -17,5 +16,4 @@ two:
   join_code: "TEST-TWO0-CODE"
   calendar_feed_token: "test_feed_token_two"
   onboarded_at: <%= 1.year.ago %>
-  google_calendar_enabled: false
   created_at: <%= 1.year.ago %>
