@@ -103,7 +103,8 @@ class SubscriptionsController < ApplicationController
       redirect_to root_path and return
     end
 
-    if ENV["STRIPE_SECRET_KEY"].present? && current_household.payment_processor&.processor_id.present?
+    stripe_key = ENV["STRIPE_SECRET_KEY"].presence || ENV["STRIPE_PRIVATE_KEY"].presence || (Pay::Stripe.private_key if defined?(Pay::Stripe))
+    if stripe_key.present? && current_household.payment_processor&.processor_id.present?
       portal_session = current_household.payment_processor.billing_portal(return_url: subscription_url)
       redirect_to portal_session.url, allow_other_host: true
     else

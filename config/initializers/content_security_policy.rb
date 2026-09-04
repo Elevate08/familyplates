@@ -16,7 +16,7 @@ Rails.application.configure do
     policy.img_src     :self, :data, :blob, :https
     policy.object_src  :none
     policy.script_src  :self
-    policy.connect_src :self, "https://checkout.stripe.com", "https://api.stripe.com"
+    policy.connect_src :self, "https://checkout.stripe.com", "https://billing.stripe.com", "https://api.stripe.com"
 
     # style-src keeps 'unsafe-inline' deliberately. Avatar and theme colours are
     # per-record inline style attributes, and style-src-attr has no nonce
@@ -28,7 +28,7 @@ Rails.application.configure do
     policy.base_uri    :self
 
     # External form actions permitted for OAuth providers and Stripe Checkout redirects
-    allowed_form_actions = [ :self, "https://accounts.google.com", "https://appleid.apple.com", "https://checkout.stripe.com" ]
+    allowed_form_actions = [ :self, "https://accounts.google.com", "https://appleid.apple.com", "https://checkout.stripe.com", "https://billing.stripe.com" ]
     if (oidc_url = ENV["OIDC_ISSUER"].presence || ENV["OIDC_AUTH_URL"].presence)
       begin
         uri = URI.parse(oidc_url)
