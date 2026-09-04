@@ -35,6 +35,7 @@ Rails.application.routes.draw do
       post :switch
     end
   end
+  get "activity", to: "activity_events#index", as: :activity_history
 
   # Connected Devices
   resources :devices, only: %i[index destroy] do

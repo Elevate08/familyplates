@@ -52,6 +52,7 @@ class RecipesController < ApplicationController
     @recipe = current_household.recipes.build(recipe_params)
 
     if @recipe.save
+      track_activity("recipe.created", target: @recipe)
       redirect_to @recipe, notice: "Recipe \"#{@recipe.title}\" was successfully added to your recipe box!"
     else
       render :new, status: :unprocessable_entity
@@ -64,6 +65,7 @@ class RecipesController < ApplicationController
 
   def update
     if @recipe.update(recipe_params)
+      track_activity("recipe.updated", target: @recipe)
       redirect_to @recipe, notice: "Recipe updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -71,6 +73,7 @@ class RecipesController < ApplicationController
   end
 
   def destroy
+    track_activity("recipe.deleted", target: @recipe)
     @recipe.destroy
     redirect_to recipes_path, notice: "Recipe deleted from recipe box."
   end

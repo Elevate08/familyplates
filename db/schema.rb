@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_220000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -37,6 +37,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_210000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "activity_events", id: :string, force: :cascade do |t|
+    t.string "actor_id"
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.string "household_id", null: false
+    t.json "metadata", default: {}, null: false
+    t.string "source", default: "web", null: false
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "created_at"], name: "index_activity_events_on_household_id_and_created_at"
+    t.index ["household_id"], name: "index_activity_events_on_household_id"
+    t.index ["target_type", "target_id"], name: "index_activity_events_on_target_type_and_target_id"
   end
 
   create_table "device_grants", id: :string, force: :cascade do |t|
@@ -383,6 +398,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_210000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_events", "family_members", column: "actor_id"
+  add_foreign_key "activity_events", "households"
   add_foreign_key "device_grants", "households", on_delete: :cascade
   add_foreign_key "device_grants", "sessions", on_delete: :cascade
   add_foreign_key "device_grants", "users", on_delete: :cascade

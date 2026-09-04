@@ -6,6 +6,7 @@ class FamilyMember < ApplicationRecord
 
   belongs_to :household
   belongs_to :user, optional: true
+  has_many :activity_events, foreign_key: :actor_id, dependent: :nullify
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify
 

@@ -10,6 +10,7 @@ class PantryItemsController < ApplicationController
   def create
     @pantry_item = current_household.pantry_items.build(pantry_item_params)
     if @pantry_item.save
+      track_activity("pantry_item.created", target: @pantry_item)
       respond_to do |format|
         format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
         format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
@@ -21,6 +22,7 @@ class PantryItemsController < ApplicationController
 
   def update
     if @pantry_item.update(pantry_item_params)
+      track_activity("pantry_item.updated", target: @pantry_item)
       respond_to do |format|
         format.turbo_stream { redirect_to pantry_items_path, notice: "Pantry item updated." }
         format.html { redirect_to pantry_items_path, notice: "Pantry item updated." }
@@ -31,6 +33,7 @@ class PantryItemsController < ApplicationController
   end
 
   def destroy
+    track_activity("pantry_item.deleted", target: @pantry_item)
     @pantry_item.destroy
     respond_to do |format|
       format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry." }

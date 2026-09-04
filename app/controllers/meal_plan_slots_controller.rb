@@ -10,6 +10,11 @@ class MealPlanSlotsController < ApplicationController
     @slot.assign_attributes(slot_params)
 
     if @slot.save
+      track_activity(
+        "meal_plan_slot.created",
+        target: @slot,
+        metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
+      )
       RecipeRequest.auto_fulfill_passed_slots!(current_household)
       respond_to do |format|
         if params[:return_to] == "recipe" && @slot.recipe.present?
@@ -57,6 +62,11 @@ class MealPlanSlotsController < ApplicationController
     @old_meal_type = @slot.meal_type
 
     if @slot.move(slot_params, household: current_household)
+      track_activity(
+        "meal_plan_slot.updated",
+        target: @slot,
+        metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
+      )
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to meal_plan_path(@meal_plan), notice: "Planned meal updated successfully!" }
@@ -73,6 +83,11 @@ class MealPlanSlotsController < ApplicationController
     @slot = @meal_plan.meal_plan_slots.find(params[:id])
     @date = @slot.date
     @meal_type = @slot.meal_type
+    track_activity(
+      "meal_plan_slot.deleted",
+      target: @slot,
+      metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
+    )
     @slot.destroy
 
     respond_to do |format|

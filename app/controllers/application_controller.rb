@@ -8,6 +8,17 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def track_activity(event_type, target: nil, metadata: {}, source: "web")
+    ActivityEvent.track!(
+      household: current_household,
+      actor: current_family_member,
+      event_type: event_type,
+      target: target,
+      source: source,
+      metadata: metadata
+    )
+  end
+
   def require_admin
     if Current.session&.kiosk?
       respond_to do |format|

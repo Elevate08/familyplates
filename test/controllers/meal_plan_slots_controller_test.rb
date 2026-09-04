@@ -9,7 +9,7 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create meal plan slot" do
-    assert_difference("MealPlanSlot.count", 1) do
+    assert_difference([ "MealPlanSlot.count", "ActivityEvent.where(event_type: 'meal_plan_slot.created').count" ], 1) do
       post meal_plan_meal_plan_slots_url(@meal_plan), params: {
         meal_plan_slot: {
           date: Date.current.beginning_of_week + 2.days,
