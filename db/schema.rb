@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_230000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -387,6 +387,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_220000) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "support_messages", id: :string, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "platform_admin_id"
+    t.string "support_thread_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["support_thread_id", "created_at"], name: "index_support_messages_on_support_thread_id_and_created_at"
+  end
+
+  create_table "support_threads", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "created_by_user_id"
+    t.string "household_id", null: false
+    t.datetime "last_message_at"
+    t.datetime "resolved_at"
+    t.string "status", default: "open", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "last_message_at"], name: "index_support_threads_on_household_id_and_last_message_at"
+    t.index ["household_id", "status"], name: "index_support_threads_on_household_id_and_status"
+  end
+
   create_table "users", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false, collation: "NOCASE"
@@ -423,4 +446,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_220000) do
   add_foreign_key "recipe_requests", "recipes"
   add_foreign_key "recipes", "households"
   add_foreign_key "sessions", "users", on_delete: :cascade
+  add_foreign_key "support_messages", "platform_admins"
+  add_foreign_key "support_messages", "support_threads"
+  add_foreign_key "support_messages", "users"
+  add_foreign_key "support_threads", "households"
+  add_foreign_key "support_threads", "users", column: "created_by_user_id"
 end

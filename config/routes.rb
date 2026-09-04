@@ -36,6 +36,9 @@ Rails.application.routes.draw do
     end
   end
   get "activity", to: "activity_events#index", as: :activity_history
+  resources :support_threads, only: %i[index show create] do
+    resources :messages, only: :create, controller: "support_messages"
+  end
 
   # Connected Devices
   resources :devices, only: %i[index destroy] do
@@ -106,6 +109,12 @@ Rails.application.routes.draw do
     root to: "dashboard#index"
     resource :session, only: %i[new create destroy]
     resources :households, only: %i[index show]
+    resources :support_threads, only: %i[index show] do
+      member do
+        post :reply
+        patch :resolve
+      end
+    end
   end
 
   # Public iCalendar subscription feeds (token-authenticated)

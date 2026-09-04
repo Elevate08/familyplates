@@ -29,7 +29,10 @@
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Household operations</h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Inspect account metadata and feature counts without opening household content.</p>
       </div>
-      <%= link_to "View all households", platform_admin_households_path, class: "shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" %>
+      <div class="flex flex-wrap justify-end gap-2">
+        <%= link_to "Support inbox", platform_admin_support_threads_path, class: "shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" %>
+        <%= link_to "View all households", platform_admin_households_path, class: "shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" %>
+      </div>
     </div>
     <div class="mt-5 divide-y divide-slate-100 dark:divide-slate-800">
       <% @recent_households.each do |household| %>

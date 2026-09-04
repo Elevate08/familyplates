@@ -18,6 +18,7 @@ class Household < ApplicationRecord
   has_many :meal_plan_slots, through: :meal_plans
   has_many :device_grants, dependent: :nullify
   has_many :activity_events, dependent: :delete_all
+  has_many :support_threads, dependent: :destroy
 
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true
