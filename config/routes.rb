@@ -30,6 +30,15 @@ Rails.application.routes.draw do
     end
   end
 
+  # Passkey Authentication & Management
+  resources :passkeys, only: %i[index create destroy] do
+    collection do
+      post :registration_options
+      post :authentication_options
+      post :callback
+    end
+  end
+
   # Device Pairing (RFC 8628)
   get "pair" => "device_pairings#index", as: :pair
   get "pair/new" => "device_pairings#new", as: :new_pair

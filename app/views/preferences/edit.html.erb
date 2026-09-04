@@ -194,7 +194,31 @@
     <% end %>
   </div>
 
-  <!-- SECTION 2: Household & Family Roster Management Link -->
+  <!-- SECTION 2: Passkeys & Connected Devices -->
+  <% if current_user && !Current.session&.kiosk? %>
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            🔑
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Passkeys & Connected Devices</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Manage Face ID / Touch ID passkeys (<%= current_user.passkeys.count %> configured) and inspect active device sessions.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <%= link_to "Passkeys", passkeys_path, class: "px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors" %>
+          <%= link_to "Devices", devices_path, class: "px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- SECTION 3: Household & Family Roster Management Link -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-center gap-3">

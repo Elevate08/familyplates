@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_040000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_050000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -168,6 +168,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_040000) do
     t.index ["household_id"], name: "index_pantry_items_on_household_id"
   end
 
+  create_table "passkeys", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "external_id", null: false
+    t.datetime "last_used_at"
+    t.string "nickname"
+    t.text "public_key", null: false
+    t.integer "sign_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["external_id"], name: "index_passkeys_on_external_id", unique: true
+    t.index ["user_id", "created_at"], name: "index_passkeys_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_passkeys_on_user_id"
+  end
+
   create_table "recipe_ingredients", force: :cascade do |t|
     t.string "aisle_category", null: false
     t.datetime "created_at", null: false
@@ -253,6 +267,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_040000) do
   add_foreign_key "meal_plan_slots", "recipes"
   add_foreign_key "meal_plans", "households"
   add_foreign_key "pantry_items", "households"
+  add_foreign_key "passkeys", "users", on_delete: :cascade
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"

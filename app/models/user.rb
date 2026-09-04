@@ -9,6 +9,11 @@ class User < ApplicationRecord
   has_many :households, through: :family_members
   has_many :magic_codes, dependent: :destroy
   has_many :device_grants, dependent: :nullify
+  has_many :passkeys, dependent: :destroy
+
+  def webauthn_id
+    id
+  end
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 
