@@ -45,9 +45,29 @@ class SubscriptionsController < ApplicationController
     else
       @household = current_household
       @household.set_payment_processor :stripe
+
+      line_items = if ENV["STRIPE_#{plan_key.to_s.upcase}_PRICE_ID"].present?
+        [ { price: plan[:stripe_price_id], quantity: 1 } ]
+      else
+        [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: plan_key == :annual ? 3500 : 400,
+              recurring: { interval: plan_key == :annual ? "year" : "month" },
+              product_data: {
+                name: "FamilyPlates #{plan[:name]} Plan",
+                description: plan[:description]
+              }
+            },
+            quantity: 1
+          }
+        ]
+      end
+
       checkout_session = @household.payment_processor.checkout(
         mode: :subscription,
-        line_items: [ { price: plan[:stripe_price_id], quantity: 1 } ],
+        line_items: line_items,
         success_url: subscription_url(success: true),
         cancel_url: subscription_url(canceled: true)
       )

@@ -108,11 +108,12 @@ class Household < ApplicationRecord
     name
   end
 
-  def pay_customer_email
+  def email
     admin_members = family_members.where(role: "admin")
     admin_user = admin_members.map(&:user).compact.first
     admin_user&.email || users.first&.email
   end
+  alias_method :pay_customer_email, :email
 
   def trial_ends_at
     (created_at || Time.current) + FREE_TRIAL_DAYS.days
