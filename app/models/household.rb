@@ -16,6 +16,7 @@ class Household < ApplicationRecord
   has_many :recipes, dependent: :destroy
   has_many :meal_plans, dependent: :destroy
   has_many :meal_plan_slots, through: :meal_plans
+  has_many :device_grants, dependent: :nullify
 
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true

@@ -9,7 +9,7 @@ class ProfilesController < ApplicationController
       redirect_to new_session_path, alert: "Please sign in to select a profile." and return
     end
 
-    household = Current.household || Household.installation
+    household = Current.household || Current.user&.households&.first || Household.installation
     @family_members = household ? household.family_members.order(:created_at, :id) : []
   end
 
@@ -22,7 +22,7 @@ class ProfilesController < ApplicationController
     # global finder taking a user-supplied id. On a single-household install the
     # two return the same row; with a second household the unscoped version is
     # account takeover by id enumeration.
-    household = Current.household || Household.installation
+    household = Current.household || Current.user&.households&.first || Household.installation
     member = household&.family_members&.find(params[:id])
     raise ActiveRecord::RecordNotFound if member.nil?
 

@@ -10,6 +10,7 @@ class Session < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
   belongs_to :user
+  has_one :device_grant, dependent: :nullify
 
   enum :kind, %w[browser kiosk].index_by(&:itself), default: :browser, validate: true
 

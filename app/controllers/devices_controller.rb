@@ -1,6 +1,7 @@
 class DevicesController < ApplicationController
   allow_unauthenticated_access only: %i[index destroy destroy_all]
   before_action :require_signed_in_user
+  before_action :forbid_kiosk_access
 
   def index
     @sessions = current_user.sessions.order(last_active_at: :desc)
@@ -25,6 +26,12 @@ class DevicesController < ApplicationController
   end
 
   private
+
+  def forbid_kiosk_access
+    if Current.session&.kiosk?
+      redirect_to root_path, alert: "Kiosk devices cannot manage connected devices."
+    end
+  end
 
   def require_signed_in_user
     unless current_user

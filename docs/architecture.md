@@ -25,10 +25,13 @@ erDiagram
     Household ||--o{ MealPlan : tracks
     Household ||--o{ PantryItem : maintains
     Household ||--o{ IngredientAisleMapping : learns
+    Household ||--o{ DeviceGrant : issues
 
     User ||--o{ Identity : has
     User ||--o{ Session : holds
     User ||--o{ FamilyMember : claims
+    User ||--o{ DeviceGrant : approves
+    DeviceGrant ||--o| Session : creates
 
     MealPlan ||--o{ MealPlanSlot : contains
     Recipe ||--o{ RecipeIngredient : contains
@@ -61,6 +64,18 @@ erDiagram
         string kind
         datetime last_active_at
         datetime expires_at "nullable"
+    }
+    DeviceGrant {
+        string id PK "UUID"
+        string device_code "unique"
+        string user_code "unique"
+        string kind
+        string status
+        string household_id FK "UUID, nullable"
+        string user_id FK "UUID, nullable"
+        string session_id FK "UUID, nullable"
+        datetime expires_at
+        datetime approved_at "nullable"
     }
     FamilyMember {
         string id PK "UUID"
@@ -98,6 +113,7 @@ erDiagram
 ## 🔒 Security & Authentication Model
 
 * **Account & Identity Boundary:** Phase 1 establishes the account boundary via `User`, `Identity`, and `Session` models. `User` holds a nullable `password_digest` for appliance mode while keeping hosted mode passwordless; `Identity` supports multiple login credentials (email, OAuth, passkeys) per user; `Session` provides revocable browser/kiosk session tokens. `FamilyMember.user_id` is an optional foreign key with a per-household uniqueness constraint, allowing family members to attach personal accounts while preserving email-free profiles for children.
+* **Kiosk Device Pairing & RFC 8628:** Phase 2 implements a generic RFC 8628 OAuth 2.0 Device Authorization Grant (`DeviceGrant`). A screen (kitchen tablet, fridge display, or browser) displays a QR code and an 8-character user code (`XXXX-XXXX`) while polling `/pair/token`. An authenticated user scans with their phone and approves the pairing as either a non-expiring kitchen display (`kind: "kiosk"`) or a personal browser session (`kind: "browser"`). Kiosk sessions are strictly restricted from accessing `/admin`, editing household settings, or managing connected devices, even if an admin profile enters a valid PIN, and can be revoked at any time from `/devices`.
 * **Profile Authentication:** Daily interaction remains centered on family-member profiles chosen at `/select_profile`. Organizer (`admin`) profiles require a 4-digit PIN; ordinary member profiles are deliberately open for one-tap switching on a shared kitchen tablet.
 * **PIN Storage:** PINs are stored as bcrypt digests (`family_members.pin_digest`) via `has_secure_password`, and cannot be read back off a record. Entry is rate limited per IP and per profile across both entry paths, and comparison is constant-time.
 * **Cookie Sessions:** The active profile is held in a signed, `HttpOnly`, `SameSite=Lax` cookie, marked `Secure` when the request arrives over TLS. **A LAN deployment without TLS sends this cookie in the clear** — anyone exposing the app beyond a trusted network should terminate TLS in front of it and enable `config.force_ssl`.

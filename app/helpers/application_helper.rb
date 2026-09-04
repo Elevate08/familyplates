@@ -102,6 +102,18 @@ module ApplicationHelper
     end
   end
 
+  def qr_code_svg(url, size: 4)
+    qrcode = RQRCode::QRCode.new(url.to_s)
+    raw(qrcode.as_svg(
+      offset: 0,
+      color: "000",
+      shape_rendering: "crispEdges",
+      module_size: size,
+      standalone: true,
+      use_path: true
+    ))
+  end
+
   private
 
   # An emoji is a glyph, not an SVG: the box utilities size the span, but font

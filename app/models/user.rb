@@ -8,6 +8,7 @@ class User < ApplicationRecord
   has_many :family_members, dependent: :nullify
   has_many :households, through: :family_members
   has_many :magic_codes, dependent: :destroy
+  has_many :device_grants, dependent: :nullify
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 

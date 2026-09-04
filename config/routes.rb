@@ -30,6 +30,16 @@ Rails.application.routes.draw do
     end
   end
 
+  # Device Pairing (RFC 8628)
+  get "pair" => "device_pairings#index", as: :pair
+  get "pair/new" => "device_pairings#new", as: :new_pair
+  post "pair/device_authorization" => "device_pairings#device_authorization", as: :device_authorization_pair
+  post "pair/token" => "device_pairings#token", as: :token_pair
+  get "pair/verify" => "device_pairings#verify", as: :verify_pair
+  post "pair/approve" => "device_pairings#approve", as: :approve_pair
+  post "pair/deny" => "device_pairings#deny", as: :deny_pair
+  get "kiosk" => "device_pairings#new", defaults: { kind: "kiosk" }
+
   # Household Join Code Redemption
   get "join" => "joins#new", as: :join
   post "join" => "joins#create"

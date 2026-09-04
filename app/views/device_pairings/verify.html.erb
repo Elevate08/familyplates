@@ -1,0 +1,82 @@
+<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4">
+  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl <%= @grant.kiosk? ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400' %> mb-3 shadow-sm">
+        <%= icon_tag(@grant.kiosk? ? "tv" : "laptop", css_class: "w-7 h-7") %>
+      </div>
+      <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+        Authorize Device Pairing
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+        A new screen is requesting access to your family's kitchen
+      </p>
+    </div>
+
+    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 mb-6 space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400 font-semibold">Pairing Code:</span>
+        <span class="font-mono font-black text-sm tracking-wider text-slate-900 dark:text-white"><%= @grant.user_code %></span>
+      </div>
+
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400 font-semibold">Household:</span>
+        <span class="font-bold text-slate-800 dark:text-slate-200"><%= @household&.name %></span>
+      </div>
+
+      <% if @grant.user_agent.present? %>
+        <div class="flex items-start justify-between text-xs gap-3">
+          <span class="text-slate-400 font-semibold shrink-0">Client:</span>
+          <span class="font-medium text-slate-700 dark:text-slate-300 text-right truncate"><%= @grant.user_agent %></span>
+        </div>
+      <% end %>
+
+      <% if @grant.ip_address.present? %>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-semibold">IP Address:</span>
+          <span class="font-mono text-slate-600 dark:text-slate-400"><%= @grant.ip_address %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <%= form_with url: approve_pair_path, method: :post, local: true, class: "space-y-5" do |f| %>
+      <%= hidden_field_tag :user_code, @grant.user_code %>
+
+      <!-- Device Access Kind -->
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
+          Session Type
+        </span>
+        <div class="space-y-2">
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+            <%= f.radio_button :kind, "kiosk", checked: @grant.kiosk?, class: "mt-0.5 text-primary-600 focus:ring-primary-500" %>
+            <div class="text-left">
+              <span class="block text-xs font-extrabold text-slate-900 dark:text-white">Kitchen Display (Kiosk)</span>
+              <span class="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Non-expiring display session. Restricted from admin dashboard and household settings.
+              </span>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+            <%= f.radio_button :kind, "browser", checked: @grant.browser?, class: "mt-0.5 text-primary-600 focus:ring-primary-500" %>
+            <div class="text-left">
+              <span class="block text-xs font-extrabold text-slate-900 dark:text-white">Personal Device (Browser)</span>
+              <span class="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Standard browser session with full access for your account.
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-2 flex flex-col gap-2.5">
+        <%= f.submit "Approve Pairing",
+              class: "w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer" %>
+
+        <%= button_to "Deny Request", deny_pair_path(user_code: @grant.user_code), method: :post,
+              class: "w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+</div>
