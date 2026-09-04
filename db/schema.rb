@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
+  create_table "account_deletion_requests", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "household_id", null: false
+    t.datetime "requested_at", null: false
+    t.string "requested_by_user_id"
+    t.text "resolution_note"
+    t.datetime "resolved_at"
+    t.string "resolved_by_platform_admin_id"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "status"], name: "index_account_deletion_requests_on_household_id_and_status"
+    t.index ["household_id"], name: "index_account_deletion_requests_on_household_id"
+    t.index ["requested_by_user_id"], name: "index_account_deletion_requests_on_requested_by_user_id"
+    t.index ["resolved_by_platform_admin_id"], name: "idx_on_resolved_by_platform_admin_id_85591ec992"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -37,6 +53,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "activity_events", id: :string, force: :cascade do |t|
+    t.string "actor_id"
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.string "household_id", null: false
+    t.json "metadata", default: {}, null: false
+    t.string "source", default: "web", null: false
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "created_at"], name: "index_activity_events_on_household_id_and_created_at"
+    t.index ["household_id"], name: "index_activity_events_on_household_id"
+    t.index ["target_type", "target_id"], name: "index_activity_events_on_target_type_and_target_id"
   end
 
   create_table "device_grants", id: :string, force: :cascade do |t|
@@ -89,9 +120,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "onboarded_at"
+    t.datetime "suspended_at"
+    t.string "suspension_reason"
     t.datetime "updated_at", null: false
     t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
+    t.index ["suspended_at"], name: "index_households_on_suspended_at"
   end
 
   create_table "identities", id: :string, force: :cascade do |t|
@@ -285,6 +319,63 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "platform_admin_sessions", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "last_active_at", null: false
+    t.string "platform_admin_id", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["platform_admin_id"], name: "index_platform_admin_sessions_on_platform_admin_id"
+    t.index ["token"], name: "index_platform_admin_sessions_on_token", unique: true
+  end
+
+  create_table "platform_admins", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "last_signed_in_at"
+    t.string "otp_secret", null: false
+    t.string "password_digest", null: false
+    t.string "role", default: "owner", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_platform_admins_on_email", unique: true
+  end
+
+  create_table "platform_audit_events", id: :string, force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.json "metadata", default: {}, null: false
+    t.string "platform_admin_id"
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
+    t.index ["action"], name: "index_platform_audit_events_on_action"
+    t.index ["created_at"], name: "index_platform_audit_events_on_created_at"
+    t.index ["platform_admin_id"], name: "index_platform_audit_events_on_platform_admin_id"
+    t.index ["target_type", "target_id"], name: "index_platform_audit_events_on_target_type_and_target_id"
+  end
+
+  create_table "promotion_programs", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.integer "discount_percent"
+    t.datetime "ends_at"
+    t.integer "max_redemptions"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "provider_promotion_code_id"
+    t.integer "redeemed_count", default: 0, null: false
+    t.datetime "starts_at"
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_promotion_programs_on_active"
+    t.index ["code"], name: "index_promotion_programs_on_code", unique: true
+  end
+
   create_table "recipe_ingredients", force: :cascade do |t|
     t.string "aisle_category", null: false
     t.datetime "created_at", null: false
@@ -348,6 +439,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "support_messages", id: :string, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "platform_admin_id"
+    t.string "support_thread_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["support_thread_id", "created_at"], name: "index_support_messages_on_support_thread_id_and_created_at"
+  end
+
+  create_table "support_threads", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "created_by_user_id"
+    t.string "household_id", null: false
+    t.datetime "last_message_at"
+    t.datetime "resolved_at"
+    t.string "status", default: "open", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "last_message_at"], name: "index_support_threads_on_household_id_and_last_message_at"
+    t.index ["household_id", "status"], name: "index_support_threads_on_household_id_and_status"
+  end
+
   create_table "users", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false, collation: "NOCASE"
@@ -357,8 +471,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "account_deletion_requests", "households"
+  add_foreign_key "account_deletion_requests", "platform_admins", column: "resolved_by_platform_admin_id"
+  add_foreign_key "account_deletion_requests", "users", column: "requested_by_user_id"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_events", "family_members", column: "actor_id"
+  add_foreign_key "activity_events", "households"
   add_foreign_key "device_grants", "households", on_delete: :cascade
   add_foreign_key "device_grants", "sessions", on_delete: :cascade
   add_foreign_key "device_grants", "users", on_delete: :cascade
@@ -377,9 +496,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_185502) do
   add_foreign_key "pay_charges", "pay_subscriptions", column: "subscription_id"
   add_foreign_key "pay_payment_methods", "pay_customers", column: "customer_id"
   add_foreign_key "pay_subscriptions", "pay_customers", column: "customer_id"
+  add_foreign_key "platform_audit_events", "platform_admins"
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"
   add_foreign_key "recipes", "households"
   add_foreign_key "sessions", "users", on_delete: :cascade
+  add_foreign_key "support_messages", "platform_admins"
+  add_foreign_key "support_messages", "support_threads"
+  add_foreign_key "support_messages", "users"
+  add_foreign_key "support_threads", "households"
+  add_foreign_key "support_threads", "users", column: "created_by_user_id"
 end

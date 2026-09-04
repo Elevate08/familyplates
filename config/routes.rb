@@ -35,6 +35,15 @@ Rails.application.routes.draw do
       post :switch
     end
   end
+  get "activity", to: "activity_events#index", as: :activity_history
+  get "suspended", to: "suspensions#show", as: :suspended
+  resource :account_data, only: :show, controller: "account_data" do
+    get :export
+    post :request_deletion
+  end
+  resources :support_threads, only: %i[index show create] do
+    resources :messages, only: :create, controller: "support_messages"
+  end
 
   # Connected Devices
   resources :devices, only: %i[index destroy] do
@@ -96,6 +105,28 @@ Rails.application.routes.draw do
       post :test_connection
       post :sync_plan
       post :regenerate_feed_token
+    end
+  end
+
+  # Private hosted-platform operator console. This is intentionally separate
+  # from the household organizer admin namespace and authentication boundary.
+  namespace :platform_admin do
+    root to: "dashboard#index"
+    resource :session, only: %i[new create destroy]
+    resources :audit_events, only: :index
+    resources :deletion_requests, only: %i[index destroy], controller: "deletion_requests"
+    resources :promotion_programs, only: %i[index create update]
+    resources :households, only: %i[index show] do
+      member do
+        post :suspend
+        post :restore
+      end
+    end
+    resources :support_threads, only: %i[index show] do
+      member do
+        post :reply
+        patch :resolve
+      end
     end
   end
 

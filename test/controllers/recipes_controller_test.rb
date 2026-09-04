@@ -52,7 +52,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create recipe" do
-    assert_difference("Recipe.count", 1) do
+    assert_difference([ "Recipe.count", "ActivityEvent.where(event_type: 'recipe.created').count" ], 1) do
       post recipes_url, params: {
         recipe: {
           title: "Lemon Herb Salmon",
@@ -69,6 +69,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to recipe_url(Recipe.last)
+    assert_equal family_members(:one), ActivityEvent.order(:created_at).last.actor
   end
 
   test "should create recipe with meal types and image upload" do

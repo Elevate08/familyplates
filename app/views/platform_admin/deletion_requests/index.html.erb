@@ -1,0 +1,25 @@
+<% content_for :title, "Deletion requests | Platform Operator Console" %>
+
+<div class="mx-auto max-w-6xl space-y-6 py-6 sm:py-8">
+  <div class="border-b border-slate-200 pb-6 dark:border-slate-800">
+    <%= link_to "← Console", platform_admin_root_path, class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Deletion requests</h1>
+  </div>
+  <div class="space-y-4">
+    <% @requests.each do |request_record| %>
+      <div class="rounded-3xl border border-rose-200 bg-white p-5 shadow-sm dark:border-rose-900/60 dark:bg-slate-900">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="font-extrabold text-slate-900 dark:text-white"><%= request_record.household.name %></h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Requested <%= request_record.requested_at.strftime("%b %-d, %Y") %> by <%= request_record.requested_by_user&.email || "customer" %></p>
+          </div>
+          <%= form_with url: platform_admin_deletion_request_path(request_record), method: :delete, class: "flex items-center gap-2" do |form| %>
+            <%= form.text_field :confirmation, placeholder: "Type household name", required: true, class: "w-44 rounded-xl border border-slate-300 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900" %>
+            <%= form.submit "Permanently delete", class: "rounded-xl bg-rose-700 px-3 py-2 text-xs font-bold text-white hover:bg-rose-800", data: { turbo_confirm: "This permanently deletes the household. Continue?" } %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    <% if @requests.empty? %><p class="rounded-3xl border border-slate-200 p-8 text-center text-sm text-slate-500 dark:border-slate-800">No pending deletion requests.</p><% end %>
+  </div>
+</div>

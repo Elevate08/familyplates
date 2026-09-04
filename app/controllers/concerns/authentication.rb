@@ -7,6 +7,7 @@ module Authentication
     before_action :handle_revoked_session
     before_action :set_current_family_member
     before_action :require_authentication
+    before_action :handle_suspended_household
     before_action :require_active_family_member
     before_action :ensure_household_entitled!
     helper_method :authenticated?, :current_household, :current_family_member, :current_user
@@ -24,6 +25,12 @@ module Authentication
     # prefix cannot say "these two actions but not the other eight".
     def allow_unconfigured_access(**options)
       skip_before_action :require_installation, **options
+    end
+
+    def allow_suspended_access(**options)
+      skip_before_action :handle_suspended_household, **options
+      skip_before_action :require_active_family_member, **options
+      skip_before_action :ensure_household_entitled!, **options, raise: false
     end
   end
 
@@ -165,6 +172,12 @@ module Authentication
         redirect_to select_profile_path, alert: "Please select who is in the kitchen today."
       end
     end
+  end
+
+  def handle_suspended_household
+    return unless current_household&.suspended?
+
+    redirect_to suspended_path
   end
 
   def ensure_household_entitled!
