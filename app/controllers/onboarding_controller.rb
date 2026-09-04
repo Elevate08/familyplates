@@ -179,12 +179,15 @@ class OnboardingController < ApplicationController
     @recipes_count = current_household.recipes.count
     @staples_count = current_household.pantry_items.staples.count
     @current_meal_plan = current_household.current_meal_plan
+
+    current_household.mark_onboarded! unless current_household.onboarded?
   end
 
   private
 
   def ensure_household_unconfigured
-    return unless Household.exists?
+    target = current_household || Household.installation
+    return unless target&.onboarded?
 
     if authenticated?
       redirect_to root_path, alert: "Your family kitchen is already set up."

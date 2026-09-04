@@ -69,6 +69,14 @@ class Household < ApplicationRecord
     end)
   end
 
+  def onboarded?
+    onboarded_at.present?
+  end
+
+  def mark_onboarded!
+    update!(onboarded_at: Time.current)
+  end
+
   private
 
   def generate_join_code

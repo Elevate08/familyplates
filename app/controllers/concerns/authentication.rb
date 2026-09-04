@@ -90,6 +90,11 @@ module Authentication
     # successful sign-in. HEAD is included because Rails routes it to the GET
     # action while request.get? is false for it.
     session[:return_to_after_authenticating] = request.url if request.get? || request.head?
+
+    if FamilyPlates.config.require_login && Current.user.nil?
+      redirect_to new_session_path, alert: "Please sign in to continue." and return
+    end
+
     redirect_to select_profile_path and return
   end
 
