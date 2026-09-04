@@ -16,7 +16,7 @@ Rails.application.configure do
     policy.img_src     :self, :data, :blob, :https
     policy.object_src  :none
     policy.script_src  :self
-    policy.connect_src :self
+    policy.connect_src :self, "https://checkout.stripe.com", "https://api.stripe.com"
 
     # style-src keeps 'unsafe-inline' deliberately. Avatar and theme colours are
     # per-record inline style attributes, and style-src-attr has no nonce

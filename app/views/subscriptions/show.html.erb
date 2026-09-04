@@ -69,7 +69,7 @@
 
       <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <% if @household.payment_processor&.processor_id.present? %>
-          <%= link_to "Update Payment Method & View Invoices →", portal_subscription_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
+          <%= link_to "Update Payment Method & View Invoices →", portal_subscription_path, data: { turbo: false }, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
         <% end %>
 
         <% if current_family_member&.admin? && !@subscription.canceled? %>
@@ -129,6 +129,7 @@
             </button>
           <% elsif current_family_member&.admin? %>
             <%= button_to "Subscribe Monthly ($4/mo)", subscription_path(plan: :monthly), method: :post,
+                  data: { turbo: false },
                   class: "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>
             <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
@@ -180,6 +181,7 @@
             </button>
           <% elsif current_family_member&.admin? %>
             <%= button_to "Subscribe Annually ($35/yr)", subscription_path(plan: :annual), method: :post,
+                  data: { turbo: false },
                   class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>
             <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
