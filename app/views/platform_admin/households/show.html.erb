@@ -23,8 +23,8 @@
     </div>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-4">
-    <% [["Members", @family_members.size], ["Recipes", @recipes_count], ["Meal plans", @meal_plans_count], ["Pantry items", @pantry_items_count]].each do |label, count| %>
+  <div class="grid gap-4 sm:grid-cols-6">
+    <% [["Members", @family_members.size], ["Recipes", @recipes_count], ["Meal plans", @meal_plans_count], ["Pantry items", @pantry_items_count], ["Plan", @subscription_plan || "None"], ["Last activity", @last_activity_at&.to_date || "Never"]].each do |label, count| %>
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <p class="text-xs font-bold uppercase tracking-wider text-slate-500"><%= label %></p>
         <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white"><%= count %></p>

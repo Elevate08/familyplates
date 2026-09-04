@@ -4,8 +4,10 @@ module PlatformAdmin
 
     def index
       @search = params[:search].to_s.strip
+      @status = params[:status].presence_in(%w[active suspended])
       record_platform_audit!("households.indexed", metadata: { search: @search.presence })
       @households = filtered_households
+        .then { |scope| @status ? scope.where(@status == "suspended" ? "suspended_at IS NOT NULL" : "suspended_at IS NULL") : scope }
         .includes(:family_members, :users)
         .order(created_at: :desc, id: :desc)
         .limit(PAGE_SIZE)
@@ -18,6 +20,9 @@ module PlatformAdmin
       @recipes_count = @household.recipes.count
       @meal_plans_count = @household.meal_plans.count
       @pantry_items_count = @household.pantry_items.count
+      @last_activity_at = @household.activity_events.maximum(:created_at)
+      @subscription_status = @household.subscription_status
+      @subscription_plan = @household.subscription_plan_name
     end
 
     def suspend
