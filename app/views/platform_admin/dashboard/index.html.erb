@@ -8,7 +8,8 @@
       <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Signed in as <%= current_platform_admin.email %>.</p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <%= link_to "Audit log", platform_admin_audit_events_path, class: "rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" %>
+        <%= link_to "Audit log", platform_admin_audit_events_path, class: "rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" %>
+        <%= link_to "Deletion requests", platform_admin_deletion_requests_path, class: "rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" %>
       <%= button_to "Sign out", platform_admin_session_path, method: :delete, class: "rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" %>
     </div>
   </div>

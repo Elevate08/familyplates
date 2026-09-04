@@ -19,6 +19,7 @@ class Household < ApplicationRecord
   has_many :device_grants, dependent: :nullify
   has_many :activity_events, dependent: :delete_all
   has_many :support_threads, dependent: :destroy
+  has_many :account_deletion_requests, dependent: :destroy
 
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true

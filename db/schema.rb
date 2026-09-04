@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_020000) do
+  create_table "account_deletion_requests", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "household_id", null: false
+    t.datetime "requested_at", null: false
+    t.string "requested_by_user_id"
+    t.text "resolution_note"
+    t.datetime "resolved_at"
+    t.string "resolved_by_platform_admin_id"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "status"], name: "index_account_deletion_requests_on_household_id_and_status"
+    t.index ["household_id"], name: "index_account_deletion_requests_on_household_id"
+    t.index ["requested_by_user_id"], name: "index_account_deletion_requests_on_requested_by_user_id"
+    t.index ["resolved_by_platform_admin_id"], name: "idx_on_resolved_by_platform_admin_id_85591ec992"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -438,6 +454,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_010000) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "account_deletion_requests", "households"
+  add_foreign_key "account_deletion_requests", "platform_admins", column: "resolved_by_platform_admin_id"
+  add_foreign_key "account_deletion_requests", "users", column: "requested_by_user_id"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activity_events", "family_members", column: "actor_id"

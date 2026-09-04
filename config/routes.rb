@@ -37,6 +37,10 @@ Rails.application.routes.draw do
   end
   get "activity", to: "activity_events#index", as: :activity_history
   get "suspended", to: "suspensions#show", as: :suspended
+  resource :account_data, only: :show, controller: "account_data" do
+    get :export
+    post :request_deletion
+  end
   resources :support_threads, only: %i[index show create] do
     resources :messages, only: :create, controller: "support_messages"
   end
@@ -110,6 +114,7 @@ Rails.application.routes.draw do
     root to: "dashboard#index"
     resource :session, only: %i[new create destroy]
     resources :audit_events, only: :index
+    resources :deletion_requests, only: %i[index destroy], controller: "deletion_requests"
     resources :households, only: %i[index show] do
       member do
         post :suspend
