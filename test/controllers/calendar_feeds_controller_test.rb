@@ -61,4 +61,11 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_modified
     assert_empty response.body
   end
+
+  test "renders calendar feed with external calendar agent user agent" do
+    get calendar_feed_url(token: @token, format: :ics), headers: { "HTTP_USER_AGENT" => "Mac_OS_X/14.0 (23A344) CalendarAgent/954" }
+
+    assert_response :success
+    assert_includes response.body, "BEGIN:VCALENDAR"
+  end
 end

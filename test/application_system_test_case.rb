@@ -45,7 +45,15 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # household. See the note in tasks/plan.md - Household.first is a latent
   # landmine even with the fixtures fixed.
   setup do
-    Household.where.not(id: households(:one).id).destroy_all
+    retries = 0
+    begin
+      Household.where.not(id: households(:one).id).destroy_all
+    rescue ActiveRecord::StatementTimeout, SQLite3::BusyException
+      retries += 1
+      sleep 0.15
+      retry if retries < 5
+      raise
+    end
   end
 
   teardown do

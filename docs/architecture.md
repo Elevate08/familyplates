@@ -12,7 +12,7 @@ FamilyPlates is built with modern Rails best practices, adhering to simplicity, 
 * **Database:** SQLite 3 with WAL mode
 * **Background Jobs:** Solid Queue (`ActiveJob` backend)
 * **Caching & WebSockets:** Solid Cache & Solid Cable
-* **Google Integration:** Google Calendar API v3 via `google-apis-calendar_v3` and `googleauth` Service Account JWT authentication
+* **Calendar Subscriptions:** Standard RFC 5545 iCalendar (`.ics` / `webcal://`) live feeds with tokenized authentication and HTTP ETag caching
 
 ---
 
@@ -132,4 +132,4 @@ erDiagram
 * **PIN Storage:** PINs are stored as bcrypt digests (`family_members.pin_digest`) via `has_secure_password`, and cannot be read back off a record. Entry is rate limited per IP and per profile across both entry paths, and comparison is constant-time.
 * **Cookie Sessions:** The active profile is held in a signed, `HttpOnly`, `SameSite=Lax` cookie, marked `Secure` when the request arrives over TLS. **A LAN deployment without TLS sends this cookie in the clear** — anyone exposing the app beyond a trusted network should terminate TLS in front of it and enable `config.force_ssl`.
 * **Session Secret:** `SECRET_KEY_BASE` signs that cookie, so a predictable value lets anyone forge a session. The app refuses to boot in production on a known placeholder or a value under 32 characters.
-* **Credentials Protection:** The Google service account key is encrypted at rest with Active Record encryption, keyed from `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` and `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`, and is never rendered back into the settings page. Key files remain excluded from git tracking.
+* **Calendar Feed Protection:** Calendar feeds are secured by high-entropy unguessable hex tokens (`calendar_feed_token`) generated automatically per household and can be rotated instantly by an admin to revoke previous feeds.

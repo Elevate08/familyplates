@@ -113,9 +113,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
     t.string "calendar_feed_token"
     t.datetime "created_at", null: false
     t.string "dinner_time", default: "18:00", null: false
-    t.boolean "google_calendar_enabled", default: false, null: false
-    t.string "google_calendar_id"
-    t.text "google_service_account_json"
     t.string "join_code", null: false
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
@@ -167,7 +164,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
     t.string "custom_title"
     t.date "date", null: false
     t.string "family_member_id"
-    t.string "google_event_id"
     t.boolean "is_leftover", default: false, null: false
     t.integer "meal_plan_id", null: false
     t.string "meal_type", default: "dinner", null: false
@@ -176,7 +172,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
     t.string "scheduled_time"
     t.datetime "updated_at", null: false
     t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
-    t.index ["google_event_id"], name: "index_meal_plan_slots_on_google_event_id"
     t.index ["meal_plan_id", "date", "meal_type"], name: "index_meal_plan_slots_on_meal_plan_id_and_date_and_meal_type"
     t.index ["meal_plan_id"], name: "index_meal_plan_slots_on_meal_plan_id"
     t.index ["recipe_id"], name: "index_meal_plan_slots_on_recipe_id"
@@ -496,6 +491,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_030000) do
   add_foreign_key "pay_charges", "pay_subscriptions", column: "subscription_id"
   add_foreign_key "pay_payment_methods", "pay_customers", column: "customer_id"
   add_foreign_key "pay_subscriptions", "pay_customers", column: "customer_id"
+  add_foreign_key "platform_admin_sessions", "platform_admins"
   add_foreign_key "platform_audit_events", "platform_admins"
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"

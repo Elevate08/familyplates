@@ -6,20 +6,16 @@ recipes, and cooking assignments on any calendar app in seconds, without requiri
 Google Cloud Console setup or API keys?
 
 ## Recommended Direction
-A two-tier hybrid calendar architecture:
-1. **Universal iCalendar (Webcal) Feeds (Primary - Universal):**
-   - High-performance RFC 5545 `.ics` feed generated per household.
-   - 1-tap subscription for Apple Calendar (`webcal://`), 1-click for Google/Outlook.
-   - Two feed scopes:
-     - **Household Feed:** All scheduled breakfasts, lunches, and dinners.
-     - **Personalized Cook Feed:** Filtered to meals where a specific family member is the designated cook.
-   - Event summary includes meal type, recipe name, and cook name.
-   - Event body includes recipe prep/cook time, ingredients preview, and direct deep-link to the recipe in FamilyPlates.
-   - Secret unguessable token per household with 1-click regeneration.
-
-2. **Streamlined Google Direct Sync (Secondary - Optional Push):**
-   - Retain and streamline Google Calendar direct sync for users who require instant push into their primary calendar.
-   - Support standard Google OAuth / service account fallback.
+Universal iCalendar (Webcal) Feeds:
+- High-performance RFC 5545 `.ics` feed generated per household.
+- 1-tap subscription for Apple Calendar (`webcal://`), 1-click for Google/Outlook.
+- Two feed scopes:
+  - **Household Feed:** All scheduled breakfasts, lunches, and dinners.
+  - **Personalized Cook Feed:** Filtered to meals where a specific family member is the designated cook.
+- Event summary includes meal type, recipe name, and cook name.
+- Event body includes recipe prep/cook time, ingredients preview, and direct deep-link to the recipe in FamilyPlates.
+- Secret unguessable token per household with 1-click regeneration.
+- **Decision:** Deprecated and removed legacy Google Calendar Service Account direct sync in favor of universal subscription feeds. Universal feeds require zero API keys, zero cloud consoles, zero OAuth tokens, and work across Apple, Google, Outlook, Fastmail, Thunderbird, and mobile devices.
 
 ## User Experience (UX)
 - A prominent **"📅 Subscribe to Calendar"** button on the Weekly Meal Planner header and inside Preferences.

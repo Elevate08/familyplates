@@ -12,8 +12,6 @@ class MealPlanSlot < ApplicationRecord
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }
 
-  after_commit :sync_to_google_calendar, on: %i[create update]
-  after_destroy_commit :delete_from_google_calendar
   after_save :fulfill_recipe_requests_if_passed
 
   # Moving a slot can displace whatever already occupies the destination. Both
@@ -72,22 +70,6 @@ class MealPlanSlot < ApplicationRecord
   end
 
   private
-
-  def sync_to_google_calendar
-    return unless meal_plan&.household&.google_calendar_enabled?
-
-    if display_title == "No Meal Planned" && google_event_id.present?
-      SyncMealPlanSlotJob.perform_later(id, "delete", google_event_id, meal_plan.household_id)
-    elsif display_title != "No Meal Planned"
-      SyncMealPlanSlotJob.perform_later(id, "upsert", google_event_id, meal_plan.household_id)
-    end
-  end
-
-  def delete_from_google_calendar
-    return unless google_event_id.present? && meal_plan&.household&.google_calendar_enabled?
-
-    SyncMealPlanSlotJob.perform_later(nil, "delete", google_event_id, meal_plan.household_id)
-  end
 
   def fulfill_recipe_requests_if_passed
     return unless recipe.present? && date.present? && date <= Date.current
