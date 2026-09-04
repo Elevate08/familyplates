@@ -145,6 +145,31 @@ class Household < ApplicationRecord
     active_subscription? || trial_active? || past_due_grace_active?
   end
 
+  def subscription_plan_key
+    sub = payment_processor&.subscription
+    return nil unless sub
+
+    plan_str = sub.processor_plan.to_s.downcase
+    return :monthly if plan_str == "monthly" || plan_str == PLANS[:monthly][:stripe_price_id]
+    return :annual if plan_str == "annual" || plan_str == PLANS[:annual][:stripe_price_id]
+
+    start_time = sub.current_period_start || sub.created_at
+    if sub.current_period_end && start_time
+      days = ((sub.current_period_end - start_time) / 1.day).round
+      return :annual if days > 60
+      return :monthly
+    end
+
+    :monthly
+  end
+
+  def subscription_plan_name
+    key = subscription_plan_key
+    return nil unless key
+
+    PLANS[key]&.dig(:name) || key.to_s.titleize
+  end
+
   def subscription_status
     return :appliance unless FamilyPlates.config.hosted?
     return :active if active_subscription?

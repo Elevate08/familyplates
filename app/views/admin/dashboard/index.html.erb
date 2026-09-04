@@ -99,7 +99,7 @@
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
             <% if @household.active_subscription? %>
-              <%= @household.payment_processor&.subscription&.processor_plan&.capitalize %> Plan &bull; Active
+              <%= @household.subscription_plan_name %> Plan &bull; Active
             <% elsif @household.trial_active? %>
               Free Trial (<%= pluralize(@household.trial_days_left, 'day') %> left)
             <% else %>
