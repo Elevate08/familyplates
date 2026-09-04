@@ -7,12 +7,14 @@ class SessionsController < ApplicationController
   after_action :ensure_development_magic_link_not_leaked, only: %i[create]
 
   def new
+    session.delete(:forward_auth_signed_out)
     if authenticated? && current_user
       redirect_to root_path and return
     end
   end
 
   def create
+    session.delete(:forward_auth_signed_out)
     if FamilyPlates.config.hosted?
       create_hosted_session
     else
@@ -51,7 +53,11 @@ class SessionsController < ApplicationController
 
   def destroy
     terminate_session
-    redirect_to select_profile_path, notice: "Signed out successfully.", status: :see_other
+    if FamilyPlates.config.forward_auth_enabled? && FamilyPlates.config.forward_auth_logout_url.present?
+      redirect_to FamilyPlates.config.forward_auth_logout_url, allow_other_host: true
+    else
+      redirect_to select_profile_path, notice: "Signed out successfully.", status: :see_other
+    end
   end
 
   private

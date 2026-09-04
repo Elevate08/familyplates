@@ -55,4 +55,47 @@ class FamilyPlatesTest < ActiveSupport::TestCase
       ActionMailer::Base.smtp_settings = original_settings
     end
   end
+
+  test "external identity providers and forward auth are disabled by default" do
+    assert_equal false, FamilyPlates.config.google_auth_enabled?
+    assert_equal false, FamilyPlates.config.apple_auth_enabled?
+    assert_equal false, FamilyPlates.config.oidc_enabled?
+    assert_equal false, FamilyPlates.config.forward_auth_enabled?
+    assert_equal false, FamilyPlates.config.any_oauth_enabled?
+    assert_equal ["127.0.0.1", "::1"], FamilyPlates.config.forward_auth_trusted_proxies
+    assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
+  end
+
+  test "enabling google auth requires credentials" do
+    FamilyPlates.config.google_auth_enabled = true
+    assert_not FamilyPlates.config.google_auth_enabled?
+
+    FamilyPlates.config.google_client_id = "cid"
+    FamilyPlates.config.google_client_secret = "csecret"
+    assert FamilyPlates.config.google_auth_enabled?
+    assert FamilyPlates.config.any_oauth_enabled?
+  end
+
+  test "enabling oidc requires client id, secret, and issuer or urls" do
+    FamilyPlates.config.oidc_auth_enabled = true
+    FamilyPlates.config.oidc_client_id = "oidc-id"
+    FamilyPlates.config.oidc_client_secret = "oidc-secret"
+    assert_not FamilyPlates.config.oidc_enabled?
+
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com"
+    assert FamilyPlates.config.oidc_enabled?
+    assert FamilyPlates.config.any_oauth_enabled?
+  end
+
+  test "reset! restores all external auth configs to nil/defaults" do
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.oidc_display_name = "Authentik"
+
+    FamilyPlates.config.reset!
+
+    assert_not FamilyPlates.config.google_auth_enabled?
+    assert_not FamilyPlates.config.forward_auth_enabled?
+    assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
+  end
 end

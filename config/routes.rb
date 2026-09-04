@@ -39,6 +39,12 @@ Rails.application.routes.draw do
     end
   end
 
+  # External Identity Providers (OAuth / OIDC)
+  post "auth/:provider" => "external_auth#passthru", as: :auth_request
+  get "auth/:provider/callback" => "external_auth#callback", as: :auth_callback
+  post "auth/:provider/callback" => "external_auth#callback"
+  delete "auth/identities/:id" => "external_auth#destroy_identity", as: :auth_identity
+
   # Device Pairing (RFC 8628)
   get "pair" => "device_pairings#index", as: :pair
   get "pair/new" => "device_pairings#new", as: :new_pair

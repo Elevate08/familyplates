@@ -50,6 +50,11 @@ module Authentication
   end
 
   def set_current_user
+    if forward_auth_active?
+      authenticate_via_forward_auth
+      return if Current.user.present?
+    end
+
     token = cookies.signed[:session_token]
     return if token.blank?
 
@@ -149,5 +154,78 @@ module Authentication
 
     Current.family_member = nil
     cookies.delete(:active_family_member_id)
+
+    session[:forward_auth_signed_out] = true
+  end
+
+  def forward_auth_active?
+    return false unless FamilyPlates.config.forward_auth_enabled?
+    return false if session[:forward_auth_signed_out]
+    return false unless trusted_forward_auth_proxy?(request.remote_ip)
+
+    extract_forward_auth_email.present?
+  end
+
+  def authenticate_via_forward_auth
+    email = extract_forward_auth_email
+    return if email.blank?
+
+    email = email.strip.downcase
+    uid = extract_forward_auth_uid || email
+    name = extract_forward_auth_name
+
+    token = cookies.signed[:session_token]
+    if token.present?
+      session_record = Session.find_by(token: token)
+      if session_record && !session_record.expired? && session_record.user.email == email
+        session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
+        Current.session = session_record
+        Current.user = session_record.user
+        return
+      end
+    end
+
+    user = User.find_or_create_from_identity(
+      provider: "forward_auth",
+      uid: uid,
+      email: email,
+      name: name
+    )
+    start_new_session_for_user(user)
+  end
+
+  def trusted_forward_auth_proxy?(remote_ip)
+    return false if remote_ip.blank?
+
+    require "ipaddr"
+    proxies = FamilyPlates.config.forward_auth_trusted_proxies
+    client_ip = IPAddr.new(remote_ip)
+    proxies.any? do |trusted|
+      IPAddr.new(trusted.strip).include?(client_ip)
+    rescue IPAddr::Error
+      false
+    end
+  rescue IPAddr::Error
+    false
+  end
+
+  def extract_forward_auth_email
+    extract_header_value(FamilyPlates.config.forward_auth_email_headers)
+  end
+
+  def extract_forward_auth_uid
+    extract_header_value(FamilyPlates.config.forward_auth_user_headers)
+  end
+
+  def extract_forward_auth_name
+    extract_header_value(FamilyPlates.config.forward_auth_name_headers)
+  end
+
+  def extract_header_value(candidate_headers)
+    candidate_headers.each do |header_name|
+      val = request.headers[header_name].presence || request.headers["HTTP_#{header_name.upcase.tr('-', '_')}"].presence
+      return val if val.present?
+    end
+    nil
   end
 end

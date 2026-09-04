@@ -194,9 +194,9 @@
     <% end %>
   </div>
 
-  <!-- SECTION 2: Passkeys & Connected Devices -->
+  <!-- SECTION 2: Passkeys, Connected Accounts & Devices -->
   <% if current_user && !Current.session&.kiosk? %>
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -215,6 +215,71 @@
           <%= link_to "Devices", devices_path, class: "px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors" %>
         </div>
       </div>
+
+      <!-- Connected Accounts / External Identities -->
+      <% if FamilyPlates.config.any_oauth_enabled? || current_user.identities.external.any? %>
+        <div class="pt-5 border-t border-slate-100 dark:border-slate-800">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Connected Accounts & Single Sign-On</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sign in to your account with Google, Apple, or your home lab SSO.</p>
+            </div>
+          </div>
+
+          <div class="space-y-2.5">
+            <% current_user.identities.external.each do |identity| %>
+              <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                <div class="flex items-center gap-3">
+                  <span class="text-base">
+                    <%= case identity.provider
+                        when "google" then "🌐"
+                        when "apple" then "🍎"
+                        when "oidc" then "🛡️"
+                        when "forward_auth" then "🔒"
+                        else "🔗"
+                        end %>
+                  </span>
+                  <div>
+                    <span class="text-xs font-bold text-slate-900 dark:text-white block"><%= identity.display_provider %></span>
+                    <span class="text-[10px] text-slate-400 font-mono"><%= identity.uid %></span>
+                  </div>
+                </div>
+
+                <div>
+                  <% if identity.provider != "forward_auth" %>
+                    <%= button_to "Disconnect", auth_identity_path(identity), method: :delete,
+                          data: { turbo_confirm: "Disconnect your #{identity.display_provider} sign-in method?" },
+                          class: "px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/60 transition-colors cursor-pointer" %>
+                  <% else %>
+                    <span class="text-[11px] font-semibold text-slate-400">Reverse Proxy</span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- Available Providers to Link -->
+            <div class="flex flex-wrap gap-2 pt-2">
+              <% if FamilyPlates.config.google_auth_enabled? && current_user.identities.where(provider: "google").none? %>
+                <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                  <span>+ Connect Google</span>
+                <% end %>
+              <% end %>
+
+              <% if FamilyPlates.config.apple_auth_enabled? && current_user.identities.where(provider: "apple").none? %>
+                <%= button_to auth_request_path(provider: :apple), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-900 bg-black hover:bg-slate-900 text-white text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                  <span>+ Connect Apple</span>
+                <% end %>
+              <% end %>
+
+              <% if FamilyPlates.config.oidc_enabled? && current_user.identities.where(provider: "oidc").none? %>
+                <%= button_to auth_request_path(provider: :oidc), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                  <span>+ Connect <%= FamilyPlates.config.oidc_display_name %></span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
   <% end %>
 
