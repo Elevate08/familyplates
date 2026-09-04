@@ -7,7 +7,10 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Session / Profile Logout
-  resource :session, only: %i[new create destroy]
+  resource :session, only: %i[new create destroy] do
+    get :verify
+    post :verify, to: "sessions#submit_verify"
+  end
 
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_030000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -88,6 +88,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_020000) do
     t.index ["household_id", "name"], name: "index_ingredient_aisle_mappings_on_household_id_and_name"
     t.index ["household_id"], name: "index_ingredient_aisle_mappings_on_household_id"
     t.index ["name", "aisle_category"], name: "index_ingredient_aisle_mappings_on_name_and_aisle_category"
+  end
+
+  create_table "magic_codes", id: :string, force: :cascade do |t|
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false, collation: "NOCASE"
+    t.datetime "expires_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["code"], name: "index_magic_codes_on_code", unique: true
+    t.index ["email"], name: "index_magic_codes_on_email"
+    t.index ["user_id"], name: "index_magic_codes_on_user_id"
   end
 
   create_table "meal_plan_slots", force: :cascade do |t|
@@ -208,6 +220,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_020000) do
   add_foreign_key "family_members", "users", on_delete: :nullify
   add_foreign_key "identities", "users", on_delete: :cascade
   add_foreign_key "ingredient_aisle_mappings", "households"
+  add_foreign_key "magic_codes", "users", on_delete: :cascade
   add_foreign_key "meal_plan_slots", "family_members"
   add_foreign_key "meal_plan_slots", "meal_plans"
   add_foreign_key "meal_plan_slots", "recipes"

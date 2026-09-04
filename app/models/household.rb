@@ -52,6 +52,16 @@ class Household < ApplicationRecord
     meal_plans.find_or_create_by!(week_start_date: week_date)
   end
 
+  def admin_users_with_password
+    users.joins(:family_members)
+         .where(family_members: { role: "admin", household_id: id })
+         .where.not(password_digest: [nil, ""])
+  end
+
+  def can_require_login?
+    admin_users_with_password.exists?
+  end
+
   private
 
   def generate_join_code
