@@ -38,7 +38,7 @@ class RecipesController < ApplicationController
   end
 
   def show
-    @week_start = Date.current.beginning_of_week
+    @week_start = household_today.beginning_of_week
     @requested_by_current = @recipe.requested_by?(current_family_member, @week_start)
     @total_requests = @recipe.request_count_for_week(@week_start)
   end

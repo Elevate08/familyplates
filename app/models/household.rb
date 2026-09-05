@@ -14,6 +14,45 @@ class Household < ApplicationRecord
 
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true
+  validate :time_zone_is_recognised
+
+  # The zone the household's wall clock runs on.
+  #
+  # Everything stored stays UTC - that is what keeps timestamps unambiguous and
+  # keeps the database out of the daylight-saving business. This is only the
+  # interpretation layer: which local day "today" is, and what hour "dinner at
+  # 6pm" actually falls on. Reading it through an IANA zone means DST is applied
+  # for free and correctly, without a single stored value shifting.
+  #
+  # Blank means nobody has said yet, and UTC is the answer until they do.
+  def time_zone_object
+    ActiveSupport::TimeZone[time_zone.to_s.presence || DEFAULT_TIME_ZONE] ||
+      ActiveSupport::TimeZone[DEFAULT_TIME_ZONE]
+  end
+
+  DEFAULT_TIME_ZONE = "UTC".freeze
+
+  def current_time
+    Time.current.in_time_zone(time_zone_object)
+  end
+
+  # The date it is *in this kitchen*. Date.current is the server's day, which
+  # after 7pm in the Americas is already tomorrow.
+  def today
+    current_time.to_date
+  end
+
+  # Seeds the zone from a device that reported one, and only that: an existing
+  # answer is never overwritten here, so a phone that travels cannot quietly
+  # move the kitchen. Changing a zone already set is the settings form's job.
+  def adopt_time_zone(candidate)
+    return false if time_zone.present?
+
+    zone = ActiveSupport::TimeZone[candidate.to_s]
+    return false if zone.nil?
+
+    update(time_zone: zone.name)
+  end
 
   def suspended?
     suspended_at.present?
@@ -49,7 +88,7 @@ class Household < ApplicationRecord
     order(:created_at, :id).first
   end
 
-  def current_meal_plan(week_date = Date.current.beginning_of_week)
+  def current_meal_plan(week_date = today.beginning_of_week)
     meal_plans.find_or_create_by!(week_start_date: week_date)
   end
 
@@ -182,6 +221,16 @@ class Household < ApplicationRecord
   end
 
   private
+
+  # A zone name arrives from a browser and from a settings form, so it is never
+  # trusted: an unrecognised name would silently fall back to UTC and leave the
+  # household looking configured when it is not.
+  def time_zone_is_recognised
+    return if time_zone.blank?
+    return if ActiveSupport::TimeZone[time_zone].present?
+
+    errors.add(:time_zone, "is not a recognized time zone")
+  end
 
   def generate_join_code
     self.join_code ||= loop do

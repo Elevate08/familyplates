@@ -35,7 +35,29 @@
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">This name displays in your navigation bar and calendar feeds.</p>
       </div>
 
-      <!-- Section 2: Meal Schedule Times -->
+      <!-- Section 2: Time Zone -->
+      <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+        <h2 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+          <span>🌍</span>
+          <span>Kitchen Time Zone</span>
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          The clock your meal times are read against. It decides which day is “today” and which meal Cook Mode opens.
+          <% if @household.time_zone.blank? %>
+            Not set yet, so times are read as UTC — the first device to open FamilyPlates will fill this in.
+          <% end %>
+        </p>
+
+        <%= f.label :time_zone, "Time Zone", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1" %>
+        <%= f.time_zone_select :time_zone, ActiveSupport::TimeZone.all,
+              { include_blank: "Use UTC", default: nil },
+              class: "themed-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+          Stored times stay in UTC; this only changes how they are read, and daylight saving is applied automatically.
+        </p>
+      </div>
+
+      <!-- Section 3: Meal Schedule Times -->
       <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
         <h2 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
           <span>⏰</span>

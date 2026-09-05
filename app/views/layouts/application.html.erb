@@ -63,6 +63,13 @@
   </head>
 
   <body class="min-h-full flex flex-col font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 selection:bg-primary-500 selection:text-white pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12 transition-colors duration-150">
+    <%# Asked once, only while the household has no zone on file. Everything
+        time-of-day - which meal is being cooked, which day is highlighted -
+        depends on it, and the browser is the only thing that knows. %>
+    <% if authenticated? && current_household&.time_zone.blank? %>
+      <div hidden data-controller="time-zone-detector" data-time-zone-detector-url-value="<%= household_time_zone_path %>"></div>
+    <% end %>
+
     <%= render "shared/navbar" %>
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">

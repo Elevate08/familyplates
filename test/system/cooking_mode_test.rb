@@ -18,6 +18,12 @@ class CookingModeTest < ApplicationSystemTestCase
     @recipe.recipe_ingredients.create!(name: "Beef chuck", quantity: 2, unit: "lbs")
     @recipe.recipe_ingredients.create!(name: "Red wine", quantity: 1, unit: "cups")
 
+    # Selenium keeps one window for the whole process and a sibling test resizes
+    # it to a phone, so the width this file runs at is otherwise whatever ran
+    # before it. Cook Mode's header collapses below the sm breakpoint, which
+    # makes that difference visible - pin the window rather than inherit it.
+    page.driver.browser.manage.window.resize_to(1400, 1000)
+
     sign_in_as(family_members(:one))
     visit cook_recipe_path(@recipe)
   end
@@ -101,7 +107,11 @@ class CookingModeTest < ApplicationSystemTestCase
     # missing entirely on some kitchen displays. Either answer is correct; a
     # controller that blew up on the way to one is not, and teardown's
     # assert_no_browser_errors is what catches that.
-    assert_selector "[data-wake-lock-target='label']", text: /screen (stays on|may dim)/i
+    #
+    # visible: :all because the label collapses to the indicator dot below the
+    # sm breakpoint, and the window this test inherits is whatever the test
+    # before it left behind.
+    assert_selector "[data-wake-lock-target='label']", text: /screen (stays on|may dim)/i, visible: :all
   end
 
   private
