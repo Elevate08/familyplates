@@ -109,7 +109,7 @@ class MealPlanSlotsController < ApplicationController
       @meal_plan = current_household.meal_plans.find_by(number: params[:meal_plan_id]) || current_household.meal_plans.find_by(id: params[:meal_plan_id])
       raise ActiveRecord::RecordNotFound, "Couldn't find MealPlan with 'id'=#{params[:meal_plan_id]}" unless @meal_plan
     elsif params[:meal_plan_slot] && params[:meal_plan_slot][:date].present?
-      date = Date.parse(params[:meal_plan_slot][:date].to_s) rescue Date.current
+      date = Date.parse(params[:meal_plan_slot][:date].to_s) rescue household_today
       @meal_plan = current_household.meal_plans.find_or_create_by!(week_start_date: date.beginning_of_week)
     else
       @meal_plan = current_household.current_meal_plan

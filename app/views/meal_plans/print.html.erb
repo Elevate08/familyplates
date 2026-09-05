@@ -87,7 +87,7 @@
       <% end %>
 
       <% @month_days.each do |day| %>
-        <% is_today = (day == Date.current) %>
+        <% is_today = (day == household_today) %>
         <% b_slot = @month_slots_by_date[[day, "breakfast"]]&.first %>
         <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
         <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>

@@ -6,7 +6,21 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  helper_method :household_today, :household_now
+
   private
+
+  # "Today" and "now" as the kitchen sees them. Date.current is the server's
+  # day, and the server runs on UTC, so after 7pm in the Americas it is already
+  # tomorrow - which is how the meal plan came to highlight the wrong column and
+  # Cook Mode came to look at the wrong day's meals.
+  def household_today
+    current_household&.today || Date.current
+  end
+
+  def household_now
+    current_household&.current_time || Time.current
+  end
 
   def track_activity(event_type, target: nil, metadata: {}, source: "web")
     ActivityEvent.track!(

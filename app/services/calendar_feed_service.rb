@@ -36,7 +36,7 @@ class CalendarFeedService
     lines << "METHOD:PUBLISH"
     lines << "X-WR-CALNAME:#{escape_text(calendar_name)}"
     lines << "X-WR-CALDESC:#{escape_text("Family meal schedule from FamilyPlates")}"
-    lines << "X-WR-TIMEZONE:#{Time.zone.name}"
+    lines << "X-WR-TIMEZONE:#{household.time_zone_object.name}"
     lines << "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
     lines << "X-PUBLISHED-TTL:PT1H"
 
@@ -81,7 +81,10 @@ class CalendarFeedService
     end
 
     hour, min = time_str.split(":").map(&:to_i)
-    start_time = Time.zone.local(slot.date.year, slot.date.month, slot.date.day, hour, min, 0)
+    # The household's clock, not the server's: a feed generated on a UTC box was
+    # publishing "dinner at 6pm" as 18:00 UTC, which lands mid-afternoon in a
+    # Chicago subscriber's calendar.
+    start_time = household.time_zone_object.local(slot.date.year, slot.date.month, slot.date.day, hour, min, 0)
     end_time = start_time + duration_minutes.minutes
 
     [ start_time, end_time ]

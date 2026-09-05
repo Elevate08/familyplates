@@ -111,6 +111,13 @@
         </main>
       <% end %>
     <% else %>
+      <%# Asked once, only while the household has no zone on file. Everything
+          time-of-day - which meal is being cooked, which day is highlighted -
+          depends on it, and the browser is the only thing that knows. %>
+      <% if authenticated? && current_household&.time_zone.blank? %>
+        <div hidden data-controller="time-zone-detector" data-time-zone-detector-url-value="<%= household_time_zone_path %>"></div>
+      <% end %>
+
       <%= render "shared/navbar" %>
 
       <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">

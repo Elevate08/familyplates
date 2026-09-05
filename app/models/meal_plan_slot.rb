@@ -5,7 +5,20 @@ class MealPlanSlot < ApplicationRecord
   belongs_to :leftover_source_slot, class_name: "MealPlanSlot", optional: true
   has_many :leftover_slots, class_name: "MealPlanSlot", foreign_key: :leftover_source_slot_id, dependent: :nullify
 
+  delegate :household, to: :meal_plan
+
   MEAL_TYPES = %w[breakfast lunch dinner].freeze
+
+  # Fallbacks for a household row that predates the meal-time columns; the
+  # columns themselves default to these same values.
+  DEFAULT_MEAL_TIMES = { "breakfast" => "08:00", "lunch" => "12:30", "dinner" => "18:00" }.freeze
+
+  # Cooking starts before the meal is served and often runs past it, so "which
+  # meal is being made right now" is a window around the serving time, not the
+  # instant itself. Two hours ahead covers a roast going in; ninety minutes past
+  # covers a dinner that ran late.
+  COOKING_LEAD = 2.hours
+  COOKING_GRACE = 90.minutes
 
   validates :date, presence: true
   validates :meal_type, inclusion: { in: MEAL_TYPES }
@@ -15,8 +28,81 @@ class MealPlanSlot < ApplicationRecord
 
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }
+  scope :with_recipe, -> { where.not(recipe_id: nil) }
 
   after_save :fulfill_recipe_requests_if_passed
+
+  # When this meal is served: the slot's own time if it has one, otherwise the
+  # household's time for that meal. The calendar feed reads the same two fields,
+  # so a household that has set its dinner hour gets it honoured in both places.
+  #
+  # Built in the household's zone, not the server's. "Dinner at 6pm" means six
+  # in that kitchen; on a UTC server it would otherwise mean six in Greenwich,
+  # which is early afternoon in Chicago and the following morning in Sydney.
+  def scheduled_at
+    time = scheduled_time.presence || household_meal_time
+    hour, minute = time.to_s.split(":").map(&:to_i)
+
+    household.time_zone_object.local(date.year, date.month, date.day, hour.to_i, minute.to_i, 0)
+  end
+
+  def cooking_window
+    (scheduled_at - COOKING_LEAD)..(scheduled_at + COOKING_GRACE)
+  end
+
+  def cooking_now?(at = Time.current)
+    cooking_window.cover?(at)
+  end
+
+  # The meal someone standing in the kitchen right now is most likely making:
+  # of the planned meals whose cooking window is open, the one due soonest.
+  def self.cooking_now(household, at: Time.current)
+    around(household, at).select { |slot| slot.cooking_now?(at) }
+                         .min_by { |slot| (slot.scheduled_at - at).abs }
+  end
+
+  # What to offer when no window is open. Today's nearest planned meal, with one
+  # still ahead beating one already served - at 3pm that is tonight's dinner, not
+  # this morning's breakfast.
+  def self.next_planned(household, at: Time.current)
+    on_date = local_date(household, at)
+    today = around(household, at).select { |slot| slot.date == on_date }
+    upcoming = today.select { |slot| slot.scheduled_at >= at }
+
+    (upcoming.presence || today).min_by { |slot| (slot.scheduled_at - at).abs }
+  end
+
+  # For the empty state: what is coming up, when today holds nothing to cook.
+  def self.upcoming_planned(household, at: Time.current, within: 7.days, limit: 5)
+    from = local_date(household, at)
+
+    household.meal_plan_slots
+             .with_recipe
+             .includes(:recipe)
+             .where(date: from..(from + within.in_days.to_i))
+             .sort_by(&:scheduled_at)
+             .select { |slot| slot.scheduled_at >= at }
+             .first(limit)
+  end
+
+  # Which calendar day it is in the kitchen, which after 7pm in the Americas is
+  # not the day a UTC server thinks it is.
+  def self.local_date(household, at)
+    at.in_time_zone(household.time_zone_object).to_date
+  end
+  private_class_method :local_date
+
+  # A day either side, so a window that straddles midnight is still found.
+  def self.around(household, at)
+    on_date = local_date(household, at)
+
+    household.meal_plan_slots
+             .with_recipe
+             .includes(:recipe)
+             .where(date: (on_date - 1)..(on_date + 1))
+             .to_a
+  end
+  private_class_method :around
 
   # Moving a slot can displace whatever already occupies the destination. Both
   # halves have to be one unit of work: the controller used to destroy the
@@ -101,6 +187,15 @@ class MealPlanSlot < ApplicationRecord
     self.leftover_source_slot_id = nil if leftover_source_slot_id.blank? || !is_leftover?
   end
 
+  def household_meal_time
+    default = DEFAULT_MEAL_TIMES.fetch(meal_type, DEFAULT_MEAL_TIMES["dinner"])
+
+    case meal_type
+    when "breakfast" then household.breakfast_time.presence || default
+    when "lunch" then household.lunch_time.presence || default
+    else household.dinner_time.presence || default
+    end
+  end
   def fulfill_recipe_requests_if_passed
     return unless recipe.present? && date.present? && date <= Date.current
 

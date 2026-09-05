@@ -115,4 +115,17 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_equal 19, end_time.hour
     assert_equal 30, end_time.min
   end
+
+  test "publishes meal times against the household's clock, not the server's" do
+    @household.update!(dinner_time: "18:00", time_zone: "America/Chicago")
+    service = CalendarFeedService.new(@household)
+
+    start_time, = service.calculate_slot_times(@slot1)
+
+    # Six in that kitchen, whatever the server's zone is - a UTC box was
+    # publishing 18:00Z, which is mid-afternoon to a Chicago subscriber.
+    assert_equal 18, start_time.hour
+    assert_equal "America/Chicago", start_time.time_zone.name
+    assert_includes service.generate_ics, "X-WR-TIMEZONE:America/Chicago"
+  end
 end

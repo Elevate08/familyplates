@@ -2,7 +2,7 @@ class MealPlansController < ApplicationController
   before_action :set_meal_plan, only: %i[show print]
 
   def index
-    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : Date.current.beginning_of_week
+    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : household_today.beginning_of_week
     @meal_plan = current_household.current_meal_plan(week)
     redirect_to meal_plan_path(@meal_plan, view: params[:view], month: params[:month])
   end
@@ -20,6 +20,11 @@ class MealPlansController < ApplicationController
                                  .distinct
 
     @family_members = current_household.family_members.order(:name)
+
+    # Drives the Cook Mode banner: what the clock says is on the stove, or - if
+    # no cooking window is open - the day's nearest planned meal.
+    @cooking_now_slot = MealPlanSlot.cooking_now(current_household)
+    @cook_banner_slot = @cooking_now_slot || MealPlanSlot.next_planned(current_household)
 
     if @view == "month"
       @month_date = resolve_month_date(@week_start)
