@@ -81,11 +81,11 @@ namespace :hosted do
     # Long-term memberships created across last year (Sep 2025 - Jul 2026)
     25.times do |i|
       created_ago = (1..12).to_a[i % 12].months + (1..20).to_a[i % 20].days
-      promo = case i
-              when 0..4 then "ANNUAL50"
-              when 5..7 then "WELCOME20"
-              else nil
-              end
+      promo =
+        case i
+        when 0..4 then "ANNUAL50"
+        when 5..7 then "WELCOME20"
+        end
       specs << {
         cohort: :active_annual,
         plan: :annual,
@@ -103,12 +103,12 @@ namespace :hosted do
     30.times do |i|
       created_ago = (1..12).to_a[i % 12].months + (2..25).to_a[i % 24].days
       cycle_day = (1..26).to_a[i % 26]
-      promo = case i
-              when 0..4 then "FAMILY2025"
-              when 5..8 then "WELCOME20"
-              when 9 then "BETA100"
-              else nil
-              end
+      promo =
+        case i
+        when 0..4 then "FAMILY2025"
+        when 5..8 then "WELCOME20"
+        when 9 then "BETA100"
+        end
       specs << {
         cohort: :active_monthly,
         plan: :monthly,
@@ -305,7 +305,7 @@ namespace :hosted do
         household.name = household_name
         household.join_code ||= SecureRandom.alphanumeric(12).upcase.scan(/.{4}/).join("-")
         household.created_at = created_at
-        household.updated_at = [created_at + 1.hour, Time.current].min
+        household.updated_at = [ created_at + 1.hour, Time.current ].min
         household.onboarded_at = created_at + 15.minutes
         household.promotion_code = spec[:promo]
         household.breakfast_time = "07:30"
@@ -446,9 +446,9 @@ namespace :hosted do
               charge.save!(validate: false)
 
               # For established monthly customers, record prior renewal cycle charges
-              months_active = [((Time.current - created_at) / 30.days).floor, 1].max
+              months_active = [ ((Time.current - created_at) / 30.days).floor, 1 ].max
               if months_active > 1 && spec[:cohort] == :active_monthly
-                (1...[months_active, 6].min).each do |m|
+                (1...[ months_active, 6 ].min).each do |m|
                   hist_charge = pay_cust.charges.find_or_initialize_by(processor_id: "ch_hist_#{sub.id}_#{m}")
                   hist_charge.subscription = sub
                   hist_charge.amount = amount_cents
@@ -554,7 +554,7 @@ namespace :hosted do
     puts "   • Households: #{Household.count}"
     puts "   • Active Subscriptions: #{Household.all.count(&:active_subscription?)}"
     puts "   • Free Trials: #{Household.all.count { |h| h.subscription_status == :trialing }}"
-    puts "   • Past Due / Grace: #{Household.all.count { |h| [:past_due, :past_due_grace].include?(h.subscription_status) }}"
+    puts "   • Past Due / Grace: #{Household.all.count { |h| [ :past_due, :past_due_grace ].include?(h.subscription_status) }}"
     puts "   • Suspended: #{Household.where.not(suspended_at: nil).count}"
     puts "   • Promotion Programs: #{PromotionProgram.count}"
     puts "   • Promo Redemptions Tracked: #{PromotionProgram.sum(:redeemed_count)}"
