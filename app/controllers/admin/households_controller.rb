@@ -27,6 +27,7 @@ module Admin
     def household_params
       params.require(:household).permit(
         :name,
+        :time_zone,
         :breakfast_time,
         :lunch_time,
         :dinner_time

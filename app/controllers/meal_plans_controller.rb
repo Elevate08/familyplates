@@ -2,7 +2,7 @@ class MealPlansController < ApplicationController
   before_action :set_meal_plan, only: %i[show print]
 
   def index
-    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : Date.current.beginning_of_week
+    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : household_today.beginning_of_week
     @meal_plan = current_household.current_meal_plan(week)
     redirect_to meal_plan_path(@meal_plan, view: params[:view], month: params[:month])
   end

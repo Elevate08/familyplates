@@ -120,6 +120,30 @@ class CookNowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # The whole point of recording a zone: a UTC server deciding what is on the
+  # stove in a Chicago kitchen.
+  test "opens the right meal for a household that is not on UTC" do
+    @household.update!(time_zone: "America/Chicago")
+    dinner_date = Date.new(2026, 9, 5)
+    @plan = @household.current_meal_plan(dinner_date.beginning_of_week)
+    @plan.meal_plan_slots.create!(date: dinner_date, meal_type: "dinner", recipe: @ribs)
+
+    sign_in_as(@admin)
+
+    # 23:00 UTC is 6pm in the kitchen - dinner time.
+    travel_to Time.utc(2026, 9, 5, 23, 0, 0) do
+      get cook_now_url
+      assert_redirected_to cook_recipe_path(@ribs)
+    end
+
+    # 18:00 UTC is 1pm there: too early for dinner's window, but dinner is still
+    # the day's next planned meal, so it is what the button offers.
+    travel_to Time.utc(2026, 9, 5, 18, 0, 0) do
+      get cook_now_url
+      assert_redirected_to cook_recipe_path(@ribs)
+    end
+  end
+
   test "another household's planned meal is never opened" do
     other = households(:two)
     other_plan = other.current_meal_plan(Date.current.beginning_of_week)

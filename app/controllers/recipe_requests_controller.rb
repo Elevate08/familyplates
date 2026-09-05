@@ -7,7 +7,7 @@ class RecipeRequestsController < ApplicationController
       family_member: current_family_member,
       fulfilled_at: nil
     )
-    @recipe_request.week_start_date ||= Date.current.beginning_of_week
+    @recipe_request.week_start_date ||= household_today.beginning_of_week
     @recipe_request.save
     @recipe.reload
 

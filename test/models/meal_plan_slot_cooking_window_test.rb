@@ -99,6 +99,36 @@ class MealPlanSlotCookingWindowTest < ActiveSupport::TestCase
     assert_nil MealPlanSlot.next_planned(@household, at: at(12, 0))
   end
 
+  # --- Read against the household's clock, not the server's -----------------
+
+  test "a meal time means that hour in the kitchen, not that hour in UTC" do
+    @household.update!(time_zone: "America/Chicago")
+    dinner = slot_for("dinner", date: Date.new(2026, 9, 5))
+
+    # 18:00 CDT is 23:00 UTC.
+    assert_equal Time.utc(2026, 9, 5, 23, 0, 0), dinner.scheduled_at.utc
+  end
+
+  test "the cooking window follows the household's clock" do
+    @household.update!(time_zone: "America/Chicago")
+    slot_for("dinner", date: Date.new(2026, 9, 5))
+
+    # 17:30 local is 22:30 UTC - inside the window. On a UTC-only reading the
+    # same instant would be hours past dinner and would match nothing.
+    assert_not_nil MealPlanSlot.cooking_now(@household, at: Time.utc(2026, 9, 5, 22, 30, 0))
+    assert_nil MealPlanSlot.cooking_now(@household, at: Time.utc(2026, 9, 5, 18, 0, 0))
+  end
+
+  test "the fallback's idea of today is the kitchen's day" do
+    @household.update!(time_zone: "America/Chicago")
+    tonight = slot_for("dinner", date: Date.new(2026, 9, 5))
+    slot_for("breakfast", date: Date.new(2026, 9, 6))
+
+    # 01:00 UTC on the 6th is still the evening of the 5th in Chicago, so the
+    # meal on offer is that evening's dinner, not the next morning's breakfast.
+    assert_equal tonight, MealPlanSlot.next_planned(@household, at: Time.utc(2026, 9, 6, 1, 0, 0))
+  end
+
   test "upcoming meals are listed in serving order and start from now" do
     slot_for("breakfast")
     lunch = slot_for("lunch")

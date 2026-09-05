@@ -174,6 +174,10 @@ Rails.application.routes.draw do
   # made right now and opens it, so a kitchen display needs one tap, not five.
   get "cook", to: "cook_now#show", as: :cook_now
 
+  # Where the browser reports the zone it is in, once, when the household has
+  # not recorded one. See HouseholdTimeZonesController.
+  resource :household_time_zone, only: :create
+
   # Weekly Meal Plans & Outputs
   resources :meal_plans do
     resources :meal_plan_slots, only: %i[create update destroy]

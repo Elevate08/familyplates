@@ -41,8 +41,8 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           <% end %>
 
-          <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: Date.current.beginning_of_month), 
-                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{Date.current.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+          <%= link_to "This Month", meal_plan_path(@meal_plan, view: "month", month: household_today.beginning_of_month), 
+                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{household_today.beginning_of_month == @month_date ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
 
           <%= link_to meal_plan_path(@meal_plan, view: "month", month: @next_month), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Month" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -52,8 +52,8 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           <% end %>
 
-          <%= link_to "This Week", meal_plans_path(week: Date.current.beginning_of_week), 
-                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{@week_start == Date.current.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
+          <%= link_to "This Week", meal_plans_path(week: household_today.beginning_of_week), 
+                class: "px-2.5 py-1 rounded-xl text-xs font-bold #{@week_start == household_today.beginning_of_week ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}" %>
 
           <%= link_to meal_plans_path(week: @next_week), class: "p-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors", title: "Next Week" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -94,7 +94,7 @@
           <% end %>
 
           <% @month_days.each do |day| %>
-            <% is_today = (day == Date.current) %>
+            <% is_today = (day == household_today) %>
             <% b_slot = @month_slots_by_date[[day, "breakfast"]]&.first %>
             <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
             <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
@@ -187,7 +187,7 @@
     <!-- WEEK VIEW (Breakfast, Lunch, Dinner Matrix) -->
     <div class="grid grid-cols-1 md:grid-cols-7 gap-3 sm:gap-4 mb-8">
       <% @meal_plan.days.each do |day| %>
-        <% is_today = (day == Date.current) %>
+        <% is_today = (day == household_today) %>
         <div class="flex flex-col gap-2 p-3 sm:p-3.5 rounded-3xl bg-white dark:bg-slate-900 border <%= is_today ? 'border-primary-400 ring-2 ring-primary-200/50 dark:ring-primary-900/50 shadow-md' : 'border-slate-200/80 dark:border-slate-800 shadow-2xs' %>">
           
           <!-- Day Header -->

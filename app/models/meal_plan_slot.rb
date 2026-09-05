@@ -31,11 +31,15 @@ class MealPlanSlot < ApplicationRecord
   # When this meal is served: the slot's own time if it has one, otherwise the
   # household's time for that meal. The calendar feed reads the same two fields,
   # so a household that has set its dinner hour gets it honoured in both places.
+  #
+  # Built in the household's zone, not the server's. "Dinner at 6pm" means six
+  # in that kitchen; on a UTC server it would otherwise mean six in Greenwich,
+  # which is early afternoon in Chicago and the following morning in Sydney.
   def scheduled_at
     time = scheduled_time.presence || household_meal_time
     hour, minute = time.to_s.split(":").map(&:to_i)
 
-    Time.zone.local(date.year, date.month, date.day, hour.to_i, minute.to_i, 0)
+    household.time_zone_object.local(date.year, date.month, date.day, hour.to_i, minute.to_i, 0)
   end
 
   def cooking_window
@@ -57,7 +61,8 @@ class MealPlanSlot < ApplicationRecord
   # still ahead beating one already served - at 3pm that is tonight's dinner, not
   # this morning's breakfast.
   def self.next_planned(household, at: Time.current)
-    today = around(household, at).select { |slot| slot.date == at.to_date }
+    on_date = local_date(household, at)
+    today = around(household, at).select { |slot| slot.date == on_date }
     upcoming = today.select { |slot| slot.scheduled_at >= at }
 
     (upcoming.presence || today).min_by { |slot| (slot.scheduled_at - at).abs }
@@ -65,21 +70,32 @@ class MealPlanSlot < ApplicationRecord
 
   # For the empty state: what is coming up, when today holds nothing to cook.
   def self.upcoming_planned(household, at: Time.current, within: 7.days, limit: 5)
+    from = local_date(household, at)
+
     household.meal_plan_slots
              .with_recipe
              .includes(:recipe)
-             .where(date: at.to_date..(at + within).to_date)
+             .where(date: from..(from + within.in_days.to_i))
              .sort_by(&:scheduled_at)
              .select { |slot| slot.scheduled_at >= at }
              .first(limit)
   end
 
+  # Which calendar day it is in the kitchen, which after 7pm in the Americas is
+  # not the day a UTC server thinks it is.
+  def self.local_date(household, at)
+    at.in_time_zone(household.time_zone_object).to_date
+  end
+  private_class_method :local_date
+
   # A day either side, so a window that straddles midnight is still found.
   def self.around(household, at)
+    on_date = local_date(household, at)
+
     household.meal_plan_slots
              .with_recipe
              .includes(:recipe)
-             .where(date: (at.to_date - 1)..(at.to_date + 1))
+             .where(date: (on_date - 1)..(on_date + 1))
              .to_a
   end
   private_class_method :around
