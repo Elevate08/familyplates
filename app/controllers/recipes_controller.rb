@@ -1,5 +1,5 @@
 class RecipesController < ApplicationController
-  before_action :set_recipe, only: %i[show edit update destroy]
+  before_action :set_recipe, only: %i[show edit update destroy cook]
   before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
   before_action :set_available_tags, only: %i[index new create edit update]
 
@@ -41,6 +41,14 @@ class RecipesController < ApplicationController
     @week_start = Date.current.beginning_of_week
     @requested_by_current = @recipe.requested_by?(current_family_member, @week_start)
     @total_requests = @recipe.request_count_for_week(@week_start)
+  end
+
+  # Cook Mode: one step at a time, full screen, no application chrome. Every
+  # profile can reach it, kiosk sessions included - a kitchen display that can
+  # open a recipe but not cook from it would be the wrong way round.
+  def cook
+    @steps = @recipe.cooking_steps
+    render layout: "cook"
   end
 
   def new

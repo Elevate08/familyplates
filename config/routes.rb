@@ -161,6 +161,11 @@ Rails.application.routes.draw do
       post :bulk_update
       post :bulk_destroy
     end
+    member do
+      # Full-screen counter-top view. Open to every profile, kiosks included -
+      # the kitchen display is the device most likely to be cooking from it.
+      get :cook
+    end
     resources :recipe_requests, only: %i[create destroy]
   end
   resources :recipe_imports, only: %i[new create]
