@@ -74,6 +74,8 @@
     </div>
   </div>
 
+  <%= render "meal_plans/cook_now_banner", slot: @cook_banner_slot, cooking: @cooking_now_slot.present? %>
+
   <% if @view == "month" %>
     <!-- MONTH VIEW CALENDAR MATRIX (Horizontal Scroll on Mobile) -->
     <div class="overflow-x-auto -mx-3.5 px-3.5 sm:mx-0 sm:px-0 mb-8 pb-2">

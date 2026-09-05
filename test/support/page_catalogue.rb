@@ -21,6 +21,7 @@ module PageCatalogue
       "recipe show" => "/recipes/#{recipe.id}",
       "recipe edit" => "/recipes/#{recipe.id}/edit",
       "recipe cook" => "/recipes/#{recipe.id}/cook",
+      "cook now" => "/cook",
       "recipe import" => "/recipe_imports/new",
       "meal plan" => "/meal_plans/#{plan.id}",
       "meal plan month" => "/meal_plans/#{plan.id}?view=month",
