@@ -52,7 +52,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create recipe" do
-    assert_difference("Recipe.count", 1) do
+    assert_difference([ "Recipe.count", "ActivityEvent.where(event_type: 'recipe.created').count" ], 1) do
       post recipes_url, params: {
         recipe: {
           title: "Lemon Herb Salmon",
@@ -69,6 +69,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to recipe_url(Recipe.last)
+    assert_equal family_members(:one), ActivityEvent.order(:created_at).last.actor
   end
 
   test "should create recipe with meal types and image upload" do
@@ -92,10 +93,19 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
   test "should update recipe" do
     patch recipe_url(@recipe), params: {
-      recipe: { title: "Super Taco Tuesday" }
+      recipe: {
+        title: "Super Taco Tuesday",
+        yields_leftovers: true,
+        leftover_capacity: 4,
+        leftover_shelf_life_days: 5
+      }
     }
     assert_redirected_to recipe_url(@recipe)
-    assert_equal "Super Taco Tuesday", @recipe.reload.title
+    @recipe.reload
+    assert_equal "Super Taco Tuesday", @recipe.title
+    assert_equal true, @recipe.yields_leftovers
+    assert_equal 4, @recipe.leftover_capacity
+    assert_equal 5, @recipe.leftover_shelf_life_days
   end
 
   test "should destroy recipe" do

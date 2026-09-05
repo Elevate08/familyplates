@@ -17,9 +17,16 @@
     <% end %>
 
     <!-- Thumbnail -->
-    <%= link_to recipe_path(recipe), class: "shrink-0 block" do %>
+    <%= link_to recipe_path(recipe), class: "shrink-0 block relative", data: { controller: "image-fallback" } do %>
       <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>"
+           referrerpolicy="no-referrer"
+           loading="lazy"
+           data-image-fallback-target="image"
+           data-action="error->image-fallback#failed"
            class="w-14 h-14 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-2xs group-hover:scale-105 transition-transform bg-slate-100 dark:bg-slate-800">
+      <div data-image-fallback-target="placeholder" class="hidden w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center text-primary-600 dark:text-primary-400 group-hover:scale-105 transition-transform">
+        <%= icon_tag("utensils", css_class: "w-6 h-6") %>
+      </div>
     <% end %>
 
     <!-- Title & Description -->
@@ -36,6 +43,11 @@
             <% icon = case mt; when "breakfast" then "☀️"; when "lunch" then "🥪"; else "🍽️"; end %>
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border <%= badge_class %>">
               <%= icon %> <%= mt.capitalize %>
+            </span>
+          <% end %>
+          <% if recipe.yields_leftovers? %>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-purple-100/80 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800" title="Yields <%= pluralize(recipe.effective_leftover_capacity, 'extra meal') %> · Good for <%= pluralize(recipe.effective_leftover_shelf_life_days, 'day') %>">
+              🍱 +<%= recipe.effective_leftover_capacity %>
             </span>
           <% end %>
         </div>

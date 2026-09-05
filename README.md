@@ -1,15 +1,15 @@
 # 🍽️ FamilyPlates
 
-**Family meal planning, curated recipes, 1-page fridge calendar printouts, and real-time Google Calendar sync.**
+**Family meal planning, curated recipes, 1-page fridge calendar printouts, and universal calendar subscriptions.**
 
-FamilyPlates is a streamlined, self-hosted web application built for modern families. It eliminates the daily *"What's for dinner?"* chaos by combining collaborative weekly meal planning, automatic grocery list generation, ink-friendly refrigerator printouts, and direct background synchronization to your shared Google Calendar.
+FamilyPlates is a streamlined, self-hosted web application built for modern families. It eliminates the daily *"What's for dinner?"* chaos by combining collaborative weekly meal planning, automatic grocery list generation, ink-friendly refrigerator printouts, and universal calendar subscriptions (.ics / webcal) for Apple Calendar, Google Calendar, Outlook, and mobile devices.
 
 ---
 
 ## ✨ Features
 
 * **🗓️ Interactive Weekly & Monthly Meal Planner:** Schedule breakfast, lunch, and dinner with 1-click recipe assignment, cook assignments, and notes.
-* **📅 Direct Google Calendar Real-Time Sync:** Automatically writes scheduled meals, cooks, prep times, and ingredients to your shared family Google Calendar via Google Service Account.
+* **📅 Universal Calendar Subscriptions:** Live `.ics` / `webcal` feeds that sync planned meals to Apple Calendar, Google Calendar, Outlook, and mobile devices with 1-tap setup and per-cook shift filtering.
 * **🖨️ 1-Page Refrigerator Printouts:** Clean, high-contrast weekly and monthly letter-landscape printouts designed for standard fridge hanging.
 * **🛒 Aisle-Organized Grocery Checklist:** Aggregates ingredients across planned meals, categorized by supermarket aisle with a mobile-friendly strike-off interface.
 * **🛡️ Smart Pantry Shield:** Flag staple items in your kitchen pantry so they are automatically excluded or highlighted on your shopping list.
@@ -25,7 +25,7 @@ Explore the full documentation and guides in the [`docs/`](./docs/README.md) dir
 
 | Guide | Link |
 | :--- | :--- |
-| **Google Calendar Integration Guide** | [Read Guide](./docs/google-calendar-integration.md) |
+| **Universal Calendar Subscriptions Guide** | [Read Guide](./docs/universal-calendar-subscriptions.md) |
 | **Getting Started & Local Setup** | [Read Guide](./docs/getting-started.md) |
 | **Admin & User Preferences** | [Read Guide](./docs/admin-and-user-preferences.md) |
 | **Weekly & Monthly Meal Planning** | [Read Guide](./docs/weekly-meal-planning.md) |

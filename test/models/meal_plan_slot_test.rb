@@ -16,42 +16,6 @@ class MealPlanSlotTest < ActiveSupport::TestCase
     assert_equal "Dining Out", custom_slot.display_title
   end
 
-  test "enqueues sync job with upsert when meal is created or updated" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    plan = meal_plans(:one)
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: ->(args) { args[1] == "upsert" }) do
-      plan.meal_plan_slots.create!(
-        date: plan.week_start_date + 3.days,
-        meal_type: "dinner",
-        custom_title: "Homemade Lasagna"
-      )
-    end
-  end
-
-  test "enqueues sync job with delete when slot is destroyed" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    slot = meal_plan_slots(:one)
-    slot.update_column(:google_event_id, "gcal_event_to_delete")
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ nil, "delete", "gcal_event_to_delete", household.id ]) do
-      slot.destroy
-    end
-  end
-
-  test "enqueues sync job with delete when slot meal is cleared" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    slot = meal_plan_slots(:one)
-    slot.update_column(:google_event_id, "gcal_event_cleared")
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ slot.id, "delete", "gcal_event_cleared", household.id ]) do
-      slot.update!(recipe: nil, custom_title: nil)
-    end
-  end
-
   test "is_leftover defaults to false and can be flagged" do
     slot = MealPlanSlot.new(meal_plan: meal_plans(:one), date: Date.current, meal_type: "lunch")
     assert_equal false, slot.is_leftover?
@@ -91,5 +55,177 @@ class MealPlanSlotTest < ActiveSupport::TestCase
         assert_equal (sample_ingredient.quantity || 1.0), found_item[:quantity]
       end
     end
+  end
+
+  test "leftover associations link leftover slot to parent source slot" do
+    plan = households(:one).meal_plans.create!(week_start_date: 3.weeks.from_now.to_date.beginning_of_week)
+    recipe = recipes(:one)
+    recipe.update!(yields_leftovers: true, leftover_capacity: 2)
+
+    source_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    leftover_slot_1 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal source_slot, leftover_slot_1.leftover_source_slot
+    assert_includes source_slot.leftover_slots, leftover_slot_1
+    assert_equal 1, source_slot.leftover_capacity_remaining
+    assert_not source_slot.leftover_exhausted?
+
+    leftover_slot_2 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 2.days,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal 0, source_slot.leftover_capacity_remaining
+    assert source_slot.leftover_exhausted?
+
+    # Attempting to add a 3rd leftover slot should fail validation
+    excess_leftover = plan.meal_plan_slots.build(
+      date: plan.week_start_date + 3.days,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+    assert_not excess_leftover.valid?
+    assert_includes excess_leftover.errors[:base], "All leftover servings for #{recipe.title} have already been scheduled."
+  end
+
+  test "leftover slot auto assigns source slot and fails when no cooked meal exists" do
+    plan = households(:one).meal_plans.create!(week_start_date: 4.weeks.from_now.to_date.beginning_of_week)
+    recipe = households(:one).recipes.create!(title: "Unique Leftover Dish", yields_leftovers: true, leftover_capacity: 1)
+
+    # No cooked meal exists yet
+    unprepared_leftover = plan.meal_plan_slots.build(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: true
+    )
+    assert_not unprepared_leftover.valid?
+    assert_includes unprepared_leftover.errors[:base], "#{recipe.title} has not been cooked yet, so leftovers cannot be scheduled."
+
+    # Now create the cooked meal
+    cooked_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    # Schedule leftover without explicitly passing leftover_source_slot_id
+    auto_leftover = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true
+    )
+    assert_equal cooked_slot.id, auto_leftover.leftover_source_slot_id
+  end
+
+  test "slot cannot set itself as leftover source" do
+    slot = meal_plan_slots(:one)
+    slot.is_leftover = true
+    slot.leftover_source_slot_id = slot.id
+    assert_not slot.valid?
+    assert_includes slot.errors[:leftover_source_slot_id], "cannot be itself"
+  end
+
+  test "deleting planned meal clears out any scheduled leftover slots" do
+    plan = households(:one).meal_plans.create!(week_start_date: 6.weeks.from_now.to_date.beginning_of_week)
+    recipe = households(:one).recipes.create!(title: "Batch Stew", yields_leftovers: true, leftover_capacity: 2)
+
+    cooked_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    leftover_slot_1 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: cooked_slot
+    )
+
+    leftover_slot_2 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 2.days,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: cooked_slot
+    )
+
+    assert_equal 2, cooked_slot.leftover_slots.count
+    assert_difference("MealPlanSlot.count", -3) do
+      cooked_slot.destroy
+    end
+
+    assert_not MealPlanSlot.exists?(leftover_slot_1.id)
+    assert_not MealPlanSlot.exists?(leftover_slot_2.id)
+  end
+
+  test "changing cooked meal recipe clears out scheduled leftover slots" do
+    plan = households(:one).meal_plans.create!(week_start_date: 7.weeks.from_now.to_date.beginning_of_week)
+    recipe1 = households(:one).recipes.create!(title: "Original Dish", yields_leftovers: true, leftover_capacity: 2)
+    recipe2 = households(:one).recipes.create!(title: "Replacement Dish", yields_leftovers: true, leftover_capacity: 2)
+
+    cooked_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe1,
+      is_leftover: false
+    )
+
+    leftover_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe1,
+      is_leftover: true,
+      leftover_source_slot: cooked_slot
+    )
+
+    cooked_slot.update!(recipe: recipe2)
+    assert_not MealPlanSlot.exists?(leftover_slot.id)
+  end
+
+  test "moving cooked meal past a leftover slot clears invalidated leftover" do
+    plan = households(:one).meal_plans.create!(week_start_date: 8.weeks.from_now.to_date.beginning_of_week)
+    recipe = households(:one).recipes.create!(title: "Curry", yields_leftovers: true, leftover_capacity: 2, leftover_shelf_life_days: 2)
+
+    cooked_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    leftover_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: cooked_slot
+    )
+
+    # Move cooked meal to day after the leftover
+    cooked_slot.update!(date: plan.week_start_date + 2.days)
+    assert_not MealPlanSlot.exists?(leftover_slot.id)
   end
 end

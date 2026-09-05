@@ -9,7 +9,7 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create meal plan slot" do
-    assert_difference("MealPlanSlot.count", 1) do
+    assert_difference([ "MealPlanSlot.count", "ActivityEvent.where(event_type: 'meal_plan_slot.created').count" ], 1) do
       post meal_plan_meal_plan_slots_url(@meal_plan), params: {
         meal_plan_slot: {
           date: Date.current.beginning_of_week + 2.days,
@@ -145,6 +145,34 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to meal_plan_url(@meal_plan)
   end
 
+  test "destroying cooked meal slot via turbo stream also clears its leftover slot" do
+    plan = @household.meal_plans.create!(week_start_date: 10.weeks.from_now.to_date.beginning_of_week)
+    recipe = recipes(:one)
+    recipe.update!(yields_leftovers: true, leftover_capacity: 1)
+
+    cooked = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+    leftover = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: cooked
+    )
+
+    assert_difference("MealPlanSlot.count", -2) do
+      delete meal_plan_meal_plan_slot_url(plan, cooked), as: :turbo_stream
+    end
+
+    assert_response :success
+    assert_not MealPlanSlot.exists?(cooked.id)
+    assert_not MealPlanSlot.exists?(leftover.id)
+  end
+
   test "non-admin member should not be able to create meal plan slot" do
     sign_in_as(family_members(:two)) # Mom (role: member)
 
@@ -233,5 +261,37 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert_equal "Not Yours", other_slot.reload.custom_title
+  end
+
+  test "should create and update leftover slot with leftover_source_slot_id" do
+    source_slot = meal_plan_slots(:one)
+    target_date = Date.current.beginning_of_week + 4.days
+
+    assert_difference("MealPlanSlot.count", 1) do
+      post meal_plan_meal_plan_slots_url(@meal_plan), params: {
+        meal_plan_slot: {
+          date: target_date,
+          meal_type: "lunch",
+          recipe_id: source_slot.recipe_id,
+          is_leftover: true,
+          leftover_source_slot_id: source_slot.id
+        }
+      }
+    end
+
+    created_slot = MealPlanSlot.order(:created_at).last
+    assert_equal true, created_slot.is_leftover
+    assert_equal source_slot.id, created_slot.leftover_source_slot_id
+
+    # Updating with is_leftover: false clears the leftover_source_slot_id
+    patch meal_plan_meal_plan_slot_url(@meal_plan, created_slot), params: {
+      meal_plan_slot: {
+        is_leftover: false
+      }
+    }
+    assert_redirected_to meal_plan_url(@meal_plan)
+    created_slot.reload
+    assert_equal false, created_slot.is_leftover
+    assert_nil created_slot.leftover_source_slot_id
   end
 end

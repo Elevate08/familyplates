@@ -1,0 +1,61 @@
+<div class="min-h-[80vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4"
+     data-controller="device-pairing"
+     data-device-pairing-token-url-value="<%= token_pair_path %>"
+     data-device-pairing-device-code-value="<%= @grant.device_code %>"
+     data-device-pairing-interval-value="<%= @grant.interval_seconds %>"
+     data-device-pairing-redirect-url-value="<%= root_path %>">
+
+  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl text-center">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl <%= @grant.kiosk? ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400' %> mb-4 shadow-sm">
+      <%= icon_tag(@grant.kiosk? ? "tv" : "laptop", css_class: "w-7 h-7") %>
+    </div>
+
+    <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+      <%= @grant.kiosk? ? "Pair Kitchen Display" : "Sign In With Another Device" %>
+    </h1>
+
+    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 mb-6">
+      <%= @grant.kiosk? ? "Scan this QR code with a signed-in phone to connect this screen as a non-expiring kitchen display." : "Scan this QR code with a signed-in phone to authorize this browser session." %>
+    </p>
+
+    <!-- QR Code Display Box -->
+    <div class="bg-white p-5 rounded-3xl inline-block shadow-md border border-slate-200 mb-6">
+      <div class="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center text-slate-900">
+        <%= qr_code_svg(@verification_uri_complete, size: 5) %>
+      </div>
+    </div>
+
+    <!-- User Code Display -->
+    <div class="mb-4">
+      <p class="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1.5">
+        Or visit <strong class="text-slate-700 dark:text-slate-300"><%= @verification_uri %></strong> and enter code:
+      </p>
+      <div class="font-mono text-2xl sm:text-3xl font-black tracking-widest text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 py-2.5 px-6 rounded-2xl border border-slate-200 dark:border-slate-700 inline-block shadow-2xs">
+        <%= @grant.user_code %>
+      </div>
+    </div>
+
+    <!-- Polling Status -->
+    <div data-device-pairing-target="status" class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-4 flex items-center justify-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span>Waiting for approval on your phone...</span>
+    </div>
+
+    <div data-device-pairing-target="error" class="hidden text-xs font-bold text-red-600 dark:text-red-400 mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60">
+    </div>
+
+    <!-- Switching pairing kinds -->
+    <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
+      <% if @grant.kiosk? %>
+        <%= link_to "Pair as personal device (browser) instead", new_pair_path(kind: "browser"),
+              class: "text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors block" %>
+      <% else %>
+        <%= link_to "Pair as kitchen display (kiosk) instead", new_pair_path(kind: "kiosk"),
+              class: "text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors block" %>
+      <% end %>
+
+      <%= link_to "← Return to Profile Selection", select_profile_path,
+            class: "text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors block" %>
+    </div>
+  </div>
+</div>

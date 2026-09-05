@@ -19,9 +19,9 @@
     <% @family_members.each do |member| %>
       <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between hover:border-slate-300 transition-colors">
         <div class="flex items-center gap-3.5">
-          <span class="inline-flex items-center justify-center w-12 h-12 rounded-2xl text-base font-bold text-white shadow-sm"
+          <span class="inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white shadow-sm"
                 style="background-color: <%= member.avatar_color %>">
-            <%= member.initial %>
+            <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-6 h-6") %>
           </span>
           <div>
             <div class="flex items-center gap-2">

@@ -14,8 +14,12 @@
     </div>
   </div>
 
+  <div class="flex items-center gap-1.5">
+    <%= render "pantry_items/stock_toggle", pantry_item: pantry_item %>
+
   <%= button_to pantry_item_path(pantry_item), method: :delete, data: { turbo_confirm: "Remove #{pantry_item.name} from pantry?" },
         class: "p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer" do %>
-    <%= icon_tag("trash", css_class: "w-4 h-4") %>
-  <% end %>
+      <%= icon_tag("trash", css_class: "w-4 h-4") %>
+    <% end %>
+  </div>
 </div>

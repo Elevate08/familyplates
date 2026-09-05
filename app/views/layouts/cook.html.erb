@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<%#
+  Cook Mode's own shell. The application layout's nav, switcher and flash rail
+  are exactly the distractions this view exists to remove, and a counter-top
+  screen has no room for them. Everything else - CSP nonce, theme boot, the
+  importmap - matches the application layout, so Stimulus and the theme behave
+  the same here as anywhere else.
+%>
+<html class="h-full bg-slate-950 antialiased">
+  <head>
+    <title><%= content_for(:title) || "Cook Mode | FamilyPlates" %></title>
+    <%# No maximum-scale: pinch-zoom must survive, even on a kitchen display. %>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <meta name="application-name" content="FamilyPlates">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#0f172a">
+
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%# Cook Mode is always dark: a bright panel at eye level in a kitchen is
+        glare, and the high-contrast type is designed against a dark ground. %>
+    <script nonce="<%= content_security_policy_nonce %>">
+      document.documentElement.classList.add('dark');
+    </script>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="h-full bg-slate-950 text-white font-sans overscroll-none">
+    <%= yield %>
+  </body>
+</html>

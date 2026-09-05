@@ -1,0 +1,45 @@
+<% content_for :title, "Cook Now | FamilyPlates" %>
+
+<%# Only reached when the clock could not pick a meal - nothing is planned for
+    today. The way out matters more than the message, so both are large. %>
+<div class="flex min-h-dvh flex-col items-center justify-center px-6 py-12 text-center">
+  <p class="text-sm font-black uppercase tracking-[0.2em] text-primary-400">Cook Now</p>
+
+  <h1 class="mt-4 max-w-2xl text-3xl font-black leading-tight text-white sm:text-4xl">
+    Nothing is planned for <%= Time.current.strftime("%A") %> yet.
+  </h1>
+
+  <% if @upcoming.any? %>
+    <p class="mt-4 text-base text-slate-400">Here is what is coming up.</p>
+
+    <ul class="mt-8 w-full max-w-xl space-y-3 text-left">
+      <% @upcoming.each do |slot| %>
+        <li>
+          <%= link_to cook_recipe_path(slot.recipe),
+                class: "flex min-h-20 items-center gap-4 rounded-3xl border-2 border-white/10 bg-white/5 px-6 py-4 transition-colors hover:border-white/25 hover:bg-white/10" do %>
+            <span class="shrink-0 text-center">
+              <span class="block text-[11px] font-black uppercase tracking-widest text-primary-400"><%= slot.date.strftime("%a") %></span>
+              <span class="block text-sm font-bold text-slate-300"><%= slot.scheduled_at.strftime("%-l:%M %p") %></span>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-lg font-bold text-white"><%= slot.recipe.title %></span>
+              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500"><%= slot.meal_type %></span>
+            </span>
+            <span aria-hidden="true" class="shrink-0 text-2xl text-slate-500">&rarr;</span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-4 max-w-xl text-base text-slate-400">
+      Put a recipe on the meal plan and this button will open it at cooking time.
+    </p>
+  <% end %>
+
+  <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+    <%= link_to "Open the meal plan", meal_plans_path,
+          class: "inline-flex min-h-14 items-center rounded-2xl bg-primary-600 px-8 font-bold text-white transition-colors hover:bg-primary-500" %>
+    <%= link_to "Browse the recipe box", recipes_path,
+          class: "inline-flex min-h-14 items-center rounded-2xl bg-white/5 px-8 font-bold text-slate-200 transition-colors hover:bg-white/10" %>
+  </div>
+</div>

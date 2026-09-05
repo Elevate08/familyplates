@@ -68,4 +68,10 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "google-apis-calendar_v3", "~> 0.57.0"
+gem "rqrcode", "~> 3.2"
+
+gem "webauthn", "~> 3.4"
+
+gem "pay", "~> 11.7"
+
+gem "stripe", "~> 19.0"

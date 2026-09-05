@@ -1,9 +1,8 @@
 class MealPlansController < ApplicationController
   before_action :set_meal_plan, only: %i[show print]
-  before_action :require_admin, only: %i[sync_calendar]
 
   def index
-    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : Date.current.beginning_of_week
+    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : household_today.beginning_of_week
     @meal_plan = current_household.current_meal_plan(week)
     redirect_to meal_plan_path(@meal_plan, view: params[:view], month: params[:month])
   end
@@ -14,13 +13,28 @@ class MealPlansController < ApplicationController
     @prev_week = @week_start - 7.days
     @next_week = @week_start + 7.days
 
-    @recipes = current_household.recipes.alphabetical
+    @recipes = current_household.recipes.alphabetical.includes(image_attachment: :blob).to_a
+    @recipes_map = @recipes.each_with_object({}) do |r, hash|
+      hash[r.id] = {
+        title: r.title,
+        image_url: r.display_image_url,
+        tags: r.tag_list,
+        total_time: r.total_time
+      }
+    end
     RecipeRequest.auto_fulfill_passed_slots!(current_household)
     @cravings = current_household.recipes.joins(:recipe_requests)
                                  .where(recipe_requests: { fulfilled_at: nil })
                                  .distinct
 
-    @family_members = current_household.family_members.order(:name)
+    @family_members = current_household.family_members.order(:name).to_a
+    @slots_by_key = @meal_plan.meal_plan_slots.includes(:recipe, :family_member, :leftover_source_slot).index_by { |s| [ s.date, s.meal_type ] }
+    @leftover_sources = @meal_plan.preloaded_leftover_sources
+
+    # Drives the Cook Mode banner: what the clock says is on the stove, or - if
+    # no cooking window is open - the day's nearest planned meal.
+    @cooking_now_slot = MealPlanSlot.cooking_now(current_household)
+    @cook_banner_slot = @cooking_now_slot || MealPlanSlot.next_planned(current_household)
 
     if @view == "month"
       @month_date = resolve_month_date(@week_start)
@@ -61,39 +75,11 @@ class MealPlansController < ApplicationController
     render layout: "print"
   end
 
-  def sync_calendar
-    set_meal_plan
-    if current_household.google_calendar_enabled? && current_household.google_calendar_id.present?
-      service = GoogleCalendarService.new(current_household)
-      synced_count = service.sync_meal_plan(@meal_plan)
-
-      respond_to do |format|
-        format.json do
-          render json: {
-            success: true,
-            synced_count: synced_count,
-            message: "Successfully synced #{synced_count} meal #{'slot'.pluralize(synced_count)} to Google Calendar!"
-          }
-        end
-        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), notice: "Weekly meal plan synced to Google Calendar! 📅" }
-      end
-    else
-      respond_to do |format|
-        format.json do
-          render json: {
-            success: false,
-            error: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center."
-          }, status: :unprocessable_entity
-        end
-        format.html { redirect_back fallback_location: meal_plan_path(@meal_plan), alert: "Google Calendar sync is not configured yet. Set it up in the Admin Control Center." }
-      end
-    end
-  end
-
   private
 
   def set_meal_plan
-    @meal_plan = current_household.meal_plans.find(params[:id])
+    @meal_plan = current_household.meal_plans.find_by(number: params[:id]) || current_household.meal_plans.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find MealPlan with 'id'=#{params[:id]}" unless @meal_plan
   end
 
   # The month shown by the calendar and its print-out. An explicit month always

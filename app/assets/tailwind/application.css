@@ -114,4 +114,32 @@
   .themed-select option:disabled {
     color: var(--color-slate-400);
   }
+
+  /* Cook Mode step timers. The state class sits on the wrapper so the running
+     and finished treatments can reach the button face, which saves the Stimulus
+     controller from juggling a list of utility classes on every tick. */
+  .cook-timer-running .cook-timer-face {
+    border-color: var(--color-primary-500);
+    background-color: color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+  }
+
+  .cook-timer-finished .cook-timer-face {
+    border-color: var(--color-emerald-400);
+    background-color: color-mix(in srgb, var(--color-emerald-400) 22%, transparent);
+    animation: cook-timer-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes cook-timer-pulse {
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* A pulsing panel in someone's field of view for the length of a bake is
+     exactly what this preference exists to stop. */
+  @media (prefers-reduced-motion: reduce) {
+    .cook-timer-finished .cook-timer-face {
+      animation: none;
+    }
+  }
 }

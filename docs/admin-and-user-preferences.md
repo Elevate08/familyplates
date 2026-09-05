@@ -21,7 +21,7 @@ FamilyPlates provides distinct permission levels tailored for family organizers 
 | **Access Admin Control Center (`/admin`)** | ✅ | ❌ |
 | **Household Roster Management** (Add members, change roles, reset PINs) | ✅ | ❌ |
 | **Household Branding & Meal Schedule** (Household name, meal start times) | ✅ | ❌ |
-| **Google Calendar Real-Time Sync** (Service account keys, sync triggers) | ✅ | ❌ |
+| **Calendar Subscriptions & Feed Tokens** (Feed URLs, token rotation) | ✅ | ❌ |
 
 ---
 
@@ -56,5 +56,5 @@ The Admin Control Center is restricted to Organizers with PIN verification:
 2. **Household & Meal Schedule (`/admin/household/edit`):**
    * Household / Family Kitchen display name.
    * Default breakfast, lunch, and dinner start times (used when creating calendar events).
-3. **Google Calendar Direct Sync (`/admin/calendar/edit`):**
-   * Service account credentials management, live connection tester, and manual 1-click week sync.
+3. **Calendar Subscriptions (`/admin/calendar/edit`):**
+   * Manage household calendar feed links, test 1-tap Apple/Google subscriptions, and rotate feed security tokens.

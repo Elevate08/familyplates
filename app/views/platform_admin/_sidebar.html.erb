@@ -1,0 +1,134 @@
+<%# Platform Admin Sidebar Navigation %>
+<%
+  is_overview = request.path == platform_admin_root_path
+  is_households = request.path.start_with?('/platform_admin/households')
+  is_support = request.path.start_with?('/platform_admin/support_threads')
+  is_promotions = request.path.start_with?('/platform_admin/promotion_programs')
+  is_audit = request.path.start_with?('/platform_admin/audit_events')
+  is_deletions = request.path.start_with?('/platform_admin/deletion_requests')
+
+  waiting_support_count = SupportThread.where(status: ['waiting_on_support', 'open']).count rescue 0
+  pending_deletion_count = AccountDeletionRequest.where(status: 'pending').count rescue 0
+%>
+
+<!-- Mobile Drawer Backdrop -->
+<div data-mobile-sidebar-target="backdrop"
+     data-action="click->mobile-sidebar#close"
+     class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"></div>
+
+<!-- Sidebar Container (Fixed on Desktop, Drawer on Mobile) -->
+<aside data-mobile-sidebar-target="drawer"
+       class="hidden lg:flex flex-col justify-between w-72 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 lg:z-30 transition-transform shadow-lg lg:shadow-none">
+
+  <!-- Top Area: Brand & Primary Navigation -->
+  <div class="flex flex-col flex-1 overflow-y-auto px-4 py-5 space-y-6">
+    <!-- Brand / Console Header -->
+    <div class="flex items-center justify-between px-2">
+      <%= link_to platform_admin_root_path, class: "flex items-center gap-3 group" do %>
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-amber-500 flex items-center justify-center text-white shadow-xs shadow-primary-500/30 group-hover:scale-105 transition-transform">
+          <%= icon_tag("chef-hat", css_class: "w-5 h-5") %>
+        </div>
+        <div>
+          <span class="block text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">FamilyPlates</span>
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">Operator Console</span>
+        </div>
+      <% end %>
+
+      <!-- Mobile Close Button -->
+      <button type="button"
+              data-action="click->mobile-sidebar#close"
+              class="lg:hidden p-1.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <%= icon_tag("x-mark", css_class: "w-5 h-5") %>
+      </button>
+    </div>
+
+    <!-- Navigation Section -->
+    <nav aria-label="Platform navigation" class="space-y-6 flex-1">
+      <div class="space-y-1">
+        <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Management</p>
+
+        <%= link_to platform_admin_root_path, class: "flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_overview ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <%= icon_tag("chart-bar", css_class: "w-5 h-5 #{is_overview ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+          <span>Overview</span>
+        <% end %>
+
+        <%= link_to platform_admin_households_path, class: "flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_households ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <%= icon_tag("users", css_class: "w-5 h-5 #{is_households ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+          <span>Households</span>
+        <% end %>
+
+        <%= link_to platform_admin_support_threads_path, class: "flex items-center justify-between px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_support ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <div class="flex items-center gap-3">
+            <%= icon_tag("chat-bubble-left-right", css_class: "w-5 h-5 #{is_support ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+            <span>Support</span>
+          </div>
+          <% if waiting_support_count > 0 %>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"><%= waiting_support_count %></span>
+          <% end %>
+        <% end %>
+
+        <%= link_to platform_admin_promotion_programs_path, class: "flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_promotions ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <%= icon_tag("tag", css_class: "w-5 h-5 #{is_promotions ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+          <span>Promotions</span>
+        <% end %>
+      </div>
+
+      <!-- Governance & Security Section -->
+      <div class="space-y-1">
+        <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Governance</p>
+
+        <%= link_to platform_admin_audit_events_path, class: "flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_audit ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <%= icon_tag("clipboard-document-list", css_class: "w-5 h-5 #{is_audit ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+          <span>Audit Log</span>
+        <% end %>
+
+        <%= link_to platform_admin_deletion_requests_path, class: "flex items-center justify-between px-3 py-2.5 rounded-2xl text-sm font-semibold transition-all #{is_deletions ? 'bg-primary-50 text-primary-900 dark:bg-primary-950/60 dark:text-primary-200 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}" do %>
+          <div class="flex items-center gap-3">
+            <%= icon_tag("trash", css_class: "w-5 h-5 #{is_deletions ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}") %>
+            <span>Deletions</span>
+          </div>
+          <% if pending_deletion_count > 0 %>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"><%= pending_deletion_count %></span>
+          <% end %>
+        <% end %>
+      </div>
+    </nav>
+
+    <!-- Quick Switcher to Household App -->
+    <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+      <%= link_to root_path, class: "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors" do %>
+        <%= icon_tag("arrow-left", css_class: "w-4 h-4") %>
+        <span>Return to Household App</span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Bottom Area: Operator Profile, Appearance & Sign Out -->
+  <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 space-y-3">
+    <!-- Operator Card -->
+    <div class="flex items-center gap-3 px-2 py-1">
+      <div class="w-9 h-9 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">
+        <%= current_platform_admin&.email.to_s.first || "O" %>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-bold text-slate-900 dark:text-white truncate"><%= current_platform_admin&.email || "operator" %></p>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+          <%= current_platform_admin&.role&.titleize || "Operator" %>
+        </span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center justify-between pt-1 px-1">
+      <div class="flex items-center gap-2">
+        <%= render "shared/theme_toggle" %>
+        <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Theme</span>
+      </div>
+
+      <%= button_to platform_admin_session_path, method: :delete, class: "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer" do %>
+        <%= icon_tag("arrow-right-on-rectangle", css_class: "w-4 h-4") %>
+        <span>Sign out</span>
+      <% end %>
+    </div>
+  </div>
+</aside>

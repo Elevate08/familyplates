@@ -1,0 +1,55 @@
+<div class="max-w-4xl mx-auto py-6 sm:py-10 px-4">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Connected Devices</h1>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Manage active sessions signed in to your account</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if @sessions.size > 1 %>
+        <%= button_to "Sign Out All Other Devices", destroy_all_devices_path, method: :delete,
+              class: "px-4 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer" %>
+      <% end %>
+      <%= link_to "← Preferences", preferences_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors" %>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 shadow-sm overflow-hidden">
+    <% @sessions.each do |s| %>
+      <% is_current = (s == Current.session) %>
+      <div class="p-4 sm:p-6 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center <%= is_current ? 'bg-primary-100 text-primary-600 dark:bg-primary-950 dark:text-primary-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' %>">
+            <%= icon_tag(s.kiosk? ? "tv" : "laptop", css_class: "w-5 h-5") %>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md">
+                <%= s.user_agent.presence || "Unknown Browser / Client" %>
+              </span>
+              <% if is_current %>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                  Current Device
+                </span>
+              <% end %>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                <%= s.kind %>
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-3">
+              <% if s.ip_address.present? %>
+                <span>IP: <%= s.ip_address %></span>
+                <span>&bull;</span>
+              <% end %>
+              <span>Active <%= time_ago_in_words(s.last_active_at) %> ago</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <%= button_to is_current ? "Sign Out" : "Revoke", device_path(s), method: :delete,
+                class: "px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer #{is_current ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800' : 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50'}" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

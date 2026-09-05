@@ -20,11 +20,13 @@ class RecipeImportsController < ApplicationController
       return
     end
 
-    data = RecipeScraper.call(url)
-    if data.nil?
-      redirect_to new_recipe_import_path, alert: "Could not fetch recipe from that web address. Please check the link or add manually."
+    result = RecipeScraper.fetch(url)
+    if !result.success?
+      redirect_to new_recipe_import_path, alert: import_failure_message(result.error)
       return
     end
+
+    data = result.recipe
 
     # Check if a recipe with this title already exists in household
     existing_by_title = current_household.recipes.where("LOWER(title) = ?", data[:title].to_s.strip.downcase).first
@@ -73,6 +75,25 @@ class RecipeImportsController < ApplicationController
   end
 
   private
+
+  # "Could not fetch recipe" covered a site refusing bots, a dead link, and a
+  # page with no recipe on it alike, which left the user with nothing to act on.
+  IMPORT_FAILURE_MESSAGES = {
+    blocked_by_site: "That site blocks automatic recipe imports. Try copying the recipe in manually, or import it from another site.",
+    timeout: "That site took too long to respond. Please try again in a moment, or add the recipe manually.",
+    not_found: "That recipe page no longer exists. Please double-check the link.",
+    site_error: "That site is having trouble right now. Please try again later, or add the recipe manually.",
+    unparseable: "We couldn't find a recipe on that page. Make sure the link points at the recipe itself, or add it manually."
+    # :blocked (egress policy) deliberately has no entry: an address this server
+    # is not allowed to reach must look exactly like any other bad link, or the
+    # message becomes a probe for what is reachable from inside the network.
+  }.freeze
+
+  DEFAULT_IMPORT_FAILURE_MESSAGE = "Could not fetch recipe from that web address. Please check the link or add manually.".freeze
+
+  def import_failure_message(error)
+    IMPORT_FAILURE_MESSAGES.fetch(error, DEFAULT_IMPORT_FAILURE_MESSAGE)
+  end
 
   def set_available_ingredients
     @available_ingredients = IngredientAisleMapping.available_ingredients_with_aisles(current_household)

@@ -7,6 +7,7 @@ export default class extends Controller {
     "mealTypeSelect",
     "timeInput",
     "recipeInput",
+    "leftoverSourceInput",
     "recipeDropdownButton",
     "recipeDropdownMenu",
     "recipeSelectedDisplay",
@@ -104,8 +105,39 @@ export default class extends Controller {
       this.recipeInputTarget.value = recipeId
     }
 
+    if (this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = ""
+    }
+
     this.syncSelectedRecipeDisplay()
     this.hideRecipeDropdown()
+  }
+
+  selectLeftover(event) {
+    if (event) event.preventDefault()
+    const btn = event.currentTarget
+    const recipeId = btn.dataset.recipeId || ""
+    const sourceSlotId = btn.dataset.sourceSlotId || ""
+
+    if (this.hasRecipeInputTarget) {
+      this.recipeInputTarget.value = recipeId
+    }
+
+    if (this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = sourceSlotId
+    }
+
+    const form = btn.closest("form")
+    const checkbox = form?.querySelector("input[name='meal_plan_slot[is_leftover]']")
+    if (checkbox) checkbox.checked = true
+
+    this.syncSelectedRecipeDisplay()
+  }
+
+  toggleLeftover(event) {
+    if (!event.target.checked && this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = ""
+    }
   }
 
   // image_url can arrive from a scraped third-party page, so anything that is

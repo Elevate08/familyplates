@@ -115,22 +115,6 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "FamilyPlates Balanced Schedule"
   end
 
-  test "should sync calendar when enabled" do
-    @household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-
-    post sync_calendar_meal_plan_url(@meal_plan)
-    assert_redirected_to meal_plan_url(@meal_plan)
-    assert_equal "Weekly meal plan synced to Google Calendar! 📅", flash[:notice]
-  end
-
-  test "should alert when syncing calendar but not enabled" do
-    @household.update!(google_calendar_enabled: false)
-
-    post sync_calendar_meal_plan_url(@meal_plan)
-    assert_redirected_to meal_plan_url(@meal_plan)
-    assert_equal "Google Calendar sync is not configured yet. Set it up in the Admin Control Center.", flash[:alert]
-  end
-
   # --- Default month selection for weeks that straddle a month boundary -------
   #
   # A week belongs to whichever month holds most of its seven days. Anchoring on
@@ -182,6 +166,22 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
 
     get print_meal_plan_url(plan, view: "month")
     assert_includes response.body, "September 2026"
+  end
+
+  test "shows date picker with navigation arrows and popover container" do
+    get meal_plan_url(@meal_plan, view: "week")
+    assert_response :success
+
+    assert_select "[data-controller~=date-picker]" do
+      assert_select "button[data-date-picker-target=trigger]", text: /#{@meal_plan.week_label}/
+      assert_select "[data-date-picker-target=popover]" do
+        assert_select "button[data-action='click->date-picker#prevMonth']"
+        assert_select "span[data-date-picker-target=monthLabel]"
+        assert_select "button[data-action='click->date-picker#nextMonth']"
+        assert_select "button[data-action='click->date-picker#selectToday']", text: /Today/
+        assert_select "[data-date-picker-target=calendarGrid]"
+      end
+    end
   end
 
   private

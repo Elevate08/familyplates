@@ -49,6 +49,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     get root_url
     plan_id = response.location[%r{/meal_plans/(\d+)}, 1].to_i
 
-    assert_equal households(:one).id, MealPlan.find(plan_id).household_id
+    plan = households(:one).meal_plans.find_by(number: plan_id) || MealPlan.find(plan_id)
+    assert_equal households(:one).id, plan.household_id
   end
 end

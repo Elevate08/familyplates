@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_060000) do
+  create_table "account_deletion_requests", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "household_id", null: false
+    t.datetime "requested_at", null: false
+    t.string "requested_by_user_id"
+    t.text "resolution_note"
+    t.datetime "resolved_at"
+    t.string "resolved_by_platform_admin_id"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "status"], name: "index_account_deletion_requests_on_household_id_and_status"
+    t.index ["household_id"], name: "index_account_deletion_requests_on_household_id"
+    t.index ["requested_by_user_id"], name: "index_account_deletion_requests_on_requested_by_user_id"
+    t.index ["resolved_by_platform_admin_id"], name: "idx_on_resolved_by_platform_admin_id_85591ec992"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -39,6 +55,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "activity_events", id: :string, force: :cascade do |t|
+    t.string "actor_id"
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.string "household_id", null: false
+    t.json "metadata", default: {}, null: false
+    t.string "source", default: "web", null: false
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "created_at"], name: "index_activity_events_on_household_id_and_created_at"
+    t.index ["household_id"], name: "index_activity_events_on_household_id"
+    t.index ["target_type", "target_id"], name: "index_activity_events_on_target_type_and_target_id"
+  end
+
+  create_table "device_grants", id: :string, force: :cascade do |t|
+    t.datetime "approved_at"
+    t.string "client_name"
+    t.datetime "created_at", null: false
+    t.string "device_code", null: false
+    t.datetime "expires_at", null: false
+    t.string "household_id"
+    t.string "ip_address"
+    t.string "kind", default: "kiosk", null: false
+    t.datetime "last_polled_at"
+    t.string "session_id"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.string "user_code", null: false
+    t.string "user_id"
+    t.index ["device_code"], name: "index_device_grants_on_device_code", unique: true
+    t.index ["household_id"], name: "index_device_grants_on_household_id"
+    t.index ["session_id"], name: "index_device_grants_on_session_id"
+    t.index ["status"], name: "index_device_grants_on_status"
+    t.index ["user_code"], name: "index_device_grants_on_user_code", unique: true
+    t.index ["user_id"], name: "index_device_grants_on_user_id"
+  end
+
   create_table "family_members", id: :string, force: :cascade do |t|
     t.string "avatar_color", default: "#3B82F6"
     t.string "avatar_icon", default: "chef-hat"
@@ -48,19 +103,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.string "pin_digest"
     t.string "role", default: "member"
     t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["household_id", "user_id"], name: "index_family_members_on_household_id_and_user_id", unique: true, where: "user_id IS NOT NULL"
     t.index ["household_id"], name: "index_family_members_on_household_id"
   end
 
   create_table "households", id: :string, force: :cascade do |t|
     t.string "breakfast_time", default: "08:00", null: false
+    t.string "calendar_feed_token"
     t.datetime "created_at", null: false
     t.string "dinner_time", default: "18:00", null: false
-    t.boolean "google_calendar_enabled", default: false, null: false
-    t.string "google_calendar_id"
-    t.text "google_service_account_json"
+    t.string "join_code", null: false
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
+    t.datetime "onboarded_at"
+    t.string "promotion_code"
+    t.datetime "suspended_at"
+    t.string "suspension_reason"
+    t.string "time_zone"
     t.datetime "updated_at", null: false
+    t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
+    t.index ["join_code"], name: "index_households_on_join_code", unique: true
+    t.index ["promotion_code"], name: "index_households_on_promotion_code"
+    t.index ["suspended_at"], name: "index_households_on_suspended_at"
+  end
+
+  create_table "identities", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+    t.index ["user_id"], name: "index_identities_on_user_id"
   end
 
   create_table "ingredient_aisle_mappings", force: :cascade do |t|
@@ -75,13 +150,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.index ["name", "aisle_category"], name: "index_ingredient_aisle_mappings_on_name_and_aisle_category"
   end
 
+  create_table "magic_codes", id: :string, force: :cascade do |t|
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false, collation: "NOCASE"
+    t.datetime "expires_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["code"], name: "index_magic_codes_on_code", unique: true
+    t.index ["email"], name: "index_magic_codes_on_email"
+    t.index ["user_id"], name: "index_magic_codes_on_user_id"
+  end
+
   create_table "meal_plan_slots", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "custom_title"
     t.date "date", null: false
     t.string "family_member_id"
-    t.string "google_event_id"
     t.boolean "is_leftover", default: false, null: false
+    t.integer "leftover_source_slot_id"
     t.integer "meal_plan_id", null: false
     t.string "meal_type", default: "dinner", null: false
     t.text "notes"
@@ -89,7 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.string "scheduled_time"
     t.datetime "updated_at", null: false
     t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
-    t.index ["google_event_id"], name: "index_meal_plan_slots_on_google_event_id"
+    t.index ["leftover_source_slot_id"], name: "index_meal_plan_slots_on_leftover_source_slot_id"
     t.index ["meal_plan_id", "date", "meal_type"], name: "index_meal_plan_slots_on_meal_plan_id_and_date_and_meal_type"
     t.index ["meal_plan_id"], name: "index_meal_plan_slots_on_meal_plan_id"
     t.index ["recipe_id"], name: "index_meal_plan_slots_on_recipe_id"
@@ -99,8 +186,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.datetime "created_at", null: false
     t.string "household_id", null: false
     t.text "notes"
+    t.integer "number"
     t.datetime "updated_at", null: false
     t.date "week_start_date", null: false
+    t.index ["household_id", "number"], name: "index_meal_plans_on_household_id_and_number", unique: true
     t.index ["household_id", "week_start_date"], name: "index_meal_plans_on_household_id_and_week_start_date", unique: true
     t.index ["household_id"], name: "index_meal_plans_on_household_id"
   end
@@ -111,10 +200,182 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.string "emoji"
     t.string "household_id", null: false
     t.boolean "is_staple", default: true, null: false
+    t.datetime "low_stock_at"
     t.string "name", null: false
     t.datetime "updated_at", null: false
+    t.index ["household_id", "low_stock_at"], name: "index_pantry_items_on_household_id_and_low_stock_at"
     t.index ["household_id", "name"], name: "index_pantry_items_on_household_id_and_name", unique: true
     t.index ["household_id"], name: "index_pantry_items_on_household_id"
+  end
+
+  create_table "passkeys", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "external_id", null: false
+    t.datetime "last_used_at"
+    t.string "nickname"
+    t.text "public_key", null: false
+    t.integer "sign_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["external_id"], name: "index_passkeys_on_external_id", unique: true
+    t.index ["user_id", "created_at"], name: "index_passkeys_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_passkeys_on_user_id"
+  end
+
+  create_table "pay_charges", force: :cascade do |t|
+    t.integer "amount", null: false
+    t.integer "amount_refunded"
+    t.integer "application_fee_amount"
+    t.datetime "created_at", null: false
+    t.string "currency"
+    t.bigint "customer_id", null: false
+    t.json "data"
+    t.json "metadata"
+    t.json "object"
+    t.string "processor_id", null: false
+    t.string "stripe_account"
+    t.bigint "subscription_id"
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.index ["customer_id", "processor_id"], name: "index_pay_charges_on_customer_id_and_processor_id", unique: true
+    t.index ["subscription_id"], name: "index_pay_charges_on_subscription_id"
+  end
+
+  create_table "pay_customers", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.json "data"
+    t.boolean "default"
+    t.datetime "deleted_at", precision: nil
+    t.json "object"
+    t.string "owner_id"
+    t.string "owner_type"
+    t.string "processor", null: false
+    t.string "processor_id"
+    t.string "stripe_account"
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.index ["owner_type", "owner_id", "deleted_at"], name: "pay_customer_owner_index", unique: true
+    t.index ["processor", "processor_id"], name: "index_pay_customers_on_processor_and_processor_id", unique: true
+  end
+
+  create_table "pay_merchants", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.json "data"
+    t.boolean "default"
+    t.string "owner_id"
+    t.string "owner_type"
+    t.string "processor", null: false
+    t.string "processor_id"
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.index ["owner_type", "owner_id", "processor"], name: "index_pay_merchants_on_owner_type_and_owner_id_and_processor"
+  end
+
+  create_table "pay_payment_methods", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "customer_id", null: false
+    t.json "data"
+    t.boolean "default"
+    t.string "payment_method_type"
+    t.string "processor_id", null: false
+    t.string "stripe_account"
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.index ["customer_id", "processor_id"], name: "index_pay_payment_methods_on_customer_id_and_processor_id", unique: true
+  end
+
+  create_table "pay_subscriptions", force: :cascade do |t|
+    t.decimal "application_fee_percent", precision: 8, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "current_period_end", precision: nil
+    t.datetime "current_period_start", precision: nil
+    t.bigint "customer_id", null: false
+    t.json "data"
+    t.datetime "ends_at", precision: nil
+    t.json "metadata"
+    t.boolean "metered"
+    t.string "name", null: false
+    t.json "object"
+    t.string "pause_behavior"
+    t.datetime "pause_resumes_at", precision: nil
+    t.datetime "pause_starts_at", precision: nil
+    t.string "payment_method_id"
+    t.string "processor_id", null: false
+    t.string "processor_plan", null: false
+    t.integer "quantity", default: 1, null: false
+    t.string "status", null: false
+    t.string "stripe_account"
+    t.datetime "trial_ends_at", precision: nil
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.index ["customer_id", "processor_id"], name: "index_pay_subscriptions_on_customer_id_and_processor_id", unique: true
+    t.index ["metered"], name: "index_pay_subscriptions_on_metered"
+    t.index ["pause_starts_at"], name: "index_pay_subscriptions_on_pause_starts_at"
+  end
+
+  create_table "pay_webhooks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.json "event"
+    t.string "event_type"
+    t.string "processor"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "platform_admin_sessions", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "last_active_at", null: false
+    t.string "platform_admin_id", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["platform_admin_id"], name: "index_platform_admin_sessions_on_platform_admin_id"
+    t.index ["token"], name: "index_platform_admin_sessions_on_token", unique: true
+  end
+
+  create_table "platform_admins", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "last_signed_in_at"
+    t.string "otp_secret", null: false
+    t.string "password_digest", null: false
+    t.string "role", default: "owner", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_platform_admins_on_email", unique: true
+  end
+
+  create_table "platform_audit_events", id: :string, force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.json "metadata", default: {}, null: false
+    t.string "platform_admin_id"
+    t.string "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
+    t.index ["action"], name: "index_platform_audit_events_on_action"
+    t.index ["created_at"], name: "index_platform_audit_events_on_created_at"
+    t.index ["platform_admin_id"], name: "index_platform_audit_events_on_platform_admin_id"
+    t.index ["target_type", "target_id"], name: "index_platform_audit_events_on_target_type_and_target_id"
+  end
+
+  create_table "promotion_programs", id: :string, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.integer "discount_percent"
+    t.datetime "ends_at"
+    t.integer "max_redemptions"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "provider_promotion_code_id"
+    t.integer "redeemed_count", default: 0, null: false
+    t.datetime "starts_at"
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_promotion_programs_on_active"
+    t.index ["code"], name: "index_promotion_programs_on_code", unique: true
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|
@@ -151,7 +412,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.string "household_id", null: false
     t.string "image_url"
     t.text "instructions"
+    t.integer "leftover_capacity", default: 1, null: false
+    t.integer "leftover_shelf_life_days", default: 3, null: false
     t.string "meal_types", default: "breakfast,lunch,dinner"
+    t.integer "number"
     t.integer "prep_time", default: 15
     t.integer "servings", default: 4
     t.string "source_url"
@@ -160,21 +424,93 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_010000) do
     t.integer "total_time"
     t.datetime "updated_at", null: false
     t.boolean "yields_leftovers", default: false, null: false
+    t.index ["household_id", "number"], name: "index_recipes_on_household_id_and_number", unique: true
     t.index ["household_id", "title"], name: "index_recipes_on_household_id_and_title"
     t.index ["household_id"], name: "index_recipes_on_household_id"
   end
 
+  create_table "sessions", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.string "ip_address"
+    t.string "kind", default: "browser", null: false
+    t.datetime "last_active_at", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.string "user_id", null: false
+    t.index ["token"], name: "index_sessions_on_token", unique: true
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "support_messages", id: :string, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "platform_admin_id"
+    t.string "support_thread_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["support_thread_id", "created_at"], name: "index_support_messages_on_support_thread_id_and_created_at"
+  end
+
+  create_table "support_threads", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "created_by_user_id"
+    t.string "household_id", null: false
+    t.datetime "last_message_at"
+    t.datetime "resolved_at"
+    t.string "status", default: "open", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "last_message_at"], name: "index_support_threads_on_household_id_and_last_message_at"
+    t.index ["household_id", "status"], name: "index_support_threads_on_household_id_and_status"
+  end
+
+  create_table "users", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false, collation: "NOCASE"
+    t.string "password_digest"
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["email"], name: "index_users_on_email", unique: true
+  end
+
+  add_foreign_key "account_deletion_requests", "households"
+  add_foreign_key "account_deletion_requests", "platform_admins", column: "resolved_by_platform_admin_id"
+  add_foreign_key "account_deletion_requests", "users", column: "requested_by_user_id"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_events", "family_members", column: "actor_id"
+  add_foreign_key "activity_events", "households"
+  add_foreign_key "device_grants", "households", on_delete: :cascade
+  add_foreign_key "device_grants", "sessions", on_delete: :cascade
+  add_foreign_key "device_grants", "users", on_delete: :cascade
   add_foreign_key "family_members", "households"
+  add_foreign_key "family_members", "users", on_delete: :nullify
+  add_foreign_key "identities", "users", on_delete: :cascade
   add_foreign_key "ingredient_aisle_mappings", "households"
+  add_foreign_key "magic_codes", "users", on_delete: :cascade
   add_foreign_key "meal_plan_slots", "family_members"
+  add_foreign_key "meal_plan_slots", "meal_plan_slots", column: "leftover_source_slot_id", on_delete: :nullify
   add_foreign_key "meal_plan_slots", "meal_plans"
   add_foreign_key "meal_plan_slots", "recipes"
   add_foreign_key "meal_plans", "households"
   add_foreign_key "pantry_items", "households"
+  add_foreign_key "passkeys", "users", on_delete: :cascade
+  add_foreign_key "pay_charges", "pay_customers", column: "customer_id"
+  add_foreign_key "pay_charges", "pay_subscriptions", column: "subscription_id"
+  add_foreign_key "pay_payment_methods", "pay_customers", column: "customer_id"
+  add_foreign_key "pay_subscriptions", "pay_customers", column: "customer_id"
+  add_foreign_key "platform_admin_sessions", "platform_admins"
+  add_foreign_key "platform_audit_events", "platform_admins"
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"
   add_foreign_key "recipes", "households"
+  add_foreign_key "sessions", "users", on_delete: :cascade
+  add_foreign_key "support_messages", "platform_admins"
+  add_foreign_key "support_messages", "support_threads"
+  add_foreign_key "support_messages", "users"
+  add_foreign_key "support_threads", "households"
+  add_foreign_key "support_threads", "users", column: "created_by_user_id"
 end

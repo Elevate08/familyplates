@@ -13,7 +13,7 @@ class PantryItemsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create pantry item" do
-    assert_difference("PantryItem.count", 1) do
+    assert_difference([ "PantryItem.count", "ActivityEvent.where(event_type: 'pantry_item.created').count" ], 1) do
       post pantry_items_url, params: {
         pantry_item: { name: "Honey", aisle_category: "Pantry & Grains", is_staple: true }
       }

@@ -1,0 +1,41 @@
+<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4">
+  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 mb-3 shadow-sm">
+        <%= icon_tag("key", css_class: "w-7 h-7") %>
+      </div>
+      <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+        Enter 6-character Code
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+        If an account exists for <strong class="text-slate-700 dark:text-slate-200"><%= @email %></strong>, we sent a verification code that expires in 15 minutes.
+      </p>
+    </div>
+
+    <% if Rails.env.development? && flash[:magic_link_code].present? %>
+      <div class="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-300 text-xs font-mono text-center">
+        [DEV ONLY] Sign-in code: <strong><%= flash[:magic_link_code] %></strong>
+      </div>
+    <% end %>
+
+    <%= form_with url: verify_session_path, method: :post, local: true, class: "space-y-4" do |f| %>
+      <%= f.hidden_field :email, value: @email %>
+
+      <div>
+        <%= f.label :code, "Sign-in Code", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 text-center" %>
+        <%= f.text_field :code, maxlength: 6, required: true, autofocus: true, autocomplete: "one-time-code",
+              placeholder: "ABC123",
+              class: "w-full text-center text-2xl tracking-[0.4em] font-mono uppercase py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" %>
+      </div>
+
+      <div class="pt-2">
+        <%= f.submit "Verify & Sign In",
+              class: "w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer" %>
+      </div>
+    <% end %>
+
+    <div class="mt-6 text-center">
+      <%= link_to "← Try a different email", new_session_path, class: "text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
+    </div>
+  </div>
+</div>

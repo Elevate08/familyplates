@@ -18,12 +18,23 @@ class SafeHttpFetcher
     new(url, headers: headers).get
   end
 
+  # Same request, but the caller keeps the final status. Recipe import needs it
+  # to tell "the site turned us away" (403/429 anti-bot) from "the page was
+  # there but had no recipe in it", which are different messages to a user.
+  def self.get_response(url, headers: {})
+    new(url, headers: headers).get_response
+  end
+
   def initialize(url, headers: {})
     @url = url
     @headers = headers
   end
 
   def get
+    get_response.body
+  end
+
+  def get_response
     url = @url
     seen = 0
 
@@ -31,7 +42,7 @@ class SafeHttpFetcher
       target = OutboundUrlPolicy.check!(url)
       result = perform_request(target)
 
-      return result.body unless result.redirect?
+      return result unless result.redirect?
 
       seen += 1
       raise Rejected, "more than #{MAX_REDIRECTS} redirects" if seen > MAX_REDIRECTS

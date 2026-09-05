@@ -1,0 +1,27 @@
+<% content_for :title, "Activity History | FamilyPlates" %>
+
+<div class="max-w-3xl mx-auto py-6 sm:py-8 space-y-7">
+  <div class="border-b border-slate-200 pb-6 dark:border-slate-800">
+    <%= link_to "← Back to kitchen", root_path, class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Activity history</h1>
+    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">See meaningful changes made in your household.</p>
+  </div>
+
+  <div class="rounded-3xl border border-slate-200 bg-white px-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <% if @activity_events.empty? %>
+      <p class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">No activity has been recorded yet.</p>
+    <% else %>
+      <div class="divide-y divide-slate-100 dark:divide-slate-800">
+        <% @activity_events.each do |event| %>
+          <div class="flex gap-4 py-4">
+            <div class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary-500" aria-hidden="true"></div>
+            <div class="min-w-0">
+              <p class="text-sm text-slate-800 dark:text-slate-200"><%= event.human_description %></p>
+              <time class="mt-1 block text-xs text-slate-500 dark:text-slate-400" datetime="<%= event.created_at.iso8601 %>"><%= event.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></time>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

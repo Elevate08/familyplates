@@ -30,8 +30,8 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       ]
     }
 
-    original_call = RecipeScraper.method(:call)
-    RecipeScraper.define_singleton_method(:call) { |_url| scraped_data }
+    original_fetch = RecipeScraper.method(:fetch)
+    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
 
     begin
       assert_difference("Recipe.count", 1) do
@@ -43,7 +43,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       assert_equal 1, recipe.recipe_ingredients.count
       assert_includes flash[:notice], "Imported"
     ensure
-      RecipeScraper.define_singleton_method(:call, original_call)
+      RecipeScraper.define_singleton_method(:fetch, original_fetch)
     end
   end
 
@@ -67,8 +67,8 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       ingredients: []
     }
 
-    original_call = RecipeScraper.method(:call)
-    RecipeScraper.define_singleton_method(:call) { |_url| scraped_data }
+    original_fetch = RecipeScraper.method(:fetch)
+    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
 
     begin
       assert_no_difference("Recipe.count") do
@@ -77,7 +77,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to recipe_url(recipes(:one))
       assert_includes flash[:alert], "already in your recipe box"
     ensure
-      RecipeScraper.define_singleton_method(:call, original_call)
+      RecipeScraper.define_singleton_method(:fetch, original_fetch)
     end
   end
 
@@ -88,5 +88,34 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_recipe_import_url
     assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.", flash[:alert]
+  end
+
+  test "each scrape failure explains what the user can do about it" do
+    {
+      blocked_by_site: "blocks automatic recipe imports",
+      timeout: "took too long to respond",
+      not_found: "no longer exists",
+      site_error: "having trouble right now",
+      unparseable: "couldn't find a recipe on that page"
+    }.each do |error, expected|
+      with_scrape_failure(error) do
+        assert_no_difference "Recipe.count" do
+          post recipe_imports_url, params: { url: "https://example.com/recipes/#{error}" }
+        end
+
+        assert_redirected_to new_recipe_import_url
+        assert_includes flash[:alert], expected, "#{error} needs its own message"
+      end
+    end
+  end
+
+  private
+
+  def with_scrape_failure(error)
+    original_fetch = RecipeScraper.method(:fetch)
+    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(error: error) }
+    yield
+  ensure
+    RecipeScraper.define_singleton_method(:fetch, original_fetch)
   end
 end
