@@ -136,8 +136,8 @@
 
         <ul class="themed-scrollbar flex-1 divide-y divide-white/5 overflow-y-auto">
           <% @recipe.recipe_ingredients.each do |ing| %>
-            <li class="transition-opacity">
-              <label class="flex cursor-pointer items-start gap-4 px-5 py-4">
+            <li class="flex items-start gap-2 pr-4 transition-opacity">
+              <label class="flex flex-1 cursor-pointer items-start gap-4 px-5 py-4">
                 <input type="checkbox" id="cook_ingredient_<%= ing.id %>" value="<%= ing.id %>"
                        data-cook-mode-target="ingredient" data-action="cook-mode#toggleIngredient"
                        class="mt-1 h-7 w-7 shrink-0 rounded-lg border-white/20 bg-white/5 text-primary-500 focus:ring-primary-500">
@@ -149,6 +149,14 @@
                   <%= ing.name.presence || ing.raw_text %>
                 </span>
               </label>
+
+              <%# Reaching for the last of the paprika mid-recipe is the moment
+                  someone actually knows they are low. %>
+              <% if (tracked = pantry_item_for(ing.name)) %>
+                <span class="shrink-0 self-center">
+                  <%= render "pantry_items/stock_toggle", pantry_item: tracked %>
+                </span>
+              <% end %>
             </li>
           <% end %>
         </ul>

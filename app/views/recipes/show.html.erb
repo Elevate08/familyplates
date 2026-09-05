@@ -209,7 +209,7 @@
             <div class="w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">
               <%= pantry_icon_tag(ing.name, ing.aisle_category, css_class: "w-5 h-5") %>
             </div>
-            <div>
+            <div class="flex-1 min-w-0">
               <div>
                 <% formatted_qty = [ing.display_quantity, ing.unit].reject(&:blank?).join(" ") %>
                 <% if formatted_qty.present? %>
@@ -219,6 +219,14 @@
               </div>
               <span class="block text-[10px] text-slate-400 dark:text-slate-500 font-semibold"><%= ing.aisle_category %></span>
             </div>
+
+            <%# Noticing you are low on something happens while reading the
+                ingredients, not while sitting in the pantry screen. %>
+            <% if (tracked = pantry_item_for(ing.name)) %>
+              <div class="shrink-0 -mt-0.5">
+                <%= render "pantry_items/stock_toggle", pantry_item: tracked %>
+              </div>
+            <% end %>
           </li>
         <% end %>
       </ul>

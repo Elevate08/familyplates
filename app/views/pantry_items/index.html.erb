@@ -4,12 +4,20 @@
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
         <span>Pantry & On-Hand Inventory</span>
+        <%# Counts what is actually shielding right now. A staple flagged low is
+            on the grocery list, so calling it "on hand" would be a lie. %>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">
-          <%= @pantry_items.where(is_staple: true).count %> on hand
+          <%= @pantry_items.count(&:shielding?) %> on hand
         </span>
+        <% low_count = @pantry_items.count(&:low_stock?) %>
+        <% if low_count > 0 %>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300">
+            <%= low_count %> running low
+          </span>
+        <% end %>
       </h1>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Items marked as on hand are automatically shielded and excluded from your weekly grocery shopping list.
+        Items marked as on hand are shielded from your weekly grocery list — until you flag one as running low, which puts it back on the list until it is bought.
       </p>
     </div>
   </div>

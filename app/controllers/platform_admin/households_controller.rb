@@ -9,7 +9,7 @@ module PlatformAdmin
 
       @total_count = Household.count
       @suspended_count = Household.where.not(suspended_at: nil).count
-      @with_promo_count = Household.where.not(promotion_code: [nil, ""]).count
+      @with_promo_count = Household.where.not(promotion_code: [ nil, "" ]).count
 
       scope = filtered_households
       scope = if @status == "suspended"

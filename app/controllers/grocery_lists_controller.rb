@@ -11,5 +11,6 @@ class GroceryListsController < ApplicationController
     @aisles = @aggregation[:aisles]
     @total_shopping_count = @aggregation[:total_shopping_count]
     @total_pantry_count = @aggregation[:total_pantry_count]
+    @total_restock_count = @aggregation[:total_restock_count]
   end
 end

@@ -157,6 +157,12 @@ Rails.application.routes.draw do
   resources :pantry_items, only: %i[index create update destroy] do
     member do
       patch :toggle_staple
+      # Running low. toggle_low is the 1-tap control; the other two are the
+      # idempotent ends the grocery checklist drives, where a checkbox can be
+      # ticked twice as easily as once.
+      patch :toggle_low
+      patch :mark_low
+      patch :restock
     end
   end
 

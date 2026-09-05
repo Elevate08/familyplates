@@ -159,6 +159,17 @@ module ApplicationHelper
 
   DEFAULT_EMOJI_TEXT_SIZE = "text-xl".freeze
 
+  # The pantry row an ingredient line refers to, if the household tracks it at
+  # all. Lets a recipe's ingredients and Cook Mode's drawer hang the "low on
+  # this" control off the same record the grocery list reads, without either
+  # view knowing how names are matched.
+  #
+  # The association is loaded once per request, so this is one query however
+  # many ingredients ask.
+  def pantry_item_for(ingredient_name)
+    PantryItem.matching(current_household, ingredient_name)
+  end
+
   # tag.span escapes its content, so nothing reaching this can carry markup.
   def emoji_span(emoji, css_class: "w-6 h-6")
     height = css_class.to_s.split.find { |token| token.start_with?("h-") }
