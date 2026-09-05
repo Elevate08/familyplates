@@ -52,4 +52,49 @@ class RecipeTest < ActiveSupport::TestCase
     assert_includes household.recipes.leftover_friendly, batch_recipe
     assert_not_includes household.recipes.leftover_friendly, quick_recipe
   end
+
+  test "leftover capacity and shelf life have sensible defaults and effective fallbacks" do
+    recipe = Recipe.new
+    assert_equal 1, recipe.leftover_capacity
+    assert_equal 3, recipe.leftover_shelf_life_days
+    assert_equal 1, recipe.effective_leftover_capacity
+    assert_equal 3, recipe.effective_leftover_shelf_life_days
+
+    recipe.leftover_capacity = nil
+    recipe.leftover_shelf_life_days = nil
+    assert_equal 1, recipe.effective_leftover_capacity
+    assert_equal 3, recipe.effective_leftover_shelf_life_days
+  end
+
+  test "validates leftover capacity between 1 and 10" do
+    household = households(:one)
+    recipe = household.recipes.build(title: "Soup")
+
+    recipe.leftover_capacity = 0
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:leftover_capacity], "must be greater than or equal to 1"
+
+    recipe.leftover_capacity = 11
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:leftover_capacity], "must be less than or equal to 10"
+
+    recipe.leftover_capacity = 5
+    assert recipe.valid?
+  end
+
+  test "validates leftover shelf life between 1 and 14" do
+    household = households(:one)
+    recipe = household.recipes.build(title: "Fish Stew")
+
+    recipe.leftover_shelf_life_days = 0
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:leftover_shelf_life_days], "must be greater than or equal to 1"
+
+    recipe.leftover_shelf_life_days = 15
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:leftover_shelf_life_days], "must be less than or equal to 14"
+
+    recipe.leftover_shelf_life_days = 7
+    assert recipe.valid?
+  end
 end

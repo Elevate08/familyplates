@@ -42,6 +42,9 @@ Rails.application.routes.draw do
     post :request_deletion
   end
   resources :support_threads, only: %i[index show create] do
+    member do
+      patch :resolve
+    end
     resources :messages, only: :create, controller: "support_messages"
   end
 
@@ -124,6 +127,8 @@ Rails.application.routes.draw do
       member do
         post :reply
         patch :resolve
+        patch :reopen
+        patch :change_status
       end
     end
   end

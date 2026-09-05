@@ -117,12 +117,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "onboarded_at"
+    t.string "promotion_code"
     t.datetime "suspended_at"
     t.string "suspension_reason"
     t.string "time_zone"
     t.datetime "updated_at", null: false
     t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
+    t.index ["promotion_code"], name: "index_households_on_promotion_code"
     t.index ["suspended_at"], name: "index_households_on_suspended_at"
   end
 
@@ -166,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
     t.date "date", null: false
     t.string "family_member_id"
     t.boolean "is_leftover", default: false, null: false
+    t.integer "leftover_source_slot_id"
     t.integer "meal_plan_id", null: false
     t.string "meal_type", default: "dinner", null: false
     t.text "notes"
@@ -173,6 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
     t.string "scheduled_time"
     t.datetime "updated_at", null: false
     t.index ["family_member_id"], name: "index_meal_plan_slots_on_family_member_id"
+    t.index ["leftover_source_slot_id"], name: "index_meal_plan_slots_on_leftover_source_slot_id"
     t.index ["meal_plan_id", "date", "meal_type"], name: "index_meal_plan_slots_on_meal_plan_id_and_date_and_meal_type"
     t.index ["meal_plan_id"], name: "index_meal_plan_slots_on_meal_plan_id"
     t.index ["recipe_id"], name: "index_meal_plan_slots_on_recipe_id"
@@ -406,6 +410,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
     t.string "household_id", null: false
     t.string "image_url"
     t.text "instructions"
+    t.integer "leftover_capacity", default: 1, null: false
+    t.integer "leftover_shelf_life_days", default: 3, null: false
     t.string "meal_types", default: "breakfast,lunch,dinner"
     t.integer "number"
     t.integer "prep_time", default: 15
@@ -483,6 +489,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
   add_foreign_key "ingredient_aisle_mappings", "households"
   add_foreign_key "magic_codes", "users", on_delete: :cascade
   add_foreign_key "meal_plan_slots", "family_members"
+  add_foreign_key "meal_plan_slots", "meal_plan_slots", column: "leftover_source_slot_id", on_delete: :nullify
   add_foreign_key "meal_plan_slots", "meal_plans"
   add_foreign_key "meal_plan_slots", "recipes"
   add_foreign_key "meal_plans", "households"

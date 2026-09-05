@@ -13,7 +13,7 @@ module PlatformAdmin
         admin.update!(last_signed_in_at: Time.current)
         start_platform_admin_session_for(admin)
         record_platform_audit!("platform_admin.signed_in", metadata: { email: admin.email })
-        redirect_to platform_admin_root_path, notice: "Signed in to the platform console."
+        redirect_to platform_admin_root_path, notice: "Signed in to the platform console.", status: :see_other
       else
         record_platform_audit!("platform_admin.sign_in_failed", metadata: { email: email.presence })
         BCrypt::Password.create("dummy", cost: BCrypt::Engine::MIN_COST)

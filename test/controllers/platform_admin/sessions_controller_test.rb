@@ -12,6 +12,8 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "login requires password and current MFA code" do
     get new_platform_admin_session_path
     assert_response :success
+    assert_select "link[rel='stylesheet']"
+    assert_select "nav", text: /Operator/i
 
     post platform_admin_session_path, params: {
       email: @admin.email,
@@ -32,6 +34,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_equal "Invalid email, password, or verification code.", flash[:alert]
+    assert_includes response.body, "Invalid email, password, or verification code."
     assert_nil cookies[:platform_admin_session_token]
   end
 

@@ -1,20 +1,33 @@
 module PlatformAdmin
   class HouseholdsController < BaseController
-    PAGE_SIZE = 50
+    PAGE_SIZE = 100
 
     def index
       @search = params[:search].to_s.strip
       @status = params[:status].presence_in(%w[active suspended])
-      record_platform_audit!("households.indexed", metadata: { search: @search.presence })
-      @households = filtered_households
-        .then { |scope| @status ? scope.where(@status == "suspended" ? "suspended_at IS NOT NULL" : "suspended_at IS NULL") : scope }
-        .includes(:family_members, :users)
+      record_platform_audit!("households.indexed", metadata: { search: @search.presence, status: @status })
+
+      @total_count = Household.count
+      @suspended_count = Household.where.not(suspended_at: nil).count
+      @with_promo_count = Household.where.not(promotion_code: [nil, ""]).count
+
+      scope = filtered_households
+      scope = if @status == "suspended"
+        scope.where.not(suspended_at: nil)
+      elsif @status == "active"
+        scope.where(suspended_at: nil)
+      else
+        scope
+      end
+
+      @households = scope
+        .includes(:family_members, :users, :pay_subscriptions, :pay_customers)
         .order(created_at: :desc, id: :desc)
         .limit(PAGE_SIZE)
     end
 
     def show
-      @household = Household.includes(:family_members, :users).find(params[:id])
+      @household = Household.includes(:family_members, :users, :pay_subscriptions, :pay_customers).find(params[:id])
       record_platform_audit!("household.viewed", target: @household)
       @family_members = @household.family_members.order(:created_at, :id)
       @recipes_count = @household.recipes.count
@@ -24,6 +37,10 @@ module PlatformAdmin
       @recent_activity = @household.activity_events.includes(:actor).order(created_at: :desc, id: :desc).limit(20)
       @subscription_status = @household.subscription_status
       @subscription_plan = @household.subscription_plan_name
+      @subscription_expires_at = @household.subscription_expires_at
+      @subscription_billing_label = @household.subscription_billing_label
+      @applied_promotion_code = @household.applied_promotion_code
+      @charges = @household.pay_charges.order(created_at: :desc).limit(20)
     end
 
     def suspend
@@ -47,7 +64,7 @@ module PlatformAdmin
 
       pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@search)}%"
       Household.left_joins(family_members: :user)
-        .where("households.name LIKE :pattern OR users.email LIKE :pattern OR family_members.name LIKE :pattern", pattern: pattern)
+        .where("households.name LIKE :pattern OR users.email LIKE :pattern OR family_members.name LIKE :pattern OR households.promotion_code LIKE :pattern OR households.join_code LIKE :pattern", pattern: pattern)
         .distinct
     end
   end

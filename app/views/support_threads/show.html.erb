@@ -1,29 +1,57 @@
 <% content_for :title, "#{@support_thread.subject} | FamilyPlates Support" %>
 
 <div class="max-w-3xl mx-auto py-6 sm:py-8 space-y-7">
+  <!-- Header -->
   <div class="border-b border-slate-200 pb-6 dark:border-slate-800">
     <%= link_to "← All support conversations", support_threads_path, class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
-    <div class="mt-3 flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white"><%= @support_thread.subject %></h1>
-      <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"><%= @support_thread.status.humanize %></span>
+    <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white"><%= @support_thread.subject %></h1>
+        <%= support_thread_status_badge(@support_thread) %>
+      </div>
+      <% unless @support_thread.resolved? %>
+        <%= button_to resolve_support_thread_path(@support_thread), method: :patch, class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 cursor-pointer transition-colors" do %>
+          <span>✓</span>
+          <span>Mark resolved</span>
+        <% end %>
+      <% end %>
     </div>
   </div>
 
-  <div class="rounded-3xl border border-slate-200 bg-white px-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+  <% if @support_thread.resolved? %>
+    <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 flex items-center gap-3 text-xs text-emerald-800 dark:text-emerald-300">
+      <span class="text-base font-bold">✓</span>
+      <div>
+        <span class="font-bold">This support request is resolved.</span>
+        <span class="ml-1">If you have additional questions or need more help, replying below will automatically reopen it.</span>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
+    <div class="space-y-4">
       <% @support_thread.messages.order(:created_at, :id).each do |message| %>
-        <div class="py-5">
-          <div class="flex items-center justify-between gap-4">
-            <span class="text-sm font-bold text-slate-800 dark:text-slate-200"><%= message.platform_admin? ? "FamilyPlates Support" : "You" %></span>
-            <time class="text-xs text-slate-500" datetime="<%= message.created_at.iso8601 %>"><%= message.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></time>
+        <div class="p-4 rounded-2xl <%= message.platform_admin? ? 'bg-slate-50 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60' : 'bg-primary-50/40 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900/40' %> space-y-2">
+          <div class="flex items-center justify-between gap-4 text-xs">
+            <span class="font-bold <%= message.platform_admin? ? 'text-primary-700 dark:text-primary-300' : 'text-slate-900 dark:text-white' %>">
+              <%= message.platform_admin? ? "FamilyPlates Support Team" : "You" %>
+            </span>
+            <time class="text-slate-400 text-[11px]" datetime="<%= message.created_at.iso8601 %>">
+              <%= message.created_at.strftime("%b %-d, %Y at %-I:%M %p") %>
+            </time>
           </div>
-          <p class="mt-2 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300"><%= message.body %></p>
+          <p class="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200"><%= message.body %></p>
         </div>
       <% end %>
     </div>
-    <%= form_with url: support_thread_messages_path(@support_thread), scope: :support_message, class: "border-t border-slate-200 py-5 dark:border-slate-800" do |form| %>
-      <%= form.text_area :body, required: true, maxlength: 10_000, rows: 4, placeholder: "Reply to support...", class: "block w-full rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-950" %>
-      <%= form.submit "Send reply", class: "mt-3 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700" %>
-    <% end %>
+
+    <!-- Reply Box -->
+    <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+      <%= form_with url: support_thread_messages_path(@support_thread), scope: :support_message, class: "space-y-3" do |form| %>
+        <label for="customer_reply_body" class="block text-xs font-bold text-slate-700 dark:text-slate-300">Reply to support</label>
+        <%= form.text_area :body, id: "customer_reply_body", required: true, maxlength: 10_000, rows: 4, placeholder: "Reply to support...", class: "block w-full rounded-2xl border border-slate-300 p-4 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary-500" %>
+        <%= form.submit "Send reply", class: "rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 cursor-pointer shadow-xs transition-colors" %>
+      <% end %>
+    </div>
   </div>
 </div>

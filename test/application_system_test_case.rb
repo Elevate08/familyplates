@@ -58,6 +58,7 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   teardown do
     assert_no_browser_errors if @assert_console_clean != false
+    page.driver.browser.manage.window.resize_to(1400, 1400) rescue nil
   end
 
   # Fails on anything the browser logged at SEVERE - uncaught exceptions,

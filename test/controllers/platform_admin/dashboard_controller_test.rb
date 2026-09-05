@@ -29,6 +29,8 @@ class PlatformAdmin::DashboardControllerTest < ActionDispatch::IntegrationTest
     get platform_admin_root_path
 
     assert_response :success
+    assert_select "link[rel='stylesheet']"
+    assert_select "nav a[href='#{platform_admin_households_path}']"
     assert_select "h1", text: /Platform Operator Console/i
   end
 

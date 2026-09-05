@@ -53,7 +53,7 @@
 
     <style>
       :root {
-        --user-accent: <%= current_family_member&.avatar_color || '#ea580c' %>;
+        --user-accent: <%= (respond_to?(:current_family_member) && current_family_member&.avatar_color) || '#ea580c' %>;
       }
       /* Prevent iOS tap highlight gray box */
       * {
@@ -62,22 +62,71 @@
     </style>
   </head>
 
-  <body class="min-h-full flex flex-col font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 selection:bg-primary-500 selection:text-white pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12 transition-colors duration-150">
-    <%# Asked once, only while the household has no zone on file. Everything
-        time-of-day - which meal is being cooked, which day is highlighted -
-        depends on it, and the browser is the only thing that knows. %>
-    <% if authenticated? && current_household&.time_zone.blank? %>
-      <div hidden data-controller="time-zone-detector" data-time-zone-detector-url-value="<%= household_time_zone_path %>"></div>
+  <body class="min-h-full flex flex-col font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 selection:bg-primary-500 selection:text-white <%= controller_path.start_with?('platform_admin') ? '' : 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12' %> transition-colors duration-150">
+    <% if controller_path.start_with?("platform_admin") %>
+      <% if respond_to?(:platform_admin_authenticated?) && platform_admin_authenticated? %>
+        <div class="min-h-screen flex flex-col lg:flex-row" data-controller="mobile-sidebar">
+          <%= render "platform_admin/sidebar" %>
+
+          <div class="flex-1 lg:pl-72 flex flex-col min-w-0">
+            <!-- Mobile Header with Brand & Hamburger -->
+            <header class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+              <div class="flex items-center gap-2.5">
+                <span class="text-lg font-black tracking-tight text-slate-900 dark:text-white">FamilyPlates</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-800 dark:bg-primary-950/80 dark:text-primary-300">Operator</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <%= render "shared/theme_toggle" %>
+                <button type="button"
+                        data-action="click->mobile-sidebar#toggle"
+                        class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <%= icon_tag("bars-3", css_class: "w-5 h-5") %>
+                </button>
+              </div>
+            </header>
+
+            <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <%= render "shared/flash" %>
+              <%= yield %>
+            </main>
+          </div>
+        </div>
+      <% else %>
+        <nav class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3.5 px-4 sm:px-8">
+          <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-amber-500 flex items-center justify-center text-white">
+                <%= icon_tag("chef-hat", css_class: "w-4 h-4") %>
+              </div>
+              <span class="text-sm font-black tracking-tight text-slate-900 dark:text-white">FamilyPlates</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300">Operator Console</span>
+            </div>
+            <%= render "shared/theme_toggle" %>
+          </div>
+        </nav>
+
+        <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
+          <%= render "shared/flash" %>
+          <%= yield %>
+        </main>
+      <% end %>
+    <% else %>
+      <%# Asked once, only while the household has no zone on file. Everything
+          time-of-day - which meal is being cooked, which day is highlighted -
+          depends on it, and the browser is the only thing that knows. %>
+      <% if authenticated? && current_household&.time_zone.blank? %>
+        <div hidden data-controller="time-zone-detector" data-time-zone-detector-url-value="<%= household_time_zone_path %>"></div>
+      <% end %>
+
+      <%= render "shared/navbar" %>
+
+      <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
+        <%= render "shared/flash" %>
+        <%= yield %>
+      </main>
+
+      <%= render "shared/nav_pin_modal" %>
+      <%= render "shared/confirm_modal" %>
     <% end %>
-
-    <%= render "shared/navbar" %>
-
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
-      <%= render "shared/flash" %>
-      <%= yield %>
-    </main>
-
-    <%= render "shared/nav_pin_modal" %>
-    <%= render "shared/confirm_modal" %>
   </body>
 </html>

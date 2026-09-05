@@ -39,6 +39,14 @@ module SessionTestHelper
     flunk "sign_out left #{COOKIE_NAME} set to #{active_family_member_id.inspect}"
   end
 
+  def sign_in_user(user)
+    session_record = user.sessions.create!(token: SecureRandom.hex(32), kind: "browser")
+    jar = ActionDispatch::Cookies::CookieJar.build(ActionDispatch::TestRequest.create, {})
+    jar.signed[:session_token] = session_record.token
+    cookies[:session_token] = jar[:session_token]
+    session_record
+  end
+
   def signed_in_as?(member)
     active_family_member_id == member.id
   end

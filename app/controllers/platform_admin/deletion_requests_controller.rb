@@ -14,8 +14,14 @@ module PlatformAdmin
       users = household.users.to_a
       record_platform_audit!("household.permanently_deleted", target: household, metadata: { request_id: request_record.id })
       household.destroy!
-      users.each { |user| user.destroy! if user.reload.households.none? }
+      users.each do |user|
+        user.destroy! if user.reload.households.none?
+      rescue ActiveRecord::RecordNotFound
+        # User already cleaned up
+      end
       redirect_to platform_admin_deletion_requests_path, notice: "Household permanently deleted."
+    rescue ActiveRecord::RecordNotDestroyed => e
+      redirect_to platform_admin_deletion_requests_path, alert: "Failed to permanently delete household: #{e.message}"
     end
   end
 end
