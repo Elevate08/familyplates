@@ -2,13 +2,18 @@
   <!-- Back Link & Action Bar -->
   <div class="flex items-center justify-between mb-6">
     <%= link_to "← Back to Recipe Box", recipes_path, class: "text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
-    <% if current_family_member&.admin? %>
-      <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2">
+      <%# Open to every profile, kiosks included - see RecipesController#cook. %>
+      <%= link_to cook_recipe_path(@recipe), class: "inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors" do %>
+        <%= icon_tag("chef-hat", css_class: "w-4 h-4") %>
+        <span>Cook Mode</span>
+      <% end %>
+      <% if current_family_member&.admin? %>
         <%= link_to "Edit Recipe", edit_recipe_path(@recipe), class: "text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors" %>
         <%= button_to "Delete", recipe_path(@recipe), method: :delete, data: { turbo_confirm: "Are you sure you want to delete #{@recipe.title}?" },
               class: "text-xs font-semibold px-3.5 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" %>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
   </div>
 
   <!-- Hero Card with Photo Banner -->
@@ -221,10 +226,16 @@
 
     <!-- Instructions Column (2 cols) -->
     <div class="md:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-      <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-        <%= icon_tag("chef-hat", css_class: "w-5 h-5 text-primary-500") %>
-        <span>Instructions</span>
-      </h2>
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <%= icon_tag("chef-hat", css_class: "w-5 h-5 text-primary-500") %>
+          <span>Instructions</span>
+        </h2>
+        <%= link_to cook_recipe_path(@recipe), class: "shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white shadow-sm transition-colors" do %>
+          <span>Start Cook Mode</span>
+          <span aria-hidden="true">&rarr;</span>
+        <% end %>
+      </div>
 
       <div class="prose dark:prose-invert prose-slate max-w-none text-sm leading-relaxed whitespace-pre-line text-slate-700 dark:text-slate-300">
         <%= @recipe.instructions.presence || "No step-by-step instructions entered yet." %>
