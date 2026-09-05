@@ -65,6 +65,10 @@ class Recipe < ApplicationRecord
   scope :for_meal_type, ->(meal_type) { where("meal_types LIKE ? OR meal_types IS NULL OR meal_types = ''", "%#{meal_type}%") }
   scope :leftover_friendly, -> { where(yields_leftovers: true) }
 
+  def has_image?
+    image.attached? || image_url.present?
+  end
+
   def display_image_url
     if image.attached?
       Rails.application.routes.url_helpers.rails_blob_path(image, only_path: true)

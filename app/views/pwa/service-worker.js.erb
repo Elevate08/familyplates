@@ -1,4 +1,4 @@
-const CACHE_NAME = "familyplates-v1";
+const CACHE_NAME = "familyplates-v2";
 const OFFLINE_URLS = [
   "/",
   "/grocery_list",
@@ -44,6 +44,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
+  // Only intercept same-origin requests (allow browser to handle external images/CDNs natively)
+  if (url.origin !== self.location.origin) return;
+
   // For HTML page navigations: Network-first, fallback to cache
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
@@ -72,18 +75,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // For static assets (CSS, JS, images, icons): Stale-While-Revalidate
+  // For same-origin static assets (CSS, JS, local images, icons): Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request).then((networkResponse) => {
+      const networkFetch = fetch(request).then((networkResponse) => {
         if (networkResponse.status === 200) {
           const copy = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return networkResponse;
-      }).catch(() => null);
+      });
 
-      return cachedResponse || fetchPromise;
+      if (cachedResponse) {
+        networkFetch.catch(() => {});
+        return cachedResponse;
+      }
+
+      return networkFetch;
     })
   );
 });

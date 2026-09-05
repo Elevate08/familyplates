@@ -280,7 +280,7 @@
                           data-action="click->slot-modal#selectRecipe"
                           data-recipe-id="<%= recipe.id %>"
                           class="w-full p-2 rounded-xl text-left hover:bg-primary-50/50 dark:hover:bg-primary-950/40 flex items-center gap-3 transition-colors cursor-pointer border border-transparent hover:border-primary-200 dark:hover:border-primary-800 group/item">
-                    <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" class="w-9 h-9 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 shrink-0">
+                    <img src="<%= recipe.display_image_url %>" alt="<%= recipe.title %>" referrerpolicy="no-referrer" loading="lazy" class="w-9 h-9 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 shrink-0">
                     <div class="min-w-0 flex-1">
                       <div class="font-bold text-xs text-slate-900 dark:text-white group-hover/item:text-primary-600 dark:group-hover/item:text-primary-400 truncate"><%= recipe.title %></div>
                       <div class="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">

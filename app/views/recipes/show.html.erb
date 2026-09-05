@@ -18,10 +18,15 @@
 
   <!-- Hero Card with Photo Banner -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-8 overflow-hidden">
-    <% if @recipe.image_url.present? %>
-      <div class="relative h-64 sm:h-80 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-        <img src="<%= @recipe.display_image_url %>" alt="<%= @recipe.title %>" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+    <% if @recipe.has_image? %>
+      <div class="relative h-64 sm:h-80 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden" data-controller="image-fallback">
+        <img src="<%= @recipe.display_image_url %>" alt="<%= @recipe.title %>" class="w-full h-full object-cover" referrerpolicy="no-referrer" data-image-fallback-target="image" data-action="error->image-fallback#failed">
+        <div data-image-fallback-target="placeholder" class="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-tr from-amber-500/20 via-primary-500/15 to-orange-500/20 dark:from-slate-800 dark:to-slate-700">
+          <div class="w-16 h-16 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm">
+            <%= icon_tag("utensils", css_class: "w-8 h-8") %>
+          </div>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none"></div>
         <div class="absolute bottom-6 left-6 right-6 text-white">
           <div class="flex flex-wrap gap-2 mb-2">
             <% @recipe.tag_list.each do |tag| %>
