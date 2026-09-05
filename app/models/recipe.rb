@@ -101,6 +101,12 @@ class Recipe < ApplicationRecord
     tags.to_s.split(",").map(&:strip).reject(&:blank?)
   end
 
+  # One entry per step for Cook Mode, with any section heading and detected
+  # timers attached. See CookingStepParser for the shapes instructions arrive in.
+  def cooking_steps
+    CookingStepParser.call(instructions)
+  end
+
   def active_requests
     recipe_requests.active
   end
