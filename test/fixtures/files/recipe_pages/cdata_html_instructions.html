@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!--
+  Shape of a large publisher CMS: the JSON-LD is wrapped in a JS-commented CDATA
+  block, the instructions arrive as one blob of HTML rather than HowToSteps, the
+  image is a single ImageObject using contentUrl, and the times are prose.
+-->
+<html lang="en">
+  <head>
+    <title>Skillet Cornbread Recipe</title>
+    <script type="application/ld+json">
+    //<![CDATA[
+    {
+      "@context": "http://schema.org",
+      "@type": ["Recipe"],
+      "name": "Skillet Cornbread",
+      "description": "<p>Crisp-edged cornbread baked in a screaming hot pan.</p>",
+      "prepTime": "PT10M",
+      "cookTime": "20 minutes",
+      "recipeYield": "Makes 8 wedges",
+      "tool": [
+        { "@type": "HowToTool", "name": "10-inch cast-iron skillet" },
+        "Mixing bowl"
+      ],
+      "image": { "@type": "ImageObject", "contentUrl": "https://images.publisher.test/cornbread.jpg", "height": 1200 },
+      "recipeIngredient": [
+        "1 cup stone-ground cornmeal",
+        "1 cup all-purpose flour",
+        "2 tsp baking powder",
+        "1 1/4 cups buttermilk",
+        "4 tablespoons butter, melted"
+      ],
+      "recipeInstructions": "<ol><li>Preheat the oven to 425F with a 10-inch cast-iron skillet inside.</li><li>Whisk the cornmeal, flour and baking powder together, then stir in the buttermilk and butter.</li><li>Pour the batter into the hot skillet and bake for 20 minutes, until the top springs back.</li></ol>"
+    }
+    //]]>
+    </script>
+  </head>
+  <body></body>
+</html>
