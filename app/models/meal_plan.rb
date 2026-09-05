@@ -20,7 +20,22 @@ class MealPlan < ApplicationRecord
   end
 
   def slot_for(date, meal_type)
-    meal_plan_slots.find_by(date: date, meal_type: meal_type)
+    if meal_plan_slots.loaded?
+      meal_plan_slots.find { |s| s.date == date && s.meal_type == meal_type }
+    else
+      meal_plan_slots.find_by(date: date, meal_type: meal_type)
+    end
+  end
+
+  def preloaded_leftover_sources
+    min_date = week_start_date - 14.days
+    max_date = week_start_date + 6.days
+    household.meal_plan_slots
+             .includes(:recipe, :leftover_slots)
+             .where(is_leftover: false)
+             .where.not(recipe_id: nil)
+             .where("date >= ? AND date <= ?", min_date, max_date)
+             .to_a
   end
 
   def week_label
@@ -34,16 +49,20 @@ class MealPlan < ApplicationRecord
 
   MEAL_TYPE_ORDER = { "breakfast" => 1, "lunch" => 2, "dinner" => 3 }.freeze
 
-  def available_leftovers_for(target_date, target_meal_type, current_slot: nil)
+  def available_leftovers_for(target_date, target_meal_type, current_slot: nil, preloaded_sources: nil)
     target_rank = MEAL_TYPE_ORDER[target_meal_type.to_s] || 2
     min_date = target_date - 14.days
 
     # Query household-wide across all weekly plans for a rolling window up to max shelf life (14 days)
-    slots_scope = household.meal_plan_slots
-                           .includes(:recipe, :leftover_slots)
-                           .where(is_leftover: false)
-                           .where.not(recipe_id: nil)
-                           .where("date >= ? AND date <= ?", min_date, target_date)
+    slots_scope = if preloaded_sources.present?
+      preloaded_sources.select { |s| s.date >= min_date && s.date <= target_date }
+    else
+      household.meal_plan_slots
+               .includes(:recipe, :leftover_slots)
+               .where(is_leftover: false)
+               .where.not(recipe_id: nil)
+               .where("date >= ? AND date <= ?", min_date, target_date)
+    end
 
     prior_slots = slots_scope.select do |slot|
       next false unless slot.recipe.present?

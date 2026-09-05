@@ -1,4 +1,4 @@
-<% slot = meal_plan.slot_for(date, meal_type) %>
+<% slot = local_assigns.key?(:slot) ? local_assigns[:slot] : meal_plan.slot_for(date, meal_type) %>
 <% frame_id = "slot_#{date.to_s}_#{meal_type}" %>
 <% is_admin = current_family_member&.admin? %>
 
@@ -22,8 +22,8 @@
 
 <% current_time = slot&.scheduled_time.presence || default_time %>
 
-<% recipes = meal_plan.household.recipes.alphabetical %>
-<% recipes_map = recipes.each_with_object({}) do |r, hash|
+<% recipes = local_assigns[:recipes] || meal_plan.household.recipes.alphabetical.includes(image_attachment: :blob).to_a %>
+<% recipes_map = local_assigns[:recipes_map] || recipes.each_with_object({}) do |r, hash|
      hash[r.id] = {
        title: r.title,
        image_url: r.display_image_url,
@@ -32,7 +32,8 @@
      }
    end %>
 
-<% leftover_candidates = meal_plan.available_leftovers_for(date, meal_type, current_slot: slot) %>
+<% leftover_candidates = local_assigns[:leftover_candidates] || meal_plan.available_leftovers_for(date, meal_type, current_slot: slot) %>
+<% family_members = local_assigns[:family_members] || meal_plan.household.family_members.order(:name).to_a %>
 
 <%= turbo_frame_tag frame_id do %>
   <% if is_admin %>
@@ -136,6 +137,7 @@
                             date: date,
                             meal_type: meal_type,
                             recipe_id: cand[:recipe].id,
+                            leftover_source_slot_id: cand[:source_slot_id],
                             is_leftover: true
                           }
                         },
@@ -324,7 +326,7 @@
                   Assigned Cook / Chef
                 </label>
                 <%= f.collection_select "meal_plan_slot[family_member_id]",
-                      meal_plan.household.family_members.order(:name), :id, :name,
+                      family_members, :id, :name,
                       { prompt: "-- Unassigned --", selected: slot&.family_member_id },
                       id: "#{frame_id}_family_member_id",
                       class: "themed-select cursor-pointer w-full px-3.5 py-2.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white transition-all focus:ring-2 focus:ring-primary-500 focus:outline-none shadow-2xs" %>

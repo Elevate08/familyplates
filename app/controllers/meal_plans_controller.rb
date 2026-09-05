@@ -13,13 +13,23 @@ class MealPlansController < ApplicationController
     @prev_week = @week_start - 7.days
     @next_week = @week_start + 7.days
 
-    @recipes = current_household.recipes.alphabetical
+    @recipes = current_household.recipes.alphabetical.includes(image_attachment: :blob).to_a
+    @recipes_map = @recipes.each_with_object({}) do |r, hash|
+      hash[r.id] = {
+        title: r.title,
+        image_url: r.display_image_url,
+        tags: r.tag_list,
+        total_time: r.total_time
+      }
+    end
     RecipeRequest.auto_fulfill_passed_slots!(current_household)
     @cravings = current_household.recipes.joins(:recipe_requests)
                                  .where(recipe_requests: { fulfilled_at: nil })
                                  .distinct
 
-    @family_members = current_household.family_members.order(:name)
+    @family_members = current_household.family_members.order(:name).to_a
+    @slots_by_key = @meal_plan.meal_plan_slots.includes(:recipe, :family_member, :leftover_source_slot).index_by { |s| [ s.date, s.meal_type ] }
+    @leftover_sources = @meal_plan.preloaded_leftover_sources
 
     # Drives the Cook Mode banner: what the clock says is on the stove, or - if
     # no cooking window is open - the day's nearest planned meal.

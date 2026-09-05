@@ -140,4 +140,42 @@ class MealPlannerTest < ApplicationSystemTestCase
       assert_no_selector "button[data-action*='slot-modal#selectLeftover']", text: "Citrus Ceviche"
     end
   end
+
+  test "date picker popover can be toggled and navigates using today or a specific date" do
+    visit meal_plan_path(@plan)
+
+    assert_no_selector "[data-date-picker-target='popover']:not(.hidden)"
+
+    # Click date range button to open popover
+    find("[data-date-picker-target='trigger']").click
+    assert_selector "[data-date-picker-target='popover']:not(.hidden)"
+
+    # Shows "Today" button and calendar grid
+    within("[data-date-picker-target='popover']") do
+      assert_selector "button[data-action*='date-picker#selectToday']", text: "Today"
+      assert_selector "[data-date-picker-target='monthLabel']"
+      assert_selector "[data-date-picker-target='calendarGrid'] button[data-date]"
+    end
+
+    # Test paging to next month
+    initial_month = find("[data-date-picker-target='monthLabel']").text
+    find("button[data-action*='date-picker#nextMonth']").click
+    assert_no_text initial_month
+
+    # Test closing on Escape
+    find("body").send_keys(:escape)
+    assert_no_selector "[data-date-picker-target='popover']:not(.hidden)"
+
+    # Re-open and click "Today"
+    find("[data-date-picker-target='trigger']").click
+    assert_selector "[data-date-picker-target='popover']:not(.hidden)"
+    within("[data-date-picker-target='popover']") do
+      find("button[data-action*='date-picker#selectToday']").click
+    end
+
+    # Popover should close and view should be on trigger
+    assert_no_selector "[data-date-picker-target='popover']:not(.hidden)"
+    assert_selector "[data-date-picker-target='trigger']"
+    assert_no_browser_errors
+  end
 end

@@ -131,9 +131,9 @@
 
                 <!-- Recipe Source Badge -->
                 <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[140px] text-right">
-                  <%# A staple flagged low is on the list because someone said
+                  <%# An item flagged low is on the list because someone said
                       so, not because a recipe called for it. %>
-                  <%= item[:sources].any? ? item[:sources].first(2).join(", ") : ("Pantry staple" if item[:restock]) %>
+                  <%= item[:sources].any? ? item[:sources].first(2).join(", ") : ("Pantry item" if item[:restock]) %>
                 </div>
               </div>
             <% end %>

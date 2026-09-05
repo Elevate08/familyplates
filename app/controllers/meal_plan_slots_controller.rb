@@ -16,6 +16,7 @@ class MealPlanSlotsController < ApplicationController
         metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
       )
       RecipeRequest.auto_fulfill_passed_slots!(current_household)
+      prepare_planner_preloads
       respond_to do |format|
         if params[:return_to] == "recipe" && @slot.recipe.present?
           format.turbo_stream do
@@ -73,6 +74,7 @@ class MealPlanSlotsController < ApplicationController
         target: @slot,
         metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
       )
+      prepare_planner_preloads(@slot.meal_plan || @meal_plan)
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to meal_plan_path(@meal_plan), notice: "Planned meal updated successfully!" }
@@ -95,6 +97,7 @@ class MealPlanSlotsController < ApplicationController
       metadata: { target_name: @slot.recipe&.title || @slot.custom_title || @slot.date.to_s }
     )
     @slot.destroy
+    prepare_planner_preloads
 
     respond_to do |format|
       format.turbo_stream
@@ -103,6 +106,25 @@ class MealPlanSlotsController < ApplicationController
   end
 
   private
+
+  def prepare_planner_preloads(plan = @meal_plan)
+    household = (plan || @meal_plan)&.household || current_household
+    return unless household
+
+    @recipes = household.recipes.alphabetical.includes(image_attachment: :blob).to_a
+    @recipes_map = @recipes.each_with_object({}) do |r, hash|
+      hash[r.id] = {
+        title: r.title,
+        image_url: r.display_image_url,
+        tags: r.tag_list,
+        total_time: r.total_time
+      }
+    end
+    @family_members = household.family_members.order(:name).to_a
+    target_plan = plan || @meal_plan
+    @slots_by_key = target_plan.meal_plan_slots.includes(:recipe, :family_member, :leftover_source_slot).index_by { |s| [ s.date, s.meal_type ] }
+    @leftover_sources = target_plan.preloaded_leftover_sources
+  end
 
   def set_meal_plan
     if params[:meal_plan_id].present?

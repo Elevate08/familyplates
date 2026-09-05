@@ -11,8 +11,8 @@ class CalendarSubscribeTest < ApplicationSystemTestCase
     sign_in_as(@admin)
     visit meal_plans_path
 
-    assert_button "Sync Calendar", wait: 5
-    click_button "Sync Calendar"
+    assert_button "Subscribe", wait: 5
+    click_button "Subscribe"
 
     assert_text "Subscribe to Calendar"
     assert_text "Live meal schedule synced to your phone or computer"

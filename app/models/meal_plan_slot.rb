@@ -2,8 +2,8 @@ class MealPlanSlot < ApplicationRecord
   belongs_to :meal_plan
   belongs_to :recipe, optional: true
   belongs_to :family_member, optional: true
-  belongs_to :leftover_source_slot, class_name: "MealPlanSlot", optional: true
-  has_many :leftover_slots, class_name: "MealPlanSlot", foreign_key: :leftover_source_slot_id, dependent: :nullify
+  belongs_to :leftover_source_slot, class_name: "MealPlanSlot", optional: true, inverse_of: :leftover_slots
+  has_many :leftover_slots, class_name: "MealPlanSlot", foreign_key: :leftover_source_slot_id, dependent: :destroy, inverse_of: :leftover_source_slot
 
   delegate :household, to: :meal_plan
 
@@ -24,13 +24,18 @@ class MealPlanSlot < ApplicationRecord
   validates :meal_type, inclusion: { in: MEAL_TYPES }
   validates :meal_type, uniqueness: { scope: [ :meal_plan_id, :date ], message: "slot already exists for this date and meal type" }
   validate :leftover_source_cannot_be_self
+  validate :validate_leftover_source_and_capacity, if: -> { is_leftover? && recipe_id.present? }
   before_validation :normalize_blank_attributes
+  before_validation :auto_assign_leftover_source
 
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }
   scope :with_recipe, -> { where.not(recipe_id: nil) }
 
   after_save :fulfill_recipe_requests_if_passed
+  after_save :reset_leftover_source_association
+  after_destroy :reset_leftover_source_association
+  after_update :clear_invalidated_leftovers, if: -> { saved_change_to_recipe_id? || saved_change_to_is_leftover? || saved_change_to_date? || saved_change_to_meal_type? }
 
   # When this meal is served: the slot's own time if it has one, otherwise the
   # household's time for that meal. The calendar feed reads the same two fields,
@@ -161,10 +166,17 @@ class MealPlanSlot < ApplicationRecord
 
   def leftover_capacity_remaining(excluding_slot: nil)
     capacity = recipe&.effective_leftover_capacity || 1
-    used = if excluding_slot.present?
-      leftover_slots.reject { |s| s.id == excluding_slot.id }.size
+    used = if leftover_slots.loaded?
+      slots = leftover_slots.to_a
+      if excluding_slot.present?
+        slots.reject { |s| s.equal?(excluding_slot) || (s.id.present? && s.id == excluding_slot.id) }.size
+      else
+        slots.size
+      end
     else
-      leftover_slots.size
+      query = leftover_slots
+      query = query.where.not(id: excluding_slot.id) if excluding_slot.present? && excluding_slot.id.present?
+      query.count
     end
     [ capacity - used, 0 ].max
   end
@@ -174,6 +186,54 @@ class MealPlanSlot < ApplicationRecord
   end
 
   private
+
+  def validate_leftover_source_and_capacity
+    return unless is_leftover? && recipe_id.present?
+
+    if leftover_source_slot.nil?
+      has_prior_cooked = household&.meal_plan_slots&.where(is_leftover: false, recipe_id: recipe_id)&.exists?
+      if has_prior_cooked
+        errors.add(:base, "All leftover servings for #{recipe&.title} have already been scheduled.")
+      else
+        errors.add(:base, "#{recipe&.title} has not been cooked yet, so leftovers cannot be scheduled.")
+      end
+    elsif leftover_source_slot.leftover_exhausted?(excluding_slot: self)
+      errors.add(:base, "All leftover servings for #{recipe&.title} have already been scheduled.")
+    end
+  end
+
+  def auto_assign_leftover_source
+    return unless is_leftover? && recipe_id.present? && leftover_source_slot_id.blank? && leftover_source_slot.blank?
+    return unless household.present?
+
+    target_date = date || Date.current
+    target_rank = MealPlan::MEAL_TYPE_ORDER[meal_type.to_s] || 2
+
+    candidates = household.meal_plan_slots
+                          .where(is_leftover: false, recipe_id: recipe_id)
+                          .where("date <= ?", target_date)
+                          .order(date: :desc, id: :desc)
+                          .to_a
+
+    source = candidates.find do |cand|
+      next false if cand.id == id
+      is_prior = if cand.date < target_date
+        true
+      elsif cand.date == target_date
+        (MealPlan::MEAL_TYPE_ORDER[cand.meal_type.to_s] || 1) < target_rank
+      else
+        false
+      end
+      next false unless is_prior
+
+      shelf_life = cand.recipe&.effective_leftover_shelf_life_days || 3
+      next false if (target_date - cand.date).to_i > shelf_life
+
+      !cand.leftover_exhausted?(excluding_slot: self)
+    end
+
+    self.leftover_source_slot_id = source&.id if source.present?
+  end
 
   def leftover_source_cannot_be_self
     if leftover_source_slot_id.present? && leftover_source_slot_id == id
@@ -201,6 +261,37 @@ class MealPlanSlot < ApplicationRecord
 
     recipe.recipe_requests.active.where("week_start_date <= ? OR created_at <= ?", date, date.end_of_day).find_each do |req|
       req.update_columns(fulfilled_at: date.to_time)
+    end
+  end
+
+  def reset_leftover_source_association
+    leftover_source_slot&.association(:leftover_slots)&.reset
+  end
+
+  def clear_invalidated_leftovers
+    return if leftover_slots.empty?
+
+    if saved_change_to_recipe_id? || (saved_change_to_is_leftover? && is_leftover?)
+      leftover_slots.destroy_all
+    elsif saved_change_to_date? || saved_change_to_meal_type?
+      target_rank = MealPlan::MEAL_TYPE_ORDER[meal_type.to_s] || 1
+      shelf_life = recipe&.effective_leftover_shelf_life_days || 3
+
+      leftover_slots.find_each do |child|
+        is_prior = if child.date > date
+          true
+        elsif child.date == date
+          child_rank = MealPlan::MEAL_TYPE_ORDER[child.meal_type.to_s] || 1
+          child_rank > target_rank
+        else
+          false
+        end
+
+        days_diff = (child.date - date).to_i
+        if !is_prior || days_diff > shelf_life
+          child.destroy
+        end
+      end
     end
   end
 end

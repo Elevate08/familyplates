@@ -20,6 +20,34 @@ class PlatformAdmin::AuditEventsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, @admin.email
   end
 
+  test "operator can filter audit log to hide page views" do
+    PlatformAuditEvent.record!(action: "household.suspended", actor: @admin, target: households(:one), metadata: { reason: "Terms violation" })
+
+    get platform_admin_audit_events_path(hide_views: "1")
+
+    assert_response :success
+    assert_select "[data-audit-action='household.suspended']", count: 1
+    assert_select "[data-audit-action='household.viewed']", count: 0
+    assert_includes response.body, "Terms violation"
+  end
+
+  test "operator can filter audit log by category and search" do
+    PlatformAuditEvent.record!(action: "platform_admin.signed_in", actor: @admin, metadata: { email: @admin.email })
+    PlatformAuditEvent.record!(action: "support_thread.replied", actor: @admin, metadata: { note: "Resolved billing issue" })
+
+    # Category filter
+    get platform_admin_audit_events_path(category: "auth")
+    assert_response :success
+    assert_select "[data-audit-action='platform_admin.signed_in']"
+    assert_select "[data-audit-action='support_thread.replied']", count: 0
+
+    # Search filter
+    get platform_admin_audit_events_path(q: "billing")
+    assert_response :success
+    assert_select "[data-audit-action='support_thread.replied']", count: 1
+    assert_includes response.body, "Resolved billing issue"
+  end
+
   private
 
   def sign_in_platform_admin(admin)

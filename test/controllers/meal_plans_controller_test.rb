@@ -168,6 +168,22 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "September 2026"
   end
 
+  test "shows date picker with navigation arrows and popover container" do
+    get meal_plan_url(@meal_plan, view: "week")
+    assert_response :success
+
+    assert_select "[data-controller~=date-picker]" do
+      assert_select "button[data-date-picker-target=trigger]", text: /#{@meal_plan.week_label}/
+      assert_select "[data-date-picker-target=popover]" do
+        assert_select "button[data-action='click->date-picker#prevMonth']"
+        assert_select "span[data-date-picker-target=monthLabel]"
+        assert_select "button[data-action='click->date-picker#nextMonth']"
+        assert_select "button[data-action='click->date-picker#selectToday']", text: /Today/
+        assert_select "[data-date-picker-target=calendarGrid]"
+      end
+    end
+  end
+
   private
 
   # A plan whose week straddles a month boundary, with the majority of its days
