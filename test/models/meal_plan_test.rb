@@ -105,4 +105,89 @@ class MealPlanTest < ActiveSupport::TestCase
     assert_includes leftover_titles, "Spinach Quiche"
     assert_includes leftover_titles, "Beef Pot Roast"
   end
+
+  test "available_leftovers_for respects recipe leftover capacity depletion" do
+    household = households(:one)
+    MealPlanSlot.delete_all
+
+    plan = household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 9, 7))
+    monday = Date.new(2026, 9, 7)
+
+    casserole = household.recipes.create!(
+      title: "Family Casserole",
+      yields_leftovers: true,
+      leftover_capacity: 1,
+      leftover_shelf_life_days: 4
+    )
+
+    cooked_slot = plan.meal_plan_slots.create!(
+      date: monday,
+      meal_type: "dinner",
+      recipe: casserole,
+      is_leftover: false
+    )
+
+    # Tuesday lunch: Casserole is available, remaining capacity 1, source_slot_id is populated
+    tuesday = monday + 1.day
+    tue_leftovers = plan.available_leftovers_for(tuesday, "lunch")
+    assert_equal 1, tue_leftovers.count
+    cand = tue_leftovers.first
+    assert_equal casserole, cand[:recipe]
+    assert_equal cooked_slot.id, cand[:source_slot_id]
+    assert_equal 1, cand[:remaining_capacity]
+    assert_equal 3, cand[:days_remaining] # 4 days shelf life - 1 day ago
+
+    # Plan Tuesday lunch as leftover linked to cooked_slot
+    tue_slot = plan.meal_plan_slots.create!(
+      date: tuesday,
+      meal_type: "lunch",
+      recipe: casserole,
+      is_leftover: true,
+      leftover_source_slot: cooked_slot
+    )
+
+    # Wednesday lunch: Casserole is now exhausted (capacity 1 used), should NOT be available
+    wednesday = monday + 2.days
+    wed_leftovers = plan.available_leftovers_for(wednesday, "lunch")
+    assert_empty wed_leftovers
+
+    # But if editing Tuesday slot itself, Casserole should still be available for that slot
+    tue_reopened = plan.available_leftovers_for(tuesday, "lunch", current_slot: tue_slot)
+    assert_equal 1, tue_reopened.count
+    assert_equal casserole, tue_reopened.first[:recipe]
+  end
+
+  test "available_leftovers_for respects recipe custom shelf life expiration" do
+    household = households(:one)
+    MealPlanSlot.delete_all
+
+    plan = household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 9, 7))
+    monday = Date.new(2026, 9, 7)
+
+    fish_dish = household.recipes.create!(
+      title: "Fresh Salmon",
+      yields_leftovers: true,
+      leftover_capacity: 3,
+      leftover_shelf_life_days: 1 # Only good for 1 day
+    )
+
+    plan.meal_plan_slots.create!(
+      date: monday,
+      meal_type: "dinner",
+      recipe: fish_dish,
+      is_leftover: false
+    )
+
+    # Tuesday lunch (1 day later): Salmon is available
+    tuesday = monday + 1.day
+    tue_leftovers = plan.available_leftovers_for(tuesday, "lunch")
+    assert_equal 1, tue_leftovers.count
+    assert_equal fish_dish, tue_leftovers.first[:recipe]
+    assert_equal 0, tue_leftovers.first[:days_remaining] # Last day
+
+    # Wednesday lunch (2 days later): Salmon has expired, should NOT be available
+    wednesday = monday + 2.days
+    wed_leftovers = plan.available_leftovers_for(wednesday, "lunch")
+    assert_empty wed_leftovers
+  end
 end

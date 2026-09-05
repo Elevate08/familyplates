@@ -1,0 +1,19 @@
+<% content_for :title, "Account suspended | FamilyPlates" %>
+
+<div class="mx-auto max-w-xl py-12">
+  <div class="rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30">
+    <p class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Account status</p>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">This household is suspended</h1>
+    <p class="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-300">
+      Your account is still available for sign-in, but household features are temporarily unavailable.
+      Please contact support if you believe this is unexpected or need help resolving it.
+    </p>
+    <% if @household.suspension_reason.present? %>
+      <div class="mt-5 rounded-2xl border border-amber-200 bg-white/70 p-4 text-sm text-slate-700 dark:border-amber-900/60 dark:bg-slate-900/60 dark:text-slate-300">
+        <p class="font-bold text-slate-900 dark:text-white">Reason</p>
+        <p class="mt-1 whitespace-pre-wrap"><%= @household.suspension_reason %></p>
+      </div>
+    <% end %>
+    <%= link_to "Contact support", support_threads_path, class: "mt-6 inline-flex rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500" %>
+  </div>
+</div>

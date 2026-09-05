@@ -1,0 +1,123 @@
+<div class="max-w-4xl mx-auto py-6 sm:py-10 px-4">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+        <span>🔑</span>
+        <span>Passkeys & Biometrics</span>
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+        Sign in instantly with Face ID, Touch ID, Windows Hello, or a hardware security key
+      </p>
+    </div>
+    <%= link_to "← Preferences", preferences_path, class: "text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors" %>
+  </div>
+
+  <% if flash[:alert].present? %>
+    <div class="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-semibold">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+
+  <% if flash[:notice].present? %>
+    <div class="mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+      <%= flash[:notice] %>
+    </div>
+  <% end %>
+
+  <!-- Add New Passkey Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm mb-8"
+       data-controller="passkey-registration"
+       data-passkey-registration-options-url-value="<%= registration_options_passkeys_path %>"
+       data-passkey-registration-create-url-value="<%= passkeys_path %>">
+    <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100 dark:border-slate-800">
+      <div class="w-10 h-10 rounded-2xl bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
+        +
+      </div>
+      <div>
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Register a New Passkey</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Add this device or a physical security key to your account</p>
+      </div>
+    </div>
+
+    <form data-action="submit->passkey-registration#register" class="flex flex-col sm:flex-row gap-3">
+      <div class="flex-1">
+        <input type="text"
+               placeholder="Passkey Nickname (e.g. MacBook Touch ID, iPhone 15, YubiKey)"
+               data-passkey-registration-target="nickname"
+               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+      </div>
+      <button type="submit"
+              data-passkey-registration-target="button"
+              class="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm transition-all cursor-pointer inline-flex items-center justify-center gap-2">
+        <span>Add Passkey</span>
+        <span>→</span>
+      </button>
+    </form>
+
+    <div data-passkey-registration-target="status" class="hidden text-xs font-semibold text-primary-600 dark:text-primary-400 mt-3 animate-pulse"></div>
+    <div data-passkey-registration-target="error" class="hidden text-xs font-bold text-red-600 dark:text-red-400 mt-3 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60"></div>
+  </div>
+
+  <!-- Registered Passkeys List -->
+  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-8">
+    <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <h2 class="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+        Your Registered Passkeys (<%= @passkeys.count %>)
+      </h2>
+    </div>
+
+    <% if @passkeys.any? %>
+      <div class="divide-y divide-slate-100 dark:divide-slate-800">
+        <% @passkeys.each do |passkey| %>
+          <div class="p-4 sm:p-6 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                🔑
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+                  <%= passkey.label %>
+                </h3>
+                <div class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-3">
+                  <span>Added <%= passkey.created_at.strftime("%B %d, %Y") %></span>
+                  <span>&bull;</span>
+                  <span><%= passkey.last_used_at ? "Used #{time_ago_in_words(passkey.last_used_at)} ago" : "Never used" %></span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <%= button_to "Remove", passkey_path(passkey), method: :delete,
+                    data: { turbo_confirm: "Are you sure you want to remove this passkey?" },
+                    class: "px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors cursor-pointer" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-8 text-center">
+        <p class="text-xs text-slate-400 dark:text-slate-500">
+          No passkeys registered yet. Register your first passkey above to enable one-touch biometric sign-in.
+        </p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Security & Account Recovery Advice -->
+  <div class="bg-slate-50 dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-6 sm:p-8 space-y-4">
+    <div class="flex items-center gap-2 text-slate-900 dark:text-white">
+      <span class="text-base">🛡️</span>
+      <h3 class="text-sm font-extrabold uppercase tracking-wider">Account Recovery & Security Notice</h3>
+    </div>
+    <div class="text-xs text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+      <p>
+        <strong>Keep a backup sign-in method:</strong> If you lose or wipe the device holding your passkey, you will need a recovery option to regain access to your household.
+      </p>
+      <ul class="list-disc list-inside space-y-1 pl-1">
+        <li><strong>Multiple Devices:</strong> We recommend adding passkeys on at least two devices (e.g. phone and laptop) so one can always authorize the other.</li>
+        <li><strong>Appliance Recovery:</strong> If operating FamilyPlates in self-hosted appliance mode without email, the server administrator can always reset your password via the command line tool: <code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[11px]">bin/rake auth:reset_password[email,password]</code>.</li>
+        <li><strong>Hosted Mode:</strong> Single-use magic codes can always be sent to your verified email address.</li>
+      </ul>
+    </div>
+  </div>
+</div>

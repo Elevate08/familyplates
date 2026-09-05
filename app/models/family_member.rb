@@ -1,12 +1,17 @@
 class FamilyMember < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
+  DEFAULT_COLOR = "#F97316"
+  DEFAULT_ICON = "chef-hat"
+
   belongs_to :household
+  belongs_to :user, optional: true
+  has_many :activity_events, foreign_key: :actor_id, dependent: :nullify
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify
 
   AVATAR_COLORS = [
-    "#F97316", # Orange (Warm Carrot)
+    "#F97316", # Orange (Warm Carrot / Brand)
     "#3B82F6", # Blue (Ocean)
     "#10B981", # Emerald (Sage)
     "#F59E0B", # Amber (Golden)
@@ -26,8 +31,24 @@ class FamilyMember < ApplicationRecord
   # has been saved cannot be read back out of the record, out of a database copy,
   # or out of a page that renders the model.
   has_secure_password :pin, validations: false
+  attr_accessor :current_pin
+
+  TRANSFER_LINK_EXPIRY_DURATION = 4.hours
+
+  def transfer_id
+    signed_id(purpose: :transfer, expires_in: TRANSFER_LINK_EXPIRY_DURATION)
+  end
+
+  def self.find_by_transfer_id(id)
+    find_signed(id, purpose: :transfer)
+  end
+
+  def transfer_to!(new_user)
+    update!(user: new_user)
+  end
 
   validates :name, presence: true
+  validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
   # allow_blank, because `pin` reads back as nil on a record loaded from the
   # database and blank on a form submitted without changing it - only a PIN
   # actually being set is format-checked. Presence is asserted against the

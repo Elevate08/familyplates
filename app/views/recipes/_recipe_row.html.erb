@@ -38,6 +38,11 @@
               <%= icon %> <%= mt.capitalize %>
             </span>
           <% end %>
+          <% if recipe.yields_leftovers? %>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-purple-100/80 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800" title="Yields <%= pluralize(recipe.effective_leftover_capacity, 'extra meal') %> · Good for <%= pluralize(recipe.effective_leftover_shelf_life_days, 'day') %>">
+              🍱 +<%= recipe.effective_leftover_capacity %>
+            </span>
+          <% end %>
         </div>
       </div>
 

@@ -45,11 +45,20 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # household. See the note in tasks/plan.md - Household.first is a latent
   # landmine even with the fixtures fixed.
   setup do
-    Household.where.not(id: households(:one).id).destroy_all
+    retries = 0
+    begin
+      Household.where.not(id: households(:one).id).destroy_all
+    rescue ActiveRecord::StatementTimeout, SQLite3::BusyException
+      retries += 1
+      sleep 0.15
+      retry if retries < 5
+      raise
+    end
   end
 
   teardown do
     assert_no_browser_errors if @assert_console_clean != false
+    page.driver.browser.manage.window.resize_to(1400, 1400) rescue nil
   end
 
   # Fails on anything the browser logged at SEVERE - uncaught exceptions,

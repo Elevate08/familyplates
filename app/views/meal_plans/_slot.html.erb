@@ -32,7 +32,7 @@
      }
    end %>
 
-<% leftover_candidates = meal_plan.available_leftovers_for(date, meal_type) %>
+<% leftover_candidates = meal_plan.available_leftovers_for(date, meal_type, current_slot: slot) %>
 
 <%= turbo_frame_tag frame_id do %>
   <% if is_admin %>
@@ -57,7 +57,8 @@
                   <%= type_icons[meal_type] %> <%= meal_type.capitalize %>
                 </span>
                 <% if slot.is_leftover? %>
-                  <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                  <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800 flex items-center gap-1"
+                        title="<%= slot.leftover_source_slot ? "Leftover from #{slot.leftover_source_slot.date.strftime('%a')} #{slot.leftover_source_slot.meal_type.capitalize}" : "Leftover meal" %>">
                     <span>🍱</span> <span>Leftover</span>
                   </span>
                 <% end %>
@@ -92,14 +93,20 @@
           <div class="mt-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
             <% if slot.family_member %>
               <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
-                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-white shadow-2xs"
                       style="background-color: <%= slot.family_member.avatar_color %>">
-                  <%= slot.family_member.initial %>
+                  <%= icon_tag(slot.family_member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
                 </span>
                 <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[85px]"><%= slot.family_member.name %></span>
               </div>
             <% else %>
-              <span class="text-[10px] text-slate-400 dark:text-slate-500"><%= slot.is_leftover? ? "🍱 Ready to heat" : "👤 Unassigned" %></span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500">
+                <% if slot.is_leftover? %>
+                  <%= slot.leftover_source_slot ? "🍱 From #{slot.leftover_source_slot.date.strftime('%a')} #{slot.leftover_source_slot.meal_type.capitalize}" : "🍱 Ready to heat" %>
+                <% else %>
+                  👤 Unassigned
+                <% end %>
+              </span>
             <% end %>
 
             <% if slot.recipe %>
@@ -193,25 +200,43 @@
                    value="<%= slot&.recipe_id %>"
                    data-slot-modal-target="recipeInput">
 
+            <!-- Hidden Leftover Source Slot ID Input -->
+            <input type="hidden"
+                   name="meal_plan_slot[leftover_source_slot_id]"
+                   value="<%= slot&.leftover_source_slot_id %>"
+                   data-slot-modal-target="leftoverSourceInput">
+
             <!-- Available Leftovers Quick Selector Bar (if any prior meals exist) -->
             <% if leftover_candidates.any? %>
               <div class="p-3.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800 space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
                     <span>🍱</span>
-                    <span>Available Leftovers this week (<%= leftover_candidates.count %> options):</span>
+                    <span>Available Leftovers this week (<%= leftover_candidates.count %> <%= 'option'.pluralize(leftover_candidates.count) %>):</span>
                   </span>
                   <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">1-tap quick pick</span>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <% leftover_candidates.each do |cand| %>
+                    <% cap = cand[:remaining_capacity] %>
+                    <% cap_text = cap == 1 ? "Last one!" : "#{cap} left" %>
+                    <% days_text = cand[:days_remaining] == 0 ? "Expires today" : "#{pluralize(cand[:days_remaining], 'day')} fresh" %>
                     <button type="button"
-                            data-action="click->slot-modal#selectRecipe"
+                            data-action="click->slot-modal#selectLeftover"
                             data-recipe-id="<%= cand[:recipe].id %>"
-                            data-action="click->slot-modal#markAsLeftover"
-                            class="flex flex-col items-start px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-300 transition-all shadow-2xs cursor-pointer group/cand text-left">
-                      <span class="text-xs font-extrabold group-hover/cand:text-purple-700 dark:group-hover/cand:text-purple-200"><%= cand[:recipe].title %></span>
-                      <span class="text-[9.5px] text-purple-500 dark:text-purple-400 font-semibold mt-0.5">(<%= cand[:source_label] %>)</span>
+                            data-source-slot-id="<%= cand[:source_slot_id] %>"
+                            class="flex flex-col items-start px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-300 transition-all shadow-2xs cursor-pointer group/cand text-left">
+                      <div class="flex items-center gap-2 w-full justify-between">
+                        <span class="text-xs font-extrabold group-hover/cand:text-purple-700 dark:group-hover/cand:text-purple-200 truncate max-w-[130px]"><%= cand[:recipe].title %></span>
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded <%= cap == 1 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300' : 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' %>">
+                          <%= cap_text %>
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-1 text-[9.5px] text-purple-500 dark:text-purple-400 font-semibold mt-0.5">
+                        <span><%= cand[:source_label] %></span>
+                        <span>•</span>
+                        <span><%= days_text %></span>
+                      </div>
                     </button>
                   <% end %>
                 </div>
@@ -284,6 +309,7 @@
               <label class="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300 cursor-pointer">
                 <%= f.check_box "meal_plan_slot[is_leftover]", id: "#{frame_id}_is_leftover",
                       checked: slot&.is_leftover?,
+                      data: { action: "change->slot-modal#toggleLeftover" },
                       class: "rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" %>
                 <span>🍱 Mark this meal as Leftovers</span>
               </label>
@@ -426,9 +452,9 @@
         <div class="mt-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
           <% if slot.family_member %>
             <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
-              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shadow-2xs"
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-white shadow-2xs"
                     style="background-color: <%= slot.family_member.avatar_color %>">
-                <%= slot.family_member.initial %>
+                <%= icon_tag(slot.family_member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
               </span>
               <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[85px]"><%= slot.family_member.name %></span>
             </div>

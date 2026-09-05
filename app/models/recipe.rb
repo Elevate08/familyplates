@@ -35,7 +35,30 @@ class Recipe < ApplicationRecord
     "Weekend Grill"
   ].freeze
 
+  attribute :leftover_capacity, default: 1
+  attribute :leftover_shelf_life_days, default: 3
+
   validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
+  validates :number, presence: true, uniqueness: { scope: :household_id }
+  validates :leftover_capacity, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 10 }, allow_nil: true
+  validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 14 }, allow_nil: true
+  before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
+
+  def effective_leftover_capacity
+    leftover_capacity.presence || 1
+  end
+
+  def effective_leftover_shelf_life_days
+    leftover_shelf_life_days.presence || 3
+  end
+
+  def assign_number
+    self.number = (household.recipes.maximum(:number) || 0) + 1
+  end
+
+  def to_param
+    number ? number.to_s : id.to_s
+  end
 
   scope :alphabetical, -> { order(:title) }
   scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30 OR LOWER(tags) LIKE '%quick%'") }
@@ -76,6 +99,12 @@ class Recipe < ApplicationRecord
 
   def tag_list
     tags.to_s.split(",").map(&:strip).reject(&:blank?)
+  end
+
+  # One entry per step for Cook Mode, with any section heading and detected
+  # timers attached. See CookingStepParser for the shapes instructions arrive in.
+  def cooking_steps
+    CookingStepParser.call(instructions)
   end
 
   def active_requests

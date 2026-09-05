@@ -1,5 +1,5 @@
 class RecipesController < ApplicationController
-  before_action :set_recipe, only: %i[show edit update destroy]
+  before_action :set_recipe, only: %i[show edit update destroy cook]
   before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
   before_action :set_available_tags, only: %i[index new create edit update]
 
@@ -38,9 +38,17 @@ class RecipesController < ApplicationController
   end
 
   def show
-    @week_start = Date.current.beginning_of_week
+    @week_start = household_today.beginning_of_week
     @requested_by_current = @recipe.requested_by?(current_family_member, @week_start)
     @total_requests = @recipe.request_count_for_week(@week_start)
+  end
+
+  # Cook Mode: one step at a time, full screen, no application chrome. Every
+  # profile can reach it, kiosk sessions included - a kitchen display that can
+  # open a recipe but not cook from it would be the wrong way round.
+  def cook
+    @steps = @recipe.cooking_steps
+    render layout: "cook"
   end
 
   def new
@@ -52,6 +60,7 @@ class RecipesController < ApplicationController
     @recipe = current_household.recipes.build(recipe_params)
 
     if @recipe.save
+      track_activity("recipe.created", target: @recipe)
       redirect_to @recipe, notice: "Recipe \"#{@recipe.title}\" was successfully added to your recipe box!"
     else
       render :new, status: :unprocessable_entity
@@ -64,6 +73,7 @@ class RecipesController < ApplicationController
 
   def update
     if @recipe.update(recipe_params)
+      track_activity("recipe.updated", target: @recipe)
       redirect_to @recipe, notice: "Recipe updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -71,6 +81,7 @@ class RecipesController < ApplicationController
   end
 
   def destroy
+    track_activity("recipe.deleted", target: @recipe)
     @recipe.destroy
     redirect_to recipes_path, notice: "Recipe deleted from recipe box."
   end
@@ -125,7 +136,8 @@ class RecipesController < ApplicationController
   private
 
   def set_recipe
-    @recipe = current_household.recipes.find(params[:id])
+    @recipe = current_household.recipes.find_by(number: params[:id]) || current_household.recipes.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find Recipe with 'id'=#{params[:id]}" unless @recipe
   end
 
   def set_available_tags
@@ -142,6 +154,7 @@ class RecipesController < ApplicationController
     cleaned_params = params.require(:recipe).permit(
       :title, :description, :prep_time, :cook_time, :total_time, :equipment, :servings,
       :source_url, :image_url, :image, :instructions, :tags, :meal_types, :yields_leftovers,
+      :leftover_capacity, :leftover_shelf_life_days,
       meal_types: [],
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
     )

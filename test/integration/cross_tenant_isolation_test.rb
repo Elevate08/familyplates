@@ -26,9 +26,10 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
       avatar_color: "#10B981", avatar_icon: "star"
     )
     @other_recipe = @other.recipes.create!(
-      title: "Miller Casserole", instructions: "Bake it."
+      title: "Miller Casserole", instructions: "Bake it.", number: 99
     )
     @other_meal_plan = meal_plans(:two)
+    @other_meal_plan.update_column(:number, 99)
     @other_pantry_item = @other.pantry_items.create!(
       name: "Miller Flour", aisle_category: "Pantry & Grains"
     )

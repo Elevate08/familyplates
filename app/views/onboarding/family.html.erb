@@ -65,7 +65,7 @@
           <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex items-center gap-4">
             <div data-onboarding-avatar-target="previewColor"
                  class="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-xl transition-all"
-                 style="background-color: <%= params.dig(:admin_member, :avatar_color) || '#3B82F6' %>">
+                 style="background-color: <%= params.dig(:admin_member, :avatar_color) || FamilyMember::DEFAULT_COLOR %>">
               <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
                 <span data-icon-name="<%= icon_name %>" class="<%= (params.dig(:admin_member, :avatar_icon) || 'chef-hat') == icon_name ? '' : 'hidden' %>">
                   <%= icon_tag(icon_name, css_class: "w-7 h-7") %>
@@ -122,7 +122,7 @@
           <div>
             <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">Profile Accent Color</span>
             <div class="flex flex-wrap items-center gap-2.5">
-              <% selected_color = params.dig(:admin_member, :avatar_color) || "#3B82F6" %>
+              <% selected_color = params.dig(:admin_member, :avatar_color) || FamilyMember::DEFAULT_COLOR %>
               <% FamilyMember::AVATAR_COLORS.each do |color| %>
                 <label class="cursor-pointer">
                   <%= radio_button_tag "admin_member[avatar_color]", color, selected_color == color, class: "sr-only peer", data: { action: "change->onboarding-avatar#changeColor" } %>

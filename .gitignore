@@ -23,6 +23,11 @@ config/google_service_account.json
 config/*.json
 *.json.key
 
+# Ignore local environment files with secrets
+.env
+.env.*
+!.env.example
+
 # Ignore SQLite databases.
 /db/*.sqlite3
 /db/*.sqlite3-journal
@@ -57,3 +62,4 @@ tmp/screenshots/
 .DS_Store
 *.swp
 *~
+.claude/

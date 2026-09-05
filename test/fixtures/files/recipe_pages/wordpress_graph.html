@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  Shape of a modern WordPress food blog (Yoast + WP Recipe Maker): every entity
+  on the page shares one @graph, and the Recipe sits among a WebSite,
+  BreadcrumbList, Person and Article node.
+-->
+<html lang="en">
+  <head>
+    <title>Weeknight Chicken Enchiladas - The Hungry Homestead</title>
+    <meta property="og:image" content="https://cdn.hungryhomestead.test/enchiladas-og.jpg" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        { "@type": "WebSite", "@id": "https://hungryhomestead.test/#website", "name": "The Hungry Homestead" },
+        { "@type": "BreadcrumbList", "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home" },
+          { "@type": "ListItem", "position": 2, "name": "Dinner" }
+        ] },
+        { "@type": "Person", "@id": "https://hungryhomestead.test/#author", "name": "Dana" },
+        { "@type": ["Article", "NewsArticle"], "headline": "Weeknight Chicken Enchiladas" },
+        {
+          "@type": "Recipe",
+          "name": "Weeknight Chicken Enchiladas",
+          "description": "Rolled tortillas baked in red sauce &amp; plenty of cheese.",
+          "prepTime": "PT20M",
+          "cookTime": "PT30M",
+          "totalTime": "PT50M",
+          "recipeYield": ["8 servings", "1 (9x13-inch) baking dish"],
+          "image": [
+            { "@type": "ImageObject", "url": "/wp-content/uploads/enchiladas-1200.jpg" },
+            "https://cdn.hungryhomestead.test/enchiladas-square.jpg"
+          ],
+          "recipeIngredient": [
+            "3 cups shredded cooked chicken",
+            "2 cups red enchilada sauce",
+            "12 corn tortillas",
+            "1.5 cups shredded Monterey Jack cheese",
+            "1/2 cup chopped cilantro"
+          ],
+          "recipeInstructions": [
+            {
+              "@type": "HowToSection",
+              "name": "Make the filling",
+              "itemListElement": [
+                { "@type": "HowToStep", "name": "Combine", "text": "Stir the chicken together with 1 cup of the enchilada sauce." },
+                { "@type": "HowToStep", "text": "Warm the tortillas until pliable." }
+              ]
+            },
+            {
+              "@type": "HowToSection",
+              "name": "Assemble and bake",
+              "itemListElement": [
+                { "@type": "HowToStep", "text": "Roll the filling into each tortilla and place seam-side down in a 9x13-inch baking dish." },
+                { "@type": "HowToStep", "text": "Pour over the remaining sauce, top with cheese, and bake at 375F for 25 minutes." }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <h1>Weeknight Chicken Enchiladas</h1>
+  </body>
+</html>

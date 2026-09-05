@@ -7,7 +7,7 @@ class RecipeRequestsController < ApplicationController
       family_member: current_family_member,
       fulfilled_at: nil
     )
-    @recipe_request.week_start_date ||= Date.current.beginning_of_week
+    @recipe_request.week_start_date ||= household_today.beginning_of_week
     @recipe_request.save
     @recipe.reload
 
@@ -33,6 +33,7 @@ class RecipeRequestsController < ApplicationController
   private
 
   def set_recipe
-    @recipe = current_household.recipes.find(params[:recipe_id])
+    @recipe = current_household.recipes.find_by(number: params[:recipe_id]) || current_household.recipes.find_by(id: params[:recipe_id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find Recipe with 'id'=#{params[:recipe_id]}" unless @recipe
   end
 end

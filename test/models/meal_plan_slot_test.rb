@@ -16,42 +16,6 @@ class MealPlanSlotTest < ActiveSupport::TestCase
     assert_equal "Dining Out", custom_slot.display_title
   end
 
-  test "enqueues sync job with upsert when meal is created or updated" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    plan = meal_plans(:one)
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: ->(args) { args[1] == "upsert" }) do
-      plan.meal_plan_slots.create!(
-        date: plan.week_start_date + 3.days,
-        meal_type: "dinner",
-        custom_title: "Homemade Lasagna"
-      )
-    end
-  end
-
-  test "enqueues sync job with delete when slot is destroyed" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    slot = meal_plan_slots(:one)
-    slot.update_column(:google_event_id, "gcal_event_to_delete")
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ nil, "delete", "gcal_event_to_delete", household.id ]) do
-      slot.destroy
-    end
-  end
-
-  test "enqueues sync job with delete when slot meal is cleared" do
-    household = households(:one)
-    household.update!(google_calendar_enabled: true, google_calendar_id: "family@group.calendar.google.com")
-    slot = meal_plan_slots(:one)
-    slot.update_column(:google_event_id, "gcal_event_cleared")
-
-    assert_enqueued_with(job: SyncMealPlanSlotJob, args: [ slot.id, "delete", "gcal_event_cleared", household.id ]) do
-      slot.update!(recipe: nil, custom_title: nil)
-    end
-  end
-
   test "is_leftover defaults to false and can be flagged" do
     slot = MealPlanSlot.new(meal_plan: meal_plans(:one), date: Date.current, meal_type: "lunch")
     assert_equal false, slot.is_leftover?
@@ -91,5 +55,50 @@ class MealPlanSlotTest < ActiveSupport::TestCase
         assert_equal (sample_ingredient.quantity || 1.0), found_item[:quantity]
       end
     end
+  end
+
+  test "leftover associations link leftover slot to parent source slot" do
+    plan = households(:one).meal_plans.create!(week_start_date: 3.weeks.from_now.to_date.beginning_of_week)
+    recipe = recipes(:one)
+    recipe.update!(yields_leftovers: true, leftover_capacity: 2)
+
+    source_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    leftover_slot_1 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal source_slot, leftover_slot_1.leftover_source_slot
+    assert_includes source_slot.leftover_slots, leftover_slot_1
+    assert_equal 1, source_slot.leftover_capacity_remaining
+    assert_not source_slot.leftover_exhausted?
+
+    leftover_slot_2 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 2.days,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal 0, source_slot.leftover_capacity_remaining
+    assert source_slot.leftover_exhausted?
+  end
+
+  test "slot cannot set itself as leftover source" do
+    slot = meal_plan_slots(:one)
+    slot.is_leftover = true
+    slot.leftover_source_slot_id = slot.id
+    assert_not slot.valid?
+    assert_includes slot.errors[:leftover_source_slot_id], "cannot be itself"
   end
 end

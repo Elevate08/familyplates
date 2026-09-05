@@ -24,7 +24,7 @@ module PinThrottling
 
       rate_limit to: MAX_ATTEMPTS, within: WINDOW, name: "by_profile", scope: SCOPE,
                  store: PinThrottling.store,
-                 by: -> { "profile:#{params[:id]}" },
+                 by: -> { "profile:#{throttled_profile_id}" },
                  with: -> { pin_attempts_throttled!(:profile) },
                  only: only, if: -> { pin_protected_target? }
     end
@@ -36,16 +36,25 @@ module PinThrottling
 
   private
 
+  def throttled_profile_id
+    params[:id] || current_family_member&.id
+  end
+
   def pin_protected_target?
+    target_id = throttled_profile_id
+    return false if target_id.blank?
+
     scope = Current.household || Household.installation
-    scope&.family_members&.find_by(id: params[:id])&.requires_pin? || false
+    scope&.family_members&.find_by(id: target_id)&.requires_pin? || false
   end
 
   # Runs as a before_action, so it cannot know whether the submitted PIN was
   # correct — which is the point. A throttled attempt looks identical either way.
   def pin_attempts_throttled!(limit)
-    Rails.logger.warn("[auth] pin_throttled limit=#{limit} profile_id=#{params[:id]} ip=#{request.remote_ip} path=#{request.path}")
-    redirect_to select_profile_path, alert: "Too many attempts. Please wait a few minutes and try again."
+    target_id = throttled_profile_id
+    Rails.logger.warn("[auth] pin_throttled limit=#{limit} profile_id=#{target_id} ip=#{request.remote_ip} path=#{request.path}")
+    redirect_target = (request.path == preferences_path ? edit_preferences_path : select_profile_path)
+    redirect_to redirect_target, alert: "Too many attempts. Please wait a few minutes and try again."
   end
 
   def log_pin_failure(member)

@@ -51,4 +51,93 @@ class MealPlannerTest < ApplicationSystemTestCase
     assert_selector "body"
     assert_no_browser_errors
   end
+
+  test "leftover capacity depletion hides depleted meal from subsequent slots" do
+    monday = @plan.week_start_date
+    tuesday = monday + 1.day
+    wednesday = monday + 2.days
+
+    stew = @household.recipes.create!(
+      title: "Hearty Beef Stew",
+      yields_leftovers: true,
+      leftover_capacity: 1,
+      leftover_shelf_life_days: 4,
+      instructions: "Simmer."
+    )
+
+    # Monday dinner: fresh cooked batch
+    @plan.meal_plan_slots.where(date: monday, meal_type: "dinner").destroy_all
+    @plan.meal_plan_slots.create!(
+      date: monday,
+      meal_type: "dinner",
+      recipe: stew,
+      is_leftover: false
+    )
+
+    visit meal_plan_path(@plan)
+
+    # Open Tuesday lunch slot
+    tue_slot_frame = "slot_#{tuesday}_lunch"
+    within("##{tue_slot_frame}") do
+      first("[data-action*='slot-modal#open']").click
+      assert_text "Hearty Beef Stew"
+      assert_text "Last one!"
+
+      # Click the leftover candidate button
+      find("button[data-action*='slot-modal#selectLeftover']", text: "Hearty Beef Stew").click
+      click_on "Schedule Meal"
+    end
+
+    # Tuesday lunch now has the planned leftover
+    assert_selector "##{tue_slot_frame}", text: "Hearty Beef Stew"
+
+    # Now open Wednesday lunch slot
+    wed_slot_frame = "slot_#{wednesday}_lunch"
+    find("##{wed_slot_frame} [data-action*='slot-modal#open']").click
+    within("##{wed_slot_frame}") do
+      # Since capacity was 1 and it was used on Tuesday, it should not appear in leftover quick pick
+      assert_no_selector "button[data-action*='slot-modal#selectLeftover']", text: "Hearty Beef Stew"
+    end
+  end
+
+  test "leftover shelf life expiration hides meal past freshness date" do
+    monday = @plan.week_start_date
+    tuesday = monday + 1.day
+    wednesday = monday + 2.days
+
+    ceviche = @household.recipes.create!(
+      title: "Citrus Ceviche",
+      yields_leftovers: true,
+      leftover_capacity: 3,
+      leftover_shelf_life_days: 1, # Only fresh for 1 day
+      instructions: "Marinate fresh fish."
+    )
+
+    # Monday dinner: fresh cooked batch
+    @plan.meal_plan_slots.where(date: monday, meal_type: "dinner").destroy_all
+    @plan.meal_plan_slots.create!(
+      date: monday,
+      meal_type: "dinner",
+      recipe: ceviche,
+      is_leftover: false
+    )
+
+    visit meal_plan_path(@plan)
+
+    # Tuesday lunch (1 day later): should be available
+    tue_slot_frame = "slot_#{tuesday}_lunch"
+    within("##{tue_slot_frame}") do
+      first("[data-action*='slot-modal#open']").click
+      assert_selector "button[data-action*='slot-modal#selectLeftover']", text: "Citrus Ceviche"
+      # Close modal
+      first("button[data-action*='slot-modal#close']").click
+    end
+
+    # Wednesday lunch (2 days later): has expired, should not be available
+    wed_slot_frame = "slot_#{wednesday}_lunch"
+    within("##{wed_slot_frame}") do
+      first("[data-action*='slot-modal#open']").click
+      assert_no_selector "button[data-action*='slot-modal#selectLeftover']", text: "Citrus Ceviche"
+    end
+  end
 end

@@ -1,0 +1,204 @@
+<div class="max-w-4xl mx-auto py-6 sm:py-10 space-y-8">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+    <div class="flex items-center gap-3.5">
+      <div class="w-12 h-12 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20">
+        <%= icon_tag("sparkles", css_class: "w-6 h-6 text-white") %>
+      </div>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Subscription & Billing</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your family kitchen plan, billing details, and receipts.</p>
+      </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="shrink-0 self-start sm:self-center">
+      <% case @status %>
+      <% when :active %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Active Subscription
+        </span>
+      <% when :trialing %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 font-extrabold text-xs">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          Free Trial &bull; <%= pluralize(@household.trial_days_left, "day") %> remaining
+        </span>
+      <% when :past_due_grace %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 font-extrabold text-xs">
+          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+          Payment Past Due &bull; Grace Period Active
+        </span>
+      <% when :canceled %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs">
+          Canceled &bull; Active until <%= @subscription&.ends_at&.to_date&.to_formatted_s(:short) %>
+        </span>
+      <% else %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 font-extrabold text-xs">
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          Subscription Inactive
+        </span>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @status == :past_due_grace %>
+    <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-start gap-3">
+      <span class="text-xl">⚠️</span>
+      <div class="text-xs text-rose-800 dark:text-rose-300">
+        <p class="font-bold">Your recent subscription payment did not go through.</p>
+        <p class="mt-0.5">Your kitchen remains accessible during your 7-day grace period. Please update your payment method to prevent interruption to meal planning.</p>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Current Subscription Card if Subscribed -->
+  <% if @subscription.present? %>
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Current Plan</span>
+          <h2 class="text-xl font-black text-slate-900 dark:text-white capitalize"><%= @household.subscription_plan_name %> Plan</h2>
+        </div>
+        <% if @subscription.ends_at.present? %>
+          <span class="text-xs font-semibold text-rose-600 dark:text-rose-400">Cancels on <%= @subscription.ends_at.to_date.to_formatted_s(:long) %></span>
+        <% else %>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Renews <%= @subscription.current_period_end&.to_date&.to_formatted_s(:long) || "monthly" %></span>
+        <% end %>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <% if @household.payment_processor&.processor_id.present? %>
+          <%= link_to "Update Payment Method & View Invoices →", portal_subscription_path, data: { turbo: false }, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
+        <% end %>
+
+        <% if current_family_member&.admin? && !@subscription.canceled? %>
+          <%= button_to "Cancel Subscription", subscription_path, method: :delete,
+                data: { turbo_confirm: "Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle." },
+                class: "text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Plan Selection Cards -->
+  <div>
+    <div class="text-center max-w-xl mx-auto mb-6">
+      <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Choose the right plan for your household</h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Simple, predictable family pricing with no hidden fees or user limits.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Monthly Plan -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border <%= @household.subscription_plan_key == :monthly ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-slate-200/80 dark:border-slate-800' %> p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Monthly</span>
+            <span class="text-lg">🗓️</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-black text-slate-900 dark:text-white">$4</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ month</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Full family kitchen access with flexible month-to-month billing.</p>
+
+          <ul class="mt-6 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Complete weekly meal planner & recipes</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Aisle-sorted smart grocery list aggregator</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Unlimited family member profiles & 1-tap switching</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Kiosk device pairing for kitchen & fridge displays</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <% if @household.subscription_plan_key == :monthly && !@subscription.canceled? %>
+            <button disabled class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs cursor-not-allowed">
+              Current Plan
+            </button>
+          <% elsif current_family_member&.admin? %>
+            <%= button_to "Subscribe Monthly ($4/mo)", subscription_path(plan: :monthly), method: :post,
+                  data: { turbo: false },
+                  class: "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] cursor-pointer text-center" %>
+          <% else %>
+            <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Annual Plan -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border-2 <%= @household.subscription_plan_key == :annual ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-primary-500 dark:border-primary-600' %> p-6 sm:p-8 flex flex-col justify-between shadow-md relative">
+        <div class="absolute -top-3 right-6 bg-primary-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm">
+          Save 27%
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 font-black">Annual Plan</span>
+            <span class="text-lg">⭐</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-black text-slate-900 dark:text-white">$35</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year ($2.91/mo)</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Best value for households. One annual payment, full uninterrupted peace of mind.</p>
+
+          <ul class="mt-6 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span class="font-bold">Everything in Monthly</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>27% discount compared to monthly billing</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Single annual receipt for household accounting</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
+              <span>Priority feature requests & community access</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <% if @household.subscription_plan_key == :annual && !@subscription.canceled? %>
+            <button disabled class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs cursor-not-allowed">
+              Current Plan
+            </button>
+          <% elsif current_family_member&.admin? %>
+            <%= button_to "Subscribe Annually ($35/yr)", subscription_path(plan: :annual), method: :post,
+                  data: { turbo: false },
+                  class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
+          <% else %>
+            <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reassurance & Data Guarantee Footer -->
+  <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+    <div class="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-lg shadow-2xs shrink-0">
+      🔒
+    </div>
+    <div>
+      <p class="font-bold text-slate-900 dark:text-white">Your Family's Data is Always Protected</p>
+      <p class="mt-0.5">Even if your subscription expires or is canceled, your recipes, favorite meal plans, and pantry staples remain securely preserved in your kitchen database.</p>
+    </div>
+  </div>
+</div>
