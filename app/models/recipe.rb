@@ -35,9 +35,22 @@ class Recipe < ApplicationRecord
     "Weekend Grill"
   ].freeze
 
+  attribute :leftover_capacity, default: 1
+  attribute :leftover_shelf_life_days, default: 3
+
   validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
   validates :number, presence: true, uniqueness: { scope: :household_id }
+  validates :leftover_capacity, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 10 }, allow_nil: true
+  validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 14 }, allow_nil: true
   before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
+
+  def effective_leftover_capacity
+    leftover_capacity.presence || 1
+  end
+
+  def effective_leftover_shelf_life_days
+    leftover_shelf_life_days.presence || 3
+  end
 
   def assign_number
     self.number = (household.recipes.maximum(:number) || 0) + 1

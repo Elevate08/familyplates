@@ -48,6 +48,12 @@ class MealPlanSlotsController < ApplicationController
         end
       end
     end
+  rescue ActiveRecord::InvalidForeignKey
+    @slot.errors.add(:base, "That recipe, cook, or leftover meal no longer exists.")
+    respond_to do |format|
+      format.turbo_stream { render :create, status: :unprocessable_entity }
+      format.html { redirect_to meal_plan_path(@meal_plan), alert: @slot.errors.full_messages.to_sentence }
+    end
   end
 
   def update
@@ -111,6 +117,6 @@ class MealPlanSlotsController < ApplicationController
   end
 
   def slot_params
-    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes, :is_leftover)
+    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes, :is_leftover, :leftover_source_slot_id)
   end
 end

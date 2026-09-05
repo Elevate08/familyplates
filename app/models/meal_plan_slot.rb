@@ -2,12 +2,16 @@ class MealPlanSlot < ApplicationRecord
   belongs_to :meal_plan
   belongs_to :recipe, optional: true
   belongs_to :family_member, optional: true
+  belongs_to :leftover_source_slot, class_name: "MealPlanSlot", optional: true
+  has_many :leftover_slots, class_name: "MealPlanSlot", foreign_key: :leftover_source_slot_id, dependent: :nullify
 
   MEAL_TYPES = %w[breakfast lunch dinner].freeze
 
   validates :date, presence: true
   validates :meal_type, inclusion: { in: MEAL_TYPES }
   validates :meal_type, uniqueness: { scope: [ :meal_plan_id, :date ], message: "slot already exists for this date and meal type" }
+  validate :leftover_source_cannot_be_self
+  before_validation :normalize_blank_attributes
 
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }
@@ -69,7 +73,33 @@ class MealPlanSlot < ApplicationRecord
     family_member&.name
   end
 
+  def leftover_capacity_remaining(excluding_slot: nil)
+    capacity = recipe&.effective_leftover_capacity || 1
+    used = if excluding_slot.present?
+      leftover_slots.reject { |s| s.id == excluding_slot.id }.size
+    else
+      leftover_slots.size
+    end
+    [ capacity - used, 0 ].max
+  end
+
+  def leftover_exhausted?(excluding_slot: nil)
+    leftover_capacity_remaining(excluding_slot: excluding_slot) <= 0
+  end
+
   private
+
+  def leftover_source_cannot_be_self
+    if leftover_source_slot_id.present? && leftover_source_slot_id == id
+      errors.add(:leftover_source_slot_id, "cannot be itself")
+    end
+  end
+
+  def normalize_blank_attributes
+    self.family_member_id = nil if family_member_id.blank?
+    self.recipe_id = nil if recipe_id.blank?
+    self.leftover_source_slot_id = nil if leftover_source_slot_id.blank? || !is_leftover?
+  end
 
   def fulfill_recipe_requests_if_passed
     return unless recipe.present? && date.present? && date <= Date.current

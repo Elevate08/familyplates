@@ -68,17 +68,35 @@
     </div>
 
     <!-- Yields Leftovers Setting -->
-    <div class="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800 flex items-start gap-3.5">
-      <div class="pt-0.5">
-        <%= f.check_box :yields_leftovers, class: "rounded text-purple-600 focus:ring-purple-500 w-5 h-5 cursor-pointer" %>
+    <div class="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800 space-y-3">
+      <div class="flex items-start gap-3.5">
+        <div class="pt-0.5">
+          <%= f.check_box :yields_leftovers, class: "rounded text-purple-600 focus:ring-purple-500 w-5 h-5 cursor-pointer" %>
+        </div>
+        <div>
+          <label for="recipe_yields_leftovers" class="text-sm font-bold text-purple-900 dark:text-purple-300 cursor-pointer block">
+            🍱 Yields Leftovers / Makes Extra Servings
+          </label>
+          <p class="text-xs text-purple-700/90 dark:text-purple-400 mt-0.5 leading-relaxed">
+            When scheduled for any meal, this recipe will automatically be offered as a 1-tap leftover for upcoming meals until capacity is reached or freshness expires.
+          </p>
+        </div>
       </div>
-      <div>
-        <label for="recipe_yields_leftovers" class="text-sm font-bold text-purple-900 dark:text-purple-300 cursor-pointer block">
-          🍱 Yields Leftovers / Makes Extra Servings
-        </label>
-        <p class="text-xs text-purple-700/90 dark:text-purple-400 mt-0.5 leading-relaxed">
-          When scheduled for any meal (Breakfast, Lunch, or Dinner), this recipe will automatically be highlighted as an available 1-tap leftover for upcoming meals on your weekly planner.
-        </p>
+
+      <div class="pt-3 border-t border-purple-200/70 dark:border-purple-800/70 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :leftover_capacity, "Extra Meals Yielded", class: "block text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider mb-1" %>
+          <%= f.number_field :leftover_capacity, min: 1, max: 10, step: 1, value: recipe.effective_leftover_capacity,
+                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
+          <p class="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Extra meal slots this dish can cover as leftovers (1–10).</p>
+        </div>
+
+        <div>
+          <%= f.label :leftover_shelf_life_days, "Good For (Days)", class: "block text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider mb-1" %>
+          <%= f.number_field :leftover_shelf_life_days, min: 1, max: 14, step: 1, value: recipe.effective_leftover_shelf_life_days,
+                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
+          <p class="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Days leftovers remain fresh after cooking (1–14, default 3).</p>
+        </div>
       </div>
     </div>
 

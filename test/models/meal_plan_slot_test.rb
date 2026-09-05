@@ -56,4 +56,49 @@ class MealPlanSlotTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "leftover associations link leftover slot to parent source slot" do
+    plan = households(:one).meal_plans.create!(week_start_date: 3.weeks.from_now.to_date.beginning_of_week)
+    recipe = recipes(:one)
+    recipe.update!(yields_leftovers: true, leftover_capacity: 2)
+
+    source_slot = plan.meal_plan_slots.create!(
+      date: plan.week_start_date,
+      meal_type: "dinner",
+      recipe: recipe,
+      is_leftover: false
+    )
+
+    leftover_slot_1 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 1.day,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal source_slot, leftover_slot_1.leftover_source_slot
+    assert_includes source_slot.leftover_slots, leftover_slot_1
+    assert_equal 1, source_slot.leftover_capacity_remaining
+    assert_not source_slot.leftover_exhausted?
+
+    leftover_slot_2 = plan.meal_plan_slots.create!(
+      date: plan.week_start_date + 2.days,
+      meal_type: "lunch",
+      recipe: recipe,
+      is_leftover: true,
+      leftover_source_slot: source_slot
+    )
+
+    assert_equal 0, source_slot.leftover_capacity_remaining
+    assert source_slot.leftover_exhausted?
+  end
+
+  test "slot cannot set itself as leftover source" do
+    slot = meal_plan_slots(:one)
+    slot.is_leftover = true
+    slot.leftover_source_slot_id = slot.id
+    assert_not slot.valid?
+    assert_includes slot.errors[:leftover_source_slot_id], "cannot be itself"
+  end
 end

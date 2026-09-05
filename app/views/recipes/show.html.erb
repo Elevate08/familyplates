@@ -26,7 +26,7 @@
             <% end %>
             <% if @recipe.yields_leftovers? %>
               <span class="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/90 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
-                🍱 Yields Leftovers
+                🍱 Leftovers: <%= pluralize(@recipe.effective_leftover_capacity, "extra meal") %> · Good for <%= pluralize(@recipe.effective_leftover_shelf_life_days, "day") %>
               </span>
             <% end %>
           </div>
@@ -49,7 +49,7 @@
               <% end %>
               <% if @recipe.yields_leftovers? %>
                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/90 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
-                  🍱 Yields Leftovers
+                  🍱 Leftovers: <%= pluralize(@recipe.effective_leftover_capacity, "extra meal") %> · Good for <%= pluralize(@recipe.effective_leftover_shelf_life_days, "day") %>
                 </span>
               <% end %>
             </div>

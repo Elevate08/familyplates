@@ -62,3 +62,4 @@ tmp/screenshots/
 .DS_Store
 *.swp
 *~
+.claude/
