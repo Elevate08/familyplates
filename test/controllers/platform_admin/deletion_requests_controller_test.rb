@@ -24,6 +24,25 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     assert PlatformAuditEvent.exists?(action: "household.permanently_deleted", target_id: @household.id)
   end
 
+  test "permanent deletion succeeds even when Stripe subscription cancellation raises Stripe error" do
+    customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
+    customer.subscriptions.create!(
+      name: "default",
+      processor_id: "sub_sim_missing_123",
+      processor_plan: "monthly",
+      status: "active",
+      current_period_start: Time.current,
+      current_period_end: 1.month.from_now
+    )
+
+    delete platform_admin_deletion_request_path(@deletion_request), params: { confirmation: @household.name }
+
+    assert_redirected_to platform_admin_deletion_requests_path
+    assert_not Household.exists?(@household.id)
+    assert_not User.exists?(@user.id)
+    assert PlatformAuditEvent.exists?(action: "household.permanently_deleted", target_id: @household.id)
+  end
+
   private
 
   def sign_in_platform_admin(admin)

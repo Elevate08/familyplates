@@ -17,7 +17,7 @@ class SupportThreadTest < ActiveSupport::TestCase
     assert_equal [ customer_message, operator_message ], thread.messages.order(:created_at, :id)
     assert_equal @user, customer_message.author
     assert_equal @admin, operator_message.author
-    assert_equal "open", thread.status
+    assert_equal "waiting_on_customer", thread.reload.status
   end
 
   test "messages require exactly one author" do

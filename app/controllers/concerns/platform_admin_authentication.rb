@@ -54,7 +54,7 @@ module PlatformAdminAuthentication
     cookies.signed.permanent[:platform_admin_session_token] = {
       value: session_record.token,
       httponly: true,
-      same_site: :strict,
+      same_site: :lax,
       secure: request.ssl?
     }
     Current.platform_admin_session = session_record

@@ -16,14 +16,15 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     sign_in_platform_admin(@admin)
   end
 
-  test "lists household metadata and counts" do
+  test "lists household metadata and lifecycle info" do
     get platform_admin_households_path
 
     assert_response :success
     assert_select "h1", text: /Households/i
     assert_includes response.body, "Alpha Kitchen"
     assert_includes response.body, "Beta Kitchen"
-    assert_includes response.body, "Recipes"
+    assert_includes response.body, "Joined"
+    assert_includes response.body, "Promotion"
   end
 
   test "searches by household name or customer email" do

@@ -33,4 +33,25 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     get support_thread_path(thread)
     assert_response :success
   end
+
+  test "customer can resolve a support thread and it moves to resolved section" do
+    thread = SupportThread.create!(household: households(:one), created_by_user: @user, subject: "Need recipe help")
+    thread.messages.create!(user: @user, body: "How do I import?")
+
+    get support_threads_path
+    assert_includes response.body, "Active conversations"
+
+    patch resolve_support_thread_path(thread)
+    assert_redirected_to support_thread_path(thread)
+    assert_equal "resolved", thread.reload.status
+
+    get support_threads_path
+    assert_includes response.body, "Resolved requests"
+    assert_includes response.body, "Need recipe help"
+
+    # Customer replies to resolved thread -> automatically reopens as waiting_on_support
+    post support_thread_messages_path(thread), params: { support_message: { body: "Actually I have another question." } }
+    assert_redirected_to support_thread_path(thread)
+    assert_equal "waiting_on_support", thread.reload.status
+  end
 end

@@ -80,6 +80,15 @@ class Household < ApplicationRecord
 
   # Hosted Subscriptions & Billing (Pay integration)
   pay_customer default: true
+  before_destroy :cleanup_pay_customers, prepend: true
+
+  def cancel_active_pay_subscriptions!
+    pay_subscriptions.active.each do |sub|
+      sub.cancel_now!
+    rescue StandardError => e
+      Rails.logger.warn "[Pay] Unable to cancel subscription #{sub.id} (#{sub.processor_id}) during household deletion: #{e.message}"
+    end
+  end
 
   FREE_TRIAL_DAYS = 14
   PAST_DUE_GRACE_DAYS = 7
@@ -170,18 +179,67 @@ class Household < ApplicationRecord
     PLANS[key]&.dig(:name) || key.to_s.titleize
   end
 
+  def subscription_expires_at
+    sub = payment_processor&.subscription || pay_subscriptions.order(created_at: :desc).first
+    if sub
+      sub.ends_at || sub.current_period_end || sub.trial_ends_at
+    else
+      trial_ends_at
+    end
+  end
+
+  def subscription_billing_label
+    return "Appliance" unless FamilyPlates.config.hosted?
+
+    sub = payment_processor&.subscription || pay_subscriptions.order(created_at: :desc).first
+    if sub
+      if sub.ends_at.present?
+        sub.ends_at.future? ? "Access until" : "Access expired"
+      elsif sub.status == "past_due"
+        past_due_grace_active? ? "Grace ends" : "Past due"
+      elsif sub.status == "trialing"
+        "Trial ends"
+      elsif sub.active?
+        "Renews"
+      elsif sub.canceled?
+        "Canceled"
+      else
+        "Expires"
+      end
+    elsif trial_active?
+      "Trial ends"
+    else
+      "Trial expired"
+    end
+  end
+
+  def applied_promotion_code
+    promotion_code.presence ||
+      (payment_processor&.subscription || pay_subscriptions.order(created_at: :desc).first)&.metadata&.dig("promotion_code")
+  end
+
   def subscription_status
     return :appliance unless FamilyPlates.config.hosted?
-    return :active if active_subscription?
+
+    sub = payment_processor&.subscription || pay_subscriptions.order(created_at: :desc).first
+    return :active if sub&.active?
     return :past_due_grace if past_due_grace_active?
-    return :trialing if trial_active?
-    return :past_due if payment_processor&.subscription&.status == "past_due"
-    return :canceled if payment_processor&.subscription&.canceled?
+    return :trialing if trial_active? || (sub.present? && sub.status == "trialing")
+    return :past_due if sub&.status == "past_due"
+    return :canceled if sub&.canceled?
 
     :expired
   end
 
   private
+
+  def cleanup_pay_customers
+    pay_customers.each do |customer|
+      customer.destroy
+    rescue StandardError => e
+      Rails.logger.warn "[Pay] Unable to clean up customer #{customer.id}: #{e.message}"
+    end
+  end
 
   def generate_join_code
     self.join_code ||= loop do

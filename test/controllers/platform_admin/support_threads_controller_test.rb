@@ -26,11 +26,41 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
     assert_equal @admin, reply.platform_admin
   end
 
-  test "operator can resolve a support thread" do
+  test "operator can resolve a support thread and it moves to resolved section" do
     patch resolve_platform_admin_support_thread_path(@thread)
 
     assert_redirected_to platform_admin_support_thread_path(@thread)
     assert_equal "resolved", @thread.reload.status
+    assert_not_nil @thread.resolved_at
+
+    get platform_admin_support_threads_path
+    assert_response :success
+    assert_includes response.body, "Resolved Support Requests"
+    assert_includes response.body, "Calendar help"
+
+    get platform_admin_support_threads_path(status: :resolved)
+    assert_response :success
+    assert_includes response.body, "Calendar help"
+  end
+
+  test "operator can reopen a resolved thread" do
+    @thread.resolve!
+    assert @thread.resolved?
+
+    patch reopen_platform_admin_support_thread_path(@thread)
+    assert_redirected_to platform_admin_support_thread_path(@thread)
+    assert_equal "waiting_on_customer", @thread.reload.status
+    assert_nil @thread.resolved_at
+  end
+
+  test "operator can manually change status" do
+    patch change_status_platform_admin_support_thread_path(@thread), params: { status: "waiting_on_customer" }
+    assert_redirected_to platform_admin_support_thread_path(@thread)
+    assert_equal "waiting_on_customer", @thread.reload.status
+
+    patch change_status_platform_admin_support_thread_path(@thread), params: { status: "waiting_on_support" }
+    assert_redirected_to platform_admin_support_thread_path(@thread)
+    assert_equal "waiting_on_support", @thread.reload.status
   end
 
   private
