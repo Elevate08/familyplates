@@ -22,6 +22,9 @@
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
           <%= @meal_plan.week_label %> • <span class="text-amber-700 dark:text-amber-400 font-semibold"><%= @total_pantry_count %> items already on hand</span>
+          <% if @total_restock_count.to_i > 0 %>
+            • <span class="text-rose-700 dark:text-rose-400 font-semibold"><%= @total_restock_count %> to restock</span>
+          <% end %>
         </p>
       </div>
 
@@ -66,11 +69,26 @@
           <div class="space-y-2.5">
             <% items.each_with_index do |item, idx| %>
               <% item_id = "#{aisle.parameterize}_#{idx}_#{item[:name].parameterize}" %>
+              <% row_style = if item[:restock]
+                   "bg-rose-50/40 dark:bg-rose-950/25 border-rose-200 dark:border-rose-900 hover:border-rose-300 dark:hover:border-rose-800"
+                 elsif item[:is_staple]
+                   "bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/80 hover:border-amber-300 dark:hover:border-amber-700"
+                 else
+                   "bg-white dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                 end %>
               <div data-checklist-target="item"
                    data-item-id="<%= item_id %>"
                    data-is-staple="<%= item[:is_staple] %>"
+                   <%# Ticking a restock line is what tells the pantry the thing
+                       was actually bought. The two URLs are both idempotent, so
+                       a double tap or a retry costs nothing. %>
+                   <% if item[:restock] && item[:pantry_item_id].present? %>
+                     data-pantry-item-id="<%= item[:pantry_item_id] %>"
+                     data-restock-url="<%= restock_pantry_item_path(item[:pantry_item_id]) %>"
+                     data-mark-low-url="<%= mark_low_pantry_item_path(item[:pantry_item_id]) %>"
+                   <% end %>
                    <% if is_admin %>data-action="click->checklist#toggle"<% end %>
-                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all <%= is_admin ? 'cursor-pointer' : 'cursor-default select-none' %> <%= item[:is_staple] ? 'bg-amber-50/30 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/80 hover:border-amber-300 dark:hover:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600' %>">
+                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all <%= is_admin ? 'cursor-pointer' : 'cursor-default select-none' %> <%= row_style %>">
                 
                 <div class="flex items-center gap-3">
                   <input type="checkbox" 
@@ -91,7 +109,11 @@
                         <span class="item-label text-sm font-bold text-slate-800 dark:text-slate-200 <%= 'line-through text-slate-400 dark:text-slate-500' if item[:is_staple] %> transition-all">
                           <%= item[:name] %>
                         </span>
-                        <% if item[:is_staple] %>
+                        <% if item[:restock] %>
+                          <span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            Restock
+                          </span>
+                        <% elsif item[:is_staple] %>
                           <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             On Hand
                           </span>
@@ -109,7 +131,9 @@
 
                 <!-- Recipe Source Badge -->
                 <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[140px] text-right">
-                  <%= item[:sources].first(2).join(", ") %>
+                  <%# A staple flagged low is on the list because someone said
+                      so, not because a recipe called for it. %>
+                  <%= item[:sources].any? ? item[:sources].first(2).join(", ") : ("Pantry staple" if item[:restock]) %>
                 </div>
               </div>
             <% end %>

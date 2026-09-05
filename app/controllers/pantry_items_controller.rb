@@ -1,5 +1,5 @@
 class PantryItemsController < ApplicationController
-  before_action :set_pantry_item, only: %i[update destroy toggle_staple]
+  before_action :set_pantry_item, only: %i[update destroy toggle_staple toggle_low mark_low restock]
 
   def index
     @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
@@ -49,7 +49,47 @@ class PantryItemsController < ApplicationController
     end
   end
 
+  # "Low on this" - one tap, from the pantry roster, a recipe's ingredient list,
+  # or the drawer in Cook Mode. Answers in place rather than reloading, because
+  # two of those three surfaces are mid-task.
+  def toggle_low
+    @pantry_item.toggle_low!
+    track_activity(@pantry_item.low_stock? ? "pantry_item.marked_low" : "pantry_item.restocked", target: @pantry_item)
+
+    render_stock_change
+  end
+
+  # The two idempotent ends, driven by ticking a Restock line on the grocery
+  # list - and by un-ticking it, which has to put the flag back.
+  def mark_low
+    @pantry_item.mark_low!
+    render_stock_change
+  end
+
+  def restock
+    @pantry_item.mark_restocked!
+    track_activity("pantry_item.restocked", target: @pantry_item)
+
+    render_stock_change
+  end
+
   private
+
+  # Replaces just the row that changed. A full reload would lose the cook's
+  # place in a recipe, and scroll the pantry back to the top.
+  def render_stock_change
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          view_context.dom_id(@pantry_item, :stock),
+          partial: "pantry_items/stock_toggle",
+          locals: { pantry_item: @pantry_item }
+        )
+      end
+      format.html { redirect_back fallback_location: pantry_items_path }
+      format.json { render json: { id: @pantry_item.id, low_stock: @pantry_item.low_stock? } }
+    end
+  end
 
   # Turbo submits the pantry form with a text/vnd.turbo-stream.html Accept
   # header, and Rails does not fall back to HTML for that format - there is no

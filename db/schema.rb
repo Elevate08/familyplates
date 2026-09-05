@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_060000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -200,8 +200,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_050000) do
     t.string "emoji"
     t.string "household_id", null: false
     t.boolean "is_staple", default: true, null: false
+    t.datetime "low_stock_at"
     t.string "name", null: false
     t.datetime "updated_at", null: false
+    t.index ["household_id", "low_stock_at"], name: "index_pantry_items_on_household_id_and_low_stock_at"
     t.index ["household_id", "name"], name: "index_pantry_items_on_household_id_and_name", unique: true
     t.index ["household_id"], name: "index_pantry_items_on_household_id"
   end

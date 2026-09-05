@@ -1,0 +1,18 @@
+<%# The one "Low on this" control, rendered on the pantry roster, beside a
+    recipe's ingredients, and in Cook Mode's drawer. It replaces itself over
+    Turbo, so its wrapper id has to be stable and unique per pantry item - the
+    controller targets exactly this element. %>
+<span id="<%= dom_id(pantry_item, :stock) %>" class="inline-flex items-center gap-1.5">
+  <% if pantry_item.low_stock? %>
+    <span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+      Low
+    </span>
+  <% end %>
+
+  <%= button_to toggle_low_pantry_item_path(pantry_item), method: :patch,
+        class: "flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer #{pantry_item.low_stock? ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-2xs' : 'bg-slate-100 dark:bg-slate-700/80 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-600'}",
+        title: pantry_item.low_stock? ? "Running low — on the grocery list. Tap once it is restocked." : "Mark #{pantry_item.name} as running low",
+        aria: { label: pantry_item.low_stock? ? "Mark #{pantry_item.name} as restocked" : "Mark #{pantry_item.name} as running low" } do %>
+    <%= icon_tag(pantry_item.low_stock? ? "flame" : "archive", css_class: "w-4 h-4") %>
+  <% end %>
+</span>
