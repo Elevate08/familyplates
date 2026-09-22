@@ -35,7 +35,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     @slot3 = @meal_plan.meal_plan_slots.create!(
       date: Date.current + 2.days,
       meal_type: "breakfast",
-      custom_title: "No Meal Planned"
+      custom_title: nil
     )
   end
 
@@ -64,6 +64,13 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_includes ics, "SUMMARY:🍽️ Lunch: Grilled Cheese (Cook: #{@member_two.name})"
     assert_includes ics, "STATUS:CONFIRMED"
     assert_includes ics, "TRANSP:TRANSPARENT"
+  end
+
+  test "includes a custom title even when it matches the empty-state label" do
+    @slot3.update!(custom_title: "No Meal Planned")
+    service = CalendarFeedService.new(@household)
+
+    assert_includes service.generate_ics, "UID:meal-plan-slot-#{@slot3.id}@familyplates"
   end
 
   test "includes recipe details, ingredients preview, and links in description" do

@@ -2,6 +2,8 @@ module PlatformAdmin
   class HouseholdsController < BaseController
     PAGE_SIZE = 100
 
+    before_action :set_household, only: %i[show suspend restore]
+
     def index
       @search = params[:search].to_s.strip
       @status = params[:status].presence_in(%w[active suspended])
@@ -27,7 +29,6 @@ module PlatformAdmin
     end
 
     def show
-      @household = Household.includes(:family_members, :users, :pay_subscriptions, :pay_customers).find(params[:id])
       record_platform_audit!("household.viewed", target: @household)
       @family_members = @household.family_members.order(:created_at, :id)
       @recipes_count = @household.recipes.count
@@ -44,20 +45,22 @@ module PlatformAdmin
     end
 
     def suspend
-      @household = Household.find(params[:id])
       @household.update!(suspended_at: Time.current, suspension_reason: params[:reason].to_s.strip.presence)
       record_platform_audit!("household.suspended", target: @household, metadata: { reason: @household.suspension_reason })
       redirect_to platform_admin_household_path(@household), notice: "Household suspended."
     end
 
     def restore
-      @household = Household.find(params[:id])
       @household.update!(suspended_at: nil, suspension_reason: nil)
       record_platform_audit!("household.restored", target: @household)
       redirect_to platform_admin_household_path(@household), notice: "Household restored."
     end
 
     private
+
+    def set_household
+      @household = Household.includes(:family_members, :users, :pay_subscriptions, :pay_customers).find(params[:id])
+    end
 
     def filtered_households
       return Household.all if @search.blank?

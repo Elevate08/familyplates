@@ -7,10 +7,13 @@ namespace :hosted do
     puts "🚀 Starting 100-Customer Simulation for Hosted FamilyPlates..."
     start_time = Time.current
 
-    # Ensure Stripe connection
+    # Ensure Stripe connection — never against a live key or production env.
     stripe_key = ENV["STRIPE_SECRET_KEY"].presence || ENV["STRIPE_PRIVATE_KEY"].presence
     unless stripe_key
       abort "❌ Error: Stripe test key not configured in ENV['STRIPE_SECRET_KEY'] or ENV['STRIPE_PRIVATE_KEY']"
+    end
+    unless stripe_key.start_with?("sk_test_") && !Rails.env.production?
+      abort "❌ Refusing to run hosted:simulate_customers: requires a Stripe test key (sk_test_...) and a non-production environment."
     end
     Stripe.api_key = stripe_key
 
@@ -42,12 +45,12 @@ namespace :hosted do
       "Thomas", "Roberts", "Johnson", "Williams", "Jones", "Jackson", "White", "Harris",
       "Martin", "Thompson", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Lee",
       "Walker", "Hall", "Allen", "Young", "King", "Wright", "Scott", "Torres",
-      "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall",
-      "Campbell", "Mitchell", "Carter", "Roberts", "Phillips", "Evans", "Turner", "Diaz",
+      "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Perez",
+      "Campbell", "Mitchell", "Carter", "Brooks", "Phillips", "Bennett", "Turner", "Diaz",
       "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart", "Morris", "Morales",
       "Sanchez", "Kimura", "Sato", "Suzuki", "Takahashi", "Ito", "Nakamura", "Kobayashi",
       "Yamamoto", "Saito", "Kato", "Yoshida", "Yamada", "Sasaki", "Yamaguchi", "Matsumoto",
-      "Inoue", "Kimura", "Hayashi", "Shimizu"
+      "Inoue", "Fujita", "Hayashi", "Shimizu"
     ]
 
     recipe_templates = [
@@ -248,18 +251,30 @@ namespace :hosted do
       deletion_pending: true
     }
 
+    specs.each_with_index do |spec, idx|
+      surname = family_names[idx % family_names.size]
+      spec[:surname] = surname
+      spec[:household_name] =
+        case idx % 3
+        when 0 then "The #{surname} Family"
+        when 1 then "#{surname} Kitchen"
+        else "The #{surname}s"
+        end
+      spec[:email] = "sim_customer_#{idx + 1}@example.com"
+    end
+
     puts "\n📦 Prepared #{specs.size} customer specifications."
 
     # Concurrent Stripe Customer Creation
     puts "\n⚡ Connecting to Stripe Test API to create 100 test customer objects..."
     stripe_customers = Array.new(specs.size)
     pool = Concurrent::FixedThreadPool.new(8)
+    simulated_stripe_customer = Data.define(:id)
 
     specs.each_with_index do |spec, idx|
       pool.post do
-        surname = family_names[idx % family_names.size]
-        household_name = (idx % 3 == 0) ? "The #{surname} Family" : ((idx % 3 == 1) ? "#{surname} Kitchen" : "The #{surname}s")
-        email = "sim_customer_#{idx + 1}@example.com"
+        household_name = spec[:household_name]
+        email = spec[:email]
 
         begin
           customer_params = {
@@ -277,9 +292,9 @@ namespace :hosted do
           stripe_customer = Stripe::Customer.create(customer_params)
           stripe_customers[idx] = stripe_customer
           print "." if (idx + 1) % 10 == 0
-        rescue => e
+        rescue StandardError => e
           puts "\n⚠️ Stripe creation note for ##{idx + 1}: #{e.message}. Using synthetic processor ID."
-          stripe_customers[idx] = OpenStruct.new(id: "cus_sim_#{SecureRandom.hex(10)}")
+          stripe_customers[idx] = simulated_stripe_customer.new("cus_sim_#{SecureRandom.hex(10)}")
         end
       end
     end
@@ -294,9 +309,9 @@ namespace :hosted do
 
     ActiveRecord::Base.transaction do
       specs.each_with_index do |spec, idx|
-        surname = family_names[idx % family_names.size]
-        household_name = (idx % 3 == 0) ? "The #{surname} Family" : ((idx % 3 == 1) ? "#{surname} Kitchen" : "The #{surname}s")
-        email = "sim_customer_#{idx + 1}@example.com"
+        surname = spec[:surname]
+        household_name = spec[:household_name]
+        email = spec[:email]
         created_at = Time.current - spec[:created_ago]
         stripe_customer = stripe_customers[idx]
 
@@ -425,8 +440,8 @@ namespace :hosted do
                       promo: spec[:promo].to_s
                     }
                   )
-                rescue => e
-                  # Fallback if card rate limit or token error
+                rescue StandardError => e
+                  Rails.logger.warn("[hosted:simulate_customers] Stripe charge failed for #{household.id}: #{e.class}: #{e.message}")
                 end
               end
 
@@ -461,11 +476,6 @@ namespace :hosted do
               end
             end
           end
-        end
-
-        # Track promotion program redemptions
-        if spec[:promo].present? && promo_records[spec[:promo]]
-          promo_records[spec[:promo]].increment!(:redeemed_count)
         end
 
         # 4. Sample Recipes & Pantry
@@ -546,16 +556,22 @@ namespace :hosted do
           req.save!(validate: false)
         end
       end
+
+      # Recompute from current household state so re-runs do not inflate counts.
+      promo_records.each_value do |prog|
+        prog.update!(redeemed_count: Household.where(promotion_code: prog.code).count)
+      end
     end
 
     elapsed = (Time.current - start_time).round(2)
+    simulated_households = Household.where("id LIKE ?", "sim-house-%")
     puts "\n🎉 Successfully simulated 100 customers in #{elapsed}s!"
     puts "📊 Summary in Database:"
-    puts "   • Households: #{Household.count}"
-    puts "   • Active Subscriptions: #{Household.all.count(&:active_subscription?)}"
-    puts "   • Free Trials: #{Household.all.count { |h| h.subscription_status == :trialing }}"
-    puts "   • Past Due / Grace: #{Household.all.count { |h| [ :past_due, :past_due_grace ].include?(h.subscription_status) }}"
-    puts "   • Suspended: #{Household.where.not(suspended_at: nil).count}"
+    puts "   • Households: #{simulated_households.count}"
+    puts "   • Active Subscriptions: #{simulated_households.count(&:active_subscription?)}"
+    puts "   • Free Trials: #{simulated_households.count { |h| h.subscription_status == :trialing }}"
+    puts "   • Past Due / Grace: #{simulated_households.count { |h| [ :past_due, :past_due_grace ].include?(h.subscription_status) }}"
+    puts "   • Suspended: #{simulated_households.where.not(suspended_at: nil).count}"
     puts "   • Promotion Programs: #{PromotionProgram.count}"
     puts "   • Promo Redemptions Tracked: #{PromotionProgram.sum(:redeemed_count)}"
   end

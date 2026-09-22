@@ -65,4 +65,14 @@ class HouseholdTest < ActiveSupport::TestCase
     assert_not_equal original_token, household.calendar_feed_token
     assert household.calendar_feed_token.present?
   end
+
+  test "email prefers an admin family member's user via a join" do
+    household = households(:one)
+    admin_user = User.create!(email: "admin-parent@example.com")
+    member_user = User.create!(email: "member@example.com")
+    family_members(:one).update!(user: admin_user)
+    family_members(:two).update!(user: member_user)
+
+    assert_equal "admin-parent@example.com", household.email
+  end
 end

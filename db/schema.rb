@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_220000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -405,7 +405,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_060000) do
   end
 
   create_table "recipes", force: :cascade do |t|
-    t.integer "cook_time", default: 20
+    t.integer "cook_time"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "equipment"
@@ -416,7 +416,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_060000) do
     t.integer "leftover_shelf_life_days", default: 3, null: false
     t.string "meal_types", default: "breakfast,lunch,dinner"
     t.integer "number"
-    t.integer "prep_time", default: 15
+    t.integer "prep_time"
     t.integer "servings", default: 4
     t.string "source_url"
     t.string "tags"

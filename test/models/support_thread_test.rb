@@ -35,4 +35,19 @@ class SupportThreadTest < ActiveSupport::TestCase
     thread.messages.create!(platform_admin: @admin, body: "Follow-up")
     assert_equal "waiting_on_customer", thread.reload.status
   end
+
+  test "display_status maps the legacy open alias" do
+    thread = SupportThread.create!(household: @household, subject: "Question", status: "open")
+
+    assert_equal "waiting_on_support", thread.display_status
+    assert_equal "waiting_on_support", SupportThread.display_status_for("open")
+  end
+
+  test "change_status! only accepts operator-settable statuses" do
+    thread = SupportThread.create!(household: @household, subject: "Question")
+
+    assert_not thread.change_status!("open")
+    assert thread.change_status!("waiting_on_customer")
+    assert_equal "waiting_on_customer", thread.reload.status
+  end
 end

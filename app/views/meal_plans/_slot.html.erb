@@ -111,7 +111,7 @@
             <% end %>
 
             <% if slot.recipe %>
-              <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">⏱️ <%= slot.recipe.total_time %>m</span>
+              <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">⏱️ <%= recipe_minutes(slot.recipe.total_time, style: :short) %></span>
             <% end %>
           </div>
 
@@ -284,7 +284,7 @@
                     <div class="min-w-0 flex-1">
                       <div class="font-bold text-xs text-slate-900 dark:text-white group-hover/item:text-primary-600 dark:group-hover/item:text-primary-400 truncate"><%= recipe.title %></div>
                       <div class="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        <span>⏱️ <%= recipe.total_time %>m</span>
+                        <span>⏱️ <%= recipe_minutes(recipe.total_time, style: :short) %></span>
                         <% if recipe.tag_list.any? %>
                           <span class="truncate">• <%= recipe.tag_list.first(2).join(", ") %></span>
                         <% end %>
@@ -466,7 +466,7 @@
 
           <% if slot.recipe %>
             <%= link_to recipe_path(slot.recipe), class: "text-[10px] font-semibold text-primary-600 dark:text-primary-400 hover:underline" do %>
-              ⏱️ <%= slot.recipe.total_time %>m →
+              ⏱️ <%= recipe_minutes(slot.recipe.total_time, style: :short) %> →
             <% end %>
           <% end %>
         </div>

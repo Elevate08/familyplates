@@ -35,7 +35,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/chicken-parm")
+    result = RecipeScraper.parse_html(html, "https://example.com/chicken-parm").recipe
 
     assert_equal "Crispy Chicken Parmesan", result[:title]
     assert_equal 15, result[:prep_time]
@@ -77,7 +77,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/casserole")
+    result = RecipeScraper.parse_html(html, "https://example.com/casserole").recipe
     assert_equal 15, result[:prep_time]
     assert_equal 45, result[:cook_time]
     assert_equal 75, result[:total_time]
@@ -101,7 +101,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/pie")
+    result = RecipeScraper.parse_html(html, "https://example.com/pie").recipe
     assert_equal "Grandma's Apple Pie", result[:title]
     assert_equal "The best homemade apple pie recipe.", result[:description]
   end
@@ -120,7 +120,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
         http://10.0.0.1/
         http://localhost/
       ].each do |url|
-        assert_nil RecipeScraper.call(url), "#{url} must not produce a recipe"
+        assert_not RecipeScraper.fetch(url).success?, "#{url} must not produce a recipe"
       end
     ensure
       Rails.logger = original
@@ -159,7 +159,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </script></head><body></body></html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/pot-roast")
+    result = RecipeScraper.parse_html(html, "https://example.com/pot-roast").recipe
 
     assert_equal "Real Pot Roast", result[:title]
     assert_equal 2, result[:ingredients].count
@@ -181,7 +181,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </script></head><body></body></html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/salmon")
+    result = RecipeScraper.parse_html(html, "https://example.com/salmon").recipe
 
     assert_equal "Sheet Pan Salmon", result[:title]
   end
@@ -226,7 +226,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </script></head><body></body></html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/greens")
+    result = RecipeScraper.parse_html(html, "https://example.com/greens").recipe
 
     assert_equal "1. Wash the greens in cold water & drain.\n\n2. Braise the greens for 45 minutes",
                  result[:instructions]
@@ -262,7 +262,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
       <body><div itemscope itemtype="https://schema.org/Recipe"><h1 itemprop="name">Site Header</h1></div></body></html>
     HTML
 
-    result = RecipeScraper.parse_html(html, "https://example.com/ramen")
+    result = RecipeScraper.parse_html(html, "https://example.com/ramen").recipe
 
     assert_equal "Weeknight Ramen", result[:title]
   end
@@ -295,14 +295,14 @@ class RecipeScraperTest < ActiveSupport::TestCase
       </head><body></body></html>
     HTML
 
-    twitter_only = RecipeScraper.parse_html(html, "https://example.com/pie")
+    twitter_only = RecipeScraper.parse_html(html, "https://example.com/pie").recipe
     assert_equal "https://cdn.example.com/pie.jpg", twitter_only[:image_url]
   end
 
   # --- Resilience ---------------------------------------------------------
 
   test "reports a bot challenge page instead of importing it as a recipe" do
-    result = RecipeScraper.parse_html_result(
+    result = RecipeScraper.parse_html(
       file_fixture("recipe_pages/anti_bot_challenge.html").read,
       "https://seriouseats.test/recipes/carbonara"
     )
@@ -312,10 +312,65 @@ class RecipeScraperTest < ActiveSupport::TestCase
   end
 
   test "reports a page with no recipe markup at all as unparseable" do
-    result = RecipeScraper.parse_html_result("%PDF-1.4 not html", "https://example.com/recipe.pdf")
+    result = RecipeScraper.parse_html("%PDF-1.4 not html", "https://example.com/recipe.pdf")
 
     assert_not result.success?
     assert_equal :unparseable, result.error
+  end
+
+  test "leaves prep, cook and total time empty when the page does not state them" do
+    html = <<~HTML
+      <html><head><script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Recipe","name":"Untimed Stew",
+       "recipeIngredient":["1 onion"],"recipeInstructions":["Simmer."]}
+      </script></head><body></body></html>
+    HTML
+
+    result = RecipeScraper.parse_html(html, "https://example.com/stew").recipe
+
+    assert_nil result[:prep_time]
+    assert_nil result[:cook_time]
+    assert_nil result[:total_time]
+  end
+
+  test "keeps a stated time and does not invent the missing one" do
+    html = <<~HTML
+      <html><head><script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Recipe","name":"Quick Toast",
+       "prepTime":"PT5M","recipeIngredient":["1 slice bread"],"recipeInstructions":["Toast."]}
+      </script></head><body></body></html>
+    HTML
+
+    result = RecipeScraper.parse_html(html, "https://example.com/toast").recipe
+
+    assert_equal 5, result[:prep_time]
+    assert_nil result[:cook_time]
+    assert_equal 5, result[:total_time]
+  end
+
+  test "opengraph fallback does not invent prep or cook time" do
+    html = '<html><head><meta property="og:title" content="Mystery Dish"></head><body><p>Hello</p></body></html>'
+
+    result = RecipeScraper.parse_html(html, "https://example.com/mystery").recipe
+
+    assert_nil result[:prep_time]
+    assert_nil result[:cook_time]
+  end
+
+  test "parses unicode eighth fractions in ingredient lines" do
+    html = <<~HTML
+      <html><head><script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Recipe","name":"Spiced Cider",
+       "recipeIngredient":["⅛ tsp ground nutmeg"],
+       "recipeInstructions":["Stir and serve."]}
+      </script></head><body></body></html>
+    HTML
+
+    result = RecipeScraper.parse_html(html, "https://example.com/cider").recipe
+    ingredient = result[:ingredients].first
+
+    assert_equal 0.13, ingredient[:quantity]
+    assert_equal "tsp", ingredient[:unit]
   end
 
   test "distinguishes anti-bot, missing, failing, and timing-out sites" do
@@ -331,7 +386,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
   private
 
   def scrape_fixture(name, url)
-    RecipeScraper.parse_html(file_fixture("recipe_pages/#{name}").read, url)
+    RecipeScraper.parse_html(file_fixture("recipe_pages/#{name}").read, url).recipe
   end
 
   # Drives RecipeScraper through its real fetch path with the network seam

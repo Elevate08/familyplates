@@ -28,14 +28,10 @@ class MealPlan < ApplicationRecord
   end
 
   def preloaded_leftover_sources
-    min_date = week_start_date - 14.days
-    max_date = week_start_date + 6.days
-    household.meal_plan_slots
-             .includes(:recipe, :leftover_slots)
-             .where(is_leftover: false)
-             .where.not(recipe_id: nil)
-             .where("date >= ? AND date <= ?", min_date, max_date)
-             .to_a
+    leftover_sources_between(
+      week_start_date - Recipe::MAX_LEFTOVER_SHELF_LIFE_DAYS.days,
+      week_start_date + 6.days
+    )
   end
 
   def week_label
@@ -47,36 +43,24 @@ class MealPlan < ApplicationRecord
     end
   end
 
-  MEAL_TYPE_ORDER = { "breakfast" => 1, "lunch" => 2, "dinner" => 3 }.freeze
+  MEAL_TYPE_ORDER = MealPlanSlot::MEAL_TYPE_ORDER
 
   def available_leftovers_for(target_date, target_meal_type, current_slot: nil, preloaded_sources: nil)
-    target_rank = MEAL_TYPE_ORDER[target_meal_type.to_s] || 2
-    min_date = target_date - 14.days
+    target_rank = MealPlanSlot.meal_type_rank(target_meal_type)
+    min_date = target_date - Recipe::MAX_LEFTOVER_SHELF_LIFE_DAYS.days
 
-    # Query household-wide across all weekly plans for a rolling window up to max shelf life (14 days)
+    # Query household-wide across all weekly plans for a rolling window up to the
+    # maximum shelf life accepted by Recipe.
     slots_scope = if preloaded_sources.present?
       preloaded_sources.select { |s| s.date >= min_date && s.date <= target_date }
     else
-      household.meal_plan_slots
-               .includes(:recipe, :leftover_slots)
-               .where(is_leftover: false)
-               .where.not(recipe_id: nil)
-               .where("date >= ? AND date <= ?", min_date, target_date)
+      leftover_sources_between(min_date, target_date)
     end
 
-    prior_slots = slots_scope.select do |slot|
+    eligible_sources = slots_scope.filter_map do |slot|
       next false unless slot.recipe.present?
 
-      # Chronology check: must be strictly prior to target meal slot
-      is_prior = if slot.date < target_date
-        true
-      elsif slot.date == target_date
-        slot_rank = MEAL_TYPE_ORDER[slot.meal_type.to_s] || 1
-        slot_rank < target_rank
-      else
-        false
-      end
-      next false unless is_prior
+      next false unless MealPlanSlot.served_before?(slot, target_date: target_date, target_meal_type: target_meal_type)
 
       # Shelf life check: candidate must be within recipe's shelf life window
       shelf_life = slot.recipe.effective_leftover_shelf_life_days
@@ -86,19 +70,17 @@ class MealPlan < ApplicationRecord
       # Capacity check: candidate must not be exhausted
       next false if slot.leftover_exhausted?(excluding_slot: current_slot)
 
-      true
+      { slot: slot, shelf_life: shelf_life, days_ago: days_ago }
     end
 
-    prior_slots.sort_by do |slot|
-      rec = slot.recipe
+    eligible_sources.sort_by do |source|
+      rec = source[:slot].recipe
       is_yields = rec.yields_leftovers? ? 0 : 1
-      days_ago = (target_date - slot.date).to_i
-      rank_diff = target_rank - (MEAL_TYPE_ORDER[slot.meal_type.to_s] || 1)
-      [ is_yields, days_ago, -rank_diff ]
-    end.map do |slot|
+      rank_diff = target_rank - MealPlanSlot.meal_type_rank(source[:slot].meal_type)
+      [ is_yields, source[:days_ago], -rank_diff ]
+    end.uniq { |source| source[:slot].id }.map do |source|
+      slot = source[:slot]
       rec = slot.recipe
-      days_ago = (target_date - slot.date).to_i
-      shelf_life = rec.effective_leftover_shelf_life_days
       remaining_cap = slot.leftover_capacity_remaining(excluding_slot: current_slot)
 
       {
@@ -106,9 +88,20 @@ class MealPlan < ApplicationRecord
         recipe: rec,
         source_slot_id: slot.id,
         remaining_capacity: remaining_cap,
-        days_remaining: [ shelf_life - days_ago, 0 ].max,
+        days_remaining: [ source[:shelf_life] - source[:days_ago], 0 ].max,
         source_label: "#{slot.date.strftime('%a')} #{slot.meal_type.capitalize}"
       }
-    end.uniq { |item| item[:slot].id }
+    end
+  end
+
+  private
+
+  def leftover_sources_between(min_date, max_date)
+    household.meal_plan_slots
+             .includes(:recipe, :leftover_slots)
+             .where(is_leftover: false)
+             .where.not(recipe_id: nil)
+             .where(date: min_date..max_date)
+             .to_a
   end
 end

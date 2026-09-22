@@ -228,4 +228,30 @@ class MealPlanSlotTest < ActiveSupport::TestCase
     cooked_slot.update!(date: plan.week_start_date + 2.days)
     assert_not MealPlanSlot.exists?(leftover_slot.id)
   end
+
+  test "a leftover never keeps an ineligible source slot" do
+    household = households(:one)
+    week = 9.weeks.from_now.to_date.beginning_of_week
+    plan = household.meal_plans.create!(week_start_date: week)
+    stew = household.recipes.create!(title: "Eligibility Stew", yields_leftovers: true, leftover_capacity: 3)
+    soup = household.recipes.create!(title: "Eligibility Soup")
+    source = plan.meal_plan_slots.create!(date: week, meal_type: "dinner", recipe: stew)
+    other_recipe_source = plan.meal_plan_slots.create!(date: week, meal_type: "lunch", recipe: soup)
+    later_source = plan.meal_plan_slots.create!(date: week + 5, meal_type: "dinner", recipe: stew)
+
+    other = households(:two)
+    other_stew = other.recipes.create!(title: "Eligibility Stew")
+    foreign_source = other.meal_plans.create!(week_start_date: week).meal_plan_slots.create!(date: week, meal_type: "dinner", recipe: other_stew)
+
+    [ other_recipe_source, later_source, foreign_source ].each do |bad|
+      leftover = plan.meal_plan_slots.new(date: week + 1, meal_type: "lunch", recipe: stew, is_leftover: true, leftover_source_slot_id: bad.id)
+      assert leftover.save, leftover.errors.full_messages.to_sentence
+      assert_equal source.id, leftover.leftover_source_slot_id, "must not keep #{bad.meal_type} #{bad.date} as its source"
+      leftover.destroy
+    end
+
+    stale = plan.meal_plan_slots.new(date: week + 6, meal_type: "lunch", recipe: stew, is_leftover: true, leftover_source_slot_id: source.id)
+    stale.valid?
+    assert_not_equal source.id, stale.leftover_source_slot_id, "a source past its shelf life must not be kept"
+  end
 end

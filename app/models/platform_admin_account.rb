@@ -16,17 +16,13 @@ class PlatformAdminAccount < ApplicationRecord
 
   before_validation :generate_otp_secret, on: :create
 
-  def active?
-    active
-  end
-
   def valid_totp?(value, at: Time.current)
     normalized = value.to_s.strip
     return false unless normalized.match?(/\A\d{6}\z/)
 
     (-1..1).any? do |offset|
       ActiveSupport::SecurityUtils.secure_compare(
-        self.class::Totp.code(otp_secret, at: at + offset * Totp::STEP), normalized
+        Totp.code(otp_secret, at: at + offset * Totp::STEP), normalized
       )
     end
   end

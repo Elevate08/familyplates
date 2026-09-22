@@ -4,10 +4,7 @@ class SupportThreadsController < ApplicationController
   before_action :set_support_thread, only: %i[show resolve]
 
   def index
-    all_threads = current_household.support_threads.order(last_message_at: :desc, created_at: :desc)
-    @active_threads = all_threads.where(status: [ "waiting_on_support", "waiting_on_customer", "open" ])
-    @resolved_threads = all_threads.where(status: "resolved")
-    @support_threads = all_threads
+    load_thread_lists
   end
 
   def show
@@ -26,19 +23,25 @@ class SupportThreadsController < ApplicationController
     end
 
     @support_thread = current_household.support_threads.new(thread_params.merge(created_by_user: current_user, status: "waiting_on_support"))
+    # Built together so they save in one transaction: a blank message used to
+    # raise after the thread was already saved, leaving an empty thread behind.
+    @support_thread.messages.build(user: current_user, body: params.dig(:support_thread, :body))
     if @support_thread.save
-      @support_thread.messages.create!(user: current_user, body: params.dig(:support_thread, :body))
       redirect_to @support_thread, notice: "Your support request has been sent."
     else
-      all_threads = current_household.support_threads.order(last_message_at: :desc, created_at: :desc)
-      @active_threads = all_threads.where(status: [ "waiting_on_support", "waiting_on_customer", "open" ])
-      @resolved_threads = all_threads.where(status: "resolved")
-      @support_threads = all_threads
+      load_thread_lists
       render :index, status: :unprocessable_entity
     end
   end
 
   private
+
+  def load_thread_lists
+    all_threads = current_household.support_threads.order(last_message_at: :desc, created_at: :desc)
+    @active_threads = all_threads.active
+    @resolved_threads = all_threads.resolved_only
+    @support_threads = all_threads
+  end
 
   def set_support_thread
     @support_thread = current_household.support_threads.find(params[:id])

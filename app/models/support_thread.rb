@@ -1,10 +1,17 @@
 class SupportThread < ApplicationRecord
+  # "open" is the pre-rename value for waiting_on_support; keep it queryable so
+  # older rows still show up in operator and customer inboxes.
+  LEGACY_OPEN_STATUS = "open"
+  ACTIVE_STATUSES = %w[waiting_on_support waiting_on_customer open].freeze
+  WAITING_ON_SUPPORT_STATUSES = %w[waiting_on_support open].freeze
+  OPERATOR_SETTABLE_STATUSES = %w[waiting_on_support waiting_on_customer resolved].freeze
+
   attribute :id, default: -> { SecureRandom.uuid }
   attribute :status, default: "waiting_on_support"
 
   belongs_to :household
   belongs_to :created_by_user, class_name: "User", optional: true
-  has_many :messages, class_name: "SupportMessage", dependent: :destroy
+  has_many :messages, class_name: "SupportMessage", dependent: :destroy, inverse_of: :thread
 
   enum :status, {
     open: "open",
@@ -15,13 +22,17 @@ class SupportThread < ApplicationRecord
 
   validates :subject, presence: true, length: { maximum: 200 }
 
-  scope :active, -> { where(status: [ "waiting_on_support", "waiting_on_customer", "open" ]) }
-  scope :waiting_on_support_only, -> { where(status: [ "waiting_on_support", "open" ]) }
+  scope :active, -> { where(status: ACTIVE_STATUSES) }
+  scope :waiting_on_support_only, -> { where(status: WAITING_ON_SUPPORT_STATUSES) }
   scope :waiting_on_customer_only, -> { where(status: "waiting_on_customer") }
   scope :resolved_only, -> { where(status: "resolved") }
 
+  def self.display_status_for(status)
+    status.to_s == LEGACY_OPEN_STATUS ? "waiting_on_support" : status.to_s
+  end
+
   def display_status
-    status == "open" ? "waiting_on_support" : status
+    self.class.display_status_for(status)
   end
 
   def active?
@@ -47,8 +58,7 @@ class SupportThread < ApplicationRecord
   end
 
   def change_status!(new_status)
-    valid_statuses = %w[waiting_on_support waiting_on_customer resolved]
-    return false unless valid_statuses.include?(new_status.to_s)
+    return false unless OPERATOR_SETTABLE_STATUSES.include?(new_status.to_s)
 
     attrs = { status: new_status }
     attrs[:resolved_at] = (new_status.to_s == "resolved" ? Time.current : nil)

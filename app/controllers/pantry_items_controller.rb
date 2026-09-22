@@ -2,8 +2,7 @@ class PantryItemsController < ApplicationController
   before_action :set_pantry_item, only: %i[update destroy toggle_staple toggle_low mark_low restock]
 
   def index
-    @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
-    @items_by_category = @pantry_items.group_by(&:aisle_category)
+    load_pantry_items
     @new_item = current_household.pantry_items.build
   end
 
@@ -11,10 +10,7 @@ class PantryItemsController < ApplicationController
     @pantry_item = current_household.pantry_items.build(pantry_item_params)
     if @pantry_item.save
       track_activity("pantry_item.created", target: @pantry_item)
-      respond_to do |format|
-        format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
-        format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry." }
-      end
+      redirect_to pantry_items_path, notice: "#{@pantry_item.name} added to pantry."
     else
       render_index_with_errors
     end
@@ -23,10 +19,7 @@ class PantryItemsController < ApplicationController
   def update
     if @pantry_item.update(pantry_item_params)
       track_activity("pantry_item.updated", target: @pantry_item)
-      respond_to do |format|
-        format.turbo_stream { redirect_to pantry_items_path, notice: "Pantry item updated." }
-        format.html { redirect_to pantry_items_path, notice: "Pantry item updated." }
-      end
+      redirect_to pantry_items_path, notice: "Pantry item updated."
     else
       render_index_with_errors
     end
@@ -35,18 +28,12 @@ class PantryItemsController < ApplicationController
   def destroy
     track_activity("pantry_item.deleted", target: @pantry_item)
     @pantry_item.destroy
-    respond_to do |format|
-      format.turbo_stream { redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry." }
-      format.html { redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry." }
-    end
+    redirect_to pantry_items_path, notice: "#{@pantry_item.name} removed from pantry."
   end
 
   def toggle_staple
     @pantry_item.toggle_staple!
-    respond_to do |format|
-      format.turbo_stream { redirect_to pantry_items_path }
-      format.html { redirect_to pantry_items_path }
-    end
+    redirect_to pantry_items_path
   end
 
   # "Low on this" - one tap, from the pantry roster, a recipe's ingredient list,
@@ -63,6 +50,8 @@ class PantryItemsController < ApplicationController
   # list - and by un-ticking it, which has to put the flag back.
   def mark_low
     @pantry_item.mark_low!
+    track_activity("pantry_item.marked_low", target: @pantry_item)
+
     render_stock_change
   end
 
@@ -74,6 +63,11 @@ class PantryItemsController < ApplicationController
   end
 
   private
+
+  def load_pantry_items
+    @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
+    @items_by_category = @pantry_items.group_by(&:aisle_category)
+  end
 
   # Replaces just the row that changed. A full reload would lose the cook's
   # place in a recipe, and scroll the pantry back to the top.
@@ -97,8 +91,7 @@ class PantryItemsController < ApplicationController
   # every invalid submission became a 500. Turbo renders an HTML 422 fine, so ask
   # for HTML explicitly rather than adding a second template to keep in step.
   def render_index_with_errors
-    @pantry_items = current_household.pantry_items.order(:aisle_category, :name)
-    @items_by_category = @pantry_items.group_by(&:aisle_category)
+    load_pantry_items
     # The form is bound to @new_item, which the old error branches never set -
     # so re-rendering index blew up on form_with model: nil even for HTML.
     # Handing it the rejected record is also what puts the errors on screen.

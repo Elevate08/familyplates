@@ -35,31 +35,25 @@ class ApplicationController < ActionController::Base
 
   def require_admin
     if Current.session&.kiosk?
-      respond_to do |format|
-        format.html do
-          redirect_back fallback_location: root_path, alert: "Kiosk devices cannot access household settings or admin tools."
-        end
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.replace("flash-messages", partial: "shared/flash", locals: { alert: "Kiosk devices cannot access household settings or admin tools." }), status: :forbidden
-        end
-        format.json do
-          render json: { error: "Kiosk devices cannot access household settings or admin tools." }, status: :forbidden
-        end
-      end
+      deny_access("Kiosk devices cannot access household settings or admin tools.")
       return
     end
 
     return if current_family_member&.admin?
 
+    deny_access("Access restricted to household organizers / admins.")
+  end
+
+  def deny_access(message)
     respond_to do |format|
       format.html do
-        redirect_back fallback_location: root_path, alert: "Access restricted to household organizers / admins."
+        redirect_back fallback_location: root_path, alert: message
       end
       format.turbo_stream do
-        render turbo_stream: turbo_stream.replace("flash-messages", partial: "shared/flash", locals: { alert: "Access restricted to household organizers / admins." }), status: :forbidden
+        render turbo_stream: turbo_stream.replace("flash-messages", partial: "shared/flash", locals: { alert: message }), status: :forbidden
       end
       format.json do
-        render json: { error: "Access restricted to household organizers / admins." }, status: :forbidden
+        render json: { error: message }, status: :forbidden
       end
     end
   end

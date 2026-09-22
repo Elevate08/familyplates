@@ -4,6 +4,45 @@ require "json"
 class RecipeScraper
   attr_reader :url, :html
 
+  DEFAULT_SERVINGS = 4
+
+  USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0"
+
+  ANTI_BOT_MARKERS = [
+    "just a moment",
+    "enable javascript and cookies to continue",
+    "checking your browser",
+    "verify you are human",
+    "cf-browser-verification",
+    "access denied",
+    "attention required!",
+    "request unsuccessful. incapsula"
+  ].freeze
+
+  # Recursion guard for JSON-LD trees: publishers nest @graph inside @graph, and
+  # a self-referential document must not take the request down with it.
+  MAX_JSON_DEPTH = 12
+
+  URL_PROPS = %w[image url contentUrl thumbnailUrl].freeze
+
+  EQUIPMENT_YIELD_PATTERN = /(?:pan|casserole|dish|sheet|pot|skillet|tin|loaf)/i
+  DIMENSION_PATTERN = /\d+(?:\.\d+)?(?:\s*(?:x|by|\*)\s*\d+(?:\.\d+)?)*(?:\s*-\s*inch|\s*inch|\s*\")?/i
+  EQUIPMENT_NAMES_PATTERN = /baking pan|baking dish|casserole dish|casserole|cake pan|pie plate|pie dish|pie pan|springform pan|loaf pan|sheet pan|roasting pan|baking sheet|muffin tin|muffin pan|cast[- ]iron skillet|skillet|frying pan|Dutch oven|saucepan|stockpot|slow cooker|instant pot|air fryer|bundt pan|ramekins?/i
+  EQUIPMENT_SCAN_PATTERN = /(?:an?\s+)?(#{DIMENSION_PATTERN}\s*#{EQUIPMENT_NAMES_PATTERN})/i
+  EQUIPMENT_PREFERRED_PATTERN = /baking pan|baking dish|casserole dish|sheet pan|skillet/i
+
+  OG_IMAGE_SELECTORS = [
+    'meta[property="og:image"]',
+    'meta[property="og:image:secure_url"]',
+    'meta[name="og:image"]',
+    'meta[name="twitter:image"]',
+    'meta[property="twitter:image"]',
+    'meta[name="twitter:image:src"]',
+    'link[rel="image_src"]'
+  ].freeze
+
+  UNIT_PATTERN = /cups?|c\.|tbsp|tbs|tablespoons?|tsp|teaspoons?|lbs?|pounds?|oz|ounces?|cloves?|cans?|bunches?|pinch|handful|slices?|stalks?|pkg|packages?|quarts?|pints?|gallons?|sticks?|sprigs?|kilograms?|kg|grams?|g|milliliters?|ml|sheets?|jars?|bottles?|containers?|bags?|boxes?/i
+
   # What went wrong, when nothing came back. The controller turns these into
   # user-facing copy; keeping them symbols means the wording lives in one place
   # and the scraper stays free of view concerns.
@@ -11,31 +50,17 @@ class RecipeScraper
     def success? = recipe.present?
   end
 
-  def self.call(url)
-    fetch(url).recipe
-  end
-
-  # Preferred entry point: same work as .call, but the caller learns *why* a
-  # scrape produced nothing.
   def self.fetch(url)
     new(url).result
   end
 
   def self.parse_html(html_content, url = nil)
-    new(url, html_content: html_content).scrape
-  end
-
-  def self.parse_html_result(html_content, url = nil)
     new(url, html_content: html_content).result
   end
 
   def initialize(url, html_content: nil)
     @url = url
     @html = html_content
-  end
-
-  def scrape
-    result.recipe
   end
 
   def result
@@ -64,23 +89,6 @@ class RecipeScraper
   end
 
   private
-
-  USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0".freeze
-
-  ANTI_BOT_MARKERS = [
-    "just a moment",
-    "enable javascript and cookies to continue",
-    "checking your browser",
-    "verify you are human",
-    "cf-browser-verification",
-    "access denied",
-    "attention required!",
-    "request unsuccessful. incapsula"
-  ].freeze
-
-  # Recursion guard for JSON-LD trees: publishers nest @graph inside @graph, and
-  # a self-referential document must not take the request down with it.
-  MAX_JSON_DEPTH = 12
 
   def failure(error)
     Result.new(recipe: nil, error: error)
@@ -246,8 +254,6 @@ class RecipeScraper
     }
   end
 
-  URL_PROPS = %w[image url contentUrl thumbnailUrl].freeze
-
   def microdata_value(node, prop)
     value =
       case node.name
@@ -265,11 +271,12 @@ class RecipeScraper
   def build_recipe_from_json_ld(data, doc)
     title = data["name"] || data["headline"] || doc.title
     description = clean_text(data["description"])
+    # A time the page does not state stays empty. A guessed 15 or 20 minutes
+    # reads as fact on the recipe card and in Cook Mode, and the cook has no way
+    # to tell it apart from what the publisher actually wrote.
     prep_time = parse_iso_duration(data["prepTime"])
     cook_time = parse_iso_duration(data["cookTime"])
-    # A missing totalTime must stay missing: defaulting it to 15 made every
-    # recipe without one claim a total shorter than its own cook time.
-    total_time = parse_iso_duration(data["totalTime"], default: nil)
+    total_time = parse_iso_duration(data["totalTime"])
     servings = parse_servings(data["recipeYield"])
     image_url = extract_image(data["image"]) || extract_og_image(doc)
     instructions = extract_instructions(data["recipeInstructions"])
@@ -282,7 +289,7 @@ class RecipeScraper
       description: description.to_s.strip,
       prep_time: prep_time,
       cook_time: cook_time,
-      total_time: (total_time.to_i > 0 ? total_time : ((prep_time || 0) + (cook_time || 0))),
+      total_time: total_time.to_i.positive? ? total_time : [ prep_time, cook_time ].compact.sum.nonzero?,
       equipment: equipment,
       servings: servings,
       yields_leftovers: yields_leftovers,
@@ -304,9 +311,9 @@ class RecipeScraper
     {
       title: title,
       description: clean_text(description),
-      prep_time: 15,
-      cook_time: 20,
-      servings: 4,
+      prep_time: nil,
+      cook_time: nil,
+      servings: DEFAULT_SERVINGS,
       source_url: url,
       image_url: extract_og_image(doc),
       instructions: "No structured instructions found. Please paste instructions here.",
@@ -314,9 +321,9 @@ class RecipeScraper
     }
   end
 
-  def parse_iso_duration(duration, default: 15)
+  def parse_iso_duration(duration)
     duration = duration.first if duration.is_a?(Array)
-    return default if duration.blank?
+    return nil if duration.blank?
     return duration.to_i if duration.is_a?(Numeric) || duration.to_s =~ /\A\d+\z/
 
     text = duration.to_s
@@ -326,21 +333,17 @@ class RecipeScraper
       ($1.to_i * 60) + text[/(\d+)\s*(?:minutes?|mins?|m)\b/i, 1].to_i
     elsif (minutes = text[/(\d+)\s*(?:minutes?|mins?)\b/i, 1])
       minutes.to_i
-    else
-      default
     end
   end
-
-  EQUIPMENT_YIELD_PATTERN = /(?:pan|casserole|dish|sheet|pot|skillet|tin|loaf)/i
 
   # Sites put the pan in recipeYield ("1 (9x13-inch) casserole") as often as the
   # serving count, so equipment-shaped entries are skipped rather than read as
   # "serves 1".
   def parse_servings(yield_val)
-    return 4 if yield_val.blank?
+    return DEFAULT_SERVINGS if yield_val.blank?
 
     entries = Array(yield_val).map { |entry| entry.to_s.strip }.reject(&:blank?)
-    return 4 if entries.empty?
+    return DEFAULT_SERVINGS if entries.empty?
 
     plain = entries.reject { |entry| entry =~ EQUIPMENT_YIELD_PATTERN }
     (plain.presence || entries).each do |entry|
@@ -348,7 +351,7 @@ class RecipeScraper
       return number if number.positive?
     end
 
-    4
+    DEFAULT_SERVINGS
   end
 
   def extract_image(image_val, depth = 0)
@@ -367,16 +370,6 @@ class RecipeScraper
       extract_image(candidate, depth + 1)
     end
   end
-
-  OG_IMAGE_SELECTORS = [
-    'meta[property="og:image"]',
-    'meta[property="og:image:secure_url"]',
-    'meta[name="og:image"]',
-    'meta[name="twitter:image"]',
-    'meta[property="twitter:image"]',
-    'meta[name="twitter:image:src"]',
-    'link[rel="image_src"]'
-  ].freeze
 
   def extract_og_image(doc)
     OG_IMAGE_SELECTORS.each do |selector|
@@ -489,7 +482,12 @@ class RecipeScraper
     end
   end
 
-  def extract_equipment(data, instructions, description, doc)
+  def extract_equipment(data, instructions, description, _doc)
+    raw_items = collect_equipment(data, instructions, description)
+    deduplicate_equipment(raw_items)
+  end
+
+  def collect_equipment(data, instructions, description)
     raw_items = []
 
     # 1. From JSON-LD tool / equipment array
@@ -510,15 +508,15 @@ class RecipeScraper
 
     # 3. Scan instructions & description for dish/pan dimensions and equipment
     all_text = "#{instructions} #{description}"
-    pattern = /(?:an?\s+)?(\d+(?:\.\d+)?(?:\s*(?:x|by|\*)\s*\d+(?:\.\d+)?)*(?:\s*-\s*inch|\s*inch|\s*\")?\s*(?:baking pan|baking dish|casserole dish|casserole|cake pan|pie plate|pie dish|pie pan|springform pan|loaf pan|sheet pan|roasting pan|baking sheet|muffin tin|muffin pan|cast[- ]iron skillet|skillet|frying pan|Dutch oven|saucepan|stockpot|slow cooker|instant pot|air fryer|bundt pan|ramekins?))/i
-
-    all_text.scan(pattern).each do |match|
+    all_text.scan(EQUIPMENT_SCAN_PATTERN).each do |match|
       found = match.first.strip
       raw_items << found if found.present?
     end
 
-    # Dimension-aware deduplication (e.g. consolidate '8x8-inch casserole' and '8x8-inch baking pan')
-    dimension_regex = /(\d+(?:\.\d+)?(?:\s*(?:x|by|\*)\s*\d+(?:\.\d+)?)*(?:\s*-\s*inch|\s*inch|\s*\")?)/i
+    raw_items
+  end
+
+  def deduplicate_equipment(raw_items)
     grouped_by_dim = {}
     unmatched = []
 
@@ -526,8 +524,8 @@ class RecipeScraper
       cleaned = item.to_s.strip
       next if cleaned.blank? || cleaned =~ /^\d+$/ || cleaned.length < 3
 
-      dim_match = cleaned.match(dimension_regex)
-      dim_key = dim_match ? dim_match[1].gsub(/\s+/, "").downcase : nil
+      dim_match = cleaned.match(DIMENSION_PATTERN)
+      dim_key = dim_match ? dim_match[0].gsub(/\s+/, "").downcase : nil
 
       if dim_key.present? && dim_key.length > 1
         grouped_by_dim[dim_key] ||= []
@@ -538,8 +536,8 @@ class RecipeScraper
     end
 
     results = []
-    grouped_by_dim.each do |_dim, group_items|
-      preferred = group_items.find { |i| i =~ /baking pan|baking dish|casserole dish|sheet pan|skillet/i } || group_items.first
+    grouped_by_dim.each_value do |group_items|
+      preferred = group_items.find { |i| i =~ EQUIPMENT_PREFERRED_PATTERN } || group_items.first
       results << preferred.capitalize
     end
 
@@ -549,8 +547,6 @@ class RecipeScraper
 
     results.uniq.join(", ").presence
   end
-
-  UNIT_PATTERN = /cups?|c\.|tbsp|tbs|tablespoons?|tsp|teaspoons?|lbs?|pounds?|oz|ounces?|cloves?|cans?|bunches?|pinch|handful|slices?|stalks?|pkg|packages?|quarts?|pints?|gallons?|sticks?|sprigs?|kilograms?|kg|grams?|g|milliliters?|ml|sheets?|jars?|bottles?|containers?|bags?|boxes?/i
 
   def parse_ingredient_line(raw)
     cleaned = raw.gsub(/\s+/, " ").strip
@@ -586,22 +582,6 @@ class RecipeScraper
   end
 
   def parse_fraction(str)
-    return 1.0 if str.blank?
-    str = str.gsub("½", " 1/2").gsub("¼", " 1/4").gsub("¾", " 3/4").gsub("⅓", " 1/3").gsub("⅔", " 2/3")
-    parts = str.split(/\s+/)
-    total = 0.0
-    parts.each do |part|
-      if part.include?("/")
-        num, denom = part.split("/").map(&:to_f)
-        total += (denom.zero? ? 0 : num / denom)
-      else
-        total += part.to_f
-      end
-    end
-    total.positive? ? total.round(2) : 1.0
-  end
-
-  def categorize_ingredient(name)
-    IngredientClassifier.call(name)
+    QuantityParser.parse_fraction(str)
   end
 end

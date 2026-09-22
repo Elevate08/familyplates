@@ -6,17 +6,6 @@ class ActivityEvent < ApplicationRecord
 
   validates :event_type, :source, presence: true
 
-  EVENT_VERBS = {
-    "created" => "created",
-    "updated" => "updated",
-    "deleted" => "deleted",
-    "imported" => "imported",
-    "completed" => "completed",
-    "generated" => "generated",
-    "connected" => "connected",
-    "synced" => "synced"
-  }.freeze
-
   def self.track!(household:, event_type:, actor: nil, target: nil, source: "web", metadata: {})
     details = metadata.stringify_keys
     details["target_name"] ||= target_name_for(target)
@@ -37,7 +26,7 @@ class ActivityEvent < ApplicationRecord
 
     namespace, action = event_type.to_s.split(".", 2)
     actor_name = actor&.name || "FamilyPlates"
-    verb = EVENT_VERBS.fetch(action, action.to_s.humanize.downcase)
+    verb = action.to_s.humanize.downcase
     target_name = metadata.to_h["target_name"]
 
     if target_name.present?
@@ -47,8 +36,6 @@ class ActivityEvent < ApplicationRecord
     end
   end
 
-  private
-
   def self.target_name_for(target)
     return if target.nil?
     return target.title if target.respond_to?(:title)
@@ -56,4 +43,5 @@ class ActivityEvent < ApplicationRecord
 
     target.to_s
   end
+  private_class_method :target_name_for
 end

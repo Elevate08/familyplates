@@ -9,6 +9,10 @@ class CookNowTest < ActionDispatch::IntegrationTest
     @member = family_members(:two)
     @household.update!(breakfast_time: "08:00", lunch_time: "12:30", dinner_time: "18:00")
     @plan = @household.current_meal_plan(Date.current.beginning_of_week)
+    # The meal_plan_slots fixtures sit in the current week, so on some weekday
+    # one of them is "today" and collides with the slots these tests plan by the
+    # clock. Start from an empty plan so the result never depends on the weekday.
+    MealPlanSlot.where(meal_plan: @household.meal_plans).delete_all
 
     @pancakes = @household.recipes.create!(title: "Buttermilk Pancakes", instructions: "1. Griddle them.")
     @ribs = @household.recipes.create!(title: "Braised Short Ribs", instructions: "1. Braise them.")

@@ -1,16 +1,7 @@
 class IngredientAggregator
   attr_reader :meal_plan, :household
 
-  AISLE_ORDER = [
-    "Produce",
-    "Meat & Seafood",
-    "Dairy & Refrigerated",
-    "Bakery",
-    "Pantry & Grains",
-    "Spices & Baking",
-    "Frozen",
-    "Other"
-  ].freeze
+  AISLE_ORDER = PantryItem::CATEGORIES
 
   def self.call(meal_plan)
     new(meal_plan).aggregate

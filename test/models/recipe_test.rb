@@ -97,4 +97,39 @@ class RecipeTest < ActiveSupport::TestCase
     recipe.leftover_shelf_life_days = 7
     assert recipe.valid?
   end
+
+  test "a recipe saved without times keeps them empty" do
+    recipe = households(:one).recipes.create!(title: "No Times Given", instructions: "1. Cook.")
+
+    assert_nil recipe.reload.prep_time
+    assert_nil recipe.cook_time
+  end
+
+  test "total_time is nil when the recipe states no time" do
+    recipe = households(:one).recipes.build(title: "Untimed")
+    assert_nil recipe.total_time
+
+    recipe.prep_time = 10
+    assert_equal 10, recipe.total_time
+  end
+
+  test "quick is decided by the quick tag alone, not by prep and cook time" do
+    household = households(:one)
+    tagged = household.recipes.create!(title: "Tagged Slow Roast", tags: "Quick, Dinner", prep_time: 30, cook_time: 240)
+    short_untagged = household.recipes.create!(title: "Short Untagged", tags: "Dinner", prep_time: 5, cook_time: 5)
+    untimed = household.recipes.create!(title: "Untimed Untagged")
+
+    quick = household.recipes.quick
+    assert_includes quick, tagged
+    assert_not_includes quick, short_untagged
+    assert_not_includes quick, untimed
+  end
+
+  test "blank leftover fields fall back to defaults instead of violating NOT NULL" do
+    recipe = households(:one).recipes.create!(title: "Blank Leftovers", instructions: "1. Cook.")
+    recipe.update!(leftover_capacity: "", leftover_shelf_life_days: nil)
+
+    assert_equal Recipe::DEFAULT_LEFTOVER_CAPACITY, recipe.reload.leftover_capacity
+    assert_equal Recipe::DEFAULT_LEFTOVER_SHELF_LIFE_DAYS, recipe.leftover_shelf_life_days
+  end
 end

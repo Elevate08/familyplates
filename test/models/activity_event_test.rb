@@ -40,4 +40,15 @@ class ActivityEventTest < ActiveSupport::TestCase
     assert_includes event.errors[:household], "must exist"
     assert_includes event.errors[:event_type], "can't be blank"
   end
+
+  test "humanizes unknown event verbs without an identity map" do
+    event = ActivityEvent.track!(
+      household: households(:one),
+      event_type: "recipe.archived",
+      actor: family_members(:one),
+      source: "web"
+    )
+
+    assert_equal "Dad archived recipe", event.human_description
+  end
 end

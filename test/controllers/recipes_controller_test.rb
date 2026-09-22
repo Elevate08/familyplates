@@ -38,6 +38,19 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show and index display a dash for a recipe with no stated times" do
+    untimed = households(:one).recipes.create!(title: "Untimed Soup", instructions: "1. Simmer.")
+
+    get recipe_url(untimed)
+    assert_response :success
+    assert_select "span", text: "—", minimum: 3
+    assert_not_includes response.body, "0 mins"
+
+    get recipes_url
+    assert_response :success
+    assert_includes response.body, "⏱️ —"
+  end
+
   test "should get show with meal planning form" do
     get recipe_url(@recipe)
     assert_response :success

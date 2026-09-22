@@ -2,6 +2,9 @@ class SessionsController < ApplicationController
   include LoginThrottling
 
   allow_unauthenticated_access only: %i[new create verify submit_verify destroy signed_out]
+  # A suspended household must still be able to leave: otherwise "Sign out"
+  # bounces to /suspended and the device stays signed in.
+  allow_suspended_access only: %i[destroy signed_out]
   throttle_login_attempts only: %i[create submit_verify]
 
   after_action :ensure_development_magic_link_not_leaked, only: %i[create]

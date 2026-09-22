@@ -57,6 +57,8 @@ config/*.json
 
 # System test failure screenshots
 tmp/screenshots/
+/test-results/
+/playwright-report/
 
 # Ignore system artifacts
 .DS_Store

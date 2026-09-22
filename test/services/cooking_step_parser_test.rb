@@ -95,10 +95,11 @@ class CookingStepParserTest < ActiveSupport::TestCase
   end
 
   test "reads mixed and unicode fractions" do
-    steps = CookingStepParser.call("1. Rise for 1 1/2 hours.\n2. Rest ½ hour.")
+    steps = CookingStepParser.call("1. Rise for 1 1/2 hours.\n2. Rest ½ hour.\n3. Steep for ⅛ hour.")
 
     assert_equal 5400, steps.first.timers.first.seconds
     assert_equal 1800, steps.second.timers.first.seconds
+    assert_equal 450, steps.third.timers.first.seconds
   end
 
   test "finds several distinct timers in one step but not the same one twice" do
@@ -132,5 +133,12 @@ class CookingStepParserTest < ActiveSupport::TestCase
 
     assert_equal 2, recipe.cooking_steps.length
     assert_equal 1200, recipe.cooking_steps.second.timers.first.seconds
+  end
+
+  test "a whole number followed by a unicode fraction is read as a mixed number" do
+    steps = CookingStepParser.call("1. Rise for 1½ hours.\n2. Bake for 2 ½ hours.")
+
+    assert_equal 5400, steps.first.timers.first.seconds
+    assert_equal 9000, steps.second.timers.first.seconds
   end
 end

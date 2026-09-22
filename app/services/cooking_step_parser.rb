@@ -43,13 +43,13 @@ class CookingStepParser
   # recipe stays a step rather than becoming a title nobody can read.
   MAX_HEADING_LENGTH = 80
 
-  UNICODE_FRACTIONS = { "½" => 0.5, "¼" => 0.25, "¾" => 0.75, "⅓" => 1.0 / 3, "⅔" => 2.0 / 3 }.freeze
+  UNICODE_FRACTIONS = QuantityParser::UNICODE_FRACTIONS
 
   # "for 15 minutes", "20-25 minutes", "1 1/2 hours", "about 90 seconds". The
   # second quantity of a range is captured only so the label can show it: the
   # countdown uses the low end, which is when a cook wants to look at the pan.
   DURATION = /
-    (?<qty>\d+(?:\.\d+)?(?:\s+\d\/\d)?|\d\/\d|[#{UNICODE_FRACTIONS.keys.join}])
+    (?<qty>\d+\s*[#{UNICODE_FRACTIONS.keys.join}]|\d+(?:\.\d+)?(?:\s+\d\/\d)?|\d\/\d|[#{UNICODE_FRACTIONS.keys.join}])
     (?:\s*(?:-|–|—|\s+to\s+|\s+or\s+)\s*(?<high>\d+(?:\.\d+)?))?
     \s*
     (?<unit>hours?|hrs?|minutes?|mins?|seconds?|secs?)\b
@@ -167,15 +167,6 @@ class CookingStepParser
   end
 
   def parse_quantity(raw)
-    raw.to_s.split(/\s+/).sum do |part|
-      if (fraction = UNICODE_FRACTIONS[part])
-        fraction
-      elsif part.include?("/")
-        numerator, denominator = part.split("/").map(&:to_f)
-        denominator.zero? ? 0 : numerator / denominator
-      else
-        part.to_f
-      end
-    end
+    QuantityParser.parse(raw)
   end
 end

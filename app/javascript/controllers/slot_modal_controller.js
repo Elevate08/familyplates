@@ -182,7 +182,7 @@ export default class extends Controller {
           el("div", { className: "flex-1 min-w-0" }, [
             el("div", { className: "font-extrabold text-xs text-slate-900 truncate", text: recipeData.title }),
             el("div", { className: "flex items-center gap-2 mt-0.5" }, [
-              el("span", { className: "text-[10px] font-bold text-slate-500", text: `⏱️ ${recipeData.total_time || 30}m` }),
+              el("span", { className: "text-[10px] font-bold text-slate-500", text: `⏱️ ${recipeData.total_time ? `${recipeData.total_time}m` : "—"}` }),
               el("div", { className: "flex flex-wrap gap-1" }, tagBadges)
             ])
           ]),

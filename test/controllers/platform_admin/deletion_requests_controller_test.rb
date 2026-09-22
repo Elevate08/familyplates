@@ -43,6 +43,39 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     assert PlatformAuditEvent.exists?(action: "household.permanently_deleted", target_id: @household.id)
   end
 
+
+  test "permanent deletion cancels active subscriptions before removing the household" do
+    customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
+    customer.subscriptions.create!(name: "default", processor_id: "sub_live_ok", processor_plan: "monthly", status: "active",
+                                   current_period_start: Time.current, current_period_end: 1.month.from_now)
+    cancelled = []
+    original = Pay::Stripe::Subscription.instance_method(:cancel_now!)
+    Pay::Stripe::Subscription.define_method(:cancel_now!) do |**|
+      cancelled << processor_id
+      update!(status: "canceled", ends_at: Time.current)
+    end
+
+    delete platform_admin_deletion_request_path(@deletion_request), params: { confirmation: @household.name }
+
+    assert_equal [ "sub_live_ok" ], cancelled
+    assert_not Household.exists?(@household.id)
+    assert_equal "Household permanently deleted.", flash[:notice]
+  ensure
+    Pay::Stripe::Subscription.define_method(:cancel_now!, original)
+  end
+
+  test "operator is told which subscriptions still need cancelling in Stripe" do
+    customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
+    customer.subscriptions.create!(name: "default", processor_id: "sub_sim_missing_456", processor_plan: "monthly", status: "active",
+                                   current_period_start: Time.current, current_period_end: 1.month.from_now)
+
+    delete platform_admin_deletion_request_path(@deletion_request), params: { confirmation: @household.name }
+
+    assert_not Household.exists?(@household.id)
+    assert_match "sub_sim_missing_456", flash[:alert]
+    assert_match "cancelled manually in Stripe", flash[:alert]
+  end
+
   private
 
   def sign_in_platform_admin(admin)

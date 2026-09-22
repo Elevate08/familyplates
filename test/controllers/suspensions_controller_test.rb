@@ -27,6 +27,14 @@ class SuspensionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+
+  test "a suspended household can still sign out" do
+    delete session_path
+
+    assert_redirected_to select_profile_path
+    assert cookies[:session_token].blank?
+  end
+
   private
 
   def sign_in_user(user)

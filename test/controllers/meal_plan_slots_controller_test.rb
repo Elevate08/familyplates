@@ -71,6 +71,16 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Scheduled"
   end
 
+  test "invalid scheduling date falls back to the current meal plan" do
+    assert_no_difference("MealPlanSlot.count") do
+      post meal_plan_slots_url, params: {
+        meal_plan_slot: { date: "not-a-date", meal_type: "dinner" }
+      }
+    end
+
+    assert_redirected_to meal_plan_url(@meal_plan)
+  end
+
   test "should update meal plan slot notes" do
     slot = meal_plan_slots(:one)
     patch meal_plan_meal_plan_slot_url(@meal_plan, slot), params: {
@@ -265,7 +275,8 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create and update leftover slot with leftover_source_slot_id" do
     source_slot = meal_plan_slots(:one)
-    target_date = Date.current.beginning_of_week + 4.days
+    # Inside the recipe's default three-day shelf life, which is now enforced.
+    target_date = source_slot.date + 2.days
 
     assert_difference("MealPlanSlot.count", 1) do
       post meal_plan_meal_plan_slots_url(@meal_plan), params: {

@@ -18,10 +18,7 @@ export default class extends Controller {
     document.addEventListener("click", this._boundCloseOnOutside)
     document.addEventListener("keydown", this._boundCloseOnEsc)
 
-    const initialDate = this.parseDate(this.selectedDateValue || this.todayValue)
-    this.displayedYear = initialDate.getFullYear()
-    this.displayedMonth = initialDate.getMonth()
-    this.renderCalendar()
+    this.resetToInitialDate()
   }
 
   disconnect() {
@@ -29,11 +26,22 @@ export default class extends Controller {
     document.removeEventListener("keydown", this._boundCloseOnEsc)
   }
 
-  toggle(event) {
+  stopEvent(event) {
     if (event) {
       event.preventDefault()
       event.stopPropagation()
     }
+  }
+
+  resetToInitialDate() {
+    const initialDate = this.parseDate(this.selectedDateValue || this.todayValue)
+    this.displayedYear = initialDate.getFullYear()
+    this.displayedMonth = initialDate.getMonth()
+    this.renderCalendar()
+  }
+
+  toggle(event) {
+    this.stopEvent(event)
     const isHidden = this.popoverTarget.classList.contains("hidden")
     if (isHidden) {
       this.open()
@@ -43,10 +51,7 @@ export default class extends Controller {
   }
 
   open() {
-    const initialDate = this.parseDate(this.selectedDateValue || this.todayValue)
-    this.displayedYear = initialDate.getFullYear()
-    this.displayedMonth = initialDate.getMonth()
-    this.renderCalendar()
+    this.resetToInitialDate()
     this.popoverTarget.classList.remove("hidden")
   }
 
@@ -69,10 +74,7 @@ export default class extends Controller {
   }
 
   prevMonth(event) {
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
+    this.stopEvent(event)
     this.displayedMonth--
     if (this.displayedMonth < 0) {
       this.displayedMonth = 11
@@ -82,10 +84,7 @@ export default class extends Controller {
   }
 
   nextMonth(event) {
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
+    this.stopEvent(event)
     this.displayedMonth++
     if (this.displayedMonth > 11) {
       this.displayedMonth = 0
@@ -95,19 +94,13 @@ export default class extends Controller {
   }
 
   selectToday(event) {
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
+    this.stopEvent(event)
     const todayDate = this.parseDate(this.todayValue)
     this.navigateToDate(todayDate)
   }
 
   selectDate(event) {
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
+    this.stopEvent(event)
     const dateStr = event.currentTarget.dataset.date
     if (!dateStr) return
     const date = this.parseDate(dateStr)

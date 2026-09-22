@@ -296,7 +296,7 @@
           <div class="p-3 rounded-2xl bg-rose-50/40 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/60 flex items-center justify-between">
             <div class="truncate mr-2">
               <span class="font-bold text-xs text-slate-800 dark:text-slate-200 truncate block"><%= recipe.title %></span>
-              <span class="text-[10px] text-slate-500 dark:text-slate-400">⏱️ <%= recipe.total_time %>m</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">⏱️ <%= recipe_minutes(recipe.total_time, style: :short) %></span>
             </div>
             <%= link_to recipe_path(recipe), class: "text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline shrink-0" do %>
               View →

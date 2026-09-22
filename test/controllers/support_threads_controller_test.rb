@@ -54,4 +54,12 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to support_thread_path(thread)
     assert_equal "waiting_on_support", thread.reload.status
   end
+
+  test "a blank first message saves neither the thread nor the message" do
+    assert_no_difference [ "SupportThread.count", "SupportMessage.count" ] do
+      post support_threads_path, params: { support_thread: { subject: "Calendar help", body: "" } }
+    end
+
+    assert_response :unprocessable_entity
+  end
 end

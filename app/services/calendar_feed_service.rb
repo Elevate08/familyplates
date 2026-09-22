@@ -8,6 +8,7 @@
 # - Non-blocking transparent events (TRANSP:TRANSPARENT)
 class CalendarFeedService
   CRLF = "\r\n".freeze
+  MEAL_DURATIONS = { "breakfast" => 45, "lunch" => 45, "dinner" => 60 }.freeze
 
   attr_reader :household, :member, :base_url
 
@@ -41,7 +42,7 @@ class CalendarFeedService
     lines << "X-PUBLISHED-TTL:PT1H"
 
     slots.each do |slot|
-      next if slot.display_title == "No Meal Planned"
+      next unless slot.planned?
 
       start_time, end_time = calculate_slot_times(slot)
       summary = build_summary(slot)
@@ -67,25 +68,8 @@ class CalendarFeedService
   end
 
   def calculate_slot_times(slot)
-    time_str = slot.scheduled_time.presence ||
-      case slot.meal_type
-      when "breakfast" then household.breakfast_time.presence || "08:00"
-      when "lunch"     then household.lunch_time.presence || "12:30"
-      else                  household.dinner_time.presence || "18:00"
-      end
-
-    duration_minutes = case slot.meal_type
-    when "breakfast" then 45
-    when "lunch"     then 45
-    else                  60
-    end
-
-    hour, min = time_str.split(":").map(&:to_i)
-    # The household's clock, not the server's: a feed generated on a UTC box was
-    # publishing "dinner at 6pm" as 18:00 UTC, which lands mid-afternoon in a
-    # Chicago subscriber's calendar.
-    start_time = household.time_zone_object.local(slot.date.year, slot.date.month, slot.date.day, hour, min, 0)
-    end_time = start_time + duration_minutes.minutes
+    start_time = slot.scheduled_at
+    end_time = start_time + MEAL_DURATIONS.fetch(slot.meal_type, MEAL_DURATIONS.fetch("dinner")).minutes
 
     [ start_time, end_time ]
   end
@@ -102,7 +86,12 @@ class CalendarFeedService
 
     if slot.recipe
       r = slot.recipe
-      desc_lines << "⏱️ Prep: #{r.prep_time}m | Cook: #{r.cook_time}m | Servings: #{r.servings}"
+      details = [
+        ("Prep: #{r.prep_time}m" if r.prep_time),
+        ("Cook: #{r.cook_time}m" if r.cook_time),
+        ("Servings: #{r.servings}" if r.servings)
+      ].compact
+      desc_lines << "⏱️ #{details.join(' | ')}" if details.any?
       if r.recipe_ingredients.any?
         desc_lines << ""
         desc_lines << "📋 Ingredients:"
@@ -121,11 +110,8 @@ class CalendarFeedService
 
     if base_url.present?
       desc_lines << ""
-      if slot.recipe
-        desc_lines << "🔗 Recipe: #{base_url.chomp('/')}/recipes/#{slot.recipe.to_param}"
-      else
-        desc_lines << "🔗 Planner: #{base_url.chomp('/')}/meal_plans"
-      end
+      label = slot.recipe ? "Recipe" : "Planner"
+      desc_lines << "🔗 #{label}: #{build_url(slot)}"
     end
 
     desc_lines.join("\n")
@@ -134,11 +120,8 @@ class CalendarFeedService
   def build_url(slot)
     return nil if base_url.blank?
 
-    if slot.recipe
-      "#{base_url.chomp('/')}/recipes/#{slot.recipe.to_param}"
-    else
-      "#{base_url.chomp('/')}/meal_plans"
-    end
+    path = slot.recipe ? "/recipes/#{slot.recipe.to_param}" : "/meal_plans"
+    "#{base_url.chomp('/')}#{path}"
   end
 
   def escape_text(text)
@@ -163,7 +146,7 @@ class CalendarFeedService
 
   def scoped_slots
     query = household.meal_plan_slots
-                     .includes(:family_member, recipe: :recipe_ingredients)
+                     .includes(:family_member, { meal_plan: :household }, recipe: :recipe_ingredients)
                      .where(date: (Date.current - 14.days)..(Date.current + 35.days))
                      .order(:date, :meal_type)
 

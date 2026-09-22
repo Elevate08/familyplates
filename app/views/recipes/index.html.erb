@@ -120,7 +120,7 @@
             <% end %>
 
             <%= link_to recipes_path(filter: 'quick', view: current_view, query: params[:query]),
-                  data: { "dropdown-target": "item", "search-text": "quick fast 30 min" },
+                  data: { "dropdown-target": "item", "search-text": "quick fast" },
                   class: "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors #{params[:filter] == 'quick' ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}" do %>
               <span>⚡ Quick</span>
               <% if params[:filter] == 'quick' %><span class="text-primary-600 dark:text-primary-400">✓</span><% end %>

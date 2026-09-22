@@ -72,7 +72,7 @@
             <!-- Bottom Left Time & Servings Badges on Image -->
             <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white drop-shadow-sm font-semibold">
               <span class="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-bold">
-                ⏱️ <%= (recipe["prep_time"] || 0) + (recipe["cook_time"] || 0) %> mins
+                ⏱️ <%= recipe_minutes([ recipe["prep_time"], recipe["cook_time"] ].compact.sum) %>
               </span>
               <span class="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-bold">
                 🍽️ Serves <%= recipe["servings"] || 4 %>

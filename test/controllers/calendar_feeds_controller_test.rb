@@ -6,6 +6,10 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     @member = family_members(:one)
     @token = @household.calendar_feed_token
     @meal_plan = @household.current_meal_plan(Date.current.beginning_of_week)
+    # The meal_plan_slots fixtures sit in the current week, so on some weekday
+    # one of them is "today" and collides with the slots these tests plan by the
+    # clock. Start from an empty plan so the result never depends on the weekday.
+    MealPlanSlot.where(meal_plan: @household.meal_plans).delete_all
 
     @slot = @meal_plan.meal_plan_slots.create!(
       date: Date.current,
@@ -67,5 +71,24 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "BEGIN:VCALENDAR"
+  end
+
+  test "ETag changes when a slot is deleted or a recipe is renamed" do
+    recipe = @household.recipes.create!(title: "Feed Pasta", instructions: "1. Boil.")
+    older = @meal_plan.meal_plan_slots.create!(date: Date.current, meal_type: "lunch", recipe: recipe)
+    older.update_columns(updated_at: 2.days.ago)
+
+    get calendar_feed_url(token: @token, format: :ics)
+    first_etag = response.headers["ETag"]
+
+    older.delete
+    get calendar_feed_url(token: @token, format: :ics), headers: { "HTTP_IF_NONE_MATCH" => first_etag }
+    assert_response :success, "deleting a slot that was not the latest edit must invalidate the feed"
+    second_etag = response.headers["ETag"]
+
+    @household.recipes.where.not(id: recipe.id).update_all(updated_at: 3.days.ago)
+    recipe.update!(title: "Renamed Pasta")
+    get calendar_feed_url(token: @token, format: :ics), headers: { "HTTP_IF_NONE_MATCH" => second_etag }
+    assert_response :success, "renaming a recipe must invalidate the feed"
   end
 end

@@ -35,21 +35,30 @@ class Recipe < ApplicationRecord
     "Weekend Grill"
   ].freeze
 
-  attribute :leftover_capacity, default: 1
-  attribute :leftover_shelf_life_days, default: 3
+  DEFAULT_LEFTOVER_CAPACITY = 1
+  DEFAULT_LEFTOVER_SHELF_LIFE_DAYS = 3
+  MAX_LEFTOVER_SHELF_LIFE_DAYS = 14
+
+  attribute :leftover_capacity, default: DEFAULT_LEFTOVER_CAPACITY
+  attribute :leftover_shelf_life_days, default: DEFAULT_LEFTOVER_SHELF_LIFE_DAYS
+
+  # Both columns are NOT NULL. A cleared form field arrives blank, which the
+  # validations allow and the database then rejected with a 500 - so blank means
+  # "back to the default" instead.
+  before_validation :default_blank_leftover_settings
 
   validates :title, presence: true, uniqueness: { scope: :household_id, case_sensitive: false, message: "already exists in your recipe box" }
   validates :number, presence: true, uniqueness: { scope: :household_id }
   validates :leftover_capacity, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 10 }, allow_nil: true
-  validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 14 }, allow_nil: true
+  validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_LEFTOVER_SHELF_LIFE_DAYS }, allow_nil: true
   before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
 
   def effective_leftover_capacity
-    leftover_capacity.presence || 1
+    leftover_capacity.presence || DEFAULT_LEFTOVER_CAPACITY
   end
 
   def effective_leftover_shelf_life_days
-    leftover_shelf_life_days.presence || 3
+    leftover_shelf_life_days.presence || DEFAULT_LEFTOVER_SHELF_LIFE_DAYS
   end
 
   def assign_number
@@ -61,7 +70,9 @@ class Recipe < ApplicationRecord
   end
 
   scope :alphabetical, -> { order(:title) }
-  scope :quick, -> { where("(COALESCE(prep_time, 0) + COALESCE(cook_time, 0)) <= 30 OR LOWER(tags) LIKE '%quick%'") }
+  # "Quick" is the household's call, made by tagging the recipe - not a guess
+  # from prep and cook time, which are often missing or leave out resting time.
+  scope :quick, -> { where("LOWER(tags) LIKE ?", "%quick%") }
   scope :for_meal_type, ->(meal_type) { where("meal_types LIKE ? OR meal_types IS NULL OR meal_types = ''", "%#{meal_type}%") }
   scope :leftover_friendly, -> { where(yields_leftovers: true) }
 
@@ -92,7 +103,9 @@ class Recipe < ApplicationRecord
   end
 
   def total_time
-    read_attribute(:total_time).presence || ((prep_time || 0) + (cook_time || 0))
+    # nil, not 0, when the recipe states no time at all - views show a dash for
+    # that rather than claiming it takes no time.
+    read_attribute(:total_time).presence || [ prep_time, cook_time ].compact.sum.nonzero?
   end
 
   def additional_time
@@ -131,5 +144,12 @@ class Recipe < ApplicationRecord
 
   def requester_names_for_week(_week = nil)
     requesters_for_week.pluck(:name)
+  end
+
+  private
+
+  def default_blank_leftover_settings
+    self.leftover_capacity = DEFAULT_LEFTOVER_CAPACITY if leftover_capacity_before_type_cast.blank?
+    self.leftover_shelf_life_days = DEFAULT_LEFTOVER_SHELF_LIFE_DAYS if leftover_shelf_life_days_before_type_cast.blank?
   end
 end

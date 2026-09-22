@@ -52,7 +52,7 @@ class RecipesController < ApplicationController
   end
 
   def new
-    @recipe = current_household.recipes.build(servings: 4, prep_time: 15, cook_time: 20)
+    @recipe = current_household.recipes.build(servings: 4)
     5.times { @recipe.recipe_ingredients.build }
   end
 

@@ -27,8 +27,15 @@ class CalendarFeedsController < ApplicationController
   end
 
   def render_feed(member: nil)
+    # Everything the feed prints has to move the validators: a deleted slot
+    # changes no remaining timestamp (so the slot count is in the ETag), and a
+    # renamed recipe, edited ingredient or renamed cook changes no slot at all.
+    slots = @household.meal_plan_slots
     last_modified = [
-      @household.meal_plan_slots.maximum(:updated_at),
+      slots.maximum(:updated_at),
+      @household.recipes.maximum(:updated_at),
+      RecipeIngredient.joins(:recipe).where(recipes: { household_id: @household.id }).maximum(:updated_at),
+      @household.family_members.maximum(:updated_at),
       @household.updated_at
     ].compact.max || @household.created_at
 
@@ -36,7 +43,9 @@ class CalendarFeedsController < ApplicationController
       @household.id,
       @household.calendar_feed_token,
       member&.id,
-      last_modified.to_i
+      slots.count,
+      RecipeIngredient.joins(:recipe).where(recipes: { household_id: @household.id }).count,
+      last_modified.to_f
     ]
 
     if stale?(etag: etag, last_modified: last_modified, public: true)

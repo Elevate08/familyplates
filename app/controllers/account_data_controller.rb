@@ -1,6 +1,10 @@
 class AccountDataController < ApplicationController
   allow_suspended_access
 
+  # Export carries every member's email, and a deletion request ends the
+  # household for everyone - an organizer's decision, not a kiosk's or a child's.
+  before_action :require_admin
+
   def show
     @household = current_household
     @deletion_request = @household.account_deletion_requests.pending.order(requested_at: :desc).first

@@ -1,8 +1,10 @@
 class MealPlansController < ApplicationController
+  include PlannerLoading
+
   before_action :set_meal_plan, only: %i[show print]
 
   def index
-    week = params[:week].present? ? Date.parse(params[:week]).beginning_of_week : household_today.beginning_of_week
+    week = (MealPlanSlot.parse_date(params[:week]) || household_today).beginning_of_week
     @meal_plan = current_household.current_meal_plan(week)
     redirect_to meal_plan_path(@meal_plan, view: params[:view], month: params[:month])
   end
@@ -13,23 +15,12 @@ class MealPlansController < ApplicationController
     @prev_week = @week_start - 7.days
     @next_week = @week_start + 7.days
 
-    @recipes = current_household.recipes.alphabetical.includes(image_attachment: :blob).to_a
-    @recipes_map = @recipes.each_with_object({}) do |r, hash|
-      hash[r.id] = {
-        title: r.title,
-        image_url: r.display_image_url,
-        tags: r.tag_list,
-        total_time: r.total_time
-      }
-    end
     RecipeRequest.auto_fulfill_passed_slots!(current_household)
     @cravings = current_household.recipes.joins(:recipe_requests)
                                  .where(recipe_requests: { fulfilled_at: nil })
                                  .distinct
 
-    @family_members = current_household.family_members.order(:name).to_a
-    @slots_by_key = @meal_plan.meal_plan_slots.includes(:recipe, :family_member, :leftover_source_slot).index_by { |s| [ s.date, s.meal_type ] }
-    @leftover_sources = @meal_plan.preloaded_leftover_sources
+    prepare_planner_preloads
 
     # Drives the Cook Mode banner: what the clock says is on the stove, or - if
     # no cooking window is open - the day's nearest planned meal.
@@ -37,20 +28,7 @@ class MealPlansController < ApplicationController
     @cook_banner_slot = @cooking_now_slot || MealPlanSlot.next_planned(current_household)
 
     if @view == "month"
-      @month_date = resolve_month_date(@week_start)
-      @month_start = @month_date.beginning_of_month
-      @month_end = @month_date.end_of_month
-      @month_days = (@month_start..@month_end).to_a
-      @leading_blank_days = @month_start.cwday - 1
-      @prev_month = @month_date.prev_month
-      @next_month = @month_date.next_month
-
-      # Preload all slots for the month
-      @month_slots_by_date = MealPlanSlot.joins(:meal_plan)
-                                         .where(meal_plans: { household_id: current_household.id })
-                                         .where(date: @month_start..@month_end)
-                                         .includes(:recipe, :family_member)
-                                         .group_by { |s| [ s.date, s.meal_type ] }
+      prepare_month_view
     end
   end
 
@@ -58,19 +36,7 @@ class MealPlansController < ApplicationController
     @view = params[:view] || "week"
     @week_start = @meal_plan.week_start_date
 
-    if @view == "month"
-      @month_date = resolve_month_date(@week_start)
-      @month_start = @month_date.beginning_of_month
-      @month_end = @month_date.end_of_month
-      @month_days = (@month_start..@month_end).to_a
-      @leading_blank_days = @month_start.cwday - 1
-
-      @month_slots_by_date = MealPlanSlot.joins(:meal_plan)
-                                         .where(meal_plans: { household_id: current_household.id })
-                                         .where(date: @month_start..@month_end)
-                                         .includes(:recipe, :family_member)
-                                         .group_by { |s| [ s.date, s.meal_type ] }
-    end
+    prepare_month_view if @view == "month"
 
     render layout: "print"
   end
@@ -78,16 +44,30 @@ class MealPlansController < ApplicationController
   private
 
   def set_meal_plan
-    @meal_plan = current_household.meal_plans.find_by(number: params[:id]) || current_household.meal_plans.find_by(id: params[:id])
-    raise ActiveRecord::RecordNotFound, "Couldn't find MealPlan with 'id'=#{params[:id]}" unless @meal_plan
+    @meal_plan = find_meal_plan!(params[:id])
   end
 
   # The month shown by the calendar and its print-out. An explicit month always
   # wins; otherwise we derive it from the week being planned.
   def resolve_month_date(week_start)
-    return Date.parse(params[:month]).beginning_of_month if params[:month].present?
+    MealPlanSlot.parse_date(params[:month])&.beginning_of_month || default_month_for(week_start)
+  end
 
-    default_month_for(week_start)
+  def prepare_month_view
+    @month_date = resolve_month_date(@week_start)
+    @month_start = @month_date.beginning_of_month
+    @month_end = @month_date.end_of_month
+    @month_days = (@month_start..@month_end).to_a
+    @leading_blank_days = @month_start.cwday - 1
+    @prev_month = @month_date.prev_month
+    @next_month = @month_date.next_month
+
+    # Preload all slots for the month
+    @month_slots_by_date = MealPlanSlot.joins(:meal_plan)
+                                       .where(meal_plans: { household_id: current_household.id })
+                                       .where(date: @month_start..@month_end)
+                                       .includes(:recipe, :family_member)
+                                       .group_by { |slot| [ slot.date, slot.meal_type ] }
   end
 
   # A week can straddle two months, so "the month of the week" is ambiguous.

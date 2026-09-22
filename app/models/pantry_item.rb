@@ -104,19 +104,15 @@ class PantryItem < ApplicationRecord
   def self.emoji_for(name, category = nil)
     n = name.to_s.downcase
     case n
-    when /olive oil/ then "🍾"
     when /vegetable oil|canola oil|sunflower oil|corn oil/ then "🌻"
-    when /sesame oil|cooking oil|oil/ then "🍾"
+    when /olive oil|sesame oil|cooking oil|oil/ then "🍾"
     when /salt/ then "🧂"
-    when /black pepper|pepper powder|peppercorn/ then "🫙"
-    when /garlic powder|garlic salt/ then "🫙"
-    when /onion powder|onion flakes/ then "🫙"
+    when /black pepper|pepper powder|peppercorn|garlic powder|garlic salt|onion powder|onion flakes/ then "🫙"
     when /garlic/ then "🧄"
     when /onion/ then "🧅"
     when /butter/ then "🧈"
     when /egg/ then "🥚"
-    when /milk/ then "🥛"
-    when /cream|sour cream/ then "🥛"
+    when /milk|cream/ then "🥛"
     when /cheese|cheddar|mozzarella|parmesan|feta/ then "🧀"
     when /flour/ then "🌾"
     when /sugar/ then "🥄"

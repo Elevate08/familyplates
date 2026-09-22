@@ -103,7 +103,7 @@
             <!-- Breakfast -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= b_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-amber-400 uppercase text-[9px] tracking-wider text-center">Breakfast</div>
-              <% if b_slot&.display_title.present? && b_slot.display_title != "No Meal Planned" %>
+              <% if b_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= b_slot.display_title %></div>
                 <% if b_slot.family_member || (b_slot.recipe && b_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -126,7 +126,7 @@
             <!-- Lunch -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= l_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-teal-400 uppercase text-[9px] tracking-wider text-center">Lunch</div>
-              <% if l_slot&.display_title.present? && l_slot.display_title != "No Meal Planned" %>
+              <% if l_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= l_slot.display_title %></div>
                 <% if l_slot.family_member || (l_slot.recipe && l_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -149,7 +149,7 @@
             <!-- Dinner -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= d_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-primary-400 uppercase text-[9px] tracking-wider text-center">Dinner</div>
-              <% if d_slot&.display_title.present? && d_slot.display_title != "No Meal Planned" %>
+              <% if d_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= d_slot.display_title %></div>
                 <% if d_slot.family_member || (d_slot.recipe && d_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -206,7 +206,7 @@
               <% @meal_plan.days.each do |day| %>
                 <% slot = @meal_plan.slot_for(day, meal_type) %>
                 <td class="p-2 border-r-2 border-slate-900 dark:border-slate-700 last:border-r-0 align-top bg-white dark:bg-slate-900">
-                  <% if slot&.display_title.present? && slot.display_title != "No Meal Planned" %>
+                  <% if slot&.planned? %>
                     <div class="flex flex-col justify-between h-full min-h-[75px]">
                       <div class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug break-words flex items-center gap-1 flex-wrap">
                         <span><%= slot.display_title %></span>

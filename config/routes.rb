@@ -204,4 +204,10 @@ Rails.application.routes.draw do
 
   # Dashboard & Landing
   root "home#index"
+
+  if Rails.env.test?
+    post "__test/reset", to: "test_support#reset"
+    post "__test/sign_in", to: "test_support#sign_in"
+    post "__test/set_mode", to: "test_support#set_mode"
+  end
 end

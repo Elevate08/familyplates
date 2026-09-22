@@ -12,14 +12,26 @@ module PlatformAdmin
       end
 
       users = household.users.to_a
-      record_platform_audit!("household.permanently_deleted", target: household, metadata: { request_id: request_record.id })
+      # Cancelled before the household row goes, because destroying it removes
+      # the local Pay records that are the only link to the Stripe subscription.
+      uncancelled = household.cancel_active_pay_subscriptions!
+      record_platform_audit!(
+        "household.permanently_deleted",
+        target: household,
+        metadata: { request_id: request_record.id, uncancelled_subscriptions: uncancelled.map(&:processor_id) }
+      )
       household.destroy!
       users.each do |user|
         user.destroy! if user.reload.households.none?
       rescue ActiveRecord::RecordNotFound
         # User already cleaned up
       end
-      redirect_to platform_admin_deletion_requests_path, notice: "Household permanently deleted."
+      if uncancelled.any?
+        redirect_to platform_admin_deletion_requests_path,
+                    alert: "Household permanently deleted, but these Stripe subscriptions could not be cancelled and must be cancelled manually in Stripe: #{uncancelled.map(&:processor_id).join(', ')}."
+      else
+        redirect_to platform_admin_deletion_requests_path, notice: "Household permanently deleted."
+      end
     rescue ActiveRecord::RecordNotDestroyed => e
       redirect_to platform_admin_deletion_requests_path, alert: "Failed to permanently delete household: #{e.message}"
     end

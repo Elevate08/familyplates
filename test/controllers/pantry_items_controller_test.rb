@@ -44,6 +44,14 @@ class PantryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to pantry_items_url
   end
 
+  test "mark_low tracks activity and marks item low stock" do
+    assert_difference("ActivityEvent.where(event_type: 'pantry_item.marked_low').count", 1) do
+      patch mark_low_pantry_item_url(@item)
+    end
+    assert_response :redirect
+    assert @item.reload.low_stock?
+  end
+
   # --- Invalid submissions ----------------------------------------------------
   #
   # The pantry form is Turbo-driven, and Rails does not fall back to HTML for a

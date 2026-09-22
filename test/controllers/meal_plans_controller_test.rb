@@ -13,6 +13,12 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to meal_plan_url(@meal_plan)
   end
 
+  test "index falls back to the household week for an invalid week" do
+    get meal_plans_url(week: "not-a-date")
+
+    assert_redirected_to meal_plan_url(@meal_plan)
+  end
+
   test "should get show week view" do
     get meal_plan_url(@meal_plan, view: "week")
     assert_response :success
@@ -156,6 +162,13 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "August 2026"
     assert_not_includes response.body, "Friday Fish Tacos"
+  end
+
+  test "month view falls back to the week's month for an invalid month" do
+    get meal_plan_url(@meal_plan, view: "month", month: "not-a-date")
+
+    assert_response :success
+    assert_includes response.body, @meal_plan.week_start_date.strftime("%B %Y")
   end
 
   test "print month view uses the same default month as the planner" do
