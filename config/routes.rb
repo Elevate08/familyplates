@@ -117,6 +117,11 @@ Rails.application.routes.draw do
     resources :audit_events, only: :index
     resources :deletion_requests, only: %i[index destroy], controller: "deletion_requests"
     resources :promotion_programs, only: %i[index create update]
+    resources :bulk_operations, only: %i[index new create] do
+      collection do
+        post :preview
+      end
+    end
     resources :households, only: %i[index show] do
       member do
         post :suspend

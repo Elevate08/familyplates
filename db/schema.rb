@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_194500) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -117,10 +117,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_220000) do
     t.string "lunch_time", default: "12:30", null: false
     t.string "name", null: false
     t.datetime "onboarded_at"
+    t.string "operational_tags", default: "", null: false
     t.string "promotion_code"
     t.datetime "suspended_at"
     t.string "suspension_reason"
     t.string "time_zone"
+    t.datetime "trial_extended_until"
     t.datetime "updated_at", null: false
     t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
