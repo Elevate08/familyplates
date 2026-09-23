@@ -16,7 +16,7 @@ class DeviceGrant < ApplicationRecord
   belongs_to :session, optional: true
 
   enum :kind, %w[kiosk browser].index_by(&:itself), default: :kiosk, validate: true
-  enum :status, %w[pending approved denied expired].index_by(&:itself), default: :pending, validate: true
+  enum :status, %w[pending approved redeemed denied expired].index_by(&:itself), default: :pending, validate: true
 
   validates :device_code, presence: true, uniqueness: true
   validates :user_code, presence: true, uniqueness: true
@@ -87,6 +87,18 @@ class DeviceGrant < ApplicationRecord
         kind: target_kind
       )
     end
+  end
+
+  # The paired device collects its session token exactly once. Only the digest
+  # is stored, so the token is minted here, at hand-over, and the grant moves to
+  # "redeemed" in the same conditional UPDATE: a second poll - or anyone else
+  # holding the device_code - finds nothing left to collect.
+  def redeem!
+    claimed = self.class.where(id: id, status: "approved").update_all(status: "redeemed", updated_at: Time.current)
+    return nil unless claimed == 1
+
+    self.status = "redeemed"
+    session.regenerate_token!
   end
 
   def deny!

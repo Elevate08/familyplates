@@ -68,7 +68,7 @@ module Authentication
     token = cookies.signed[:session_token]
     return if token.blank?
 
-    session_record = Session.find_by(token: token)
+    session_record = Session.find_by_token(token)
     if session_record && !session_record.expired?
       session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
       Current.session = session_record
@@ -233,7 +233,7 @@ module Authentication
 
   def terminate_session
     token = cookies.signed[:session_token]
-    Session.find_by(token: token)&.destroy if token.present?
+    Session.find_by_token(token)&.destroy if token.present?
     cookies.delete(:session_token)
     cookies.delete(:device_kind)
     Current.session = nil
@@ -263,7 +263,7 @@ module Authentication
 
     token = cookies.signed[:session_token]
     if token.present?
-      session_record = Session.find_by(token: token)
+      session_record = Session.find_by_token(token)
       if session_record && !session_record.expired? && session_record.user.email == email
         session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
         Current.session = session_record

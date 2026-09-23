@@ -1,4 +1,6 @@
 class PlatformAdminSession < ApplicationRecord
+  include HashedToken
+
   IDLE_TIMEOUT = 12.hours
   ABSOLUTE_TIMEOUT = 30.days
 
@@ -6,7 +8,6 @@ class PlatformAdminSession < ApplicationRecord
 
   belongs_to :platform_admin, class_name: "PlatformAdminAccount", foreign_key: :platform_admin_id
 
-  validates :token, presence: true, uniqueness: true
   validates :last_active_at, presence: true
 
   before_validation :set_defaults, on: :create
@@ -27,7 +28,7 @@ class PlatformAdminSession < ApplicationRecord
   private
 
   def set_defaults
-    self.token ||= SecureRandom.hex(32)
+    assign_default_token
     self.last_active_at ||= Time.current
   end
 end

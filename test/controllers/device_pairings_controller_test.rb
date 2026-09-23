@@ -117,6 +117,35 @@ class DevicePairingsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
+  test "token endpoint hands an approved device its session token exactly once" do
+    grant = DeviceGrant.create!(kind: "kiosk")
+    grant.approve!(by: @user, household: @household, kind: "kiosk")
+
+    post token_pair_path, params: { device_code: grant.device_code }
+    assert_response :ok
+    token = response.parsed_body["access_token"]
+    assert_equal grant.session, Session.find_by_token(token)
+    assert_equal token, response.parsed_body["session_token"]
+    assert grant.reload.redeemed?
+
+    # Anyone else holding the device code - or a second poll - gets nothing.
+    grant.update_columns(last_polled_at: 1.minute.ago)
+    post token_pair_path, params: { device_code: grant.device_code }
+    assert_response :bad_request
+    assert_equal "invalid_grant", response.parsed_body["error"]
+    assert_equal grant.session, Session.find_by_token(token), "the redeemed token keeps working"
+  end
+
+  test "verify treats a redeemed grant as already paired" do
+    sign_in_user
+    grant = DeviceGrant.create!(kind: "kiosk")
+    grant.approve!(by: @user, household: @household, kind: "kiosk")
+    grant.redeem!
+
+    get verify_pair_path(user_code: grant.user_code)
+    assert_redirected_to devices_path
+  end
+
   def sign_in_user
     post session_path, params: { email: @user.email, password: "password123" }
     assert_redirected_to root_url

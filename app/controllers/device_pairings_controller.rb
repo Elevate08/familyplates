@@ -79,9 +79,14 @@ class DevicePairingsController < ApplicationController
         return render json: { error: "invalid_grant", error_description: "Associated session is expired or invalid." }, status: :bad_request
       end
 
+      raw_token = grant.redeem!
+      if raw_token.nil?
+        return render json: { error: "invalid_grant", error_description: "This pairing has already been completed." }, status: :bad_request
+      end
+
       # Establish session cookie on the browser
       cookies.signed.permanent[:session_token] = {
-        value: session_record.token,
+        value: raw_token,
         httponly: true,
         same_site: :lax,
         secure: request.ssl?
@@ -94,9 +99,9 @@ class DevicePairingsController < ApplicationController
       }
 
       render json: {
-        access_token: session_record.token,
+        access_token: raw_token,
         token_type: "Bearer",
-        session_token: session_record.token,
+        session_token: raw_token,
         kind: session_record.kind,
         redirect_url: root_url
       }, status: :ok
@@ -127,7 +132,7 @@ class DevicePairingsController < ApplicationController
       redirect_to pair_path, alert: "This pairing code has expired. Please refresh the device screen." and return
     end
 
-    if @grant.approved?
+    if @grant.approved? || @grant.redeemed?
       redirect_to devices_path, notice: "This device is already paired." and return
     end
 

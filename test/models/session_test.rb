@@ -51,4 +51,36 @@ class SessionTest < ActiveSupport::TestCase
     assert_equal "5.6.7.8", session.ip_address
     assert session.last_active_at > 1.minute.ago
   end
+
+  test "stores only a digest of the token and finds the session by the raw token" do
+    user = User.create!(email: "parent@example.com")
+    session = user.sessions.create!(token: "raw-session-token", last_active_at: Time.current)
+
+    stored = Session.connection.select_value("SELECT token_digest FROM sessions WHERE id = #{Session.connection.quote(session.id)}")
+    assert_equal OpenSSL::Digest::SHA256.hexdigest("raw-session-token"), stored
+    assert_not_equal "raw-session-token", stored
+
+    assert_equal session, Session.find_by_token("raw-session-token")
+    assert_nil Session.find_by_token(stored), "the digest itself must not work as a token"
+    assert_nil Session.find_by_token("")
+    assert_nil Session.find_by(id: session.id).token, "a loaded record has no way back to the raw token"
+  end
+
+  test "generates a token when none is given" do
+    user = User.create!(email: "parent@example.com")
+    session = user.sessions.create!
+
+    assert_match(/\A\h{64}\z/, session.token)
+    assert_equal session, Session.find_by_token(session.token)
+  end
+
+  test "regenerating the token retires the old one" do
+    user = User.create!(email: "parent@example.com")
+    session = user.sessions.create!(token: "old-token")
+
+    new_token = session.regenerate_token!
+
+    assert_nil Session.find_by_token("old-token")
+    assert_equal session, Session.find_by_token(new_token)
+  end
 end

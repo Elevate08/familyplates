@@ -27,7 +27,7 @@ module PlatformAdminAuthentication
     token = cookies.signed[:platform_admin_session_token]
     return if token.blank?
 
-    session_record = PlatformAdminSession.includes(:platform_admin).find_by(token: token)
+    session_record = PlatformAdminSession.includes(:platform_admin).find_by_token(token)
     if session_record && !session_record.expired? && session_record.platform_admin.active?
       session_record.resume(user_agent: request.user_agent, ip_address: request.remote_ip)
       Current.platform_admin_session = session_record
@@ -63,7 +63,7 @@ module PlatformAdminAuthentication
 
   def terminate_platform_admin_session
     token = cookies.signed[:platform_admin_session_token]
-    PlatformAdminSession.find_by(token: token)&.destroy if token.present?
+    PlatformAdminSession.find_by_token(token)&.destroy if token.present?
     cookies.delete(:platform_admin_session_token)
     Current.platform_admin_session = nil
     Current.platform_admin = nil

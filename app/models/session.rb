@@ -3,6 +3,8 @@
 require "securerandom"
 
 class Session < ApplicationRecord
+  include HashedToken
+
   ACTIVITY_REFRESH_RATE = 1.hour
   IDLE_TIMEOUT = 30.days
   ABSOLUTE_TIMEOUT = 90.days
@@ -14,7 +16,6 @@ class Session < ApplicationRecord
 
   enum :kind, %w[browser kiosk].index_by(&:itself), default: :browser, validate: true
 
-  validates :token, presence: true, uniqueness: true
   validates :last_active_at, presence: true
 
   before_validation :set_defaults, on: :create
@@ -47,7 +48,7 @@ class Session < ApplicationRecord
   private
 
   def set_defaults
-    self.token ||= SecureRandom.hex(32)
+    assign_default_token
     self.last_active_at ||= Time.current
   end
 end
