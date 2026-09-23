@@ -30,6 +30,7 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "X-WR-CALNAME:FamilyPlates - #{@household.name}"
     assert_includes response.body, "SUMMARY:🍽️ Dinner: Tacos (Cook: #{@member.name})"
     assert_includes response.body, "END:VCALENDAR"
+    assert_not_includes response.headers["Cache-Control"].to_s, "public"
   end
 
   test "renders member-filtered calendar feed" do

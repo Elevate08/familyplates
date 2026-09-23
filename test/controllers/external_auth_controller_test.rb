@@ -244,7 +244,8 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
         post signup_path, params: {
           household_name: "The Verifieds",
           organizer_name: "Vee",
-          email: "verified@example.com"
+          email: "verified@example.com",
+          pin: "4826"
         }
       end
     end

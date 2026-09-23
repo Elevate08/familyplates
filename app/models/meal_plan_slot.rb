@@ -22,6 +22,8 @@ class MealPlanSlot < ApplicationRecord
   validates :meal_type, inclusion: { in: MEAL_TYPES }
   validates :meal_type, uniqueness: { scope: [ :meal_plan_id, :date ], message: "slot already exists for this date and meal type" }
   validate :leftover_source_cannot_be_self
+  validate :recipe_belongs_to_household
+  validate :cook_belongs_to_household
   validate :validate_leftover_source_and_capacity, if: -> { is_leftover? && recipe_id.present? }
   before_validation :normalize_blank_attributes
   before_validation :drop_ineligible_leftover_source
@@ -248,6 +250,23 @@ class MealPlanSlot < ApplicationRecord
     return false if (target_date - candidate.date).to_i > shelf_life
 
     !candidate.leftover_exhausted?(excluding_slot: self)
+  end
+
+  # recipe_id and family_member_id are client-supplied. Recipe ids are
+  # sequential, so without this a household can read a neighbour's recipe by
+  # counting. A missing row fails closed the same way a foreign household does.
+  def recipe_belongs_to_household
+    return if recipe_id.blank? || meal_plan.nil?
+    return if recipe&.household_id == meal_plan.household_id
+
+    errors.add(:recipe, "must belong to this household")
+  end
+
+  def cook_belongs_to_household
+    return if family_member_id.blank? || meal_plan.nil?
+    return if family_member&.household_id == meal_plan.household_id
+
+    errors.add(:family_member, "must belong to this household")
   end
 
   def leftover_source_cannot_be_self

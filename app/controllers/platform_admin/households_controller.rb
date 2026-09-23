@@ -67,7 +67,7 @@ module PlatformAdmin
 
       pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@search)}%"
       Household.left_joins(family_members: :user)
-        .where("households.name LIKE :pattern OR users.email LIKE :pattern OR family_members.name LIKE :pattern OR households.promotion_code LIKE :pattern OR households.join_code LIKE :pattern", pattern: pattern)
+        .where("households.name LIKE :pattern ESCAPE '\\' OR users.email LIKE :pattern ESCAPE '\\' OR family_members.name LIKE :pattern ESCAPE '\\' OR households.promotion_code LIKE :pattern ESCAPE '\\' OR households.join_code LIKE :pattern ESCAPE '\\'", pattern: pattern)
         .distinct
     end
   end

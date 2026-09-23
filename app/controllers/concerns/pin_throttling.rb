@@ -37,12 +37,20 @@ module PinThrottling
     params[:id] || current_family_member&.id
   end
 
+  # The same places a PIN can be checked. Current.household alone misses a
+  # profile the signed-in user belongs to in another household, and both rate
+  # limits are skipped when this returns false.
   def pin_protected_target?
-    target_id = throttled_profile_id
-    return false if target_id.blank?
+    pin_target_member&.requires_pin? || false
+  end
 
-    scope = Current.household || Household.installation
-    scope&.family_members&.find_by(id: target_id)&.requires_pin? || false
+  def pin_target_member
+    target_id = throttled_profile_id
+    return if target_id.blank?
+
+    Current.household&.family_members&.find_by(id: target_id) ||
+      Current.user&.family_members&.find_by(id: target_id) ||
+      (Household.installation&.family_members&.find_by(id: target_id) unless FamilyPlates.config.hosted?)
   end
 
   # Runs as a before_action, so it cannot know whether the submitted PIN was

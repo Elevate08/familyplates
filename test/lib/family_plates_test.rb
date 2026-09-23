@@ -39,20 +39,65 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_equal true, FamilyPlates.config.require_login
   end
 
-  test "outbound email validation fails fast in hosted mode without smtp settings" do
+  test "hosted production refuses to start until SMTP_ADDRESS is set" do
     FamilyPlates.config.mode = "hosted"
+    production = ActiveSupport::StringInquirer.new("production")
 
-    original_method = ActionMailer::Base.delivery_method
-    original_settings = ActionMailer::Base.smtp_settings
-    begin
-      ActionMailer::Base.delivery_method = :smtp
-      ActionMailer::Base.smtp_settings = {}
-      assert_raises(FamilyPlates::OutboundEmailNotConfiguredError) do
-        FamilyPlates::OutboundEmail.validate!(environment: ActiveSupport::StringInquirer.new("production"))
+    with_smtp_env(nil) do
+      error = assert_raises(FamilyPlates::OutboundEmailNotConfiguredError) do
+        FamilyPlates::OutboundEmail.validate!(environment: production)
       end
-    ensure
-      ActionMailer::Base.delivery_method = original_method
-      ActionMailer::Base.smtp_settings = original_settings
+      assert_match "SMTP_ADDRESS", error.message
+    end
+
+    with_smtp_env("SMTP_ADDRESS" => "smtp.example.com") do
+      assert_nothing_raised do
+        FamilyPlates::OutboundEmail.validate!(environment: production)
+      end
+    end
+  end
+
+  test "a LAN appliance starts without SMTP" do
+    FamilyPlates.config.mode = "appliance"
+    production = ActiveSupport::StringInquirer.new("production")
+
+    with_smtp_env(nil) do
+      assert_nothing_raised do
+        FamilyPlates::OutboundEmail.validate!(environment: production)
+      end
+      assert_not FamilyPlates.hosted_host_missing?(environment: production)
+    end
+  end
+
+  test "hosted production refuses to start without APP_HOST" do
+    FamilyPlates.config.mode = "hosted"
+    production = ActiveSupport::StringInquirer.new("production")
+
+    with_smtp_env("APP_HOST" => nil) do
+      assert FamilyPlates.hosted_host_missing?(environment: production)
+    end
+
+    with_smtp_env("APP_HOST" => "https://plates.example.com/kitchen") do
+      assert_equal "plates.example.com", FamilyPlates.public_host
+      assert_not FamilyPlates.hosted_host_missing?(environment: production)
+    end
+  end
+
+  test "partial SMTP settings refuse to start" do
+    FamilyPlates.config.mode = "appliance"
+    production = ActiveSupport::StringInquirer.new("production")
+
+    with_smtp_env("SMTP_USER_NAME" => "mailer", "SMTP_PASSWORD" => nil, "SMTP_ADDRESS" => nil) do
+      assert_raises(FamilyPlates::OutboundEmailNotConfiguredError) do
+        FamilyPlates::OutboundEmail.validate!(environment: production)
+      end
+    end
+
+    with_smtp_env("SMTP_ADDRESS" => "smtp.example.com", "SMTP_USER_NAME" => "mailer", "SMTP_PASSWORD" => nil) do
+      error = assert_raises(FamilyPlates::OutboundEmailNotConfiguredError) do
+        FamilyPlates::OutboundEmail.validate!(environment: production)
+      end
+      assert_match "SMTP_PASSWORD", error.message
     end
   end
 
@@ -97,5 +142,21 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_not FamilyPlates.config.google_auth_enabled?
     assert_not FamilyPlates.config.forward_auth_enabled?
     assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
+  end
+
+  private
+
+  def with_smtp_env(overrides)
+    keys = FamilyPlates::OutboundEmail::SMTP_ENV_KEYS + %w[APP_HOST]
+    original = keys.to_h { |key| [ key, ENV[key] ] }
+    keys.each { |key| ENV.delete(key) }
+    overrides&.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
+    yield
+  ensure
+    original.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 end

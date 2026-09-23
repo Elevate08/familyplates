@@ -13,7 +13,7 @@ class SignupsController < ApplicationController
     household_name = params[:household_name].to_s.strip
     organizer_name = params[:organizer_name].to_s.strip
     email = params[:email].to_s.strip.downcase
-    pin = params[:pin].to_s.strip.presence || "1234"
+    pin = params[:pin].to_s.strip
     avatar_color = params[:avatar_color].to_s.strip.presence || FamilyMember::DEFAULT_COLOR
     avatar_icon = params[:avatar_icon].to_s.strip.presence || FamilyMember::DEFAULT_ICON
 
@@ -27,7 +27,12 @@ class SignupsController < ApplicationController
       render :new, status: :unprocessable_entity and return
     end
 
-    if pin.present? && !pin.match?(/\A\d{4}\z/)
+    if pin.blank?
+      flash.now[:alert] = "Please choose a 4-digit security PIN."
+      render :new, status: :unprocessable_entity and return
+    end
+
+    unless pin.match?(/\A\d{4}\z/)
       flash.now[:alert] = "Security PIN must be exactly 4 digits."
       render :new, status: :unprocessable_entity and return
     end
@@ -121,7 +126,7 @@ class SignupsController < ApplicationController
       name: organizer_name,
       role: "admin",
       user: user,
-      pin: pin.presence || "1234",
+      pin: pin,
       avatar_color: avatar_color.presence || FamilyMember::DEFAULT_COLOR,
       avatar_icon: avatar_icon.presence || FamilyMember::DEFAULT_ICON
     )

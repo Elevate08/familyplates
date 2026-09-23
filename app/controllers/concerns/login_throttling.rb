@@ -30,7 +30,7 @@ module LoginThrottling
   private
 
   def login_attempts_throttled!(limit)
-    Rails.logger.warn("[auth] login_throttled limit=#{limit} ip=#{request.remote_ip} email=#{params[:email].to_s.strip.downcase}")
+    Rails.logger.warn("[auth] login_throttled limit=#{limit} ip=#{request.remote_ip} path=#{request.path}")
     redirect_to new_session_path, alert: "Too many sign-in attempts. Please wait a few minutes and try again."
   end
 end

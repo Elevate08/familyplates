@@ -9,13 +9,13 @@ class RecipesController < ApplicationController
     if params[:query].present?
       words = params[:query].strip.downcase.split(/\s+/).reject(&:blank?)
       words.each do |word|
-        q = "%#{word}%"
-        @recipes = @recipes.where("LOWER(recipes.title) LIKE :q OR LOWER(recipes.tags) LIKE :q OR LOWER(recipes.description) LIKE :q", q: q)
+        q = "%#{Recipe.sanitize_sql_like(word)}%"
+        @recipes = @recipes.where("LOWER(recipes.title) LIKE :q ESCAPE '\\' OR LOWER(recipes.tags) LIKE :q ESCAPE '\\' OR LOWER(recipes.description) LIKE :q ESCAPE '\\'", q: q)
       end
     end
 
     if params[:tag].present?
-      @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{params[:tag].strip.downcase}%")
+      @recipes = @recipes.where("LOWER(tags) LIKE ? ESCAPE '\\'", "%#{Recipe.sanitize_sql_like(params[:tag].strip.downcase)}%")
     elsif params[:filter].present?
       case params[:filter]
       when "requested"
@@ -30,7 +30,7 @@ class RecipesController < ApplicationController
         @recipes = @recipes.for_meal_type(params[:filter])
       when /\Atag:/
         selected_tag = params[:filter].delete_prefix("tag:").strip
-        @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{selected_tag.downcase}%")
+        @recipes = @recipes.where("LOWER(tags) LIKE ? ESCAPE '\\'", "%#{Recipe.sanitize_sql_like(selected_tag.downcase)}%")
       end
     end
   end

@@ -203,20 +203,59 @@ module FamilyPlates
     target_household.can_require_login?
   end
 
-  module OutboundEmail
-    def self.validate!(environment: Rails.env)
-      return unless FamilyPlates.config.hosted?
-      return if environment.test?
+  # Hostname operators set for a public deploy. Blank on a LAN appliance.
+  def self.public_host
+    ENV["APP_HOST"].to_s.strip.sub(%r{\Ahttps?://}i, "").split("/").first.presence
+  end
 
-      delivery_method = ActionMailer::Base.delivery_method
-      if delivery_method.nil?
-        raise OutboundEmailNotConfiguredError, "Outbound email is not configured. Hosted mode requires a delivery method."
-      elsif delivery_method == :smtp
-        smtp = ActionMailer::Base.smtp_settings || {}
-        if smtp[:address].blank?
-          raise OutboundEmailNotConfiguredError, "Outbound email is not configured. Hosted mode requires SMTP settings."
-        end
+  def self.hosted_host_missing?(environment: Rails.env)
+    environment.production? && config.hosted? && public_host.blank?
+  end
+
+  # Locks the Host header to the public name and uses that name in mail links.
+  # /up stays open so a container health check can call the app by its own address.
+  def self.apply_public_host!(host = public_host)
+    return if host.blank?
+
+    rails_config = Rails.application.config
+    rails_config.hosts << host unless rails_config.hosts.include?(host)
+    rails_config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+    protocol = (config.hosted? || rails_config.force_ssl) ? "https" : "http"
+    rails_config.action_mailer.default_url_options = { host: host, protocol: protocol }
+  end
+
+  module OutboundEmail
+    SMTP_ENV_KEYS = %w[SMTP_ADDRESS SMTP_USER_NAME SMTP_USERNAME SMTP_PASSWORD SMTP_AUTHENTICATION].freeze
+
+    def self.validate!(environment: Rails.env)
+      return unless environment.production?
+      return unless required? || enabled?
+
+      if ENV["SMTP_ADDRESS"].blank?
+        raise OutboundEmailNotConfiguredError, smtp_address_message
+      end
+
+      username = ENV["SMTP_USER_NAME"].presence || ENV["SMTP_USERNAME"].presence
+      if username.present? && ENV["SMTP_PASSWORD"].blank?
+        raise OutboundEmailNotConfiguredError, "SMTP_PASSWORD is required when an SMTP username is set."
       end
     end
+
+    def self.required?
+      FamilyPlates.config.hosted?
+    end
+
+    def self.enabled?
+      SMTP_ENV_KEYS.any? { |key| ENV[key].present? }
+    end
+
+    def self.smtp_address_message
+      if required?
+        "Hosted mode sends sign-in codes by email and will not start until SMTP_ADDRESS is set."
+      else
+        "SMTP settings were provided without SMTP_ADDRESS."
+      end
+    end
+    private_class_method :smtp_address_message
   end
 end

@@ -48,7 +48,9 @@ class CalendarFeedsController < ApplicationController
       last_modified.to_f
     ]
 
-    if stale?(etag: etag, last_modified: last_modified, public: true)
+    # private: the token in the URL is the credential. A shared cache must not
+    # keep a copy of the household's meals.
+    if stale?(etag: etag, last_modified: last_modified, public: false)
       service = CalendarFeedService.new(
         @household,
         member: member,

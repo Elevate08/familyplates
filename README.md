@@ -65,6 +65,8 @@ docker compose up -d
 
 Visit [`http://localhost:3000`](http://localhost:3000) in your browser to launch the initial 4-step onboarding wizard.
 
+A home server does not need a public hostname or a mail server. Hosted mode will not start until `APP_HOST` and `SMTP_ADDRESS` are set. The [deployment guide](./docs/getting-started.md) lists both.
+
 ---
 
 ## 💻 Bare-Metal Development

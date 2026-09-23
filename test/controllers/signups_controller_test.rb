@@ -27,6 +27,20 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Please enter a valid email address.", flash[:alert]
   end
 
+  test "create rejects a missing PIN" do
+    assert_no_difference -> { Household.count } do
+      post signup_path, params: {
+        household_name: "The Bakers",
+        organizer_name: "Baker",
+        email: "baker@example.com",
+        pin: ""
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal "Please choose a 4-digit security PIN.", flash[:alert]
+  end
+
   test "hosted mode create sends verification code and redirects to verify" do
     FamilyPlates.config.mode = "hosted"
 
@@ -35,7 +49,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
         post signup_path, params: {
           household_name: "The Bakers",
           organizer_name: "Bob Baker",
-          email: "baker@example.com"
+          email: "baker@example.com",
+          pin: "4826"
         }
       end
     end
@@ -52,7 +67,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     post signup_path, params: {
       household_name: "The Hosted Family",
       organizer_name: "Alice",
-      email: "alice@example.com"
+      email: "alice@example.com",
+      pin: "4826"
     }
     assert_redirected_to verify_signup_path
 
@@ -72,6 +88,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     member = household.family_members.find_by!(name: "Alice")
     assert_equal "admin", member.role
     assert_equal user, member.user
+    assert member.verify_pin("4826")
     assert_not household.onboarded?
   end
 
@@ -81,7 +98,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     post signup_path, params: {
       household_name: "The Hosted Family",
       organizer_name: "Alice",
-      email: "alice@example.com"
+      email: "alice@example.com",
+      pin: "4826"
     }
 
     assert_no_difference -> { Household.count } do
@@ -97,7 +115,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
       post signup_path, params: {
         household_name: "Appliance Family",
         organizer_name: "Chef Head",
-        email: "chefhead@example.com"
+        email: "chefhead@example.com",
+        pin: "4826"
       }
     end
 

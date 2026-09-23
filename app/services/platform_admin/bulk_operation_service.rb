@@ -43,9 +43,9 @@ module PlatformAdmin
       end
 
       if (search = filter_params[:search].presence)
-        pattern = "%#{search.strip}%"
+        pattern = "%#{Household.sanitize_sql_like(search.strip)}%"
         scope = scope.left_outer_joins(:users).where(
-          "households.name LIKE :p OR households.id LIKE :p OR users.email LIKE :p",
+          "households.name LIKE :p ESCAPE '\\' OR households.id LIKE :p ESCAPE '\\' OR users.email LIKE :p ESCAPE '\\'",
           p: pattern
         ).distinct
       end

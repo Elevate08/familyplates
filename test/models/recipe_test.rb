@@ -9,6 +9,15 @@ class RecipeTest < ActiveSupport::TestCase
     assert_not recipe.for_meal_type?("lunch")
   end
 
+  test "for_meal_type treats LIKE wildcards as literal text" do
+    household = households(:one)
+    literal = household.recipes.create!(title: "Percent Meal", meal_types: "100%")
+    dinner = household.recipes.create!(title: "Plain Dinner", meal_types: "dinner")
+
+    assert_includes household.recipes.for_meal_type("100%"), literal
+    assert_not_includes household.recipes.for_meal_type("%"), dinner
+  end
+
   test "for_meal_type scope filters recipes by meal type" do
     household = households(:one)
     breakfast_recipe = household.recipes.create!(title: "Pancakes", meal_types: "breakfast")
@@ -29,6 +38,31 @@ class RecipeTest < ActiveSupport::TestCase
   test "display_image_url returns image_url when present" do
     recipe = Recipe.new(image_url: "https://example.com/test.jpg")
     assert_equal "https://example.com/test.jpg", recipe.display_image_url
+  end
+
+  test "rejects an upload the browser would execute" do
+    recipe = recipes(:one)
+    recipe.image.attach(
+      io: StringIO.new("<script>alert(1)</script>"),
+      filename: "not-an-image.html",
+      content_type: "text/html"
+    )
+
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image], "must be a JPEG, PNG, GIF, or WebP"
+  end
+
+  test "rejects an image over 8 MB" do
+    recipe = recipes(:one)
+    recipe.image.attach(
+      io: StringIO.new("png"),
+      filename: "big.png",
+      content_type: "image/png"
+    )
+    recipe.image.blob.update!(byte_size: Recipe::MAX_IMAGE_BYTES + 1)
+
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image], "must be smaller than 8 MB"
   end
 
   test "supports image attachment" do

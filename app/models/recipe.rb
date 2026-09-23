@@ -38,6 +38,10 @@ class Recipe < ApplicationRecord
   DEFAULT_LEFTOVER_CAPACITY = 1
   DEFAULT_LEFTOVER_SHELF_LIFE_DAYS = 3
   MAX_LEFTOVER_SHELF_LIFE_DAYS = 14
+  # SVG and HTML served from this origin would run as script. The declared type
+  # is what the browser is sent, so anything else is refused.
+  ALLOWED_IMAGE_CONTENT_TYPES = %w[image/jpeg image/png image/gif image/webp].freeze
+  MAX_IMAGE_BYTES = 8.megabytes
 
   attribute :leftover_capacity, default: DEFAULT_LEFTOVER_CAPACITY
   attribute :leftover_shelf_life_days, default: DEFAULT_LEFTOVER_SHELF_LIFE_DAYS
@@ -51,6 +55,7 @@ class Recipe < ApplicationRecord
   validates :number, presence: true, uniqueness: { scope: :household_id }
   validates :leftover_capacity, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 10 }, allow_nil: true
   validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_LEFTOVER_SHELF_LIFE_DAYS }, allow_nil: true
+  validate :acceptable_image, if: -> { image.attached? }
   before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
 
   def effective_leftover_capacity
@@ -73,7 +78,10 @@ class Recipe < ApplicationRecord
   # "Quick" is the household's call, made by tagging the recipe - not a guess
   # from prep and cook time, which are often missing or leave out resting time.
   scope :quick, -> { where("LOWER(tags) LIKE ?", "%quick%") }
-  scope :for_meal_type, ->(meal_type) { where("meal_types LIKE ? OR meal_types IS NULL OR meal_types = ''", "%#{meal_type}%") }
+  scope :for_meal_type, ->(meal_type) {
+    term = "%#{sanitize_sql_like(meal_type.to_s)}%"
+    where("meal_types LIKE ? ESCAPE '\\' OR meal_types IS NULL OR meal_types = ''", term)
+  }
   scope :leftover_friendly, -> { where(yields_leftovers: true) }
 
   def has_image?
@@ -139,6 +147,16 @@ class Recipe < ApplicationRecord
   end
 
   private
+
+  def acceptable_image
+    blob = image.blob
+    unless ALLOWED_IMAGE_CONTENT_TYPES.include?(blob.content_type)
+      errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
+    end
+    if blob.byte_size.to_i > MAX_IMAGE_BYTES
+      errors.add(:image, "must be smaller than 8 MB")
+    end
+  end
 
   def default_blank_leftover_settings
     self.leftover_capacity = DEFAULT_LEFTOVER_CAPACITY if leftover_capacity_before_type_cast.blank?

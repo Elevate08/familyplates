@@ -2,6 +2,22 @@ require "test_helper"
 
 class MealPlanSlotTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
+  test "a slot cannot take a recipe or cook from another household" do
+    plan = meal_plans(:one)
+    other_recipe = households(:two).recipes.create!(title: "Secret Soup")
+    other_cook = households(:two).family_members.create!(
+      name: "Miller Cook", role: "member", avatar_color: "#10B981", avatar_icon: "utensils"
+    )
+
+    stolen_recipe = plan.meal_plan_slots.build(date: plan.week_start_date, meal_type: "breakfast", recipe: other_recipe)
+    assert_not stolen_recipe.valid?
+    assert_includes stolen_recipe.errors[:recipe], "must belong to this household"
+
+    stolen_cook = plan.meal_plan_slots.build(date: plan.week_start_date, meal_type: "lunch", family_member: other_cook)
+    assert_not stolen_cook.valid?
+    assert_includes stolen_cook.errors[:family_member], "must belong to this household"
+  end
+
   test "validates meal_type inclusion" do
     slot = MealPlanSlot.new(meal_plan: meal_plans(:one), date: Date.current, meal_type: "midnight_snack")
     assert_not slot.valid?
