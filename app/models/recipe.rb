@@ -124,10 +124,6 @@ class Recipe < ApplicationRecord
     CookingStepParser.call(instructions)
   end
 
-  def active_requests
-    recipe_requests.active
-  end
-
   def requested_by?(family_member, _week = nil)
     return false unless family_member
     recipe_requests.active.exists?(family_member: family_member)
@@ -140,10 +136,6 @@ class Recipe < ApplicationRecord
   def requesters_for_week(_week = nil)
     FamilyMember.joins(:recipe_requests)
                 .where(recipe_requests: { recipe_id: id, fulfilled_at: nil })
-  end
-
-  def requester_names_for_week(_week = nil)
-    requesters_for_week.pluck(:name)
   end
 
   private

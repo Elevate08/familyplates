@@ -39,8 +39,4 @@ class PlatformAuditEvent < ApplicationRecord
       user_agent: request&.user_agent
     )
   end
-
-  def view_event?
-    action.end_with?(".viewed", ".indexed")
-  end
 end

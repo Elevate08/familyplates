@@ -24,14 +24,18 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  # config.assume_ssl = true
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  # Appliance installs often run on a LAN with no TLS at all, so HTTPS cannot be
+  # forced unconditionally. Hosted mode is on the public internet taking
+  # payments and is expected to sit behind TLS, so it forces HTTPS (redirect,
+  # HSTS, Secure cookies) unless FORCE_SSL=false says otherwise. ASSUME_SSL is
+  # for a TLS-terminating proxy that does not send X-Forwarded-Proto.
+  boolean = ActiveModel::Type::Boolean.new
+  hosted_mode = (ENV["FAMILYPLATES_MODE"].presence || ENV["APP_MODE"].presence) == "hosted"
+  config.assume_ssl = boolean.cast(ENV.fetch("ASSUME_SSL", "false"))
+  config.force_ssl = ENV["FORCE_SSL"].present? ? boolean.cast(ENV["FORCE_SSL"]) : hosted_mode
 
   # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
