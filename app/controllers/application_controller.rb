@@ -1,5 +1,6 @@
 class ApplicationController < ActionController::Base
   include Authentication
+  include PermanentSignedCookie
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
@@ -10,10 +11,7 @@ class ApplicationController < ActionController::Base
 
   private
 
-  # "Today" and "now" as the kitchen sees them. Date.current is the server's
-  # day, and the server runs on UTC, so after 7pm in the Americas it is already
-  # tomorrow - which is how the meal plan came to highlight the wrong column and
-  # Cook Mode came to look at the wrong day's meals.
+  # Kitchen-local today. Date.current is UTC, already tomorrow after 7pm in the Americas.
   def household_today
     current_household&.today || Date.current
   end

@@ -40,13 +40,8 @@ module Authentication
     Current.family_member.present?
   end
 
-  # nil until someone signs in. The old `|| Household.installation` fallback
-  # meant an anonymous request silently resolved to a real household, so a
-  # missing scope read as working code - which is exactly the bug that becomes a
-  # cross-tenant leak once a second household exists. Callers that genuinely
-  # need "the household this box serves" ask Household.installation by name;
-  # everything else is answering "whose data may this request see?", and for an
-  # anonymous request the honest answer is nobody's.
+  # Nil until sign-in. Do not fall back to Household.installation: an anonymous
+  # request must not see a real household. That fallback becomes a cross-tenant leak.
   def current_household
     Current.household
   end
@@ -74,12 +69,7 @@ module Authentication
       Current.session = session_record
       Current.user = session_record.user
       if cookies.signed[:device_kind] != session_record.kind
-        cookies.signed.permanent[:device_kind] = {
-          value: session_record.kind,
-          httponly: true,
-          same_site: :lax,
-          secure: request.ssl?
-        }
+        write_permanent_signed_cookie(:device_kind, session_record.kind)
       end
     else
       was_kiosk = (session_record&.kiosk? || cookies.signed[:device_kind] == "kiosk")
@@ -130,13 +120,8 @@ module Authentication
     Current.household = Current.family_member&.household
   end
 
-  # Before the first household exists there is nothing to protect and no profile
-  # to sign in as, so every request routes to the setup wizard. This used to be
-  # asked separately in five places - here, in require_active_family_member, and
-  # inline in the home, sessions and profiles controllers, which skip
-  # require_authentication and so each re-checked by hand. Concentrating it is
-  # Campfire's FirstRunsController lesson: the predicate was never the defect,
-  # scattering it was.
+  # No household yet: every request goes to the setup wizard. One check, including
+  # controllers that skip require_authentication.
   def require_installation
     redirect_to onboarding_path unless FamilyPlates.installed?
   end
@@ -144,11 +129,8 @@ module Authentication
   def require_authentication
     return if Current.family_member.present?
 
-    # Only GETs are worth returning to. profiles#set consumes this with a
-    # redirect, which is always a GET, so storing the URL of an expired POST
-    # sent the user to a path that has no GET route - a dead 404 after a
-    # successful sign-in. HEAD is included because Rails routes it to the GET
-    # action while request.get? is false for it.
+    # Only GET and HEAD. A stored POST has no GET route, so sign-in then 404s.
+    # HEAD is included because request.get? is false for it.
     session[:return_to_after_authenticating] = request.url if request.get? || request.head?
 
     if (FamilyPlates.config.require_login || FamilyPlates.config.hosted?) && Current.user.nil?
@@ -204,12 +186,8 @@ module Authentication
       user_agent: request.user_agent,
       last_active_at: Time.current
     )
-    cookies.signed.permanent[:session_token] = {
-      value: session_record.token, httponly: true, same_site: :lax, secure: request.ssl?
-    }
-    cookies.signed.permanent[:device_kind] = {
-      value: session_record.kind, httponly: true, same_site: :lax, secure: request.ssl?
-    }
+    write_permanent_signed_cookie(:session_token, session_record.token)
+    write_permanent_signed_cookie(:device_kind, session_record.kind)
     Current.session = session_record
     Current.user = user
 
@@ -222,13 +200,7 @@ module Authentication
   def start_new_session_for(member)
     Current.family_member = member
     Current.household = member.household
-    # secure: request.ssl? rather than a flat true - a Secure cookie is never
-    # sent over plain HTTP, and plenty of these run on a LAN with no TLS at all.
-    # This marks it Secure wherever TLS is actually in use and stays working
-    # where it is not.
-    cookies.signed.permanent[:active_family_member_id] = {
-      value: member.id, httponly: true, same_site: :lax, secure: request.ssl?
-    }
+    write_permanent_signed_cookie(:active_family_member_id, member.id)
   end
 
   def terminate_session

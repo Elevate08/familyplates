@@ -49,10 +49,8 @@ class FamilyMember < ApplicationRecord
 
   validates :name, presence: true
   validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
-  # allow_blank, because `pin` reads back as nil on a record loaded from the
-  # database and blank on a form submitted without changing it - only a PIN
-  # actually being set is format-checked. Presence is asserted against the
-  # digest instead, which survives a reload.
+  # allow_blank: a loaded record's pin is nil, and an unchanged form submits blank.
+  # Presence is checked on the digest, which survives a reload.
   validates :pin, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, allow_blank: true, if: :admin?
   validate :admin_requires_a_pin
   before_validation :clear_pin_unless_admin
@@ -69,10 +67,8 @@ class FamilyMember < ApplicationRecord
     admin?
   end
 
-  # bcrypt compares in constant time, so this keeps the timing property the
-  # plaintext secure_compare gave, and adds resistance to offline guessing if a
-  # database copy leaks. The deliberate slowness is affordable because PIN entry
-  # is rate-limited (see PinThrottling).
+  # bcrypt is constant-time and resists offline guessing if the database leaks.
+  # The slowness is fine because PIN entry is rate-limited.
   def verify_pin(input)
     given = input.to_s.strip
     return false if pin_digest.blank? || given.empty?

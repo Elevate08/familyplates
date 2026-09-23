@@ -48,15 +48,8 @@ class Household < ApplicationRecord
 
   delegate :subscribed?, :on_trial?, :on_trial_or_subscribed?, to: :payment_processor, allow_nil: true
 
-  # The zone the household's wall clock runs on.
-  #
-  # Everything stored stays UTC - that is what keeps timestamps unambiguous and
-  # keeps the database out of the daylight-saving business. This is only the
-  # interpretation layer: which local day "today" is, and what hour "dinner at
-  # 6pm" actually falls on. Reading it through an IANA zone means DST is applied
-  # for free and correctly, without a single stored value shifting.
-  #
-  # Blank means nobody has said yet, and UTC is the answer until they do.
+  # IANA zone for "today" and "dinner at 6pm". Stored times stay UTC so DST
+  # never shifts a row. Blank means UTC until someone sets a zone.
   def time_zone_object
     ActiveSupport::TimeZone[time_zone.to_s.presence || DEFAULT_TIME_ZONE] ||
       ActiveSupport::TimeZone[DEFAULT_TIME_ZONE]
@@ -66,15 +59,12 @@ class Household < ApplicationRecord
     Time.current.in_time_zone(time_zone_object)
   end
 
-  # The date it is *in this kitchen*. Date.current is the server's day, which
-  # after 7pm in the Americas is already tomorrow.
+  # Kitchen-local date. Date.current is the server's day, already tomorrow after 7pm in the Americas.
   def today
     current_time.to_date
   end
 
-  # Seeds the zone from a device that reported one, and only that: an existing
-  # answer is never overwritten here, so a phone that travels cannot quietly
-  # move the kitchen. Changing a zone already set is the settings form's job.
+  # Seed only. Never overwrites a zone already set, so a traveling phone cannot move the kitchen.
   def adopt_time_zone(candidate)
     return false if time_zone.present?
 
@@ -88,28 +78,14 @@ class Household < ApplicationRecord
     suspended_at.present?
   end
 
-  # Has this deployment been set up yet? Distinct from `installation`, which
-  # answers *which* household - this only answers whether there is one at all,
-  # and is the question the first-boot guard and the navbar are both asking.
+  # Whether any household exists. `installation` answers which one.
   def self.installed?
     exists?
   end
 
-  # The household this installation serves.
-  #
-  # An appliance install has exactly one, and it is the answer to "whose roster
-  # does the front door show?" - a different question from "whose data may this
-  # request see?", which is current_household and is nil until someone signs in.
-  # Conflating the two is what left three implicit `|| Household.first`
-  # fallbacks scattered through Authentication.
-  #
-  # Ordered rather than `first`, because `first` means "lowest id" and ids are
-  # not creation order - in the test fixtures alone it picks the second
-  # household. The oldest row is the one the setup wizard created.
-  #
-  # This is not a temporary crutch: it is how tenancy resolves whenever
-  # REQUIRE_LOGIN is off, which is the default and stays the default. Phase 1
-  # adds a session-resolved branch beside it; it does not delete this one.
+  # Whose roster the front door shows. Not current_household, which is nil
+  # until sign-in. Ordered by created_at: `first` is lowest id, and fixture
+  # ids are not creation order. This stays while REQUIRE_LOGIN is off.
   def self.installation
     order(:created_at, :id).first
   end
@@ -140,10 +116,7 @@ class Household < ApplicationRecord
     update!(onboarded_at: Time.current)
   end
 
-  # Ends billing immediately - no further charges, and no refund for the rest of
-  # the current period. Returns the subscriptions that could not be cancelled,
-  # so the caller can tell an operator to finish the job in Stripe by hand
-  # rather than let a deleted household keep being billed.
+  # Cancel now, no refund. Returns subscriptions that failed so an operator can finish them in Stripe.
   def cancel_active_pay_subscriptions!
     pay_subscriptions.active.reject do |sub|
       sub.cancel_now!

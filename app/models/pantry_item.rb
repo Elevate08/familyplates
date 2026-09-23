@@ -77,11 +77,8 @@ class PantryItem < ApplicationRecord
     is_staple? && !low_stock?
   end
 
-  # The pantry item an ingredient line refers to, or nil.
-  #
-  # Matching is exact on a normalized name and deliberately does no substring
-  # comparison - the same rule IngredientAggregator settled on after "Peanut
-  # butter" matched the "Butter" staple and quietly vanished from the list.
+  # The pantry row for this name, or nil. Exact normalized match only —
+  # a substring made "Peanut butter" vanish against the Butter staple.
   def self.matching(household, ingredient_name)
     return nil if household.nil? || ingredient_name.blank?
 

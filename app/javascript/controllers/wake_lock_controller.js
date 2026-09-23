@@ -1,13 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Holds a screen wake lock while Cook Mode is open, so a tablet propped against
-// the toaster does not dim halfway through a step.
-//
-// The API is unavailable in plenty of the places this view legitimately runs -
-// any non-secure context, an older kitchen display, a browser that has not
-// shipped it - and the lock is dropped by the system whenever the tab is
-// backgrounded. Both are normal, so neither is an error: the indicator says
-// which state the screen is in and the view carries on either way.
+// Keep the screen awake in Cook Mode. Missing API or a lock dropped when the
+// tab hides is normal, not an error: the indicator reports which, and the view continues.
 export default class extends Controller {
   static targets = ["indicator", "label"]
   static values = {

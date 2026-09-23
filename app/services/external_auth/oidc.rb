@@ -42,7 +42,7 @@ module ExternalAuth
       })
       req.basic_auth(FamilyPlates.config.oidc_client_id, FamilyPlates.config.oidc_client_secret)
 
-      res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") { |http| http.request(req) }
+      res = http_request(uri, req)
       raise "OIDC token exchange failed: #{res.code} #{res.body}" unless res.is_a?(Net::HTTPSuccess)
 
       token_data = JSON.parse(res.body)
@@ -64,7 +64,7 @@ module ExternalAuth
         uri = URI(userinfo_endpoint)
         req = Net::HTTP::Get.new(uri)
         req["Authorization"] = "Bearer #{access_token}"
-        res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") { |http| http.request(req) }
+        res = http_request(uri, req)
         return JSON.parse(res.body) if res.is_a?(Net::HTTPSuccess)
       end
 
@@ -89,7 +89,7 @@ module ExternalAuth
 
       discovery_url = "#{issuer.chomp('/')}/.well-known/openid-configuration"
       uri = URI(discovery_url)
-      res = Net::HTTP.get_response(uri)
+      res = http_request(uri, Net::HTTP::Get.new(uri))
       if res.is_a?(Net::HTTPSuccess)
         @discovery_endpoints = JSON.parse(res.body)
       else
@@ -103,5 +103,10 @@ module ExternalAuth
     def self.reset_discovery!
       @discovery_endpoints = nil
     end
+
+    def self.http_request(uri, req)
+      Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") { |http| http.request(req) }
+    end
+    private_class_method :http_request
   end
 end

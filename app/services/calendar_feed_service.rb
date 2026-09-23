@@ -1,11 +1,5 @@
-# Generates RFC 5545 compliant iCalendar (.ics) feeds for household meal plans.
-#
-# Supports:
-# - Full household meal schedules or individual member's cooking assignments
-# - Correct UTC timestamps derived from household meal preferences and timezone
-# - Rich summaries, cook attribution, ingredients previews, and recipe URLs
-# - RFC 5545 line folding (<= 75 octets) and character escaping
-# - Non-blocking transparent events (TRANSP:TRANSPARENT)
+# RFC 5545 feed. Times are UTC from the household zone and meal preferences.
+# Lines fold at 75 octets. Events are TRANSPARENT so they do not block the calendar.
 class CalendarFeedService
   CRLF = "\r\n".freeze
   MEAL_DURATIONS = { "breakfast" => 45, "lunch" => 45, "dinner" => 60 }.freeze

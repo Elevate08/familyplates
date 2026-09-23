@@ -88,7 +88,6 @@ export default class extends Controller {
   updateUI() {
     const theme = this.currentTheme
 
-    // Update active highlight in dropdown menu
     if (this.hasActiveOptionTargets) {
       this.activeOptionTargets.forEach(el => {
         if (el.dataset.themeValue === theme) {

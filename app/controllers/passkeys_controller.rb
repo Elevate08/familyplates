@@ -7,13 +7,11 @@ class PasskeysController < ApplicationController
   before_action :require_user_for_management, only: %i[index registration_options create destroy]
   before_action :forbid_kiosk_access, only: %i[index registration_options create destroy]
 
-  # GET /passkeys
   def index
     @passkeys = current_user.passkeys.order(created_at: :desc)
     @household = current_household || current_user.households.first || Household.installation
   end
 
-  # POST /passkeys/registration_options
   def registration_options
     options = relying_party.options_for_registration(
       user: {
@@ -28,7 +26,6 @@ class PasskeysController < ApplicationController
     render json: options
   end
 
-  # POST /passkeys
   def create
     challenge = session.delete(:webauthn_challenge)
     if challenge.blank?
@@ -59,7 +56,6 @@ class PasskeysController < ApplicationController
     end
   end
 
-  # DELETE /passkeys/:id
   def destroy
     passkey = current_user.passkeys.find(params[:id])
     passkey.destroy
@@ -67,7 +63,6 @@ class PasskeysController < ApplicationController
     redirect_to passkeys_path, notice: "Passkey removed."
   end
 
-  # POST /passkeys/authentication_options
   def authentication_options
     allow_credentials = if params[:email].present?
       User.find_by(email: params[:email])&.passkeys&.pluck(:external_id) || []
@@ -83,7 +78,6 @@ class PasskeysController < ApplicationController
     render json: options
   end
 
-  # POST /passkeys/callback
   def callback
     challenge = session.delete(:webauthn_challenge)
     if challenge.blank?

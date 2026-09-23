@@ -9,7 +9,6 @@ class OnboardingController < ApplicationController
   before_action :require_admin, only: WIZARD_STEPS_AFTER_SETUP
   before_action :load_starter_recipes, only: %i[recipes save_recipes]
 
-  # Step 1: Kitchen & Family Setup
   def family
     @household = Household.new(
       name: "",
@@ -52,7 +51,6 @@ class OnboardingController < ApplicationController
     render :family, status: :unprocessable_entity
   end
 
-  # Step 2: Family Roster
   def members
     @family_members = current_household.family_members.order(:created_at, :id)
     @new_member = current_household.family_members.build(
@@ -94,7 +92,6 @@ class OnboardingController < ApplicationController
     end
   end
 
-  # Step 3: Starter Recipes
   def recipes
     @selected_recipe_ids = @starter_recipes.map { |r| r["id"] }
   end
@@ -106,33 +103,33 @@ class OnboardingController < ApplicationController
 
     ActiveRecord::Base.transaction do
       RecipeIngredient.without_aisle_sync do
-      @starter_recipes.each do |starter|
-        next unless selected_ids.include?(starter["id"])
+        @starter_recipes.each do |starter|
+          next unless selected_ids.include?(starter["id"])
 
-        recipe = current_household.recipes.find_or_create_by!(title: starter["title"]) do |r|
-          r.description = starter["description"]
-          r.prep_time = starter["prep_time"]
-          r.cook_time = starter["cook_time"]
-          r.servings = starter["servings"] || 4
-          r.image_url = starter["image_url"]
-          r.instructions = starter["instructions"]
-          r.tags = Array(starter["tags"]).join(", ")
-        end
-
-        if recipe.recipe_ingredients.empty?
-          Array(starter["ingredients"]).each do |ing|
-            recipe.recipe_ingredients.create!(
-              raw_text: ing["raw_text"],
-              name: ing["name"],
-              quantity: ing["quantity"],
-              unit: ing["unit"],
-              aisle_category: ing["aisle_category"].presence
-            )
+          recipe = current_household.recipes.find_or_create_by!(title: starter["title"]) do |r|
+            r.description = starter["description"]
+            r.prep_time = starter["prep_time"]
+            r.cook_time = starter["cook_time"]
+            r.servings = starter["servings"] || 4
+            r.image_url = starter["image_url"]
+            r.instructions = starter["instructions"]
+            r.tags = Array(starter["tags"]).join(", ")
           end
-        end
 
-        created << recipe
-      end
+          if recipe.recipe_ingredients.empty?
+            Array(starter["ingredients"]).each do |ing|
+              recipe.recipe_ingredients.create!(
+                raw_text: ing["raw_text"],
+                name: ing["name"],
+                quantity: ing["quantity"],
+                unit: ing["unit"],
+                aisle_category: ing["aisle_category"].presence
+              )
+            end
+          end
+
+          created << recipe
+        end
       end
     end
 
@@ -143,7 +140,6 @@ class OnboardingController < ApplicationController
     redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end
 
-  # Step 4: Pantry Staples
   def pantry
     @default_staples = PantryItem::DEFAULT_STAPLES
   end
@@ -156,10 +152,7 @@ class OnboardingController < ApplicationController
         is_selected = selected_staple_names.include?(staple[:name])
         item = current_household.pantry_items.find_or_initialize_by(name: staple[:name])
 
-        # Seed the defaults only when creating. This step used to assign them
-        # unconditionally, so re-running the wizard reset a household's
-        # hand-picked category and icon back to the DEFAULT_STAPLES values. Only
-        # the checkbox is the user's answer on this screen.
+        # Seed defaults only on create. Re-running the wizard must not reset a hand-picked category or icon.
         if item.new_record?
           item.aisle_category = staple[:aisle_category]
           item.emoji = staple[:emoji]
@@ -173,7 +166,6 @@ class OnboardingController < ApplicationController
     redirect_to onboarding_complete_path
   end
 
-  # Step 5: Completion & Celebration
   def complete
     @members_count = current_household.family_members.count
     @recipes_count = current_household.recipes.count

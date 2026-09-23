@@ -62,7 +62,6 @@ class MealPlansController < ApplicationController
     @prev_month = @month_date.prev_month
     @next_month = @month_date.next_month
 
-    # Preload all slots for the month
     @month_slots_by_date = MealPlanSlot.joins(:meal_plan)
                                        .where(meal_plans: { household_id: current_household.id })
                                        .where(date: @month_start..@month_end)
@@ -70,11 +69,8 @@ class MealPlansController < ApplicationController
                                        .group_by { |slot| [ slot.date, slot.meal_type ] }
   end
 
-  # A week can straddle two months, so "the month of the week" is ambiguous.
-  # We show whichever month holds most of the week: the 4th day always lands in
-  # the month owning 4 or more of the 7 days, whichever side of the split it is
-  # on. Anchoring on the week's first day instead hides the tail of the week
-  # whenever a week starts near the end of a month.
+  # The month that holds most of the week: day 4 always lands in that month.
+  # Anchoring on day 1 hides the tail when a week starts near month end.
   def default_month_for(week_start)
     (week_start + 3.days).beginning_of_month
   end

@@ -5,7 +5,6 @@
      data-cook-mode-storage-key-value="familyplates_cook_<%= @recipe.id %>"
      data-action="touchstart->cook-mode#touchStart touchend->cook-mode#touchEnd">
 
-  <!-- Header: way out, where you are, screen state, ingredients -->
   <header class="shrink-0 border-b border-white/10 bg-slate-950/95">
     <div class="flex items-center gap-3 px-4 py-3 sm:px-6">
       <%= link_to recipe_path(@recipe),
@@ -45,7 +44,6 @@
     </div>
   </header>
 
-  <!-- One step at a time, sized to be read from across the counter -->
   <main class="flex flex-1 flex-col justify-center px-5 py-10 sm:px-10">
     <% if @steps.empty? %>
       <div class="mx-auto w-full max-w-2xl text-center">
@@ -88,7 +86,7 @@
     <% end %>
   </main>
 
-  <!-- Giant tap targets: reachable with a knuckle, a wet hand, or a keyboard -->
+  <!-- Tap targets sized for a wet hand or a keyboard. -->
   <% if @steps.any? %>
     <footer class="shrink-0 border-t border-white/10 bg-slate-950/95 px-4 py-4 sm:px-6">
       <div class="mx-auto flex max-w-3xl items-stretch gap-3">
@@ -114,7 +112,6 @@
     </footer>
   <% end %>
 
-  <!-- Ingredients drawer -->
   <% if @recipe.recipe_ingredients.any? %>
     <div data-cook-mode-target="drawer" hidden class="fixed inset-0 z-50">
       <div data-cook-mode-target="drawerBackdrop" data-action="click->cook-mode#closeDrawer"

@@ -1,9 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Replaces onclick="openPinModal('1', 'Dad', '#3B82F6', 'D')" and its
-// openNavPinModal twin. The modal logic itself is unchanged and still lives in
-// the nonced inline script beside each modal; this only carries the arguments
-// across, which is what the inline attribute was doing.
+// Carries the member into the nonced inline modal script. Inline onclick cannot carry a CSP nonce.
 export default class extends Controller {
   static values = {
     memberId: String,

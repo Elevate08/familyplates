@@ -3,13 +3,9 @@
 require "openssl"
 require "securerandom"
 
-# Session tokens are bearer credentials, so the database keeps only their
-# SHA-256 digest: a leaked backup or a read-only SQL bug then yields nothing
-# that can be replayed as a cookie. The raw token lives in memory on the record
-# that minted it (long enough to set the cookie) and in the signed cookie, and
-# nowhere else. A plain digest rather than bcrypt is deliberate: the tokens are
-# 256 random bits, so there is nothing to brute-force, and lookups have to hit
-# the unique index on every request.
+# Bearer tokens: store only the SHA-256 digest so a leaked backup cannot be replayed as a cookie.
+# The raw token stays in memory only long enough to set the cookie. SHA-256, not bcrypt:
+# 256 random bits are not brute-forced, and every request looks the digest up by unique index.
 module HashedToken
   extend ActiveSupport::Concern
 

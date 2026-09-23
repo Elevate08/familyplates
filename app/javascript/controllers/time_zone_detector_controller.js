@@ -1,12 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Reports this device's IANA time zone once, so the household does not have to
-// be told what o'clock it is before "cooking now" can mean anything.
-//
-// Only rendered when the household has no zone recorded, and the server refuses
-// to overwrite one that exists, so this runs at most once per install in
-// practice. A browser that cannot answer simply stays quiet - UTC remains the
-// fallback and the settings form is still there.
+// Report this device's IANA zone once. The server refuses to overwrite one that
+// exists. A browser that cannot answer stays quiet; UTC remains the fallback.
 export default class extends Controller {
   static values = { url: String }
 

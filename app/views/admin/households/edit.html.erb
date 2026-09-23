@@ -1,5 +1,4 @@
 <div class="max-w-2xl mx-auto py-6 sm:py-8 space-y-8">
-  <!-- Header -->
   <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-xs">
@@ -13,7 +12,6 @@
     <%= link_to "← Admin Dashboard", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
   </div>
 
-  <!-- Settings Form -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <%= form_with model: @household, url: admin_household_path, method: :patch, class: "space-y-8" do |f| %>
       <% if @household.errors.any? %>
@@ -27,7 +25,6 @@
         </div>
       <% end %>
 
-      <!-- Section 1: Household Name -->
       <div>
         <%= f.label :name, "Household / Family Kitchen Name", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
         <%= f.text_field :name, required: true,
@@ -35,7 +32,6 @@
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">This name displays in your navigation bar and calendar feeds.</p>
       </div>
 
-      <!-- Section 2: Time Zone -->
       <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
         <h2 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
           <span>🌍</span>
@@ -57,7 +53,6 @@
         </p>
       </div>
 
-      <!-- Section 3: Meal Schedule Times -->
       <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
         <h2 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
           <span>⏰</span>
@@ -91,7 +86,6 @@
         </div>
       </div>
 
-      <!-- Form Submit & Action Buttons -->
       <div class="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
         <%= link_to "Cancel", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-center sm:text-left transition-colors" %>
         

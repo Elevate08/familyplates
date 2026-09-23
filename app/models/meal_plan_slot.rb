@@ -14,10 +14,7 @@ class MealPlanSlot < ApplicationRecord
   # columns themselves default to these same values.
   DEFAULT_MEAL_TIMES = { "breakfast" => "08:00", "lunch" => "12:30", "dinner" => "18:00" }.freeze
 
-  # Cooking starts before the meal is served and often runs past it, so "which
-  # meal is being made right now" is a window around the serving time, not the
-  # instant itself. Two hours ahead covers a roast going in; ninety minutes past
-  # covers a dinner that ran late.
+  # "Cooking now" is a window: 2 hours before serving, 90 minutes after.
   COOKING_LEAD = 2.hours
   COOKING_GRACE = 90.minutes
 
@@ -39,13 +36,8 @@ class MealPlanSlot < ApplicationRecord
   after_destroy :reset_leftover_source_association
   after_update :clear_invalidated_leftovers, if: -> { saved_change_to_recipe_id? || saved_change_to_is_leftover? || saved_change_to_date? || saved_change_to_meal_type? }
 
-  # When this meal is served: the slot's own time if it has one, otherwise the
-  # household's time for that meal. The calendar feed reads the same two fields,
-  # so a household that has set its dinner hour gets it honoured in both places.
-  #
-  # Built in the household's zone, not the server's. "Dinner at 6pm" means six
-  # in that kitchen; on a UTC server it would otherwise mean six in Greenwich,
-  # which is early afternoon in Chicago and the following morning in Sydney.
+  # Slot time, else the household meal time. Built in the household zone:
+  # "dinner at 6pm" is 6 in that kitchen, not 6 on a UTC server. The calendar feed uses the same fields.
   def scheduled_at
     time = scheduled_time.presence || household_meal_time
     hour, minute = time.to_s.split(":").map(&:to_i)
@@ -122,14 +114,9 @@ class MealPlanSlot < ApplicationRecord
   end
   private_class_method :around
 
-  # Moving a slot can displace whatever already occupies the destination. Both
-  # halves have to be one unit of work: the controller used to destroy the
-  # occupant and *then* attempt the update, outside any transaction, so a
-  # validation failure on the second half left the destination permanently gone
-  # and the source still sitting where it started.
-  #
-  # Returns true on success, false with errors populated on failure - the same
-  # contract as #update, so callers read the same way.
+  # Destroying the occupant and updating must be one transaction. Doing the
+  # destroy first left the destination gone when the update failed.
+  # True on success, false with errors — same contract as #update.
   def move(attributes, household:)
     target_date = self.class.parse_date(attributes[:date]) || date
     target_meal_type = attributes[:meal_type].presence || meal_type
@@ -217,11 +204,8 @@ class MealPlanSlot < ApplicationRecord
     end
   end
 
-  # The source id arrives from a form field, and a moved leftover carries its old
-  # one along. A source from another household, of another recipe, or not
-  # actually served before this meal and within its shelf life is never kept -
-  # it is cleared so auto-assignment can pick a real one, or validation can say
-  # there is none.
+  # A moved leftover carries its old source id. Drop a source from another household,
+  # another recipe, or outside the shelf life so auto-assign or validation can replace it.
   def drop_ineligible_leftover_source
     return unless is_leftover? && leftover_source_slot_id.present?
     return if leftover_source_slot_id == id # reported by leftover_source_cannot_be_self
@@ -251,17 +235,19 @@ class MealPlanSlot < ApplicationRecord
                           .order(date: :desc, id: :desc)
                           .to_a
 
-    source = candidates.find do |cand|
-      next false if cand.id == id
-      next false unless self.class.served_before?(cand, target_date: target_date, target_meal_type: meal_type)
-
-      shelf_life = cand.recipe&.effective_leftover_shelf_life_days || Recipe::DEFAULT_LEFTOVER_SHELF_LIFE_DAYS
-      next false if (target_date - cand.date).to_i > shelf_life
-
-      !cand.leftover_exhausted?(excluding_slot: self)
-    end
+    source = candidates.find { |candidate| usable_leftover_source?(candidate, target_date) }
 
     self.leftover_source_slot_id = source&.id if source.present?
+  end
+
+  def usable_leftover_source?(candidate, target_date)
+    return false if candidate.id == id
+    return false unless self.class.served_before?(candidate, target_date: target_date, target_meal_type: meal_type)
+
+    shelf_life = candidate.recipe&.effective_leftover_shelf_life_days || Recipe::DEFAULT_LEFTOVER_SHELF_LIFE_DAYS
+    return false if (target_date - candidate.date).to_i > shelf_life
+
+    !candidate.leftover_exhausted?(excluding_slot: self)
   end
 
   def leftover_source_cannot_be_self

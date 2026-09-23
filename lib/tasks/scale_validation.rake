@@ -41,7 +41,6 @@ namespace :scale do
     t_seed_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     now = Time.current
 
-      # 1. Households and Users
       household_records = []
       user_records = []
       500.times do |i|
@@ -69,12 +68,10 @@ namespace :scale do
       User.insert_all!(user_records)
       Household.insert_all!(household_records)
 
-      # 2. Family Members (3-4 per household)
       member_records = []
       dummy_pin = BCrypt::Password.create("1234", cost: BCrypt::Engine::MIN_COST)
       household_records.each_with_index do |h, idx|
         u = user_records[idx]
-        # Admin organizer
         member_records << {
           id: SecureRandom.uuid,
           household_id: h[:id],
@@ -87,7 +84,6 @@ namespace :scale do
           created_at: now,
           updated_at: now
         }
-        # Partner & 1-2 kids
         rand(2..3).times do |k|
           member_records << {
             id: SecureRandom.uuid,
@@ -105,7 +101,6 @@ namespace :scale do
       end
       FamilyMember.insert_all!(member_records)
 
-      # 3. Recipes (20-30 per household)
       recipe_templates = [
         { title: "Spaghetti Bolognese", tags: "pasta, italian, dinner", prep: 15, cook: 30, meal_types: "dinner" },
         { title: "Chicken Tikka Masala", tags: "curry, indian, dinner", prep: 20, cook: 40, meal_types: "dinner" },
@@ -142,7 +137,6 @@ namespace :scale do
       end
       Recipe.insert_all!(recipe_records)
 
-      # 4. Recipe Ingredients (6-8 per recipe)
       ingredient_templates = [
         { name: "Olive oil", unit: "tbsp", aisle: "Pantry & Grains" },
         { name: "Garlic cloves", unit: "cloves", aisle: "Produce" },
@@ -155,7 +149,6 @@ namespace :scale do
         { name: "Parmesan cheese", unit: "oz", aisle: "Dairy & Refrigerated" }
       ]
 
-      # Fetch recipe IDs in chunks
       recipe_ids = Recipe.pluck(:id)
       recipe_ingredients_records = []
       recipe_ids.each do |r_id|
@@ -177,7 +170,6 @@ namespace :scale do
         RecipeIngredient.insert_all!(slice)
       end
 
-      # 5. Meal Plans & Slots (4 weeks per household)
       meal_plan_records = []
       base_week = Date.current.beginning_of_week
       household_records.each do |h|
@@ -192,7 +184,6 @@ namespace :scale do
       end
       MealPlan.insert_all!(meal_plan_records)
 
-      # 6. Meal Plan Slots (14-21 slots per meal plan)
       meal_plans_data = MealPlan.pluck(:id, :household_id, :week_start_date)
       recipes_by_household = Recipe.all.group_by(&:household_id)
       members_by_household = FamilyMember.all.group_by(&:household_id)
@@ -225,7 +216,6 @@ namespace :scale do
         MealPlanSlot.insert_all!(slice)
       end
 
-      # 7. Pantry Items & Staples (15-20 per household)
       pantry_records = []
       household_records.each do |h|
         PantryItem::DEFAULT_STAPLES.each do |s|
@@ -298,7 +288,6 @@ namespace :scale do
       puts "    SQL:  #{sql}"
       puts "    PLAN: #{details}"
 
-      # Check for unindexed full table scans on large tables
       if details =~ /SCAN (meal_plan_slots|recipes|recipe_ingredients|meal_plans|pantry_items)\b/ && !(details =~ /USING INDEX|USING COVERING INDEX/)
         puts "    ⚠️  WARNING: Full table scan detected on #{name}!"
         all_indexed = false
@@ -312,7 +301,6 @@ namespace :scale do
     puts "\n[4/5] Running Query Latency Profiling (1,000 iterations each)..."
 
     profile_query = ->(name, &block) do
-      # Warm up
       10.times { block.call }
 
       timings = []
@@ -392,10 +380,8 @@ namespace :scale do
             retries = 0
             begin
               thread_conn.transaction do
-                # Write 1: update slot notes or recipe assignment
                 slot = mp.meal_plan_slots.sample
                 slot&.update_columns(custom_title: "Dinner special #{SecureRandom.hex(2)}", recipe_id: recipe.id)
-                # Write 2: update a pantry staple
                 p_item = h.pantry_items.sample
                 p_item&.update_columns(is_staple: !p_item.is_staple)
               end
@@ -436,7 +422,6 @@ namespace :scale do
     puts "  5. Product validation metrics and telemetry recorded."
     puts "=" * 80
 
-    # Cleanup benchmark database
     ActiveRecord::Base.connection_pool.disconnect!
     [ db_path, "#{db_path}-wal", "#{db_path}-shm" ].each do |f|
       File.delete(f) if File.exist?(f)

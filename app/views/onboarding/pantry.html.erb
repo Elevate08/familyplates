@@ -1,8 +1,6 @@
 <div class="max-w-3xl mx-auto py-4 sm:py-8" data-controller="select-all">
-  <!-- Progress Bar -->
   <%= render "onboarding/progress_bar", current_step: 4 %>
 
-  <!-- Header -->
   <div class="text-center mb-8">
     <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-primary-500 text-white shadow-lg shadow-primary-500/30 mb-3">
       <%= icon_tag("archive", css_class: "w-8 h-8") %>
@@ -14,7 +12,6 @@
   </div>
 
   <%= form_with url: onboarding_save_pantry_path, method: :post do |f| %>
-    <!-- Selection Control Bar -->
     <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6">
       <div class="flex items-center gap-2">
         <button type="button" data-action="click->select-all#selectAll"
@@ -32,7 +29,6 @@
       </span>
     </div>
 
-    <!-- On-Hand Grid -->
     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-10">
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <% @default_staples.each do |staple| %>
@@ -52,7 +48,6 @@
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto">
       <%= link_to "← Back to Recipes", onboarding_recipes_path, class: "text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" %>
       <%= f.submit "Finish & Start Planning 🎉", class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>

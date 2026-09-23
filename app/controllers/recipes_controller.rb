@@ -28,11 +28,9 @@ class RecipesController < ApplicationController
         @recipes = @recipes.quick
       when "breakfast", "lunch", "dinner"
         @recipes = @recipes.for_meal_type(params[:filter])
-      else
-        if params[:filter].start_with?("tag:")
-          selected_tag = params[:filter].sub(/\Atag:/, "").strip
-          @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{selected_tag.downcase}%")
-        end
+      when /\Atag:/
+        selected_tag = params[:filter].delete_prefix("tag:").strip
+        @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{selected_tag.downcase}%")
       end
     end
   end
@@ -95,7 +93,6 @@ class RecipesController < ApplicationController
       return
     end
 
-    # Bulk Meal Types Update
     if params[:update_meal_types].present? || params[:meal_types_mode].present?
       selected_meal_types = Array(params[:meal_types]).reject(&:blank?)
       recipes.each do |recipe|
@@ -103,7 +100,6 @@ class RecipesController < ApplicationController
       end
     end
 
-    # Bulk Tags Update
     if params[:update_tags].present? || params[:tags_mode].present?
       new_tags = params[:tags].to_s.split(",").map(&:strip).reject(&:blank?)
       recipes.each do |recipe|

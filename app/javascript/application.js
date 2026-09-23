@@ -1,10 +1,8 @@
-// Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
 import { Turbo } from "@hotwired/turbo-rails"
 import "controllers"
 
 window.Turbo = Turbo
 
-// Universal custom confirmation dialog matching the site theme & PIN modal
 window.showConfirmDialog = function(message, options = {}) {
   return new Promise((resolve) => {
     const modal = document.getElementById("app-confirm-modal")
@@ -82,12 +80,8 @@ window.showConfirmDialog = function(message, options = {}) {
   })
 }
 
-// Intercept all Turbo form confirmations across the entire app.
-//
-// Turbo.config.forms.confirm replaces the deprecated top-level
-// Turbo.setConfirmMethod, which warns on every page load and is slated for
-// removal. Falls back to the old call on a Turbo that predates the config
-// object, so this does not pin a minimum version.
+// Turbo.config.forms.confirm replaces setConfirmMethod, which warns on every load.
+// Fall back to the old call so this does not pin a minimum Turbo.
 const confirmWithDialog = (message, _element) => window.showConfirmDialog(message)
 
 if (Turbo.config?.forms) {

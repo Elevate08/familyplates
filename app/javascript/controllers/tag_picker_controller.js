@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { el, replaceChildren } from "helpers/dom"
+import { el, replaceChildren, fuzzyMatch } from "helpers/dom"
 
 export default class extends Controller {
   static targets = [
@@ -56,7 +56,6 @@ export default class extends Controller {
     if (!trimmed) return
 
     const current = this.getTags()
-    // Case-insensitive check
     const exists = current.some(t => t.toLowerCase() === trimmed.toLowerCase())
     if (!exists) {
       current.push(trimmed)
@@ -125,7 +124,6 @@ export default class extends Controller {
       event.preventDefault()
       const query = this.textInputTarget.value.trim().replace(/,$/, "")
       if (query.length > 0) {
-        // If there's a visible suggestion highlight or first match, add it; otherwise create tag
         const firstMatch = this.suggestionsListTarget.querySelector("[data-tag-item]")
         if (firstMatch && firstMatch.dataset.tagItem.toLowerCase() === query.toLowerCase()) {
           this.addTag(firstMatch.dataset.tagItem)
@@ -150,16 +148,14 @@ export default class extends Controller {
     const current = this.getTags().map(t => t.toLowerCase())
     const q = (query || "").toLowerCase()
 
-    // Filter available tags
     const matching = this.availableTagsValue.filter(tag => {
       const tagLower = tag.toLowerCase()
       if (current.includes(tagLower)) return false
-      return !q || this.fuzzyMatch(q, tagLower)
+      return !q || fuzzyMatch(q, tagLower)
     })
 
     this.suggestionsListTarget.innerHTML = ""
 
-    // Render matches
     matching.slice(0, 8).forEach(tag => {
       const item = document.createElement("button")
       item.type = "button"
@@ -176,7 +172,6 @@ export default class extends Controller {
       this.suggestionsListTarget.appendChild(item)
     })
 
-    // Render create option if query is non-empty and not an exact match of existing tag
     const exactMatch = this.availableTagsValue.some(t => t.toLowerCase() === q)
     if (q.length > 0 && !exactMatch && !current.includes(q)) {
       this.createOptionTarget.classList.remove("hidden")
@@ -185,7 +180,6 @@ export default class extends Controller {
       this.createOptionTarget.classList.add("hidden")
     }
 
-    // Toggle menu visibility
     const hasItems = matching.length > 0 || (q.length > 0 && !exactMatch)
     if (hasItems) {
       this.suggestionsMenuTarget.classList.remove("hidden")
@@ -218,19 +212,4 @@ export default class extends Controller {
     }
   }
 
-  fuzzyMatch(pattern, str) {
-    if (!pattern) return true
-    if (!str) return false
-    if (str.includes(pattern)) return true
-
-    let patternIdx = 0
-    let strIdx = 0
-    while (patternIdx < pattern.length && strIdx < str.length) {
-      if (pattern[patternIdx] === str[strIdx]) {
-        patternIdx++
-      }
-      strIdx++
-    }
-    return patternIdx === pattern.length
-  }
 }

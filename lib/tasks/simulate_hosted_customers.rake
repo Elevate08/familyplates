@@ -17,7 +17,6 @@ namespace :hosted do
     end
     Stripe.api_key = stripe_key
 
-    # Seed Promotion Programs
     puts "\n🎟️  Seeding Promotion Programs..."
     promotions = {
       "WELCOME20" => { name: "Welcome Promo (20% Off)", discount_percent: 20, active: true, notes: "New sign-up discount" },
@@ -36,7 +35,6 @@ namespace :hosted do
       puts "   • #{code}: #{prog.name} (#{prog.active? ? 'Active' : 'Inactive'})"
     end
 
-    # Surnames and Kitchen Names for 100 realistic households
     family_names = [
       "Miller", "Anderson", "Chen", "Rivera", "O'Connor", "Patel", "Tanaka", "Watanabe",
       "Hernandez", "Smith", "Dupont", "Garcia", "Kim", "Rossi", "Larsson", "Murphy",
@@ -77,11 +75,8 @@ namespace :hosted do
       { name: "Butter", cat: "Dairy & Eggs", emoji: "🧈" }
     ]
 
-    # Pre-define 100 simulation customer specs covering EVERY case
     specs = []
 
-    # 1. Active Annual Customers (25)
-    # Long-term memberships created across last year (Sep 2025 - Jul 2026)
     25.times do |i|
       created_ago = (1..12).to_a[i % 12].months + (1..20).to_a[i % 20].days
       promo =
@@ -101,8 +96,6 @@ namespace :hosted do
       }
     end
 
-    # 2. Active Monthly Customers (30)
-    # Created 1 to 12 months ago with regular monthly billing cycles
     30.times do |i|
       created_ago = (1..12).to_a[i % 12].months + (2..25).to_a[i % 24].days
       cycle_day = (1..26).to_a[i % 26]
@@ -124,8 +117,6 @@ namespace :hosted do
       }
     end
 
-    # 3. Active Free Trials (12)
-    # Joined 1 to 13 days ago
     12.times do |i|
       created_ago = (i + 1).days + rand(2..18).hours
       promo = (i < 3) ? "WELCOME20" : nil
@@ -139,8 +130,6 @@ namespace :hosted do
       }
     end
 
-    # 4. Expired Free Trials (12)
-    # Joined 1 to 9 months ago, never subscribed
     12.times do |i|
       created_ago = (1..9).to_a[i % 9].months + (3..20).to_a[i % 18].days
       specs << {
@@ -153,8 +142,6 @@ namespace :hosted do
       }
     end
 
-    # 5. Past Due - Within Grace Period (4)
-    # Active monthly whose renewal payment failed 2-5 days ago (within 7-day grace period)
     4.times do |i|
       created_ago = (3..7).to_a[i].months
       failed_ago = (2 + i).days
@@ -170,8 +157,6 @@ namespace :hosted do
       }
     end
 
-    # 6. Past Due - Grace Expired (4)
-    # Payment failed 15-30 days ago, past grace period
     4.times do |i|
       created_ago = (4..8).to_a[i].months
       failed_ago = (14 + i * 4).days
@@ -187,8 +172,6 @@ namespace :hosted do
       }
     end
 
-    # 7. Canceled - Retaining Access (4)
-    # Canceled recently, retains access until end of current period
     4.times do |i|
       created_ago = (2..5).to_a[i].months
       ends_in = (6 + i * 5).days
@@ -204,8 +187,6 @@ namespace :hosted do
       }
     end
 
-    # 8. Canceled - Expired (5)
-    # Canceled months ago, access ended
     5.times do |i|
       created_ago = (6..11).to_a[i].months
       ended_ago = (1..3).to_a[i % 3].months
@@ -221,7 +202,6 @@ namespace :hosted do
       }
     end
 
-    # 9. Suspended by Operator (3)
     [
       { reason: "Suspected fraudulent chargeback dispute", plan: :annual, status: "active", created_ago: 8.months },
       { reason: "Terms of service: Automated scraping & spam", plan: :monthly, status: "past_due", created_ago: 4.months },
@@ -238,7 +218,6 @@ namespace :hosted do
       }
     end
 
-    # 10. Account Deletion Pending (1)
     specs << {
       cohort: :deletion_pending,
       plan: :monthly,
@@ -265,7 +244,6 @@ namespace :hosted do
 
     puts "\n📦 Prepared #{specs.size} customer specifications."
 
-    # Concurrent Stripe Customer Creation
     puts "\n⚡ Connecting to Stripe Test API to create 100 test customer objects..."
     stripe_customers = Array.new(specs.size)
     pool = Concurrent::FixedThreadPool.new(8)
@@ -304,7 +282,6 @@ namespace :hosted do
 
     puts "\n✅ Stripe test customer objects provisioned."
 
-    # Now populate database records
     puts "\n🏠 Inserting Households, Family Members, Subscriptions, and Kitchen Data..."
 
     ActiveRecord::Base.transaction do
@@ -315,7 +292,6 @@ namespace :hosted do
         created_at = Time.current - spec[:created_ago]
         stripe_customer = stripe_customers[idx]
 
-        # 1. Household
         household = Household.find_or_initialize_by(id: "sim-house-#{idx + 1}")
         household.name = household_name
         household.join_code ||= SecureRandom.alphanumeric(12).upcase.scan(/.{4}/).join("-")
@@ -337,7 +313,6 @@ namespace :hosted do
 
         household.save!(validate: false)
 
-        # 2. User & Family Members
         user = User.find_or_initialize_by(email: email)
         user.password = "CustomerPassword123!"
         user.created_at = created_at
@@ -350,7 +325,6 @@ namespace :hosted do
         admin_member.created_at = created_at
         admin_member.save!(validate: false)
 
-        # Additional family member (e.g. partner or kid)
         if idx % 2 == 0
           member2 = household.family_members.find_or_initialize_by(name: "Alex #{surname}")
           member2.role = "member"
@@ -359,7 +333,6 @@ namespace :hosted do
           member2.save!(validate: false)
         end
 
-        # 3. Pay Customer & Subscription
         if stripe_customer&.id.present?
           pay_cust = household.pay_customers.find_or_initialize_by(processor: :stripe)
           pay_cust.processor_id = stripe_customer.id
@@ -385,7 +358,6 @@ namespace :hosted do
               sub.data = { "promotion_code" => spec[:promo], "discount" => { "promotion_code" => spec[:promo] } }
             end
 
-            # Period calculations
             if spec[:sub_period_start_ago].present?
               sub.current_period_start = Time.current - spec[:sub_period_start_ago]
             else
@@ -408,7 +380,6 @@ namespace :hosted do
 
             sub.save!(validate: false)
 
-            # Record Pay Charge & Live Stripe Transactions for customers
             if sub.status == "active" || spec[:cohort] == :past_due_grace
               amount_cents = if plan_key == :annual
                 case spec[:promo]
@@ -460,7 +431,6 @@ namespace :hosted do
               }
               charge.save!(validate: false)
 
-              # For established monthly customers, record prior renewal cycle charges
               months_active = [ ((Time.current - created_at) / 30.days).floor, 1 ].max
               if months_active > 1 && spec[:cohort] == :active_monthly
                 (1...[ months_active, 6 ].min).each do |m|
@@ -478,7 +448,6 @@ namespace :hosted do
           end
         end
 
-        # 4. Sample Recipes & Pantry
         recipe_pick = recipe_templates[idx % recipe_templates.size]
         recipe = household.recipes.find_or_initialize_by(title: recipe_pick[:name])
         recipe.prep_time = recipe_pick[:prep]
@@ -491,7 +460,6 @@ namespace :hosted do
         recipe.created_at = created_at + 1.hour
         recipe.save!(validate: false)
 
-        # Pantry Items
         pantry_staples.take(4).each do |staple|
           pantry = household.pantry_items.find_or_initialize_by(name: staple[:name])
           pantry.aisle_category = staple[:cat]
@@ -500,7 +468,6 @@ namespace :hosted do
           pantry.save!(validate: false)
         end
 
-        # 5. Activity Events
         household.activity_events.create!(
           event_type: "recipes.created",
           actor: admin_member,
@@ -521,7 +488,6 @@ namespace :hosted do
           )
         end
 
-        # 6. Support Thread for a subset of customers (8 households)
         if idx % 12 == 0
           thread = household.support_threads.find_or_initialize_by(subject: "Question regarding billing receipt and features")
           thread.created_by_user_id = user.id
@@ -547,7 +513,6 @@ namespace :hosted do
           end
         end
 
-        # 7. Account Deletion Request
         if spec[:deletion_pending]
           req = household.account_deletion_requests.find_or_initialize_by(status: "pending")
           req.requested_by_user_id = user.id

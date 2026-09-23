@@ -1,13 +1,7 @@
-# Turns a recipe's free-text instructions into discrete steps for Cook Mode.
-#
-# Instructions reach the database in whatever shape they arrived in: the scraper
-# writes "1. …\n\n2. …" with section headings on their own lines, a person typing
-# a family recipe writes one line per step with no numbering at all, and an older
-# import can be a single run-on paragraph. Cook Mode shows one step at a time on
-# a counter-top screen, so it needs all three to come out the same way.
+# One step per screen. Numbered lists, bare lines, and a run-on paragraph all come out the same.
 class CookingStepParser
   Timer = Struct.new(:label, :seconds, keyword_init: true) do
-    # "1 hr 30 min", "45 min", "1 min 30 sec" - short enough for a tap target.
+    # Short tap-target label: "1 hr 30 min", "45 min".
     def display
       hours, rest = seconds.divmod(3600)
       minutes, secs = rest.divmod(60)
@@ -21,8 +15,7 @@ class CookingStepParser
       end
     end
 
-    # The countdown's starting face, in the same shape the Stimulus controller
-    # will keep writing, so the first paint does not visibly reformat.
+    # Same shape the Stimulus controller writes, so the first paint does not reformat.
     def clock
       hours, rest = seconds.divmod(3600)
       minutes, secs = rest.divmod(60)
@@ -39,15 +32,12 @@ class CookingStepParser
   # A step marker the writer put there: "1.", "2)", "Step 3:".
   STEP_MARKER = /\A(?:step\s*)?(\d+)\s*[.):]\s+/i
 
-  # A heading is a short line, so a long unnumbered paragraph in a numbered
-  # recipe stays a step rather than becoming a title nobody can read.
+  # Headings are short. A long unnumbered line in a numbered recipe stays a step.
   MAX_HEADING_LENGTH = 80
 
   UNICODE_FRACTIONS = QuantityParser::UNICODE_FRACTIONS
 
-  # "for 15 minutes", "20-25 minutes", "1 1/2 hours", "about 90 seconds". The
-  # second quantity of a range is captured only so the label can show it: the
-  # countdown uses the low end, which is when a cook wants to look at the pan.
+  # "for 15 minutes", "20-25 minutes". The countdown uses the low end; the high end is only for the label.
   DURATION = /
     (?<qty>\d+\s*[#{UNICODE_FRACTIONS.keys.join}]|\d+(?:\.\d+)?(?:\s+\d\/\d)?|\d\/\d|[#{UNICODE_FRACTIONS.keys.join}])
     (?:\s*(?:-|–|—|\s+to\s+|\s+or\s+)\s*(?<high>\d+(?:\.\d+)?))?
@@ -57,8 +47,7 @@ class CookingStepParser
 
   UNIT_SECONDS = { "h" => 3600, "m" => 60, "s" => 1 }.freeze
 
-  # Below ten seconds is a figure of speech ("a few seconds"), and past twelve
-  # hours it is an overnight rest nobody stands at the counter for.
+  # Under 10 seconds is a figure of speech. Over 12 hours is an overnight rest, not a counter timer.
   MIN_TIMER_SECONDS = 10
   MAX_TIMER_SECONDS = 12 * 60 * 60
   MAX_TIMERS_PER_STEP = 3
@@ -84,8 +73,7 @@ class CookingStepParser
     return [] if lines.empty?
 
     entries = classify(lines)
-    # A heading with nothing under it ("Enjoy!" after the last step) would be
-    # swallowed whole, so the tail is always a step.
+    # A trailing heading ("Enjoy!") would vanish, so the tail is always a step.
     entries.last[:kind] = :step if entries.last[:kind] == :heading
     entries = split_single_paragraph(entries) if entries.count { |e| e[:kind] == :step } <= 1
 
@@ -117,18 +105,14 @@ class CookingStepParser
     end
   end
 
-  # Two shapes count as a heading: anything ending in a colon, and - only in a
-  # recipe whose steps are numbered - a short line that carries no number, which
-  # is how "Make the filling" arrives between "2." and "3.".
+  # A heading ends in a colon, or — only when steps are numbered — a short unnumbered line ("Make the filling").
   def heading?(line, numbered_count)
     return false if line.length > MAX_HEADING_LENGTH
 
     line.end_with?(":") || numbered_count.positive?
   end
 
-  # One long line holding several sentences is a paste from a site that never
-  # marked its steps up. Splitting it is the difference between Cook Mode
-  # showing one wall of text and showing a recipe.
+  # A single line of several sentences was never marked up. Split it or Cook Mode shows one wall of text.
   def split_single_paragraph(entries)
     entries.flat_map do |entry|
       next entry unless entry[:kind] == :step

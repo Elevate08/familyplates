@@ -89,10 +89,7 @@ class DeviceGrant < ApplicationRecord
     end
   end
 
-  # The paired device collects its session token exactly once. Only the digest
-  # is stored, so the token is minted here, at hand-over, and the grant moves to
-  # "redeemed" in the same conditional UPDATE: a second poll - or anyone else
-  # holding the device_code - finds nothing left to collect.
+  # Mint the token at hand-over and mark redeemed in the same UPDATE. A second poll finds nothing; only the digest is stored.
   def redeem!
     claimed = self.class.where(id: id, status: "approved").update_all(status: "redeemed", updated_at: Time.current)
     return nil unless claimed == 1

@@ -2,11 +2,9 @@
 <html lang="en" class="h-full bg-slate-50 dark:bg-slate-950 antialiased">
   <head>
     <title><%= content_for(:title) || "FamilyPlates | 5-Minute Family Meal Planner" %></title>
-    <%# No maximum-scale: it blocks pinch-zoom on iOS and Android, which is a
-        WCAG 1.4.4 failure on a UI that leans on text-[10px] and text-xs. %>
+    <%# No maximum-scale: it blocks pinch-zoom (WCAG 1.4.4) on a UI that uses text-xs. %>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     
-    <!-- PWA & Mobile Web App Meta -->
     <meta name="application-name" content="FamilyPlates">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,7 +20,7 @@
 
     <%= yield :head %>
 
-    <!-- Immediate Theme Initialization (Follows System Setting by Default without FOUC) -->
+    <!-- Apply the saved theme before paint so the first frame does not flash. -->
     <script nonce="<%= content_security_policy_nonce %>">
       (function() {
         const theme = localStorage.getItem('familyplates_theme') || 'system';
@@ -69,7 +67,6 @@
           <%= render "platform_admin/sidebar" %>
 
           <div class="flex-1 lg:pl-72 flex flex-col min-w-0">
-            <!-- Mobile Header with Brand & Hamburger -->
             <header class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
               <div class="flex items-center gap-2.5">
                 <span class="text-lg font-black tracking-tight text-slate-900 dark:text-white">FamilyPlates</span>

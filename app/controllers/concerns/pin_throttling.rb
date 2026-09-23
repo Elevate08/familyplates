@@ -10,11 +10,8 @@ module PinThrottling
   SCOPE = "pin_attempts".freeze
 
   class_methods do
-    # Two limits, because they stop different attacks: the per-IP one stops a
-    # single host working through every profile, the per-profile one stops a
-    # distributed attack on one organizer. A profile with no PIN is not a
-    # credential check at all and is never counted, so ordinary 1-tap member
-    # switching is unaffected.
+    # Per-IP stops one host trying every profile; per-profile stops a distributed attack on one organizer.
+    # A profile with no PIN is not counted, so 1-tap switching is unaffected.
     def throttle_pin_attempts(only:)
       rate_limit to: MAX_ATTEMPTS, within: WINDOW, name: "by_ip", scope: SCOPE,
                  store: PinThrottling.store,

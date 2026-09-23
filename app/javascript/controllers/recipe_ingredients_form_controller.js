@@ -7,11 +7,8 @@ export default class extends Controller {
     this.nextIndex = this.highestExistingIndex() + 1
   }
 
-  // Rails needs a unique key per nested row. This used to be
-  // new Date().getTime(), so two rows added inside the same millisecond - Enter
-  // held down, or a double-click - got the same key and the second silently
-  // replaced the first on submit. A counter cannot collide with itself, and
-  // seeding it above the server-rendered indices keeps it clear of those too.
+  // Unique key per nested row. Date.now() collided inside one millisecond and the second row replaced the first.
+  // A counter seeded above the server indices cannot.
   highestExistingIndex() {
     if (!this.hasContainerTarget) return -1
 
@@ -35,18 +32,13 @@ export default class extends Controller {
 
     const content = this.templateTarget.innerHTML.replace(/NEW_RECORD/g, rowIndex)
     
-    // Create temporary wrapper to parse HTML
     const temp = document.createElement("div")
     temp.innerHTML = content.trim()
     const newRow = temp.firstElementChild
 
     this.containerTarget.appendChild(newRow)
 
-    // Focus the new row's first field. This used to be deferred 50ms, which
-    // meant three quick clicks queued three focus jumps that landed after the
-    // form looked settled - the third could steal focus out from under someone
-    // already typing in another row, appending their text to whatever field it
-    // grabbed. The row is in the document by now, so focus it straight away.
+    // Focus now. A deferred focus from a quick extra click landed in whatever field was active later.
     const firstInput = newRow.querySelector("input")
     if (firstInput) firstInput.focus()
   }

@@ -28,7 +28,6 @@ class RecipeImportsController < ApplicationController
       return
     end
 
-    # Check if a recipe with this exact URL already exists in household
     existing_by_url = current_household.recipes.find_by(source_url: url)
     if existing_by_url
       redirect_to existing_by_url, alert: "ℹ️ This recipe link is already saved as \"#{existing_by_url.title}\" in your recipe box."
@@ -43,7 +42,6 @@ class RecipeImportsController < ApplicationController
 
     data = result.recipe
 
-    # Check if a recipe with this title already exists in household
     existing_by_title = current_household.recipes.where("LOWER(title) = ?", data[:title].to_s.strip.downcase).first
     if existing_by_title
       redirect_to existing_by_title, alert: "ℹ️ A recipe titled \"#{existing_by_title.title}\" is already in your recipe box."

@@ -1,5 +1,5 @@
-<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4">
-  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl">
+<%= render layout: "shared/centered_page" do %>
+  <%= render layout: "shared/auth_card" do %>
     <div class="text-center mb-6">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 mb-3 shadow-sm">
         <%= icon_tag("users", css_class: "w-7 h-7") %>
@@ -37,5 +37,5 @@
     <div class="mt-6 text-center">
       <%= link_to "← Back to Profile Selection", select_profile_path, class: "text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
     </div>
-  </div>
-</div>
+<% end %>
+<% end %>

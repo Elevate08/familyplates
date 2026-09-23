@@ -100,7 +100,6 @@ export default class extends Controller {
       }
     }
 
-    // Sync selected IDs into all available bulk forms
     if (this.hasTagsFormTarget) this.syncHiddenFormInputs(this.tagsFormTarget, selectedIds)
     if (this.hasMealTypesFormTarget) this.syncHiddenFormInputs(this.mealTypesFormTarget, selectedIds)
     if (this.hasDeleteFormTarget) this.syncHiddenFormInputs(this.deleteFormTarget, selectedIds)
@@ -109,10 +108,8 @@ export default class extends Controller {
   syncHiddenFormInputs(form, ids) {
     if (!form) return
 
-    // Remove existing dynamic hidden inputs
     form.querySelectorAll("input[data-dynamic-recipe-id='true']").forEach(el => el.remove())
 
-    // Append new hidden inputs for each selected recipe
     ids.forEach(id => {
       const input = document.createElement("input")
       input.type = "hidden"
@@ -123,7 +120,6 @@ export default class extends Controller {
     })
   }
 
-  // Intercept form submit to ensure latest IDs are present
   beforeFormSubmit(event) {
     const selectedIds = this.getSelectedIds()
     if (selectedIds.length === 0) {
@@ -146,7 +142,6 @@ export default class extends Controller {
     if (this.hasMealTypesFormTarget) {
       this.syncHiddenFormInputs(this.mealTypesFormTarget, selectedIds)
 
-      // Prepopulate checkboxes with shared/common meal types
       const commonMealTypes = this.getCommonMealTypes()
       const checkboxes = this.mealTypesFormTarget.querySelectorAll("input[name='meal_types[]']")
       checkboxes.forEach(cb => {
@@ -178,7 +173,6 @@ export default class extends Controller {
     if (this.hasTagsFormTarget) {
       this.syncHiddenFormInputs(this.tagsFormTarget, selectedIds)
 
-      // Prepopulate tags input with shared/common tags
       const commonTags = this.getCommonTags()
       if (this.hasTagsInputTarget) {
         this.tagsInputTarget.value = commonTags.join(", ")
@@ -225,10 +219,8 @@ export default class extends Controller {
 
     const tagIndex = currentTags.findIndex(t => t.toLowerCase() === tag.toLowerCase())
     if (tagIndex >= 0) {
-      // Toggle off if already present
       currentTags.splice(tagIndex, 1)
     } else {
-      // Add if not present
       currentTags.push(tag)
     }
 

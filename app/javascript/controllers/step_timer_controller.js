@@ -1,9 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// A one-tap countdown for a duration found in the step text ("simmer for 15
-// minutes"). Counts against a wall-clock deadline rather than accumulating
-// ticks, because a backgrounded tab is throttled to roughly one timer callback
-// a second and an interval-counted timer drifts minutes late over a long bake.
+// Countdown to a wall-clock deadline. Interval ticks drift when a backgrounded tab is throttled.
 export default class extends Controller {
   static targets = ["display", "state", "reset"]
   static values = { seconds: Number }

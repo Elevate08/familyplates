@@ -39,21 +39,21 @@ module PlatformAdmin
     def reply
       @support_thread.messages.create!(platform_admin: current_platform_admin, body: message_params[:body])
       record_platform_audit!("support_thread.replied", target: @support_thread)
-      redirect_to platform_admin_support_thread_path(@support_thread), notice: "Reply sent."
+      redirect_to_thread notice: "Reply sent."
     rescue ActiveRecord::RecordInvalid
-      redirect_to platform_admin_support_thread_path(@support_thread), alert: "We could not send that reply."
+      redirect_to_thread alert: "We could not send that reply."
     end
 
     def resolve
       @support_thread.resolve!
       record_platform_audit!("support_thread.resolved", target: @support_thread)
-      redirect_to platform_admin_support_thread_path(@support_thread), notice: "Support thread resolved."
+      redirect_to_thread notice: "Support thread resolved."
     end
 
     def reopen
       @support_thread.reopen!(by: current_platform_admin)
       record_platform_audit!("support_thread.reopened", target: @support_thread)
-      redirect_to platform_admin_support_thread_path(@support_thread), notice: "Support thread reopened."
+      redirect_to_thread notice: "Support thread reopened."
     end
 
     def change_status
@@ -61,13 +61,17 @@ module PlatformAdmin
       if SupportThread::OPERATOR_SETTABLE_STATUSES.include?(target_status)
         @support_thread.change_status!(target_status)
         record_platform_audit!("support_thread.status_changed", target: @support_thread, metadata: { status: target_status })
-        redirect_to platform_admin_support_thread_path(@support_thread), notice: "Status updated to #{target_status.humanize}."
+        redirect_to_thread notice: "Status updated to #{target_status.humanize}."
       else
-        redirect_to platform_admin_support_thread_path(@support_thread), alert: "Invalid status."
+        redirect_to_thread alert: "Invalid status."
       end
     end
 
     private
+
+    def redirect_to_thread(**flash)
+      redirect_to platform_admin_support_thread_path(@support_thread), **flash
+    end
 
     def set_support_thread
       @support_thread = SupportThread.includes(:household, messages: [ :user, :platform_admin ]).find(params[:id])

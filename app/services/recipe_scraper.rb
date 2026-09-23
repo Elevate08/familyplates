@@ -65,10 +65,7 @@ class RecipeScraper
 
   def result
     @html ||= fetch_html
-    # Without this, a refused or failed fetch fell through to Nokogiri::HTML(nil)
-    # and produced a placeholder "Imported Recipe" carrying the rejected URL,
-    # which made RecipeImportsController's "Could not fetch recipe" branch dead
-    # code - nothing ever returned nil for it to catch.
+    # A refused fetch must return nil. HTML(nil) became a fake "Imported Recipe" and hid the error.
     return failure(@error || :unreachable) if @html.blank?
 
     doc = parse_document(@html)
@@ -159,10 +156,8 @@ class RecipeScraper
     best_recipe(candidates)
   end
 
-  # Publishers ship JSON-LD wrapped in CDATA, HTML comments or JS line comments,
-  # and some emit two objects back to back in one tag. Each of those is a
-  # JSON::ParserError to a plain parse, and each is worth one more attempt.
-  # Trimming to the outermost brace or bracket covers every wrapper at once.
+  # JSON-LD may be wrapped in CDATA, comments, or two objects in one tag.
+  # Trim to the outermost brace so each of those still parses.
   def parse_json_ld(raw)
     content = raw.to_s.strip
     return nil if content.blank?
@@ -490,14 +485,12 @@ class RecipeScraper
   def collect_equipment(data, instructions, description)
     raw_items = []
 
-    # 1. From JSON-LD tool / equipment array
     tools = data["tool"] || data["equipment"]
     Array(tools).each do |tool|
       val = clean_text(tool.is_a?(Hash) ? tool["name"] : tool)
       raw_items << val if val.present?
     end
 
-    # 2. From JSON-LD yield if it mentions pan/casserole/dish
     Array(data["recipeYield"]).each do |y|
       y_str = y.to_s.strip
       if y_str =~ EQUIPMENT_YIELD_PATTERN
@@ -506,7 +499,6 @@ class RecipeScraper
       end
     end
 
-    # 3. Scan instructions & description for dish/pan dimensions and equipment
     all_text = "#{instructions} #{description}"
     all_text.scan(EQUIPMENT_SCAN_PATTERN).each do |match|
       found = match.first.strip
@@ -551,7 +543,6 @@ class RecipeScraper
   def parse_ingredient_line(raw)
     cleaned = raw.gsub(/\s+/, " ").strip
 
-    # Extract quantity
     quantity = nil
     unit = nil
     name = cleaned

@@ -2,24 +2,19 @@
      data-action="click@window->theme#closeMenuOnOutside"
      class="relative inline-block text-left">
   
-  <!-- Theme Trigger Button (Dropdown toggle with quick indicator) -->
   <button type="button"
           data-action="click->theme#toggleMenu"
           data-theme-target="button"
           title="Change Appearance (System, Light, Dark)"
           class="p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-2xs flex items-center justify-center cursor-pointer">
-    <!-- Icon shown dynamically in light mode -->
     <span class="block dark:hidden text-sm">☀️</span>
-    <!-- Icon shown dynamically in dark mode -->
     <span class="hidden dark:block text-sm">🌙</span>
   </button>
 
-  <!-- Dropdown Menu Options -->
   <div data-theme-target="menu"
        class="hidden absolute right-0 mt-2 w-36 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
     <div class="space-y-0.5 text-xs font-semibold">
       
-      <!-- System Default Option -->
       <button type="button"
               data-action="click->theme#setTheme"
               data-theme-target="activeOption"
@@ -31,7 +26,6 @@
         </span>
       </button>
 
-      <!-- Light Option -->
       <button type="button"
               data-action="click->theme#setTheme"
               data-theme-target="activeOption"
@@ -43,7 +37,6 @@
         </span>
       </button>
 
-      <!-- Dark Option -->
       <button type="button"
               data-action="click->theme#setTheme"
               data-theme-target="activeOption"

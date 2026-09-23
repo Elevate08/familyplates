@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { el, replaceChildren } from "helpers/dom"
+import { el, replaceChildren, fuzzyMatch } from "helpers/dom"
 
 function parseList(json) {
   if (!json) return []
@@ -27,10 +27,7 @@ export default class extends Controller {
     "createUnitText"
   ]
 
-  // The catalogue lives on the form container, not on each row - a
-  // twenty-ingredient recipe would otherwise ship twenty copies of it. Parsed
-  // once per container and cached there, so twenty rows do not parse it twenty
-  // times either.
+  // Catalogue sits on the form, once. A copy per row would ship and parse it twenty times.
   get ingredientsValue() {
     return this.catalogue.ingredients
   }
@@ -62,9 +59,6 @@ export default class extends Controller {
     document.removeEventListener("click", this._handleClickOutside)
   }
 
-  // ==========================================
-  // INGREDIENT NAME AUTOFILL & CREATION
-  // ==========================================
 
   onNameFocus() {
     this.closeUnitDropdown()
@@ -90,10 +84,7 @@ export default class extends Controller {
       const query = this.nameInputTarget.value.trim()
       if (query.length === 0) return
 
-      // Enter takes the best existing match. Creating something new needs a name
-      // that matches nothing, or picking "Add" deliberately - otherwise typing
-      // "Chick" and pressing Enter silently created a second ingredient called
-      // "Chick" alongside the "Chicken" the household already knows.
+      // Enter takes the best match. "Chick" must not create a second ingredient beside "Chicken".
       const chosen = this.highlightedOption("name") ||
                      (this.hasNameListTarget ? this.nameListTarget.querySelector("[data-ingredient-name]") : null)
 
@@ -116,7 +107,7 @@ export default class extends Controller {
     const q = (query || "").toLowerCase()
     const matching = this.ingredientsValue.filter(item => {
       if (!q) return true
-      return this.fuzzyMatch(q, item.name.toLowerCase())
+      return fuzzyMatch(q, item.name.toLowerCase())
     })
 
     this.nameListTarget.innerHTML = ""
@@ -144,7 +135,6 @@ export default class extends Controller {
       this.nameListTarget.appendChild(btn)
     })
 
-    // Check exact match for create option
     const exactMatch = this.ingredientsValue.some(i => i.name.toLowerCase() === q)
     if (q.length > 0 && !exactMatch) {
       if (this.hasCreateNameOptionTarget) this.createNameOptionTarget.classList.remove("hidden")
@@ -165,14 +155,8 @@ export default class extends Controller {
     this.nameInputTarget.value = name
 
     if (aisle && this.hasAisleSelectTarget) {
-      const select = this.aisleSelectTarget
-      for (let i = 0; i < select.options.length; i++) {
-        if (select.options[i].value.toLowerCase() === aisle.toLowerCase()) {
-          select.selectedIndex = i
-          break
-        }
-      }
-      select.dispatchEvent(new Event("change", { bubbles: true }))
+      this.selectMatchingAisle(aisle)
+      this.aisleSelectTarget.dispatchEvent(new Event("change", { bubbles: true }))
     }
 
     this.closeNameDropdown()
@@ -186,16 +170,21 @@ export default class extends Controller {
 
     const guessedAisle = this.guessAisle(trimmed)
     if (guessedAisle && this.hasAisleSelectTarget) {
-      const select = this.aisleSelectTarget
-      for (let i = 0; i < select.options.length; i++) {
-        if (select.options[i].value.toLowerCase() === guessedAisle.toLowerCase()) {
-          select.selectedIndex = i
-          break
-        }
-      }
+      this.selectMatchingAisle(guessedAisle)
     }
 
     this.closeNameDropdown()
+  }
+
+  selectMatchingAisle(aisle) {
+    const select = this.aisleSelectTarget
+    const wanted = aisle.toLowerCase()
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value.toLowerCase() === wanted) {
+        select.selectedIndex = i
+        return
+      }
+    }
   }
 
   handleCreateNameClick(event) {
@@ -211,9 +200,6 @@ export default class extends Controller {
     }
   }
 
-  // ==========================================
-  // MEASUREMENT UNIT AUTOFILL & CREATION
-  // ==========================================
 
   onUnitFocus() {
     this.closeNameDropdown()
@@ -248,11 +234,7 @@ export default class extends Controller {
     }
   }
 
-  // --- Keyboard navigation and focus ------------------------------------------
-  //
-  // Both menus behave the same way, so the mechanics live here once. Arrow keys
-  // move a highlight through the matches and on into the "Add" button, which is
-  // the only way to create something that collides with an existing name.
+  // Shared by both menus. Arrow keys reach "Add", the only way to create a name that collides.
 
   handleNavigationKey(event, kind) {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return false
@@ -303,10 +285,7 @@ export default class extends Controller {
     this.setHighlight(kind, null)
   }
 
-  // Each menu closes as soon as focus leaves *its own* input and menu - not when
-  // focus leaves the row. Scoping this to the row was too broad: tabbing from
-  // the name field to the aisle select stays inside the row, so the menu stayed
-  // open, sitting over the select the user had just moved to.
+  // Close when focus leaves this input and menu, not the row. Tabbing to the aisle select stays in the row.
   onFocusOut(event) {
     const moved = event.relatedTarget
 
@@ -333,7 +312,7 @@ export default class extends Controller {
     const q = (query || "").toLowerCase()
     const matching = this.unitsValue.filter(unit => {
       if (!q) return true
-      return this.fuzzyMatch(q, unit.toLowerCase())
+      return fuzzyMatch(q, unit.toLowerCase())
     })
 
     this.unitListTarget.innerHTML = ""
@@ -358,7 +337,6 @@ export default class extends Controller {
       this.unitListTarget.appendChild(btn)
     })
 
-    // Exact match check for create unit option
     const exactMatch = this.unitsValue.some(u => u.toLowerCase() === q)
     if (q.length > 0 && !exactMatch) {
       if (this.hasCreateUnitOptionTarget) this.createUnitOptionTarget.classList.remove("hidden")
@@ -393,31 +371,12 @@ export default class extends Controller {
     }
   }
 
-  // ==========================================
-  // GENERAL UTILITIES
-  // ==========================================
 
   handleClickOutside(event) {
     if (!this.element.contains(event.target)) {
       this.closeNameDropdown()
       this.closeUnitDropdown()
     }
-  }
-
-  fuzzyMatch(pattern, str) {
-    if (!pattern) return true
-    if (!str) return false
-    if (str.includes(pattern)) return true
-
-    let patternIdx = 0
-    let strIdx = 0
-    while (patternIdx < pattern.length && strIdx < str.length) {
-      if (pattern[patternIdx] === str[strIdx]) {
-        patternIdx++
-      }
-      strIdx++
-    }
-    return patternIdx === pattern.length
   }
 
   getAisleBadgeColor(aisle) {

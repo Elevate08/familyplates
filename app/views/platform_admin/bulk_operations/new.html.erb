@@ -8,7 +8,6 @@
   </div>
 
   <%= form_with url: preview_platform_admin_bulk_operations_path, method: :post, local: true, class: "space-y-8" do |form| %>
-    <!-- Step 1: Targeting & Filters -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">1. Select Target Scope</h2>
@@ -47,7 +46,6 @@
       </div>
     </div>
 
-    <!-- Step 2: Choose Operation -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">2. Choose Action & Parameters</h2>
@@ -55,7 +53,6 @@
       </div>
 
       <div class="space-y-4">
-        <!-- Add Tag -->
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "add_tag", checked: (@action == "add_tag"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -67,7 +64,6 @@
           </div>
         </label>
 
-        <!-- Remove Tag -->
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "remove_tag", checked: (@action == "remove_tag"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -76,7 +72,6 @@
           </div>
         </label>
 
-        <!-- Assign Promotion -->
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "assign_promotion", checked: (@action == "assign_promotion"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -88,7 +83,6 @@
           </div>
         </label>
 
-        <!-- Extend Trial -->
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "extend_trial", checked: (@action == "extend_trial"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -101,7 +95,6 @@
           </div>
         </label>
 
-        <!-- Send Service Announcement -->
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "send_announcement", checked: (@action == "send_announcement"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -116,7 +109,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Mandatory Operational Reason -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">3. Operational Justification</h2>
@@ -129,7 +121,6 @@
       </div>
     </div>
 
-    <!-- Submit Preview -->
     <div class="flex items-center justify-between pt-2">
       <%= link_to "Cancel", platform_admin_bulk_operations_path, class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" %>
       <%= form.submit "Preview Bulk Operation →", class: "rounded-xl bg-primary-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-primary-500 cursor-pointer transition-all" %>

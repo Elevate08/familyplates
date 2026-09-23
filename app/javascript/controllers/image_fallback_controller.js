@@ -1,11 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
  
-// Replaces broken images with a placeholder element
 export default class extends Controller {
   static targets = ["image", "placeholder"]
 
   connect() {
-    // If the image already failed before Stimulus initialized
+    // The error may have fired before Stimulus connected.
     const img = this.imageElement
     if (img && img.complete && img.naturalWidth === 0) {
       this.failed()

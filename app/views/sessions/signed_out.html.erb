@@ -1,8 +1,7 @@
-<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4">
-  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl text-center">
+<%= render layout: "shared/centered_page" do %>
+  <%= render layout: "shared/auth_card", locals: { extra_class: "text-center" } do %>
     <% is_kiosk = (@kind == "kiosk") %>
 
-    <!-- Header Icon -->
     <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl <%= is_kiosk ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400' %> mb-4 shadow-sm">
       <%= icon_tag(is_kiosk ? "tv" : "lock", css_class: "w-8 h-8") %>
     </div>
@@ -15,7 +14,6 @@
       <%= is_kiosk ? "This kitchen display is no longer connected to your household. Tap below to sign in and display a new pairing code." : "Your session has ended or device access was revoked. Sign in to reconnect to your household." %>
     </p>
 
-    <!-- Primary Action Buttons -->
     <div class="space-y-3">
       <% if is_kiosk %>
         <%= link_to new_pair_path(kind: "kiosk"),
@@ -40,10 +38,9 @@
       <% end %>
     </div>
 
-    <!-- Secondary Links -->
     <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
       <%= link_to "← Return to Profile Selection", select_profile_path,
             class: "text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors block" %>
     </div>
-  </div>
-</div>
+<% end %>
+<% end %>

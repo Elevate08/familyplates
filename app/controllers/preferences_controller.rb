@@ -31,7 +31,6 @@ class PreferencesController < ApplicationController
     end
 
     if @family_member.update(preference_params)
-      # Ensure current active session reflects updated member
       Current.family_member = @family_member
       redirect_to edit_preferences_path, notice: "Your preferences were saved successfully! 🎨"
     else

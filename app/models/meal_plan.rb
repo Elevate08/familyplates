@@ -46,55 +46,57 @@ class MealPlan < ApplicationRecord
   MEAL_TYPE_ORDER = MealPlanSlot::MEAL_TYPE_ORDER
 
   def available_leftovers_for(target_date, target_meal_type, current_slot: nil, preloaded_sources: nil)
-    target_rank = MealPlanSlot.meal_type_rank(target_meal_type)
-    min_date = target_date - Recipe::MAX_LEFTOVER_SHELF_LIFE_DAYS.days
+    leftover_candidates(target_date, target_meal_type, current_slot, preloaded_sources)
+      .sort_by { |source| leftover_sort_key(source, target_meal_type) }
+      .uniq { |source| source[:slot].id }
+      .map { |source| leftover_option(source, current_slot) }
+  end
 
-    # Query household-wide across all weekly plans for a rolling window up to the
-    # maximum shelf life accepted by Recipe.
-    slots_scope = if preloaded_sources.present?
-      preloaded_sources.select { |s| s.date >= min_date && s.date <= target_date }
+  private
+
+  def leftover_candidates(target_date, target_meal_type, current_slot, preloaded_sources)
+    min_date = target_date - Recipe::MAX_LEFTOVER_SHELF_LIFE_DAYS.days
+    slots = if preloaded_sources.present?
+      # Already loaded for this week. Still household-wide: the caller preloads
+      # a rolling window up to Recipe's maximum shelf life.
+      preloaded_sources.select { |slot| slot.date >= min_date && slot.date <= target_date }
     else
       leftover_sources_between(min_date, target_date)
     end
 
-    eligible_sources = slots_scope.filter_map do |slot|
-      next false unless slot.recipe.present?
-
-      next false unless MealPlanSlot.served_before?(slot, target_date: target_date, target_meal_type: target_meal_type)
-
-      # Shelf life check: candidate must be within recipe's shelf life window
-      shelf_life = slot.recipe.effective_leftover_shelf_life_days
-      days_ago = (target_date - slot.date).to_i
-      next false if days_ago > shelf_life
-
-      # Capacity check: candidate must not be exhausted
-      next false if slot.leftover_exhausted?(excluding_slot: current_slot)
-
-      { slot: slot, shelf_life: shelf_life, days_ago: days_ago }
-    end
-
-    eligible_sources.sort_by do |source|
-      rec = source[:slot].recipe
-      is_yields = rec.yields_leftovers? ? 0 : 1
-      rank_diff = target_rank - MealPlanSlot.meal_type_rank(source[:slot].meal_type)
-      [ is_yields, source[:days_ago], -rank_diff ]
-    end.uniq { |source| source[:slot].id }.map do |source|
-      slot = source[:slot]
-      rec = slot.recipe
-      remaining_cap = slot.leftover_capacity_remaining(excluding_slot: current_slot)
-
-      {
-        slot: slot,
-        recipe: rec,
-        source_slot_id: slot.id,
-        remaining_capacity: remaining_cap,
-        days_remaining: [ source[:shelf_life] - source[:days_ago], 0 ].max,
-        source_label: "#{slot.date.strftime('%a')} #{slot.meal_type.capitalize}"
-      }
-    end
+    slots.filter_map { |slot| leftover_candidate(slot, target_date, target_meal_type, current_slot) }
   end
 
-  private
+  def leftover_candidate(slot, target_date, target_meal_type, current_slot)
+    return unless slot.recipe.present?
+    return unless MealPlanSlot.served_before?(slot, target_date: target_date, target_meal_type: target_meal_type)
+
+    shelf_life = slot.recipe.effective_leftover_shelf_life_days
+    days_ago = (target_date - slot.date).to_i
+    return if days_ago > shelf_life
+    return if slot.leftover_exhausted?(excluding_slot: current_slot)
+
+    { slot: slot, shelf_life: shelf_life, days_ago: days_ago }
+  end
+
+  def leftover_sort_key(source, target_meal_type)
+    yields_rank = source[:slot].recipe.yields_leftovers? ? 0 : 1
+    rank_diff = MealPlanSlot.meal_type_rank(target_meal_type) - MealPlanSlot.meal_type_rank(source[:slot].meal_type)
+    [ yields_rank, source[:days_ago], -rank_diff ]
+  end
+
+  def leftover_option(source, current_slot)
+    slot = source[:slot]
+
+    {
+      slot: slot,
+      recipe: slot.recipe,
+      source_slot_id: slot.id,
+      remaining_capacity: slot.leftover_capacity_remaining(excluding_slot: current_slot),
+      days_remaining: [ source[:shelf_life] - source[:days_ago], 0 ].max,
+      source_label: "#{slot.date.strftime('%a')} #{slot.meal_type.capitalize}"
+    }
+  end
 
   def leftover_sources_between(min_date, max_date)
     household.meal_plan_slots

@@ -1,7 +1,6 @@
 <% content_for :title, "Audit log | Platform Operator Console" %>
 
 <div class="mx-auto max-w-6xl space-y-6 py-6 sm:py-8">
-  <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
     <div>
       <%= link_to "← Console", platform_admin_root_path, class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
@@ -18,9 +17,7 @@
     </div>
   </div>
 
-  <!-- Filter & Search Panel -->
   <div class="space-y-3">
-    <!-- Category Tabs -->
     <div class="flex flex-wrap items-center gap-1.5">
       <% categories = [
            ["all", "All Activity"],
@@ -38,33 +35,28 @@
       <% end %>
     </div>
 
-    <!-- Filter Form -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
       <%= form_with url: platform_admin_audit_events_path, method: :get, class: "space-y-3" do |f| %>
         <%= f.hidden_field :category, value: @category %>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <!-- Text Search -->
           <div>
             <%= f.text_field :q, value: @query, placeholder: "Search actions, targets, IPs, metadata...",
                   class: "w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500" %>
           </div>
 
-          <!-- Action Dropdown -->
           <div>
             <%= f.select :action_name, options_for_select([["All Specific Actions", ""]] + @available_actions.map { |a| [a.tr(".", " ").humanize, a] }, @action_name),
                   {},
                   class: "w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
           </div>
 
-          <!-- Operator Dropdown -->
           <div>
             <%= f.select :admin_id, options_for_select([["All Operators", ""]] + @platform_admins.map { |adm| [adm.email, adm.id] }, @admin_id),
                   {},
                   class: "w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
           </div>
 
-          <!-- Action Buttons & Quick Toggle -->
           <div class="flex items-center justify-between sm:justify-end gap-2">
             <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-bold transition-colors cursor-pointer shadow-2xs">
               Filter
@@ -75,7 +67,6 @@
           </div>
         </div>
 
-        <!-- Hide Page Views Toggle -->
         <% if @category != "changes" %>
           <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -91,18 +82,15 @@
     </div>
   </div>
 
-  <!-- Audit Events List -->
   <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <div class="divide-y divide-slate-100 dark:divide-slate-800">
       <% @events.each do |event| %>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
           <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0">
-            <!-- Timestamp -->
             <time class="text-xs font-mono text-slate-400 dark:text-slate-500 shrink-0 w-36" datetime="<%= event.created_at.iso8601 %>">
               <%= event.created_at.strftime("%b %-d, %Y %-I:%M %p") %>
             </time>
 
-            <!-- Action Badge & Target -->
             <div class="space-y-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold border shadow-2xs <%= platform_audit_action_badge_classes(event) %>" data-audit-action="<%= event.action %>">
@@ -122,7 +110,6 @@
                 </span>
               </div>
 
-              <!-- Metadata details if present -->
               <% if event.metadata.present? && event.metadata.is_a?(Hash) && event.metadata.compact.any? %>
                 <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <% event.metadata.each do |key, val| %>
@@ -137,7 +124,6 @@
             </div>
           </div>
 
-          <!-- Operator & IP -->
           <div class="text-left sm:text-right shrink-0">
             <p class="text-xs font-bold text-slate-700 dark:text-slate-300">
               <%= event.platform_admin&.email || "System / Public" %>

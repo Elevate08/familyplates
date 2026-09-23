@@ -9,7 +9,6 @@ export default class extends Controller {
   }
 
   updatePreview() {
-    // Update name & initial
     if (this.hasNameInputTarget && this.hasPreviewNameTarget) {
       const name = this.nameInputTarget.value.trim()
       this.previewNameTarget.textContent = name || "Your Profile"
@@ -28,7 +27,6 @@ export default class extends Controller {
 
   changeIcon(event) {
     const selectedIcon = event.target.value
-    // Toggle active classes on icon picker container
     const iconSvgs = this.element.querySelectorAll("[data-icon-name]")
     iconSvgs.forEach(svgWrapper => {
       if (svgWrapper.dataset.iconName === selectedIcon) {

@@ -36,55 +36,10 @@ class SubscriptionsController < ApplicationController
       redirect_to subscription_path, alert: "Invalid subscription plan selected." and return
     end
 
-    # Test/simulated path or environments without live Stripe secret keys
-    stripe_key = ENV["STRIPE_SECRET_KEY"].presence || ENV["STRIPE_PRIVATE_KEY"].presence || (Pay::Stripe.private_key if defined?(Pay::Stripe))
-    simulate = (Rails.env.test? && params[:simulate].present?) ||
-               (Rails.env.test? && ENV["ENABLE_REAL_STRIPE_TESTS"].blank?) ||
-               stripe_key.blank?
-    if simulate
-      @household = current_household
-      @household.set_payment_processor :fake_processor, allow_fake: true
-      @household.payment_processor.subscriptions.destroy_all
-      @household.payment_processor.subscriptions.create!(
-        name: "default",
-        processor_id: "sub_sim_#{SecureRandom.hex(8)}",
-        processor_plan: plan_key.to_s,
-        status: "active",
-        current_period_start: Time.current,
-        current_period_end: plan_key == :annual ? 1.year.from_now : 1.month.from_now
-      )
-      redirect_to subscription_path, notice: "Successfully subscribed to the #{plan[:name]} plan! 🎉"
+    if simulate_checkout?
+      subscribe_with_fake_processor(plan_key, plan)
     else
-      @household = current_household
-      @household.set_payment_processor :stripe
-
-      line_items = if ENV["STRIPE_#{plan_key.to_s.upcase}_PRICE_ID"].present?
-        [ { price: plan[:stripe_price_id], quantity: 1 } ]
-      else
-        [
-          {
-            price_data: {
-              currency: "usd",
-              unit_amount: plan_key == :annual ? 3500 : 400,
-              recurring: { interval: plan_key == :annual ? "year" : "month" },
-              product_data: {
-                name: "FamilyPlates #{plan[:name]} Plan",
-                description: plan[:description]
-              }
-            },
-            quantity: 1
-          }
-        ]
-      end
-
-      checkout_session = @household.payment_processor.checkout(
-        mode: :subscription,
-        line_items: line_items,
-        allow_promotion_codes: true,
-        success_url: subscription_url(success: true),
-        cancel_url: subscription_url(canceled: true)
-      )
-      redirect_to checkout_session.url, allow_other_host: true
+      redirect_to_stripe_checkout(plan_key, plan)
     end
   end
 
@@ -107,12 +62,76 @@ class SubscriptionsController < ApplicationController
       redirect_to root_path and return
     end
 
-    stripe_key = ENV["STRIPE_SECRET_KEY"].presence || ENV["STRIPE_PRIVATE_KEY"].presence || (Pay::Stripe.private_key if defined?(Pay::Stripe))
-    if stripe_key.present? && current_household.payment_processor&.processor_id.present?
+    if stripe_secret_key.present? && current_household.payment_processor&.processor_id.present?
       portal_session = current_household.payment_processor.billing_portal(return_url: subscription_url)
       redirect_to portal_session.url, allow_other_host: true
     else
       redirect_to subscription_path, notice: "Manage your subscription details below."
+    end
+  end
+
+  private
+
+  def stripe_secret_key
+    ENV["STRIPE_SECRET_KEY"].presence ||
+      ENV["STRIPE_PRIVATE_KEY"].presence ||
+      (Pay::Stripe.private_key if defined?(Pay::Stripe))
+  end
+
+  # Test runs, and any environment with no Stripe secret, never leave the app.
+  def simulate_checkout?
+    (Rails.env.test? && params[:simulate].present?) ||
+      (Rails.env.test? && ENV["ENABLE_REAL_STRIPE_TESTS"].blank?) ||
+      stripe_secret_key.blank?
+  end
+
+  def subscribe_with_fake_processor(plan_key, plan)
+    @household = current_household
+    @household.set_payment_processor :fake_processor, allow_fake: true
+    @household.payment_processor.subscriptions.destroy_all
+    @household.payment_processor.subscriptions.create!(
+      name: "default",
+      processor_id: "sub_sim_#{SecureRandom.hex(8)}",
+      processor_plan: plan_key.to_s,
+      status: "active",
+      current_period_start: Time.current,
+      current_period_end: plan_key == :annual ? 1.year.from_now : 1.month.from_now
+    )
+    redirect_to subscription_path, notice: "Successfully subscribed to the #{plan[:name]} plan! 🎉"
+  end
+
+  def redirect_to_stripe_checkout(plan_key, plan)
+    @household = current_household
+    @household.set_payment_processor :stripe
+
+    checkout_session = @household.payment_processor.checkout(
+      mode: :subscription,
+      line_items: checkout_line_items(plan_key, plan),
+      allow_promotion_codes: true,
+      success_url: subscription_url(success: true),
+      cancel_url: subscription_url(canceled: true)
+    )
+    redirect_to checkout_session.url, allow_other_host: true
+  end
+
+  def checkout_line_items(plan_key, plan)
+    if ENV["STRIPE_#{plan_key.to_s.upcase}_PRICE_ID"].present?
+      [ { price: plan[:stripe_price_id], quantity: 1 } ]
+    else
+      [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: plan_key == :annual ? 3500 : 400,
+            recurring: { interval: plan_key == :annual ? "year" : "month" },
+            product_data: {
+              name: "FamilyPlates #{plan[:name]} Plan",
+              description: plan[:description]
+            }
+          },
+          quantity: 1
+        }
+      ]
     end
   end
 end

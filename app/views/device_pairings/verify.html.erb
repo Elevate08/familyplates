@@ -1,5 +1,5 @@
-<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 px-4">
-  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl">
+<%= render layout: "shared/centered_page" do %>
+  <%= render layout: "shared/auth_card" do %>
     <div class="text-center mb-6">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl <%= @grant.kiosk? ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400' %> mb-3 shadow-sm">
         <%= icon_tag(@grant.kiosk? ? "tv" : "laptop", css_class: "w-7 h-7") %>
@@ -41,7 +41,6 @@
     <%= form_with url: approve_pair_path, method: :post, local: true, class: "space-y-5" do |f| %>
       <%= hidden_field_tag :user_code, @grant.user_code %>
 
-      <!-- Device Access Kind -->
       <div>
         <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
           Session Type
@@ -69,7 +68,6 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="pt-2 flex flex-col gap-2.5">
         <%= f.submit "Approve Pairing",
               class: "w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer" %>
@@ -78,5 +76,5 @@
               class: "w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs transition-colors cursor-pointer" %>
       </div>
     <% end %>
-  </div>
-</div>
+<% end %>
+<% end %>

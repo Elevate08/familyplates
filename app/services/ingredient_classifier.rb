@@ -1,10 +1,4 @@
-# Guesses a supermarket aisle from an ingredient's name.
-#
-# This lived as a private method on RecipeScraper, which meant the only way to
-# reach it was `RecipeScraper.new("").send(:categorize_ingredient, name)` -
-# building a scraper with an empty URL purely to bypass Ruby's access control.
-# It is not scraping logic; it is a lookup table, and both the scraper and the
-# aisle-learning code need it.
+# Aisle from an ingredient name. A lookup table, shared by the scraper and aisle learning.
 class IngredientClassifier
   UNKNOWN = "Other".freeze
 
@@ -18,9 +12,7 @@ class IngredientClassifier
     [ /rice|pasta|spaghetti|noodle|oil|olive oil|vinegar|soy sauce|broth|stock|tomato paste|crushed tomato|canned|bean|honey|sauce|salsa|sesame oil/, "Pantry & Grains" ]
   ].freeze
 
-  # Returns an aisle name, or "Other" when nothing matches. Rule order is
-  # significant and preserved exactly as it was: "butter" reaches Dairy before
-  # Produce can claim it, and "pepper" reaches Produce before Spices.
+  # "Other" when nothing matches. Order matters: "butter" is Dairy before Produce, "pepper" is Produce before Spices.
   def self.call(name)
     n = name.to_s.downcase
     return UNKNOWN if n.blank?
@@ -29,8 +21,7 @@ class IngredientClassifier
     match ? match.last : UNKNOWN
   end
 
-  # True when the classifier had no opinion, so callers can tell "we guessed
-  # Other" apart from "the user chose Other".
+  # No opinion, so callers can tell a guess of Other from a user choosing Other.
   def self.unknown?(aisle)
     aisle.blank? || aisle == UNKNOWN
   end

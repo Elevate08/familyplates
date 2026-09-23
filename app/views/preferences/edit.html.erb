@@ -1,5 +1,4 @@
 <div class="max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
-  <!-- Header & Active Cook Profile Status -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
     <div class="flex items-center gap-3.5">
       <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-lg transition-colors shrink-0"
@@ -22,7 +21,6 @@
     </div>
   </div>
 
-  <!-- Quick Family Cook Switcher Strip -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs">
     <div class="flex items-center justify-between mb-4">
       <div>
@@ -82,7 +80,6 @@
     </div>
   </div>
 
-  <!-- SECTION 1: Personal Preferences Form -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex items-center gap-2 pb-4 mb-6 border-b border-slate-100 dark:border-slate-800">
       <span class="text-xl">🎨</span>
@@ -104,14 +101,12 @@
         </div>
       <% end %>
 
-      <!-- Display Name -->
       <div>
         <%= f.label :name, "Display Name / Nickname", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
         <%= f.text_field :name, placeholder: "e.g. Dad, Sarah, Little Chef", required: true,
               class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
 
-      <!-- Avatar Icon Picker -->
       <div>
         <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2.5">Avatar Kitchen Icon</span>
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-x-2.5 gap-y-3.5">
@@ -129,7 +124,6 @@
         </div>
       </div>
 
-      <!-- Theme Accent Color Palette -->
       <div>
         <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2.5">Kitchen Theme Accent Color</span>
         <div class="grid grid-cols-4 sm:grid-cols-6 gap-x-3 gap-y-4">
@@ -161,10 +155,8 @@
         </div>
       </div>
 
-      <!-- Security / PIN Confirmation & Settings -->
       <% if @family_member.admin? %>
         <div class="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-5">
-          <!-- Current PIN Confirmation (Required to save changes for admins) -->
           <div>
             <div class="flex items-center gap-2 mb-1">
               <span class="text-sm">🔒</span>
@@ -181,7 +173,6 @@
             </div>
           </div>
 
-          <!-- New PIN Setting (Only available on non-kiosk devices) -->
           <% if Current.session&.kiosk? %>
             <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
               <span class="text-sm mt-0.5">📺</span>
@@ -217,7 +208,6 @@
         </div>
       <% end %>
 
-      <!-- Submit Button -->
       <div class="pt-4 flex items-center justify-end border-t border-slate-100 dark:border-slate-800">
         <%= f.submit "Save Preferences", 
               class: "px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all hover:scale-105" %>
@@ -225,7 +215,6 @@
     <% end %>
   </div>
 
-  <!-- SECTION 2: Passkeys, Connected Accounts & Devices -->
   <% if current_user && !Current.session&.kiosk? %>
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -247,7 +236,6 @@
         </div>
       </div>
 
-      <!-- Connected Accounts / External Identities -->
       <% if FamilyPlates.config.any_oauth_enabled? || current_user.identities.external.any? %>
         <div class="pt-5 border-t border-slate-100 dark:border-slate-800">
           <div class="flex items-center justify-between mb-3">
@@ -298,7 +286,6 @@
               </div>
             <% end %>
 
-            <!-- Available Providers to Link -->
             <div class="flex flex-wrap gap-2 pt-2">
               <% if FamilyPlates.config.google_auth_enabled? && current_user.identities.where(provider: "google").none? %>
                 <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
@@ -326,7 +313,6 @@
     </div>
   <% end %>
 
-  <!-- SECTION 3: Household & Family Roster Management Link -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-center gap-3">

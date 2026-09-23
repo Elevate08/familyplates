@@ -24,7 +24,6 @@ module PlatformAdmin
       users.each do |user|
         user.destroy! if user.reload.households.none?
       rescue ActiveRecord::RecordNotFound
-        # User already cleaned up
       end
       if uncancelled.any?
         redirect_to platform_admin_deletion_requests_path,

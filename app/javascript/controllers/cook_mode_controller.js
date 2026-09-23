@@ -37,7 +37,6 @@ export default class extends Controller {
     window.removeEventListener("keydown", this.boundKeydown)
   }
 
-  // --- Step navigation ---------------------------------------------------
 
   next() {
     if (this.index >= this.lastIndex) return
@@ -127,7 +126,6 @@ export default class extends Controller {
     travelled < 0 ? this.next() : this.previous()
   }
 
-  // --- Ingredient drawer -------------------------------------------------
 
   get drawerOpen() {
     return this.hasDrawerTarget && !this.drawerTarget.hidden

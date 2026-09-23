@@ -34,17 +34,14 @@ class SignupsController < ApplicationController
 
     if FamilyPlates.config.hosted?
       if current_user.present? && current_user.email == email
-        household = Household.create!(name: household_name)
-        organizer = household.family_members.create!(
-          name: organizer_name,
-          role: "admin",
+        household, organizer = open_household_for(
           user: current_user,
+          household_name: household_name,
+          organizer_name: organizer_name,
           pin: pin,
           avatar_color: avatar_color,
           avatar_icon: avatar_icon
         )
-        start_new_session_for_user(current_user)
-        start_new_session_for(organizer)
         redirect_to onboarding_recipes_path, notice: "Welcome to #{household.name}, #{organizer.name}! Let's set up your recipes." and return
       end
 
@@ -63,19 +60,15 @@ class SignupsController < ApplicationController
       }
       redirect_to verify_signup_path, notice: "We sent a 6-character verification code to #{email}."
     else
-      # Appliance mode: instant signup
       user = User.find_by(email: email) || User.create!(email: email, password: params[:password].presence || SecureRandom.hex(16))
-      household = Household.create!(name: household_name)
-      organizer = household.family_members.create!(
-        name: organizer_name,
-        role: "admin",
+      household, organizer = open_household_for(
         user: user,
+        household_name: household_name,
+        organizer_name: organizer_name,
         pin: pin,
         avatar_color: avatar_color,
         avatar_icon: avatar_icon
       )
-      start_new_session_for_user(user)
-      start_new_session_for(organizer)
       redirect_to onboarding_recipes_path, notice: "Welcome to #{household.name}, #{organizer.name}! Let's set up your recipes."
     end
   end
@@ -103,18 +96,14 @@ class SignupsController < ApplicationController
       session.delete(:pending_signup)
 
       user = User.find_by(email: email) || User.create!(email: email)
-      household = Household.create!(name: @pending["household_name"])
-      organizer = household.family_members.create!(
-        name: @pending["organizer_name"],
-        role: "admin",
+      household, organizer = open_household_for(
         user: user,
-        pin: @pending["pin"].presence || "1234",
-        avatar_color: @pending["avatar_color"].presence || FamilyMember::DEFAULT_COLOR,
-        avatar_icon: @pending["avatar_icon"].presence || FamilyMember::DEFAULT_ICON
+        household_name: @pending["household_name"],
+        organizer_name: @pending["organizer_name"],
+        pin: @pending["pin"],
+        avatar_color: @pending["avatar_color"],
+        avatar_icon: @pending["avatar_icon"]
       )
-
-      start_new_session_for_user(user)
-      start_new_session_for(organizer)
       redirect_to onboarding_recipes_path, notice: "Email verified! Welcome to #{household.name}, #{organizer.name}! Let's choose your starter recipes."
     else
       BCrypt::Password.create("dummy", cost: BCrypt::Engine::MIN_COST)
@@ -122,5 +111,22 @@ class SignupsController < ApplicationController
       flash.now[:alert] = "Invalid or expired verification code."
       render :verify, status: :unprocessable_entity
     end
+  end
+
+  private
+
+  def open_household_for(user:, household_name:, organizer_name:, pin:, avatar_color:, avatar_icon:)
+    household = Household.create!(name: household_name)
+    organizer = household.family_members.create!(
+      name: organizer_name,
+      role: "admin",
+      user: user,
+      pin: pin.presence || "1234",
+      avatar_color: avatar_color.presence || FamilyMember::DEFAULT_COLOR,
+      avatar_icon: avatar_icon.presence || FamilyMember::DEFAULT_ICON
+    )
+    start_new_session_for_user(user)
+    start_new_session_for(organizer)
+    [ household, organizer ]
   end
 end

@@ -1,5 +1,6 @@
 module PlatformAdmin
   class BaseController < ActionController::Base
+    include PermanentSignedCookie
     include PlatformAdminAuthentication
 
     layout "application"

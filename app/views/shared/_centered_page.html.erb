@@ -1,0 +1,5 @@
+<% padding = local_assigns.fetch(:padding, "px-4") %>
+<% shell_controller = local_assigns[:shell_controller] %>
+<div class="min-h-[75vh] flex flex-col items-center justify-center py-6 sm:py-12 <%= padding %>"<% if shell_controller.present? %> data-controller="<%= shell_controller %>"<% end %>>
+  <%= yield %>
+</div>

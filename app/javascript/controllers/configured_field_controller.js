@@ -1,9 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// A secret that is stored can never be shown back, so the field is always empty
-// and a placeholder alone cannot say "there is one, leave this alone". This
-// floats a "Configured" badge over the field instead, and gets it out of the way
-// the moment the field is focused or has anything typed in it.
+// A stored secret is never shown back, so the field stays empty and a badge says one is set.
+// The badge hides once the field is focused or has text.
 export default class extends Controller {
   static targets = ["input", "indicator"]
 

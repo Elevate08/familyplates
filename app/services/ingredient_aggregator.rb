@@ -22,10 +22,11 @@ class IngredientAggregator
     raw_ingredients.each do |ing|
       norm_name = normalize_name(ing.name)
       key = "#{norm_name}_#{ing.unit.to_s.downcase}"
+      entry = aggregated[key]
 
-      if aggregated[key]
-        aggregated[key][:quantity] += (ing.quantity || 1.0)
-        aggregated[key][:sources] << ing.recipe.title unless aggregated[key][:sources].include?(ing.recipe.title)
+      if entry
+        entry[:quantity] += (ing.quantity || 1.0)
+        entry[:sources] << ing.recipe.title unless entry[:sources].include?(ing.recipe.title)
       else
         match_key = normalize_for_match(norm_name)
         low_item = low_staples[match_key]
@@ -114,21 +115,9 @@ class IngredientAggregator
     end
   end
 
-  # Matching is exact on a normalized name, with no substring comparison in
-  # either direction. Substrings marked "Peanut butter", "Butternut squash",
-  # "Rice vinegar" and "Pasta sauce" as already in the pantry against the stock
-  # staple list, which silently dropped them from the shopping list. Word
-  # boundaries fix only some of those, so the check does not guess at all.
-  #
-  # The two errors are not symmetric: a miss puts a spare line on the list, which
-  # the shopper ignores. A false match means the ingredient is never bought and
-  # that is discovered at dinner. So this deliberately prefers to under-match.
-  #
-  # Case, surrounding and repeated whitespace, and plurals are all noise here:
-  # an ingredient "Egg" and a staple "Eggs" are the same thing. Anything beyond
-  # that is a guess. PantryItem.normalize_for_match is the same rule, and the
-  # two must stay in step - a name that matches here has to match there for the
-  # grocery list's Restock checkbox to find its pantry row.
+  # Exact normalized-name match only. Substrings hid "Peanut butter" behind Butter.
+  # Under-match: a miss is a spare line, a false match is a missing ingredient.
+  # Stay in step with PantryItem.normalize_for_match.
   def normalize_for_match(value)
     PantryItem.normalize_for_match(value)
   end

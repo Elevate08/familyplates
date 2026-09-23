@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { fuzzyMatch } from "helpers/dom"
 
 export default class extends Controller {
   static targets = ["menu", "searchInput", "item", "group", "emptyState"]
@@ -12,10 +13,7 @@ export default class extends Controller {
     const isOpening = this.menuTarget.classList.contains("hidden")
     this.menuTarget.classList.toggle("hidden")
 
-    // Focused straight away rather than from a timer. A deferred focus outlives
-    // the click that scheduled it: toggle twice quickly and the stale callback
-    // lands after the menu has closed again, pulling the caret back into a menu
-    // the reader has already dismissed.
+    // Focus now. A deferred focus outlives a second toggle and pulls the caret back into a closed menu.
     if (isOpening && this.hasSearchInputTarget) {
       this.searchInputTarget.focus()
     }
@@ -40,7 +38,7 @@ export default class extends Controller {
 
     items.forEach(item => {
       const text = (item.dataset.searchText || item.textContent || "").toLowerCase()
-      const matches = !query || this.fuzzyMatch(query, text)
+      const matches = !query || fuzzyMatch(query, text)
 
       if (matches) {
         item.classList.remove("hidden")
@@ -52,7 +50,6 @@ export default class extends Controller {
       }
     })
 
-    // Check groups visibility
     const groups = this.hasGroupTargets ? this.groupTargets : Array.from(this.menuTarget.querySelectorAll("[data-dropdown-target~='group'], [data-dropdown-target='group']"))
     if (groups.length > 0) {
       groups.forEach(group => {
@@ -68,7 +65,6 @@ export default class extends Controller {
       })
     }
 
-    // Toggle empty state
     if (this.hasEmptyStateTarget) {
       if (visibleCount === 0 && query !== "") {
         this.emptyStateTarget.classList.remove("hidden")
@@ -89,22 +85,4 @@ export default class extends Controller {
     }
   }
 
-  fuzzyMatch(pattern, str) {
-    if (!pattern) return true
-    if (!str) return false
-    
-    // Direct substring check
-    if (str.includes(pattern)) return true
-
-    // Sequential letter matching (e.g. "bft" -> "breakfast", "chick" -> "chicken")
-    let patternIdx = 0
-    let strIdx = 0
-    while (patternIdx < pattern.length && strIdx < str.length) {
-      if (pattern[patternIdx] === str[strIdx]) {
-        patternIdx++
-      }
-      strIdx++
-    }
-    return patternIdx === pattern.length
-  }
 }

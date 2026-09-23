@@ -60,11 +60,7 @@ class MealPlanSlotsController < ApplicationController
   end
 
   def update
-    # Household has_many :meal_plan_slots, through: :meal_plans, so this is one
-    # query scoped to the household. The chain it replaces ran a join, took the
-    # first plan, searched it, and fell back to @meal_plan - which quietly
-    # widened the scope to any slot in the current plan if the first lookup
-    # missed.
+    # One household-scoped query. Falling back to @meal_plan widened a miss to any slot in the current plan.
     @slot = current_household.meal_plan_slots.find(params[:id])
 
     @old_date = @slot.date

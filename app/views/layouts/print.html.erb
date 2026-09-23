@@ -6,7 +6,7 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
-    <!-- Immediate Theme Initialization (Follows System Setting by Default) -->
+    <!-- Apply the saved theme before paint so the first frame does not flash. -->
     <script nonce="<%= content_security_policy_nonce %>">
       (function() {
         const theme = localStorage.getItem('familyplates_theme') || 'system';

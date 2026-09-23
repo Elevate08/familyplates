@@ -48,14 +48,8 @@ export default class extends Controller {
     this.updateProgress()
   }
 
-  // A restock line is the one kind of tick that means something off this page:
-  // the staple has been bought, so it can go back to shielding itself from the
-  // list. Un-ticking puts the flag back, because the usual reason to un-tick is
-  // "I tapped the wrong row".
-  //
-  // Fire and forget. Both endpoints are idempotent, the checkbox state is
-  // already saved locally, and a shopper standing in an aisle with no signal
-  // must not be shown an error about the pantry.
+  // Ticking a restock line means the staple was bought and can shield itself again.
+  // Fire and forget: the endpoints are idempotent, and a shopper with no signal must not see an error.
   syncPantryStock(row, isChecked) {
     const url = isChecked ? row.dataset.restockUrl : row.dataset.markLowUrl
     if (!url) return

@@ -11,7 +11,6 @@
     <%= f.hidden_field :_destroy, value: "0" %>
   <% end %>
 
-  <!-- Numerical Quantity -->
   <div class="w-full sm:w-24 shrink-0">
     <%= f.label :quantity, "Quantity", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :quantity, value: (f.object.quantity.present? ? f.object.display_quantity : nil),
@@ -19,7 +18,6 @@
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold" %>
   </div>
 
-  <!-- Measurement Unit with Live Autocomplete and Custom Unit Creation -->
   <div class="w-full sm:w-32 shrink-0 relative">
     <%= f.label :unit, "Measurement", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :unit, 
@@ -31,13 +29,10 @@
           autocomplete: "off",
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium" %>
 
-    <!-- Unit Autocomplete Dropdown Menu (Uniform Rounded-3xl Shell) -->
     <div data-ingredient-autofill-target="unitDropdown"
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-56 max-w-[80vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
       <div tabindex="-1" class="max-h-48 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
-        <!-- Create Custom Unit Option -->
 
-        <!-- Matching Units List -->
         <div data-ingredient-autofill-target="unitList" class="space-y-0.5"></div>
         <div data-ingredient-autofill-target="createUnitOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
           <button type="button" tabindex="-1"
@@ -54,7 +49,6 @@
     </div>
   </div>
 
-  <!-- Ingredient Name with Live Autocomplete and Inline Creation -->
   <div class="flex-1 w-full relative">
     <%= f.label :name, "Ingredient Name", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :name, 
@@ -66,13 +60,10 @@
           autocomplete: "off",
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-bold" %>
 
-    <!-- Autocomplete & Instant Create Dropdown Menu (Uniform Rounded-3xl Shell) -->
     <div data-ingredient-autofill-target="nameDropdown"
          class="hidden absolute left-0 top-full mt-1.5 z-40 w-full min-w-[18rem] max-w-[90vw] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
       <div tabindex="-1" class="max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain p-2 space-y-0.5">
-        <!-- Create Option -->
 
-        <!-- Matching List -->
         <div data-ingredient-autofill-target="nameList" class="space-y-0.5"></div>
         <div data-ingredient-autofill-target="createNameOption" class="hidden mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
           <button type="button" tabindex="-1"
@@ -89,7 +80,6 @@
     </div>
   </div>
 
-  <!-- Grocery Aisle Category Selector -->
   <div class="w-full sm:w-44 shrink-0">
     <%= f.label :aisle_category, "Grocery Aisle", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.select :aisle_category, RecipeIngredient::AISLE_CATEGORIES.map { |c| [c, c] }, {},
@@ -97,7 +87,6 @@
           class: "themed-select w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold cursor-pointer" %>
   </div>
 
-  <!-- Remove / Delete Button -->
   <div class="shrink-0 flex items-center justify-end sm:justify-center">
     <button type="button"
             data-action="click->recipe-ingredients-form#removeRow"

@@ -85,11 +85,8 @@ class PantryItemsController < ApplicationController
     end
   end
 
-  # Turbo submits the pantry form with a text/vnd.turbo-stream.html Accept
-  # header, and Rails does not fall back to HTML for that format - there is no
-  # index.turbo_stream.erb, so rendering :index for it raised MissingTemplate and
-  # every invalid submission became a 500. Turbo renders an HTML 422 fine, so ask
-  # for HTML explicitly rather than adding a second template to keep in step.
+  # Turbo asks for turbo-stream and will not fall back to HTML, so :index 500s.
+  # Ask for HTML; Turbo renders a 422 without a second template.
   def render_index_with_errors
     load_pantry_items
     # The form is bound to @new_item, which the old error branches never set -
