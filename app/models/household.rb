@@ -237,6 +237,12 @@ class Household < ApplicationRecord
         past_due_grace_active? ? "Grace ends" : "Past due"
       elsif sub.status == "trialing"
         "Trial ends"
+      elsif sub.status == "paused"
+        "Paused"
+      elsif sub.status == "unpaid"
+        "Unpaid"
+      elsif sub.status == "incomplete" || sub.status == "incomplete_expired"
+        "Incomplete"
       elsif sub.active?
         "Renews"
       elsif sub.canceled?
@@ -259,11 +265,19 @@ class Household < ApplicationRecord
     return :appliance unless FamilyPlates.config.hosted?
 
     sub = current_subscription
-    return :active if sub&.active?
-    return :past_due_grace if past_due_grace_active?
-    return :trialing if trial_active? || (sub.present? && sub.status == "trialing")
-    return :past_due if sub&.status == "past_due"
-    return :canceled if sub&.canceled?
+    if sub
+      return :trialing if sub.status == "trialing"
+      return :active if sub.active?
+      return :past_due_grace if past_due_grace_active?
+      return :past_due if sub.status == "past_due"
+      return :paused if sub.status == "paused" || sub.paused?
+      return :unpaid if sub.status == "unpaid"
+      return :incomplete if sub.status == "incomplete"
+      return :incomplete_expired if sub.status == "incomplete_expired"
+      return :canceled if sub.canceled? || sub.status == "canceled"
+    end
+
+    return :trialing if trial_active?
 
     :expired
   end

@@ -91,7 +91,8 @@
         <% @charges.each do |charge| %>
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+              <% charge_state = PayChargeState.for(charge) %>
+              <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">
                 $
               </div>
               <div>
@@ -99,8 +100,8 @@
                   <span class="text-sm font-bold text-slate-900 dark:text-white">
                     <%= number_to_currency(charge.amount / 100.0) %>
                   </span>
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    Paid
+                  <span data-charge-state="<%= charge_state.key %>" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold <%= charge_state.tone_classes %>">
+                    <%= charge_state.label %>
                   </span>
                   <span class="text-xs text-slate-400 font-mono">
                     <%= charge.data&.dig("brand")&.upcase || "CARD" %> •••• <%= charge.data&.dig("last4") || "4242" %>

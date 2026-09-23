@@ -109,4 +109,35 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_not @household.entitled?
     assert_equal :past_due, @household.subscription_status
   end
+
+  test "each remaining Stripe subscription status is named and does not grant access" do
+    FamilyPlates.config.mode = "hosted"
+    @household.update_columns(created_at: 30.days.ago)
+    @household.set_payment_processor :fake_processor, allow_fake: true
+
+    expectations = {
+      "trialing" => [ :trialing, true ],
+      "incomplete" => [ :incomplete, false ],
+      "incomplete_expired" => [ :incomplete_expired, false ],
+      "unpaid" => [ :unpaid, false ],
+      "paused" => [ :paused, false ]
+    }
+
+    expectations.each do |stripe_status, (label, entitled)|
+      @household.payment_processor.subscriptions.delete_all
+      @household.payment_processor.subscriptions.create!(
+        name: "default",
+        processor_id: "sub_#{stripe_status}",
+        processor_plan: "monthly",
+        status: stripe_status,
+        current_period_start: Time.current,
+        current_period_end: 1.month.from_now,
+        trial_ends_at: (stripe_status == "trialing" ? 10.days.from_now : nil)
+      )
+      @household.reload
+
+      assert_equal label, @household.subscription_status, stripe_status
+      assert_equal entitled, @household.entitled?, stripe_status
+    end
+  end
 end
