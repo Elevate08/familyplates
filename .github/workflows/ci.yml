@@ -80,12 +80,10 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
-      # Lists Fizzy card acceptance criteria that no test is tagged with (see
-      # test/acceptance_criteria.yml). Reported, not enforced, while criteria
-      # for already-shipped cards are still being written up. Drop
-      # continue-on-error once that file is kept current.
+      # Fails when a Fizzy card acceptance criterion has no test tagged with it
+      # (see test/acceptance_criteria.yml), so a card cannot be called done on
+      # a green suite that never checks what the card promised.
       - name: Check every acceptance criterion has a test
-        continue-on-error: true
         run: bin/coverage-criteria --verbose
 
   test:
