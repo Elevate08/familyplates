@@ -19,6 +19,7 @@ class SubscriptionEntitlementTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-23.2
   test "hosted mode gates unentitled households and restores access upon subscribing" do
     FamilyPlates.config.mode = "hosted"
     # Expire trial
@@ -63,6 +64,7 @@ class SubscriptionEntitlementTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # @card-23.3
   test "appliance mode never blocks access even without subscription or active trial" do
     FamilyPlates.config.mode = "appliance"
     assert @household.entitled?

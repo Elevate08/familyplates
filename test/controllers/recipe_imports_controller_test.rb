@@ -90,6 +90,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.", flash[:alert]
   end
 
+  # @card-34.5
   test "each scrape failure explains what the user can do about it" do
     {
       blocked_by_site: "blocks automatic recipe imports",

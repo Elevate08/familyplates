@@ -13,9 +13,252 @@
 # refactor that the test names do not.
 #
 # Seeded from the commit messages and tasks/ plans for the cards shipped before
-# this file existed. Cards without criteria here have not been written up yet.
+# this file existed, then written up for every feature card on the board.
+#
+# Two keys the checker ignores, for the people reading this:
+#
+#   cards_folded_in  "Test:" cards whose checks became this card's criteria.
+#   not_shipped      promises on a closed card that the code does not keep.
+#                    They are not criteria, so they do not fail the check;
+#                    reopen the card, or drop the item from it.
+#
+# Left out on purpose, having nothing to observe in the product: #12 and #13
+# (migration and spike), #22 and #24 (validation and release rehearsal), #41
+# (the umbrella over #42-#48) and #51 (CI configuration).
 
 cards:
+  14:
+    title: Identity and household ownership schema
+    criteria:
+      "14.1": Two users cannot share an email address, whatever its letter case.
+      "14.2": A family profile, such as a child's, exists without an email or user account, and outlives the user it was linked to.
+      "14.3": A user has at most one profile in any one household.
+      "14.4": Appliance users may set a password; hosted users stay passwordless.
+      "14.5": Upgrading links every existing household to its owner.
+      "14.6": The upgrade rolls back cleanly, keeping every record.
+
+  15:
+    title: Mode-specific, enumeration-safe sign-in
+    criteria:
+      "15.1": A wrong password, an unknown email and a passwordless account all get the same sign-in error.
+      "15.2": Appliance sign-in stops accepting attempts after 10 tries.
+      "15.3": Hosted sign-in emails a 6-character code that lasts 15 minutes.
+      "15.4": An unknown email goes through exactly the same hosted sign-in steps as a known one.
+      "15.5": A sign-in code works once; an expired or wrong code gets a generic error.
+      "15.6": Login cannot be required until at least one admin profile has a password.
+      "15.7": A hosted server refuses to start without complete SMTP settings; a LAN appliance starts without them.
+      "15.8": An operator can reset a user's password from the command line without email.
+      "15.9": A live sign-in code never appears in the logs.
+
+  16:
+    title: Sessions, device management and profile transfer
+    criteria:
+      "16.1": A browser session ends after 30 days unused or 90 days in total.
+      "16.2": Using the app records session activity at most once an hour.
+      "16.3": The devices page lists a user's sessions and can sign out one, or every one except the current device.
+      "16.4": A valid join code adds the signed-in user to the household; a wrong one is refused.
+      "16.5": A transfer link hands a profile to the signed-in user; an invalid or expired link is refused.
+
+  17:
+    title: Opt-in login and per-household onboarding
+    criteria:
+      "17.1": By default an appliance lets anyone pick a profile with one tap, no password.
+      "17.2": With login required, strangers are sent to sign in, and a signed-in device keeps one-tap profile switching.
+      "17.3": Onboarding runs once per household and cannot be re-entered once complete.
+      "17.4": A fresh install sends every page to the setup wizard until a household exists.
+      "17.5": Setup will not finish without a PIN for the organizer.
+
+  18:
+    title: Kiosk device pairing (RFC 8628)
+    cards_folded_in: [28]
+    criteria:
+      "18.1": A kiosk shows a code, a signed-in phone approves it, and the kiosk signs itself in.
+      "18.2": A kiosk session never expires but cannot reach admin tools or change PINs.
+      "18.3": Revoking a device from the devices list ends its access at once.
+      "18.4": The same pairing flow signs in a phone or laptop as an ordinary browser session.
+      "18.5": A pairing code expires, can be denied, is redeemed only once, and refuses polling faster than its interval.
+
+  19:
+    title: Passkey authentication
+    cards_folded_in: [29]
+    criteria:
+      "19.1": A signed-in user can register a passkey and later sign in with it, no email needed.
+      "19.2": An unknown passkey or an expired challenge is refused.
+      "19.3": A kiosk session cannot manage passkeys.
+      "19.4": A user can remove a passkey.
+
+  20:
+    title: External identity providers
+    cards_folded_in: [30]
+    criteria:
+      "20.1": Every external provider, and forward auth, is off until configured.
+      "20.2": Signing in through a provider with a known email links to that user instead of creating a duplicate.
+      "20.3": Signing in through a provider with a new email creates a user.
+      "20.4": A provider callback whose state does not match the session is refused.
+      "20.5": A signed-in user can link a provider, and can unlink it only while another sign-in method remains.
+      "20.6": Forward-auth headers are trusted only from a configured proxy.
+      "20.7": Signing out under forward auth does not immediately sign the user back in.
+      "20.8": Apple and generic OIDC sign-in are supported alongside Google.
+
+  21:
+    title: Hosted multi-tenant mode
+    cards_folded_in: [26, 31]
+    criteria:
+      "21.1": Hosted signup verifies the email with a code before creating the household and its organizer.
+      "21.2": Each new hosted household goes through its own onboarding.
+      "21.3": A signed-out visitor to a hosted server is sent to sign in or sign up.
+      "21.4": A signed-in user cannot read or change another household's data.
+      "21.5": No one can take over a profile in another household, whether signed out, signed in, or with a forged cookie.
+      "21.6": Lists never include another household's profiles, recipes or members.
+
+  23:
+    title: Subscriptions and billing
+    cards_folded_in: [27]
+    criteria:
+      "23.1": A new hosted household gets a 14-day free trial with full access.
+      "23.2": When the trial ends without a subscription, the household is blocked until it subscribes, and subscribing restores access.
+      "23.3": An appliance install never asks for a subscription.
+      "23.4": An organizer can subscribe through Stripe Checkout and pay by card; other members cannot subscribe.
+      "23.5": A canceled subscription keeps access until the end of the paid period.
+      "23.6": A failed payment leaves 7 days of grace before access ends.
+      "23.7": Only signed Stripe webhooks change a household's access, and each Stripe status maps to a defined access state.
+      "23.8": Charges are recorded as paid, failed, pending, refunded or disputed from Stripe's events.
+      "23.9": The subscription page shows the plans and their prices.
+
+  25:
+    title: CSP allows the Google OAuth and Stripe Checkout form posts
+    criteria:
+      "25.1": Forms can submit to Google, Apple and Stripe Checkout without a Content Security Policy violation.
+
+  34:
+    title: Recipe URL scraper refinements
+    criteria:
+      "34.1": A recipe is found when its JSON-LD sits in a "@graph" beside other nodes, or several objects share one script tag.
+      "34.2": Instructions import as continuously numbered steps under their section headings.
+      "34.3": A page with no JSON-LD imports from its schema.org microdata.
+      "34.4": The recipe image is found in an image array, an ImageObject, or the page's og:image.
+      "34.5": A bot challenge, missing page, failing or slow site imports nothing and tells the user what to do.
+
+  35:
+    title: Pantry depletion and restock prompts
+    criteria:
+      "35.1": A staple can be marked low with one tap from the pantry, a recipe's ingredients, or cook mode.
+      "35.2": A low staple lands on the week's grocery list with a Restock badge, even if no recipe calls for it.
+      "35.3": Ticking a restock line on the grocery list marks the staple as bought; other lines touch no pantry item.
+      "35.4": Once restocked, a staple stays off grocery lists until it runs low again.
+
+  36:
+    title: Distraction-free cooking mode
+    criteria:
+      "36.1": Cook mode fills the screen and shows one step at a time, with large back and next controls.
+      "36.2": The screen stays awake while cook mode is open, where the browser allows it.
+      "36.3": A drawer lists every ingredient with a checkbox that keeps its ticks.
+      "36.4": A duration in a step, such as "simmer for 15 minutes", becomes a countdown that starts with one tap.
+      "36.5": A kiosk, or a member who cannot edit the recipe, can still cook it.
+      "36.6": When a countdown reaches zero the cook sees and hears that time is up.
+
+  37:
+    title: Household calendar feed tokens
+    criteria:
+      "37.1": Every household gets its own unguessable calendar feed token.
+      "37.2": An admin can regenerate the token, which retires the old feed URL.
+
+  38:
+    title: RFC 5545 iCalendar feed
+    criteria:
+      "38.1": The feed is valid iCalendar, with special characters escaped and long lines folded.
+      "38.2": Each planned meal is an event at the household's meal time, in the household's time zone.
+      "38.3": Each event describes the recipe, the cook, an ingredients preview and a link back.
+      "38.4": A feed can be limited to one member's cooking assignments.
+
+  39:
+    title: Public calendar feed endpoints and HTTP caching
+    criteria:
+      "39.1": A feed URL works without signing in; an unknown token or member returns 404.
+      "39.2": A calendar app gets 304 Not Modified until the plan changes, and a fresh feed when it does.
+
+  40:
+    title: Subscribe-to-calendar modal and preferences
+    criteria:
+      "40.1": The planner's Subscribe button opens a calendar modal with All Meals and My Cooking tabs.
+      "40.2": The modal offers one-tap Apple Calendar and Google Calendar links and the feed URL.
+      "40.3": Only an admin can see the feed settings and regenerate the token.
+
+  42:
+    title: Billing, entitlement and promotion operations
+    criteria:
+      "42.1": The operator sees each household's subscription state and every Stripe charge state, with unknown states shown as they are.
+      "42.2": The operator can create and deactivate promotion programs with a code, dates and a redemption limit.
+      "42.3": The operator can extend a trial or assign a promotion as an audited action.
+    not_shipped:
+      - Cancel at period end, and temporary entitlement or manual override, from the console.
+      - Last webhook sync time and promotion attribution on the household page.
+
+  43:
+    title: In-app customer support conversations
+    criteria:
+      "43.1": A customer can start a support conversation and reply to it; an empty message is not sent.
+      "43.2": The operator sees threads from every household and replies in the same conversation the customer sees.
+      "43.3": A thread is waiting on support, waiting on the customer, or resolved, and a new reply reopens a resolved one.
+      "43.4": A customer sees only their own household's threads.
+    not_shipped:
+      - Email notification of a reply, linking back to the signed-in conversation.
+      - Internal notes kept apart from the customer thread.
+
+  44:
+    title: Operator household cockpit and health views
+    criteria:
+      "44.1": The operator lists every household with its lifecycle and subscription state.
+      "44.2": The operator can search households by name or customer email.
+      "44.3": A household's page shows counts and recent activity without revealing secrets such as its join code.
+    not_shipped:
+      - Filtering and sorting by trial, onboarding, activity, feature usage, deletion and promotion state.
+      - Needs-attention views (onboarding incomplete, trial ending, past due, inactive, deletion requested).
+      - Sensitive content hidden by default and revealed on purpose.
+
+  45:
+    title: Meaningful activity events and household history
+    criteria:
+      "45.1": Recipe, pantry and meal-plan changes are recorded with household, actor, target and time.
+      "45.2": Household members see a readable history of who did what.
+      "45.3": System events are recorded without a person as the actor.
+    not_shipped:
+      - Events for account creation and verification, onboarding, family-member changes, grocery lists, calendar sync, sign-in and devices, and subscriptions.
+      - Deleted users shown as "Former member".
+      - A documented retention policy.
+
+  46:
+    title: Separate platform-admin authentication
+    criteria:
+      "46.1": Operator accounts are separate from household accounts, and no household sign-in reaches the console.
+      "46.2": Operator sign-in needs a password and a current MFA code.
+      "46.3": A failed operator sign-in says nothing about which part was wrong and takes as long for an unknown email.
+      "46.4": An operator can sign out.
+    not_shipped:
+      - Rate limiting on operator sign-in. Household sign-in has it; this does not.
+      - New-session or new-device notification, a recovery process, and passkeys.
+
+  47:
+    title: Export, suspension and deletion lifecycle
+    criteria:
+      "47.1": A household admin can download an export that leaves out join codes and tokens; other members cannot.
+      "47.2": A household admin can request deletion once, and hosted households are warned it cancels the subscription without a refund.
+      "47.3": Permanent deletion needs the household's name typed exactly and cancels its subscriptions first, naming any left to cancel in Stripe.
+      "47.4": Suspension is reversible; a suspended household can still sign in, sees a status page, can reach support and can sign out.
+    not_shipped:
+      - The export as an expiring ZIP, and exports generated by the operator.
+      - Reauthentication before permanent deletion.
+      - A documented deletion policy for backups, billing records, integrations and support history.
+
+  48:
+    title: Platform audit, privacy controls and security monitoring
+    criteria:
+      "48.1": Operator actions and page views are written to an audit log the operator can filter and search.
+      "48.2": Household admins cannot reach the audit log.
+    not_shipped:
+      - Alerts for MFA, sign-in, session, export and deletion events, and a security-event history.
+      - Written masking rules for household and payment data.
+
   49:
     title: Guarded bulk operations for platform operators
     criteria:

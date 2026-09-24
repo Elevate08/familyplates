@@ -18,6 +18,7 @@ class PlatformAdmin::AuditEventsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select#admin_id[aria-label='Operator']"
   end
 
+  # @card-48.1
   test "operator can inspect the recent audit log" do
     get platform_admin_audit_events_path
 
@@ -27,6 +28,7 @@ class PlatformAdmin::AuditEventsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, @admin.email
   end
 
+  # @card-48.1
   test "operator can filter audit log to hide page views" do
     PlatformAuditEvent.record!(action: "household.suspended", actor: @admin, target: households(:one), metadata: { reason: "Terms violation" })
 
@@ -38,6 +40,7 @@ class PlatformAdmin::AuditEventsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Terms violation"
   end
 
+  # @card-48.1
   test "operator can filter audit log by category and search" do
     PlatformAuditEvent.record!(action: "platform_admin.signed_in", actor: @admin, metadata: { email: @admin.email })
     PlatformAuditEvent.record!(action: "support_thread.replied", actor: @admin, metadata: { note: "Resolved billing issue" })

@@ -6,6 +6,7 @@ class DevicesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
+  # @card-16.3
   test "index lists sessions for signed-in user" do
     user = User.create!(email: "parent@example.com", password: "password123")
     post session_path, params: { email: user.email, password: "password123" }
@@ -18,6 +19,7 @@ class DevicesControllerTest < ActionDispatch::IntegrationTest
     assert_select "span", text: /Current Device/
   end
 
+  # @card-16.3
   test "destroy revokes a specific device" do
     user = User.create!(email: "parent@example.com", password: "password123")
     post session_path, params: { email: user.email, password: "password123" }
@@ -31,6 +33,7 @@ class DevicesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Device access revoked.", flash[:notice]
   end
 
+  # @card-16.3
   test "destroy_all revokes all other devices while preserving current device" do
     user = User.create!(email: "parent@example.com", password: "password123")
     post session_path, params: { email: user.email, password: "password123" }

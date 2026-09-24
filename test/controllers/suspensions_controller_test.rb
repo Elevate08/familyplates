@@ -9,6 +9,7 @@ class SuspensionsControllerTest < ActionDispatch::IntegrationTest
     @household.update!(suspended_at: Time.current, suspension_reason: "Payment review")
   end
 
+  # @card-47.4
   test "signed-in suspended household sees status and support link" do
     get root_path
 
@@ -21,6 +22,7 @@ class SuspensionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{support_threads_path}']", text: "Contact support"
   end
 
+  # @card-47.4
   test "suspended household can open support" do
     get support_threads_path
 
@@ -28,6 +30,7 @@ class SuspensionsControllerTest < ActionDispatch::IntegrationTest
   end
 
 
+  # @card-47.4
   test "a suspended household can still sign out" do
     delete session_path
 

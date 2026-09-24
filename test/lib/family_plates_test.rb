@@ -9,6 +9,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     FamilyPlates.config.reset!
   end
 
+  # @card-17.1
   test "defaults to appliance mode and unrequired login" do
     assert_equal "appliance", FamilyPlates.config.mode
     assert FamilyPlates.config.appliance?
@@ -16,6 +17,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_equal false, FamilyPlates.config.require_login
   end
 
+  # @card-15.6
   test "prevent enabling REQUIRE_LOGIN when no admin profile has a password" do
     household = households(:one)
     household.family_members.update_all(user_id: nil)
@@ -26,6 +28,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-15.6
   test "allows enabling REQUIRE_LOGIN when at least one admin has a password" do
     household = households(:one)
     admin_member = household.family_members.find_by!(role: "admin")
@@ -39,6 +42,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_equal true, FamilyPlates.config.require_login
   end
 
+  # @card-15.7
   test "hosted production refuses to start until SMTP_ADDRESS is set" do
     FamilyPlates.config.mode = "hosted"
     production = ActiveSupport::StringInquirer.new("production")
@@ -57,6 +61,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-15.7
   test "a LAN appliance starts without SMTP" do
     FamilyPlates.config.mode = "appliance"
     production = ActiveSupport::StringInquirer.new("production")
@@ -83,6 +88,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-15.7
   test "partial SMTP settings refuse to start" do
     FamilyPlates.config.mode = "appliance"
     production = ActiveSupport::StringInquirer.new("production")
@@ -101,6 +107,7 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-20.1
   test "external identity providers and forward auth are disabled by default" do
     assert_equal false, FamilyPlates.config.google_auth_enabled?
     assert_equal false, FamilyPlates.config.apple_auth_enabled?

@@ -10,6 +10,7 @@ class AuthenticationTest < ApplicationSystemTestCase
     @member = family_members(:two)
   end
 
+  # @card-17.1
   test "a PIN-less member signs in with one tap" do
     visit select_profile_path
     click_on @member.name

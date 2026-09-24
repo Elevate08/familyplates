@@ -11,6 +11,7 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.password_digest
   end
 
+  # @card-14.1
   test "email is unique regardless of case" do
     User.create!(email: "parent@example.com")
     duplicate = User.new(email: "PARENT@example.com")
@@ -19,6 +20,7 @@ class UserTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:email], "has already been taken"
   end
 
+  # @card-14.2
   test "destroying a user removes credentials and sessions but preserves the family profile" do
     user = User.create!(email: "parent@example.com")
     identity = user.identities.create!(provider: "email", uid: user.email)
@@ -33,6 +35,7 @@ class UserTest < ActiveSupport::TestCase
     assert_nil member.reload.user_id
   end
 
+  # @card-14.4
   test "supports an optional password for appliance mode while leaving hosted users passwordless" do
     appliance_user = User.create!(email: "appliance@example.com", password: "appliance-password")
     assert appliance_user.authenticate("appliance-password")

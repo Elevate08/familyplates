@@ -15,6 +15,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-18.1
   test "complete RFC 8628 kiosk device pairing flow" do
     # 1. Device initiates authorization grant (e.g. wall tablet)
     post device_authorization_pair_path, params: { kind: "kiosk", client_name: "Kitchen Wall Display" }
@@ -75,6 +76,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-18.2
   test "kiosk session does not expire and can switch profiles but cannot access admin tools" do
     # Pair device as kiosk via real grant
     grant = DeviceGrant.create!(kind: "kiosk")
@@ -129,6 +131,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     assert_equal "Kiosk devices cannot approve new device pairings.", flash[:alert]
   end
 
+  # @card-18.4
   test "browser session pairing flow supports laptop sign-in with admin capabilities" do
     # Initiate browser pairing
     post device_authorization_pair_path, params: { kind: "browser" }
@@ -161,6 +164,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-18.3
   test "revoking kiosk device from devices list terminates kiosk access" do
     grant = DeviceGrant.create!(
       kind: "kiosk",
@@ -234,6 +238,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     tablet.assert_redirected_to select_profile_path
   end
 
+  # @card-18.3
   test "revoking browser device from devices list terminates browser session and profile" do
     laptop = open_session
     laptop.post session_path, params: { email: @user.email, password: "password123" }
@@ -262,6 +267,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     assert_includes laptop.response.body, "Sign In Again"
   end
 
+  # @card-18.3
   test "revoking kiosk session prevents switching profile and redirects with revocation notice" do
     grant = DeviceGrant.create!(kind: "kiosk")
     grant.approve!(by: @user, household: @household, kind: "kiosk")
@@ -289,6 +295,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     assert tablet.cookies[:device_kind].blank?
   end
 
+  # @card-18.3
   test "revoking kiosk session prevents navigating to protected pages and redirects to kiosk pairing" do
     grant = DeviceGrant.create!(kind: "kiosk")
     grant.approve!(by: @user, household: @household, kind: "kiosk")
@@ -314,6 +321,7 @@ class KioskDevicePairingTest < ActionDispatch::IntegrationTest
     assert tablet.cookies[:device_kind].blank?
   end
 
+  # @card-18.2
   test "kiosk session with active admin member cannot modify PIN or access PIN inputs in preferences" do
     grant = DeviceGrant.create!(kind: "kiosk")
     grant.approve!(by: @user, household: @household, kind: "kiosk")

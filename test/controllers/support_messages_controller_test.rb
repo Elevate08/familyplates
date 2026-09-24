@@ -10,6 +10,7 @@ class SupportMessagesControllerTest < ActionDispatch::IntegrationTest
     post session_path, params: { email: @user.email, password: "customer-password" }
   end
 
+  # @card-43.1
   test "blank reply does not claim the message was sent" do
     assert_no_difference -> { @thread.messages.count } do
       post support_thread_messages_path(@thread), params: { support_message: { body: "" } }

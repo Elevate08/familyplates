@@ -32,6 +32,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
 
   # --- Suppression and un-suppression -------------------------------------
 
+  # @card-35.4
   test "a stocked staple stays shielded from the shopping count" do
     butter = item_named("Butter")
 
@@ -40,6 +41,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
     assert_equal 1, aggregate[:total_shopping_count], "only the bread needs buying"
   end
 
+  # @card-35.2
   test "marking a staple low un-suppresses it onto the list as a restock" do
     @butter.mark_low!
 
@@ -52,6 +54,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
   end
 
   # Running low on salt is exactly the case no recipe would ever surface.
+  # @card-35.2
   test "a low staple no recipe calls for still lands on the list" do
     assert_nil item_named("Salt")
 
@@ -71,6 +74,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
     assert dairy.first[:restock], "the thing somebody went out of their way to flag comes first"
   end
 
+  # @card-35.4
   test "restocking puts the shield back and the list returns to normal" do
     @butter.mark_low!
     assert_equal 2, aggregate[:total_shopping_count]
@@ -117,6 +121,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
     assert_predicate @butter.reload, :low_stock?
   end
 
+  # @card-35.1
   test "the toggle is offered beside the recipe's ingredients and in cook mode" do
     get recipe_url(@recipe)
     assert_select "form[action=?]", toggle_low_pantry_item_path(@butter)
@@ -134,6 +139,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
 
   # --- The grocery list end ----------------------------------------------
 
+  # @card-35.2
   test "the grocery list badges a restock line and wires it back to the pantry" do
     @butter.mark_low!
 

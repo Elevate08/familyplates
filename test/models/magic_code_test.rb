@@ -3,6 +3,7 @@ require "test_helper"
 class MagicCodeTest < ActiveSupport::TestCase
   UUID_PATTERN = /\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/
 
+  # @card-15.3
   test "generates a 6-character code and 15-minute expiry on create" do
     magic_code = MagicCode.create!(email: "  User@Example.COM ")
 
@@ -14,6 +15,7 @@ class MagicCodeTest < ActiveSupport::TestCase
     assert magic_code.expires_at <= 15.minutes.from_now + 5.seconds
   end
 
+  # @card-15.5
   test "active scope excludes expired codes" do
     active = MagicCode.create!(email: "active@example.com", code: "ACT123", expires_at: 10.minutes.from_now)
     expired = MagicCode.create!(email: "expired@example.com", code: "EXP123", expires_at: 1.minute.ago)
@@ -22,6 +24,7 @@ class MagicCodeTest < ActiveSupport::TestCase
     assert_not_includes MagicCode.active, expired
   end
 
+  # @card-15.4
   test "for_unknown_email returns an unpersisted code" do
     fake = MagicCode.for_unknown_email("stranger@example.com")
 

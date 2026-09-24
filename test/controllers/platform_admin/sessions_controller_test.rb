@@ -19,6 +19,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-46.2
   test "login requires password and current MFA code" do
     get new_platform_admin_session_path
     assert_response :success
@@ -35,6 +36,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:platform_admin_session_token].present?
   end
 
+  # @card-46.3
   test "invalid credentials do not create a platform-admin session" do
     post platform_admin_session_path, params: {
       email: @admin.email,
@@ -48,6 +50,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil cookies[:platform_admin_session_token]
   end
 
+  # @card-46.3
   test "dummy bcrypt work is spent whenever the real password check is skipped" do
     dummy_calls = []
     password_class = BCrypt::Password.singleton_class
@@ -84,6 +87,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     password_class.define_method(:create, original)
   end
 
+  # @card-46.4
   test "authenticated platform admin can sign out" do
     sign_in_platform_admin(@admin)
 

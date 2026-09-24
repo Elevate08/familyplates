@@ -12,6 +12,7 @@ class PlatformAdminAccountTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:email], "has already been taken"
   end
 
+  # @card-46.2
   test "generates an MFA secret and verifies current TOTP codes" do
     admin = PlatformAdminAccount.create!(email: "operator@example.com", password: "correct horse battery staple")
 

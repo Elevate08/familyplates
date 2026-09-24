@@ -6,6 +6,7 @@ test.describe("Interactive Flow: Cook Mode", () => {
     await resetDatabase(request);
   });
 
+  // @card-36.1
   test("full-screen step navigation and ingredient drawer", async ({ page }) => {
     await signInAs(page, "Dad", "1234");
 

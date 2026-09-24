@@ -9,6 +9,7 @@ class AuthRakeTest < ActiveSupport::TestCase
     Rake::Task.define_task(:environment)
   end
 
+  # @card-15.8
   test "resets user password via rake task" do
     user = User.create!(email: "operator@example.com", password: "old-password-123")
 

@@ -1,6 +1,7 @@
 require "test_helper"
 
 class PromotionProgramTest < ActiveSupport::TestCase
+  # @card-42.2
   test "normalizes codes and reports scheduling and redemption limits" do
     program = PromotionProgram.create!(name: "Launch", code: " launch ", discount_percent: 20, max_redemptions: 2)
 

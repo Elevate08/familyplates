@@ -36,6 +36,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     assert_nil DeviceGrant.find_by_user_code(nil)
   end
 
+  # @card-18.5
   test "reports expired? when past expires_at" do
     grant = DeviceGrant.create!(expires_at: 1.minute.ago)
     assert grant.expired?
@@ -43,6 +44,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     assert_equal 0, grant.expires_in_seconds
   end
 
+  # @card-18.2
   test "approves grant and creates non-expiring kiosk session" do
     grant = DeviceGrant.create!(kind: "kiosk", ip_address: "10.0.0.1", user_agent: "WallTablet/1.0")
 
@@ -63,6 +65,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     assert_equal "WallTablet/1.0", grant.session.user_agent
   end
 
+  # @card-18.4
   test "approves grant as browser session for laptop sign-in" do
     grant = DeviceGrant.create!(kind: "browser", ip_address: "192.168.1.100", user_agent: "Laptop/1.0")
 
@@ -73,6 +76,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     assert grant.session.browser?
   end
 
+  # @card-18.5
   test "cannot approve an already approved or expired grant" do
     grant = DeviceGrant.create!(expires_at: 1.minute.ago)
     assert_raises(RuntimeError) do
@@ -80,6 +84,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-18.5
   test "denies grant" do
     grant = DeviceGrant.create!
     grant.deny!
@@ -89,6 +94,7 @@ class DeviceGrantTest < ActiveSupport::TestCase
     assert_equal "denied", grant.status
   end
 
+  # @card-18.5
   test "detects polling too fast according to interval" do
     grant = DeviceGrant.create!
     assert_not grant.polling_too_fast?

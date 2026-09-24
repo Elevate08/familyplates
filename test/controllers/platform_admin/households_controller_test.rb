@@ -26,6 +26,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select#status[aria-label='Status']"
   end
 
+  # @card-44.1
   test "lists household metadata and lifecycle info" do
     get platform_admin_households_path
 
@@ -37,6 +38,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Promotion"
   end
 
+  # @card-44.2
   test "searches by household name or customer email" do
     get platform_admin_households_path, params: { search: "beta@example.com" }
 
@@ -45,6 +47,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Alpha Kitchen"
   end
 
+  # @card-44.3
   test "shows privacy-safe household details" do
     get platform_admin_household_path(@alpha)
 
@@ -56,6 +59,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, @alpha.join_code
   end
 
+  # @card-42.1
   test "operator sees every Stripe charge state on that household only" do
     customer = @alpha.set_payment_processor(:fake_processor, allow_fake: true)
     other = @beta.set_payment_processor(:fake_processor, allow_fake: true)
@@ -91,6 +95,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-charge-state=disputed]", count: 0
   end
 
+  # @card-42.1
   test "operator list shows each household subscription state and stops after one page" do
     FamilyPlates.config.mode = "hosted"
     @alpha.update_columns(created_at: 40.days.ago)
@@ -138,6 +143,7 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href^='/platform_admin/households/']", count: PlatformAdmin::HouseholdsController::PAGE_SIZE
   end
 
+  # @card-47.4
   test "operator can suspend and restore a household" do
     post suspend_platform_admin_household_path(@alpha), params: { reason: "Support review" }
     assert_redirected_to platform_admin_household_path(@alpha)

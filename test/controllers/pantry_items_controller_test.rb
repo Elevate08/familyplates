@@ -50,6 +50,7 @@ class PantryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to pantry_items_url
   end
 
+  # @card-35.1 @card-45.1
   test "mark_low tracks activity and marks item low stock" do
     assert_difference("ActivityEvent.where(event_type: 'pantry_item.marked_low').count", 1) do
       patch mark_low_pantry_item_url(@item)

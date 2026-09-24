@@ -25,6 +25,7 @@ class PasskeysControllerTest < ActionDispatch::IntegrationTest
     assert_select "h3", text: /Work YubiKey/
   end
 
+  # @card-19.3
   test "index blocks kiosk sessions" do
     sign_in_user
     @user.sessions.last.update_columns(kind: "kiosk")
@@ -52,6 +53,7 @@ class PasskeysControllerTest < ActionDispatch::IntegrationTest
     assert json["challenge"].present?
   end
 
+  # @card-19.4
   test "destroy removes the passkey" do
     sign_in_user
     passkey = @user.passkeys.create!(external_id: "ext-to-remove", public_key: "pk-1", nickname: "Old Phone")

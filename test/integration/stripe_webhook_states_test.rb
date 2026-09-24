@@ -35,6 +35,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-23.7
   test "a bad signature is rejected and stores nothing" do
     payload = event_payload("charge.succeeded", charge_object("ch_rejected", "succeeded"))
 
@@ -48,12 +49,14 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
+  # @card-23.8
   test "signed charge.succeeded records a paid charge" do
     deliver("charge.succeeded", remember_charge(charge_object("ch_paid", "succeeded", captured: true)))
 
     assert_equal :paid, state_for("ch_paid").key
   end
 
+  # @card-23.8
   test "signed charge.failed records a failed charge" do
     deliver("charge.failed", remember_charge(charge_object("ch_failed", "failed")))
 
@@ -72,6 +75,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_equal :uncaptured, state_for("ch_uncaptured").key
   end
 
+  # @card-23.8
   test "signed charge.refunded records a partial refund" do
     deliver("charge.refunded", remember_charge(charge_object("ch_partial", "succeeded", amount_refunded: 100, refunded: false)))
 
@@ -84,6 +88,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_equal :refunded, state_for("ch_refunded").key
   end
 
+  # @card-23.8
   test "signed charge.dispute.created records the charge as disputed" do
     remember_charge(charge_object("ch_disputed", "succeeded", disputed: true, dispute: "dp_1"))
     dispute = {
@@ -101,6 +106,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_equal "Disputed", state_for("ch_disputed").label
   end
 
+  # @card-23.7
   test "each signed subscription update sets access from the Stripe status" do
     cases = {
       "active" => [ :active, true, 1.month.from_now ],
@@ -124,6 +130,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-23.7
   test "signed subscription.deleted ends access" do
     object = subscription_object("sub_canceled", "canceled", period_end: 1.day.ago)
     object[:ended_at] = 1.hour.ago.to_i
@@ -135,6 +142,7 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_not @household.entitled?
   end
 
+  # @card-23.6
   test "a second signed past_due update removes access after the grace period" do
     object = subscription_object("sub_past_due_late", "past_due", period_end: 10.days.ago)
     @subscriptions[object[:id]] = object

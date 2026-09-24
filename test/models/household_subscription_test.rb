@@ -12,6 +12,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     FamilyPlates.config.reset!
   end
 
+  # @card-23.3
   test "appliance mode is always entitled regardless of subscription or trial state" do
     FamilyPlates.config.mode = "appliance"
     @household.update_columns(created_at: 100.days.ago)
@@ -20,6 +21,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_equal :appliance, @household.subscription_status
   end
 
+  # @card-23.1
   test "hosted mode fresh household is entitled via free trial" do
     FamilyPlates.config.mode = "hosted"
     @household.update_columns(created_at: 2.days.ago)
@@ -30,6 +32,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_equal :trialing, @household.subscription_status
   end
 
+  # @card-23.2
   test "hosted mode expired trial without subscription is not entitled" do
     FamilyPlates.config.mode = "hosted"
     @household.update_columns(created_at: 20.days.ago)
@@ -59,6 +62,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_equal :active, @household.subscription_status
   end
 
+  # @card-23.5
   test "hosted mode canceled subscription remains entitled until period ends" do
     FamilyPlates.config.mode = "hosted"
     @household.update_columns(created_at: 30.days.ago)
@@ -84,6 +88,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_equal :canceled, @household.subscription_status
   end
 
+  # @card-23.6
   test "hosted mode past_due subscription has 7-day grace period" do
     FamilyPlates.config.mode = "hosted"
     @household.update_columns(created_at: 30.days.ago)
@@ -110,6 +115,7 @@ class HouseholdSubscriptionTest < ActiveSupport::TestCase
     assert_equal :past_due, @household.subscription_status
   end
 
+  # @card-23.7
   test "each remaining Stripe subscription status is named and does not grant access" do
     FamilyPlates.config.mode = "hosted"
     @household.update_columns(created_at: 30.days.ago)

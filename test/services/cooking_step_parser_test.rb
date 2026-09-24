@@ -75,6 +75,7 @@ class CookingStepParserTest < ActiveSupport::TestCase
 
   # --- Timer detection ----------------------------------------------------
 
+  # @card-36.4
   test "detects minutes, hours, and seconds" do
     steps = CookingStepParser.call(<<~TEXT)
       1. Simmer for 15 minutes.

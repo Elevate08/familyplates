@@ -9,6 +9,7 @@ class SupportThreadTest < ActiveSupport::TestCase
     @admin = PlatformAdminAccount.create!(email: "operator@example.com", password: "correct horse battery staple", otp_secret: "JBSWY3DPEHPK3PXP")
   end
 
+  # @card-43.2
   test "customer and platform admin messages share one ordered conversation" do
     thread = SupportThread.create!(household: @household, created_by_user: @user, subject: "Calendar help")
     customer_message = thread.messages.create!(user: @user, body: "My calendar is not updating.")
@@ -27,6 +28,7 @@ class SupportThreadTest < ActiveSupport::TestCase
     assert_not thread.messages.build(user: @user, platform_admin: @admin, body: "Two authors").valid?
   end
 
+  # @card-43.3
   test "resolving and replying update thread status" do
     thread = SupportThread.create!(household: @household, subject: "Question", status: "waiting_on_support")
     thread.resolve!

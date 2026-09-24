@@ -9,6 +9,7 @@ class PayChargeStateTest < ActiveSupport::TestCase
     @customer = @household.payment_processor
   end
 
+  # @card-23.8
   test "each Stripe charge state has one operator label" do
     cases = {
       "ch_paid" => [ { "status" => "succeeded", "captured" => true, "disputed" => false, "refunded" => false }, 400, 0, :paid, "Paid" ],
@@ -36,6 +37,7 @@ class PayChargeStateTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-42.1
   test "an unrecognised charge status is shown rather than called Paid" do
     charge = @customer.charges.create!(
       processor_id: "ch_other",

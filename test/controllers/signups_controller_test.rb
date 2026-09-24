@@ -41,6 +41,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Please choose a 4-digit security PIN.", flash[:alert]
   end
 
+  # @card-21.1
   test "hosted mode create sends verification code and redirects to verify" do
     FamilyPlates.config.mode = "hosted"
 
@@ -60,6 +61,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "The Bakers", session[:pending_signup]["household_name"]
   end
 
+  # @card-21.1
   test "hosted mode verify creates household, organizer member, user, and starts session" do
     FamilyPlates.config.mode = "hosted"
 
@@ -92,6 +94,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_not household.onboarded?
   end
 
+  # @card-21.1
   test "hosted mode verify rejects incorrect code" do
     FamilyPlates.config.mode = "hosted"
 

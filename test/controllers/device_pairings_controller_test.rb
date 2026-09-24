@@ -45,6 +45,7 @@ class DevicePairingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "kiosk", grant.kind
   end
 
+  # @card-18.1
   test "device_authorization endpoint creates grant and returns RFC 8628 payload" do
     post device_authorization_pair_path, params: { kind: "kiosk", client_name: "Samsung Fridge" }
     assert_response :ok
@@ -93,6 +94,7 @@ class DevicePairingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "This pairing code has expired. Please refresh the device screen.", flash[:alert]
   end
 
+  # @card-18.1
   test "approve creates session and marks grant approved" do
     sign_in_user
     grant = DeviceGrant.create!(kind: "kiosk")
@@ -106,6 +108,7 @@ class DevicePairingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "kiosk", grant.session.kind
   end
 
+  # @card-18.5
   test "deny marks grant denied" do
     sign_in_user
     grant = DeviceGrant.create!
@@ -117,6 +120,7 @@ class DevicePairingsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
+  # @card-18.5
   test "token endpoint hands an approved device its session token exactly once" do
     grant = DeviceGrant.create!(kind: "kiosk")
     grant.approve!(by: @user, household: @household, kind: "kiosk")

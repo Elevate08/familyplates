@@ -12,6 +12,7 @@ class OptInLoginAndIdempotentOnboardingTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-17.1
   test "appliance mode with REQUIRE_LOGIN=false allows one-tap profile selection without password" do
     assert_equal false, FamilyPlates.config.require_login
 
@@ -23,6 +24,7 @@ class OptInLoginAndIdempotentOnboardingTest < ActionDispatch::IntegrationTest
     assert signed_in_as?(@member)
   end
 
+  # @card-17.2
   test "REQUIRE_LOGIN=true redirects strangers to sign in" do
     # Link admin to user with password so REQUIRE_LOGIN can be enabled
     admin_user = User.create!(email: "admin@example.com", password: "password123")
@@ -38,6 +40,7 @@ class OptInLoginAndIdempotentOnboardingTest < ActionDispatch::IntegrationTest
     assert_equal "Please sign in to select a profile.", flash[:alert]
   end
 
+  # @card-17.2
   test "REQUIRE_LOGIN=true preserves one-tap profile switching once device session is established" do
     admin_user = User.create!(email: "admin@example.com", password: "password123")
     @admin.update!(user: admin_user)
@@ -56,6 +59,7 @@ class OptInLoginAndIdempotentOnboardingTest < ActionDispatch::IntegrationTest
     assert signed_in_as?(@member)
   end
 
+  # @card-17.3
   test "onboarding sets onboarded_at on completion and blocks re-entry per household" do
     Household.destroy_all
     fresh_household = Household.create!(name: "Fresh Household")

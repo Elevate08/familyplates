@@ -39,6 +39,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     )
   end
 
+  # @card-38.1
   test "generates RFC 5545 valid calendar structure" do
     service = CalendarFeedService.new(@household, base_url: "https://familyplates.example.com")
     ics = service.generate_ics
@@ -52,6 +53,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_includes ics, "END:VCALENDAR\r\n"
   end
 
+  # @card-38.2
   test "generates VEVENT blocks for active slots and skips unassigned placeholders" do
     service = CalendarFeedService.new(@household, base_url: "https://familyplates.example.com")
     ics = service.generate_ics
@@ -73,6 +75,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_includes service.generate_ics, "UID:meal-plan-slot-#{@slot3.id}@familyplates"
   end
 
+  # @card-38.3
   test "includes recipe details, ingredients preview, and links in description" do
     service = CalendarFeedService.new(@household, base_url: "https://familyplates.example.com")
     ics = service.generate_ics
@@ -82,6 +85,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_includes ics, "https://familyplates.example.com/recipes/#{@recipe.to_param}"
   end
 
+  # @card-38.4
   test "filters events by member when member is provided" do
     service = CalendarFeedService.new(@household, member: @member, base_url: "https://familyplates.example.com")
     ics = service.generate_ics
@@ -91,6 +95,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_not_includes ics, "UID:meal-plan-slot-#{@slot2.id}@familyplates"
   end
 
+  # @card-38.1
   test "escapes special characters for RFC 5545 compliance" do
     service = CalendarFeedService.new(@household)
     raw = "Item 1, Item 2; with \\ backslash and\nnewline"
@@ -99,6 +104,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_equal "Item 1\\, Item 2\\; with \\\\ backslash and\\nnewline", escaped
   end
 
+  # @card-38.1
   test "folds long lines to 75 octets" do
     service = CalendarFeedService.new(@household)
     long_line = "DESCRIPTION:" + ("A" * 120)
@@ -111,6 +117,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_equal " ", folded[1][0], "Folded line must start with whitespace"
   end
 
+  # @card-38.2
   test "calculates correct start and end times based on household preferences" do
     @household.update!(dinner_time: "18:30")
     service = CalendarFeedService.new(@household)
@@ -123,6 +130,7 @@ class CalendarFeedServiceTest < ActiveSupport::TestCase
     assert_equal 30, end_time.min
   end
 
+  # @card-38.2
   test "publishes meal times against the household's clock, not the server's" do
     @household.update!(dinner_time: "18:00", time_zone: "America/Chicago")
     service = CalendarFeedService.new(@household)

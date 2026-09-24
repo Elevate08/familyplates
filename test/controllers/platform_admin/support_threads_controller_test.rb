@@ -11,6 +11,7 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
     sign_in_platform_admin(@admin)
   end
 
+  # @card-43.2
   test "operator can see threads across households and reply" do
     get platform_admin_support_threads_path
     assert_response :success
@@ -26,6 +27,7 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
     assert_equal @admin, reply.platform_admin
   end
 
+  # @card-43.3
   test "operator can resolve a support thread and it moves to resolved section" do
     patch resolve_platform_admin_support_thread_path(@thread)
 
@@ -43,6 +45,7 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
     assert_includes response.body, "Calendar help"
   end
 
+  # @card-43.3
   test "operator can reopen a resolved thread" do
     @thread.resolve!
     assert @thread.resolved?
@@ -53,6 +56,7 @@ class PlatformAdmin::SupportThreadsControllerTest < ActionDispatch::IntegrationT
     assert_nil @thread.resolved_at
   end
 
+  # @card-43.3
   test "operator can manually change status" do
     patch change_status_platform_admin_support_thread_path(@thread), params: { status: "waiting_on_customer" }
     assert_redirected_to platform_admin_support_thread_path(@thread)

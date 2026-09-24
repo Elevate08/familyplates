@@ -13,6 +13,7 @@ class ActivityEventsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
+  # @card-45.2
   test "shows meaningful activity with the family member who performed it" do
     get activity_history_path
 
@@ -21,6 +22,7 @@ class ActivityEventsControllerTest < ActionDispatch::IntegrationTest
     assert_select "time"
   end
 
+  # @card-45.2
   test "is available to a household member" do
     sign_in_as(family_members(:two))
 

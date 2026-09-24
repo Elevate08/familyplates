@@ -20,6 +20,7 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-17.4
   test "every route outside the wizard sends a fresh install to onboarding" do
     Household.destroy_all
 
@@ -41,6 +42,7 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-17.4
   test "the wizard itself is the one thing reachable on a fresh install" do
     Household.destroy_all
 
@@ -48,6 +50,7 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # @card-17.4
   test "end-to-end first boot onboarding flow and profile login" do
     # 1. Clean state: No database records exist
     Household.destroy_all

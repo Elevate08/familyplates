@@ -13,6 +13,7 @@ class PlatformAdmin::PromotionProgramsControllerTest < ActionDispatch::Integrati
     assert_select "input#promotion_program_ends_at[aria-label='Ends at']"
   end
 
+  # @card-42.2
   test "operator can create and deactivate a promotion program" do
     post platform_admin_promotion_programs_path, params: { promotion_program: { name: "Launch", code: "launch", discount_percent: 20 } }
     assert_redirected_to platform_admin_promotion_programs_path

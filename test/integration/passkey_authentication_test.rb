@@ -13,6 +13,7 @@ class PasskeyAuthenticationTest < ActionDispatch::IntegrationTest
     @client = WebAuthn::FakeClient.new(@origin)
   end
 
+  # @card-19.1
   test "full WebAuthn passkey registration and email-free authentication flow" do
     # 1. User signs in on their device
     post session_path, params: { email: @user.email, password: "password123" }
@@ -71,6 +72,7 @@ class PasskeyAuthenticationTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # @card-19.2
   test "rejects passkey authentication with unknown credential" do
     # Authenticator has created a credential for another site/user
     dummy_challenge = WebAuthn.configuration.encoder.encode(SecureRandom.random_bytes(32))
@@ -87,6 +89,7 @@ class PasskeyAuthenticationTest < ActionDispatch::IntegrationTest
     assert_includes response.parsed_body["error"], "Passkey not recognized"
   end
 
+  # @card-19.2
   test "rejects passkey callback when challenge session has expired" do
     post callback_passkeys_path, params: { credential: { id: "test" } }
     assert_response :unprocessable_entity

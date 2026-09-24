@@ -7,6 +7,7 @@ class Admin::CalendarsControllerTest < ActionDispatch::IntegrationTest
     @member = family_members(:two)
   end
 
+  # @card-40.3
   test "should block non-admin" do
     sign_in_as(@member)
     get edit_admin_calendar_url
@@ -21,6 +22,7 @@ class Admin::CalendarsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Household Calendar Feed"
   end
 
+  # @card-37.2
   test "should regenerate calendar feed token for admin" do
     sign_in_as(@admin)
     original_token = @household.calendar_feed_token
@@ -34,6 +36,7 @@ class Admin::CalendarsControllerTest < ActionDispatch::IntegrationTest
     assert @household.calendar_feed_token.present?
   end
 
+  # @card-40.3
   test "should block non-admin from regenerating calendar feed token" do
     sign_in_as(@member)
     post regenerate_feed_token_admin_calendar_url

@@ -6,6 +6,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
   // Level 1: In-App Billing UI, Pricing Tiers, and Subscription Lifecycle Flow
   // Runs 100% offline, deterministically, with zero external dependencies.
   // ---------------------------------------------------------------------------
+  // @card-23.5 @card-23.9
   test("Level 1: subscription dashboard renders pricing tiers, handles subscription & cancellation", async ({
     page,
     request
@@ -68,6 +69,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
   // pull requests from forks never receive. playwright.config.ts refuses to
   // start at all with a key that is not a test key.
   // ---------------------------------------------------------------------------
+  // @card-23.4
   test("Level 2: real Stripe checkout sandbox redirect and test payment", async ({ page, request }) => {
     const stripeKey = process.env.STRIPE_PRIVATE_KEY || process.env.STRIPE_SECRET_KEY || "";
     test.skip(

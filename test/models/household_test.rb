@@ -31,6 +31,7 @@ class HouseholdTest < ActiveSupport::TestCase
     assert_includes household.users, user
   end
 
+  # @card-16.4
   test "resets join code to a new unique code" do
     household = households(:one)
     old_code = household.join_code
@@ -41,6 +42,7 @@ class HouseholdTest < ActiveSupport::TestCase
     assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, household.join_code)
   end
 
+  # @card-37.1
   test "automatically generates a calendar feed token on create" do
     household = Household.create!(name: "Feed Test Family")
 
@@ -49,6 +51,7 @@ class HouseholdTest < ActiveSupport::TestCase
     assert household.calendar_feed_token.length >= 20
   end
 
+  # @card-37.1
   test "assigns unique calendar feed tokens to different households" do
     first = Household.create!(name: "Alpha Family")
     second = Household.create!(name: "Beta Family")
@@ -56,6 +59,7 @@ class HouseholdTest < ActiveSupport::TestCase
     assert_not_equal first.calendar_feed_token, second.calendar_feed_token
   end
 
+  # @card-37.2
   test "regenerates calendar feed token" do
     household = households(:one)
     original_token = household.calendar_feed_token

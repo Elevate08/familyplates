@@ -30,6 +30,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     @recipe.recipe_ingredients.create!(name: "Yellow onion", quantity: 2)
   end
 
+  # @card-36.1
   test "renders every step, each with its section, and only the first one visible" do
     sign_in_as(@admin)
     get cook_recipe_url(@recipe)
@@ -47,6 +48,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     assert_includes steps.last.text, "Braise"
   end
 
+  # @card-36.4
   test "renders a countdown for each duration found in a step" do
     sign_in_as(@admin)
     get cook_recipe_url(@recipe)
@@ -59,6 +61,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "3:00:00"
   end
 
+  # @card-36.1
   test "leaves the application chrome behind" do
     sign_in_as(@admin)
 
@@ -71,6 +74,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='wake-lock']"
   end
 
+  # @card-36.3
   test "lists the ingredients in a drawer, each with its own checkbox" do
     sign_in_as(@admin)
     get cook_recipe_url(@recipe)
@@ -85,6 +89,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     assert_not_nil doc.at_css("[data-cook-mode-target='drawer']")["hidden"], "the drawer starts closed"
   end
 
+  # @card-36.5
   test "a member who cannot edit the recipe can still cook it" do
     sign_in_as(@member)
     assert_not @member.admin?
@@ -97,6 +102,7 @@ class CookingModeTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", cook_recipe_path(@recipe)
   end
 
+  # @card-36.5
   test "a kiosk session can open cook mode even though it is barred from admin tools" do
     user = User.create!(email: "kitchen@example.com", password: "password123")
     @admin.update!(user: user)

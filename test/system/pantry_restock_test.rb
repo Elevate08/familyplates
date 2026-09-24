@@ -20,6 +20,7 @@ class PantryRestockTest < ApplicationSystemTestCase
     sign_in_as(family_members(:one))
   end
 
+  # @card-35.1
   test "flagging a staple low from the pantry swaps the control in place" do
     visit pantry_items_path
 
@@ -40,6 +41,7 @@ class PantryRestockTest < ApplicationSystemTestCase
     assert_not_predicate @butter.reload, :low_stock?
   end
 
+  # @card-35.1
   test "a cook can flag a staple low from the recipe they are reading" do
     visit recipe_path(@recipe)
 
@@ -49,6 +51,7 @@ class PantryRestockTest < ApplicationSystemTestCase
     assert_predicate @butter.reload, :low_stock?
   end
 
+  # @card-35.3
   test "ticking a restock line on the grocery list marks the staple bought" do
     @butter.mark_low!
     visit grocery_list_path
@@ -65,6 +68,7 @@ class PantryRestockTest < ApplicationSystemTestCase
     assert_low_stock true, "un-checking it should have flagged it low again"
   end
 
+  # @card-35.3
   test "an ordinary grocery line touches no pantry item" do
     visit grocery_list_path
 

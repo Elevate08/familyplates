@@ -333,6 +333,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
 
     next unless cross_tenant
 
+    # @card-21.4
     test "admin #{key} with another household's ids is #{cross_tenant}" do
       sign_in_role(:admin)
       request_route(route, foreign_records)

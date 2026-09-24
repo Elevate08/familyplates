@@ -8,6 +8,7 @@ require "application_system_test_case"
 class OnboardingTest < ApplicationSystemTestCase
   setup { Household.destroy_all }
 
+  # @card-17.4
   test "a household can be set up from nothing" do
     visit root_path
     assert_selector "input[name='admin_member[pin]']", wait: 5
@@ -33,6 +34,7 @@ class OnboardingTest < ApplicationSystemTestCase
       "a prefilled PIN becomes the real one for anyone who clicks through"
   end
 
+  # @card-17.5
   test "setup refuses to continue without a PIN" do
     visit onboarding_family_path
 

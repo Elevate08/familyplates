@@ -12,6 +12,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-21.3
   test "unauthenticated access in hosted mode redirects to session or signup" do
     # Root redirects to session
     get root_path
@@ -29,6 +30,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     assert_equal "In hosted mode, please sign up to create a household.", flash[:alert]
   end
 
+  # @card-21.5
   test "tampered or unauthenticated active_family_member_id cookie is stripped in hosted mode" do
     member = family_members(:one)
 
@@ -40,6 +42,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     assert_nil get_signed_cookie(:active_family_member_id)
   end
 
+  # @card-21.2
   test "end-to-end hosted signup, verification, and per-tenant onboarding" do
     assert_enqueued_emails 1 do
       post signup_path, params: {
@@ -98,6 +101,7 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
     assert_equal "Your family kitchen is already set up.", flash[:alert]
   end
 
+  # @card-21.4
   test "signed-in user cannot access another tenant's profiles or data" do
     # Household 1 & User 1
     h1 = households(:one)

@@ -11,6 +11,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
     ExternalAuth::Oidc.reset_discovery!
   end
 
+  # @card-20.1
   test "providers are disabled by default" do
     assert_not ExternalAuth::Google.enabled?
     assert_not ExternalAuth::Apple.enabled?
@@ -47,6 +48,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
     assert_includes params["scope"], "openid"
   end
 
+  # @card-20.8
   test "Apple authorization URL includes client_id, form_post response mode" do
     FamilyPlates.config.apple_auth_enabled = true
     FamilyPlates.config.apple_client_id = "com.example.familyplates"
@@ -68,6 +70,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
     assert_equal "state123", params["state"]
   end
 
+  # @card-20.8
   test "OIDC authorization URL uses configured auth URL and scope" do
     FamilyPlates.config.oidc_auth_enabled = true
     FamilyPlates.config.oidc_client_id = "familyplates-sso"
@@ -90,6 +93,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
     assert_equal "openid profile email", params["scope"]
   end
 
+  # @card-20.8
   test "Apple verify_and_exchange decodes ID token and extracts user name" do
     payload = { "sub" => "apple-user-999", "email" => "apple@example.com" }
     id_token = JWT.encode(payload, nil, "none")

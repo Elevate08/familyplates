@@ -9,12 +9,14 @@ class PlatformAdmin::DashboardControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
+  # @card-46.1
   test "requires platform-admin authentication" do
     get platform_admin_root_path
 
     assert_redirected_to new_platform_admin_session_path
   end
 
+  # @card-46.1 @card-48.2
   test "household users cannot access the platform-admin console" do
     sign_in_as(family_members(:one))
 

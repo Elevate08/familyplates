@@ -28,6 +28,7 @@ class CookingModeTest < ApplicationSystemTestCase
     visit cook_recipe_path(@recipe)
   end
 
+  # @card-36.1
   test "walks forward and back through the steps one at a time" do
     assert_text "Brown the meat"
     assert_no_text "Simmer for 20 minutes"
@@ -51,6 +52,7 @@ class CookingModeTest < ApplicationSystemTestCase
     assert_step 1
   end
 
+  # @card-36.1
   test "Back is unavailable on the first step and Next gives way to Finish on the last" do
     assert find("button", text: "Back").disabled?
     assert_no_link "Finish"
@@ -65,6 +67,7 @@ class CookingModeTest < ApplicationSystemTestCase
     assert_current_path recipe_path(@recipe)
   end
 
+  # @card-36.3
   test "the ingredient drawer opens, remembers its ticks, and closes on Escape" do
     assert_no_selector "[data-cook-mode-target='drawer']", visible: true
 
@@ -85,6 +88,7 @@ class CookingModeTest < ApplicationSystemTestCase
     assert_selector "[data-cook-mode-target='remaining']", text: "1"
   end
 
+  # @card-36.4
   test "a detected duration becomes a countdown that starts on one tap" do
     click_on "Next Step"
 
@@ -102,6 +106,7 @@ class CookingModeTest < ApplicationSystemTestCase
     assert timer.has_text?(/tap to start/i)
   end
 
+  # @card-36.2
   test "the wake lock says which state the screen is in rather than throwing" do
     # Which state depends on the platform - the API needs a secure context and is
     # missing entirely on some kitchen displays. Either answer is correct; a

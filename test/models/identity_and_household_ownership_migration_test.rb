@@ -48,6 +48,7 @@ class IdentityAndHouseholdOwnershipMigrationTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-14.5
   test "migration backfills existing household ownership" do
     with_legacy_database do |connection|
       migrate(connection, :up)
@@ -58,6 +59,7 @@ class IdentityAndHouseholdOwnershipMigrationTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-14.6
   test "rollback removes every schema addition" do
     with_legacy_database do |connection|
       migrate(connection, :up)
@@ -70,6 +72,7 @@ class IdentityAndHouseholdOwnershipMigrationTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-14.6
   test "rollback preserves records and the original household relationship" do
     with_legacy_database do |connection|
       migrate(connection, :up)

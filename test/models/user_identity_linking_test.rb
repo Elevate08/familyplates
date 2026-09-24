@@ -1,6 +1,7 @@
 require "test_helper"
 
 class UserIdentityLinkingTest < ActiveSupport::TestCase
+  # @card-20.3
   test "creates new user and links identity when account does not exist" do
     assert_difference -> { User.count } => 1, -> { Identity.count } => 1 do
       user = User.find_or_create_from_identity(
@@ -15,6 +16,7 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-20.2
   test "links identity to existing user without creating duplicate user" do
     existing_user = User.create!(email: "existing@example.com", password: "password123")
 
@@ -59,6 +61,7 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-20.5
   test "can_disconnect_identity? requires at least one other credential" do
     user = User.create!(email: "user@example.com")
     identity1 = user.identities.create!(provider: "google", uid: "uid-1")

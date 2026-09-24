@@ -7,6 +7,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # @card-17.3
   test "should redirect family step when household already exists" do
     get onboarding_family_url
     assert_redirected_to select_profile_url
@@ -212,6 +213,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to select_profile_url
   end
 
+  # @card-17.3
   test "anonymous visitor cannot reach any wizard step after setup" do
     [ onboarding_members_url, onboarding_recipes_url, onboarding_pantry_url, onboarding_complete_url ].each do |url|
       get url
@@ -290,6 +292,7 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_url
   end
 
+  # @card-17.5
   test "setup will not create a household without a PIN" do
     Household.destroy_all
 

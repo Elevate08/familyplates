@@ -20,6 +20,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-23.3
   test "show in appliance mode redirects to root" do
     FamilyPlates.config.mode = "appliance"
     get subscription_path
@@ -27,6 +28,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Subscriptions are only enabled in hosted mode.", flash[:notice]
   end
 
+  # @card-23.9
   test "show in hosted mode renders subscription dashboard" do
     FamilyPlates.config.mode = "hosted"
     get subscription_path
@@ -35,6 +37,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button, input[type=submit]", text: /Subscribe/i
   end
 
+  # @card-23.4
   test "create in hosted mode subscribes to plan" do
     FamilyPlates.config.mode = "hosted"
     household = @admin.household
@@ -47,6 +50,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "annual", household.payment_processor.subscription.processor_plan
   end
 
+  # @card-23.4
   test "create rejects non-admin users" do
     FamilyPlates.config.mode = "hosted"
     sign_in_user(@member_user)
@@ -57,6 +61,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Access restricted to household organizers / admins.", flash[:alert]
   end
 
+  # @card-23.5
   test "destroy in hosted mode cancels active subscription" do
     FamilyPlates.config.mode = "hosted"
     household = @admin.household

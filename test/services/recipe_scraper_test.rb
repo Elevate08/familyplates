@@ -133,6 +133,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
 
   # --- @graph trees -------------------------------------------------------
 
+  # @card-34.1
   test "finds the recipe inside a WordPress @graph beside WebSite, breadcrumb and author nodes" do
     result = scrape_fixture("wordpress_graph.html", "https://hungryhomestead.test/dinner/weeknight-chicken-enchiladas/")
 
@@ -148,6 +149,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_includes result[:equipment], "9x13-inch"
   end
 
+  # @card-34.1
   test "prefers the recipe node carrying ingredients over a stub of the same name in @graph" do
     html = <<~HTML
       <html><head><script type="application/ld+json">
@@ -172,6 +174,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "Crisp-edged cornbread baked in a screaming hot pan.", result[:description]
   end
 
+  # @card-34.1
   test "salvages two JSON-LD objects emitted back to back in one script tag" do
     html = <<~HTML
       <html><head><script type="application/ld+json">
@@ -188,6 +191,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
 
   # --- Instruction formatting --------------------------------------------
 
+  # @card-34.2
   test "numbers HowToSteps continuously across HowToSection headings" do
     result = scrape_fixture("wordpress_graph.html", "https://hungryhomestead.test/dinner/weeknight-chicken-enchiladas/")
 
@@ -206,6 +210,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     STEPS
   end
 
+  # @card-34.2
   test "splits an instruction blob delivered as one HTML list" do
     result = scrape_fixture("cdata_html_instructions.html", "https://publisher.test/recipes/skillet-cornbread")
 
@@ -214,6 +219,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_not_includes result[:instructions], "<li>"
   end
 
+  # @card-34.2
   test "prefers HowToStep text over its abbreviated name and strips inline markup" do
     html = <<~HTML
       <html><head><script type="application/ld+json">
@@ -234,6 +240,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
 
   # --- Microdata fallback -------------------------------------------------
 
+  # @card-34.3
   test "falls back to schema.org microdata when a legacy blog ships no JSON-LD" do
     result = scrape_fixture("microdata_blog.html", "https://prairiekitchen.test/recipes/icebox-rolls")
 
@@ -253,6 +260,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "cup", margarine[:unit]
   end
 
+  # @card-34.3
   test "ignores microdata that carries only a name, leaving OpenGraph to answer" do
     html = <<~HTML
       <html><head>
@@ -269,18 +277,21 @@ class RecipeScraperTest < ActiveSupport::TestCase
 
   # --- Images -------------------------------------------------------------
 
+  # @card-34.4
   test "resolves a relative ImageObject URL from a JSON-LD image array" do
     result = scrape_fixture("wordpress_graph.html", "https://hungryhomestead.test/dinner/weeknight-chicken-enchiladas/")
 
     assert_equal "https://hungryhomestead.test/wp-content/uploads/enchiladas-1200.jpg", result[:image_url]
   end
 
+  # @card-34.4
   test "reads contentUrl from a single ImageObject" do
     result = scrape_fixture("cdata_html_instructions.html", "https://publisher.test/recipes/skillet-cornbread")
 
     assert_equal "https://images.publisher.test/cornbread.jpg", result[:image_url]
   end
 
+  # @card-34.4
   test "falls back through og:image and twitter:image when the recipe carries no image" do
     result = scrape_fixture("microdata_blog.html", "https://prairiekitchen.test/recipes/icebox-rolls")
     assert_equal "https://prairiekitchen.test/images/rolls-full.jpg", result[:image_url]
@@ -301,6 +312,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
 
   # --- Resilience ---------------------------------------------------------
 
+  # @card-34.5
   test "reports a bot challenge page instead of importing it as a recipe" do
     result = RecipeScraper.parse_html(
       file_fixture("recipe_pages/anti_bot_challenge.html").read,
@@ -311,6 +323,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal :blocked_by_site, result.error
   end
 
+  # @card-34.5
   test "reports a page with no recipe markup at all as unparseable" do
     result = RecipeScraper.parse_html("%PDF-1.4 not html", "https://example.com/recipe.pdf")
 
@@ -373,6 +386,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "tsp", ingredient[:unit]
   end
 
+  # @card-34.5
   test "distinguishes anti-bot, missing, failing, and timing-out sites" do
     assert_equal :blocked_by_site, fetch_error_for(status: 403)
     assert_equal :blocked_by_site, fetch_error_for(status: 429)

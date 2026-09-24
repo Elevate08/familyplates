@@ -19,6 +19,7 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
+  # @card-39.1
   test "renders household calendar feed with valid token without authentication" do
     get calendar_feed_url(token: @token, format: :ics)
 
@@ -33,6 +34,7 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.headers["Cache-Control"].to_s, "public"
   end
 
+  # @card-38.4
   test "renders member-filtered calendar feed" do
     get calendar_member_feed_url(token: @token, member_id: @member.id, format: :ics)
 
@@ -43,18 +45,21 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "SUMMARY:🍽️ Dinner: Tacos (Cook: #{@member.name})"
   end
 
+  # @card-39.1
   test "returns 404 for invalid token" do
     get calendar_feed_url(token: "invalid_random_token_12345", format: :ics)
 
     assert_response :not_found
   end
 
+  # @card-39.1
   test "returns 404 for invalid member id in member feed" do
     get calendar_member_feed_url(token: @token, member_id: "non-existent-member-id", format: :ics)
 
     assert_response :not_found
   end
 
+  # @card-39.2
   test "returns 304 Not Modified when ETag matches" do
     get calendar_feed_url(token: @token, format: :ics)
     assert_response :success
@@ -74,6 +79,7 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "BEGIN:VCALENDAR"
   end
 
+  # @card-39.2
   test "ETag changes when a slot is deleted or a recipe is renamed" do
     recipe = @household.recipes.create!(title: "Feed Pasta", instructions: "1. Boil.")
     older = @meal_plan.meal_plan_slots.create!(date: Date.current, meal_type: "lunch", recipe: recipe)

@@ -9,6 +9,7 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     post session_path, params: { email: @user.email, password: "customer-password" }
   end
 
+  # @card-43.1
   test "customer can start and continue a support conversation" do
     post support_threads_path, params: { support_thread: { subject: "Calendar help", body: "My calendar is not updating." } }
 
@@ -20,6 +21,7 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, SupportThread.last.messages.count
   end
 
+  # @card-43.4
   test "customer only sees support threads in their household" do
     thread = SupportThread.create!(household: households(:one), subject: "Visible")
     other_household = Household.create!(name: "Other Household")
@@ -34,6 +36,7 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # @card-43.3
   test "customer can resolve a support thread and it moves to resolved section" do
     thread = SupportThread.create!(household: households(:one), created_by_user: @user, subject: "Need recipe help")
     thread.messages.create!(user: @user, body: "How do I import?")
@@ -55,6 +58,7 @@ class SupportThreadsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "waiting_on_support", thread.reload.status
   end
 
+  # @card-43.1
   test "a blank first message saves neither the thread nor the message" do
     assert_no_difference [ "SupportThread.count", "SupportMessage.count" ] do
       post support_threads_path, params: { support_thread: { subject: "Calendar help", body: "" } }

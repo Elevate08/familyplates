@@ -10,6 +10,7 @@ class AccountDataControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@member)
   end
 
+  # @card-47.1
   test "customer can download a safe household export" do
     get export_account_data_path
 
@@ -21,6 +22,7 @@ class AccountDataControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "calendar_feed_token"
   end
 
+  # @card-47.2
   test "customer can request deletion once" do
     post request_deletion_account_data_path
 
@@ -33,6 +35,7 @@ class AccountDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, @household.account_deletion_requests.count
   end
 
+  # @card-47.2
   test "hosted households are warned that deletion cancels the subscription with no refund" do
     FamilyPlates.config.mode = "hosted"
     # Hosted mode signs in with a user session, not a bare profile cookie.
@@ -53,6 +56,7 @@ class AccountDataControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.mode = @previous_mode
   end
 
+  # @card-47.1
   test "non-admin profiles cannot export household data or request deletion" do
     sign_in_as(family_members(:two))
 

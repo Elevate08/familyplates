@@ -10,6 +10,7 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     sign_in_platform_admin(@admin)
   end
 
+  # @card-47.3
   test "permanent deletion requires exact household-name confirmation" do
     delete platform_admin_deletion_request_path(@deletion_request), params: { confirmation: "wrong" }
 
@@ -24,6 +25,7 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     assert PlatformAuditEvent.exists?(action: "household.permanently_deleted", target_id: @household.id)
   end
 
+  # @card-47.3
   test "permanent deletion succeeds even when Stripe subscription cancellation raises Stripe error" do
     customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
     customer.subscriptions.create!(
@@ -44,6 +46,7 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
   end
 
 
+  # @card-47.3
   test "permanent deletion cancels active subscriptions before removing the household" do
     customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
     customer.subscriptions.create!(name: "default", processor_id: "sub_live_ok", processor_plan: "monthly", status: "active",
@@ -64,6 +67,7 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     Pay::Stripe::Subscription.define_method(:cancel_now!, original)
   end
 
+  # @card-47.3
   test "operator is told which subscriptions still need cancelling in Stripe" do
     customer = @household.set_payment_processor(:stripe, allow_fake: true, processor_id: "cus_del_#{SecureRandom.hex(6)}")
     customer.subscriptions.create!(name: "default", processor_id: "sub_sim_missing_456", processor_plan: "monthly", status: "active",

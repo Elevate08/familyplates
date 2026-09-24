@@ -7,6 +7,7 @@ class CalendarSubscribeTest < ApplicationSystemTestCase
     @member = family_members(:two)
   end
 
+  # @card-40.1 @card-40.2
   test "opens calendar subscription modal and switches tabs on meal planner" do
     sign_in_as(@admin)
     visit meal_plans_path
@@ -33,6 +34,7 @@ class CalendarSubscribeTest < ApplicationSystemTestCase
     click_button "Done"
   end
 
+  # @card-40.3
   test "admin can view calendar subscription feed and regenerate token in settings" do
     sign_in_as(@admin)
     visit edit_admin_calendar_path

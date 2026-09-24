@@ -12,12 +12,14 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_match(/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/, member.id)
   end
 
+  # @card-14.2
   test "validates name presence" do
     member = FamilyMember.new(household: households(:one), name: "")
     assert_not member.valid?
     assert_includes member.errors[:name], "can't be blank"
   end
 
+  # @card-14.3
   test "may belong to a user once per household" do
     user = User.create!(email: "parent@example.com")
     first = family_members(:one)
@@ -35,6 +37,7 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_equal member, FamilyMember.find_by_transfer_id(token)
   end
 
+  # @card-16.5
   test "transfer_to! reassigns profile to another user" do
     user = User.create!(email: "newuser@example.com")
     member = family_members(:two)
@@ -65,6 +68,7 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_not member.verify_pin("9999")
   end
 
+  # @card-17.5
   test "requires pin for admin members" do
     member = FamilyMember.new(household: households(:one), name: "Admin Person", role: "admin", pin: nil)
     assert_not member.valid?

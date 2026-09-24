@@ -7,6 +7,7 @@ class JoinsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /Join a Household/
   end
 
+  # @card-16.4
   test "create with invalid join code renders 422" do
     post join_path, params: { join_code: "INVALID-CODE" }
     assert_response :unprocessable_entity
@@ -22,6 +23,7 @@ class JoinsControllerTest < ActionDispatch::IntegrationTest
     assert_equal household.join_code, session[:pending_join_code]
   end
 
+  # @card-16.4
   test "create with valid join code adds signed-in user as family member" do
     user = User.create!(email: "joining_parent@example.com", password: "password123")
     post session_path, params: { email: user.email, password: "password123" }
@@ -38,6 +40,7 @@ class JoinsControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:active_family_member_id].present?
   end
 
+  # @card-16.4
   test "create with valid join code when already a member selects existing profile" do
     user = User.create!(email: "existing_member@example.com", password: "password123")
     member = family_members(:one)

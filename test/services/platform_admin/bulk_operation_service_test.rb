@@ -89,7 +89,7 @@ module PlatformAdmin
       assert_not @household1.reload.has_operational_tag?("stale")
     end
 
-    # @card-49.8
+    # @card-49.8 @card-42.3
     test "assign_promotion validates active promotion and applies to eligible households" do
       service = BulkOperationService.new(
         operator: @operator,
@@ -104,7 +104,7 @@ module PlatformAdmin
       assert_equal "BULKTEST20", @household1.reload.promotion_code
     end
 
-    # @card-49.7
+    # @card-49.7 @card-42.3
     test "extend_trial extends trial date and rejects paid active subscriptions" do
       original_trial = @household1.trial_ends_at
 

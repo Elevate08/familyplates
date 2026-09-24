@@ -6,6 +6,7 @@ test.describe("Interactive Flow: Pantry & Grocery List", () => {
     await resetDatabase(request);
   });
 
+  // @card-35.2
   test("add new pantry item, flag it as running low, and verify on grocery list", async ({ page }) => {
     await signInAs(page, "Dad", "1234");
     await page.goto("/pantry_items");

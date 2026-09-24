@@ -12,6 +12,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-20.1
   test "forward-auth headers are completely ignored when disabled (default)" do
     assert_not FamilyPlates.config.forward_auth_enabled?
 
@@ -28,6 +29,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-20.6
   test "forward-auth headers are ignored when request comes from untrusted proxy IP" do
     FamilyPlates.config.forward_auth_enabled = true
     FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1", "10.0.0.0/8" ]
@@ -45,6 +47,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-20.6
   test "trusted forward-auth provisions user and establishes session" do
     FamilyPlates.config.forward_auth_enabled = true
     FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
@@ -66,6 +69,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert user.identities.exists?(provider: "forward_auth", uid: "authelia_uid_101")
   end
 
+  # @card-20.2
   test "trusted forward-auth links to existing user without creating duplicate account" do
     existing_user = User.create!(email: "existing_chef@example.com", password: "password123")
     @member.update!(user: existing_user)
@@ -90,6 +94,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert existing_user.identities.exists?(provider: "forward_auth", uid: "authentik_chef")
   end
 
+  # @card-20.7
   test "forward-auth sign out prevents immediate re-authentication until cleared" do
     FamilyPlates.config.forward_auth_enabled = true
     FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
@@ -113,6 +118,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert cookies[:session_token].blank?
   end
 
+  # @card-20.7
   test "forward-auth sign out redirects to proxy logout URL when configured" do
     FamilyPlates.config.forward_auth_enabled = true
     FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]

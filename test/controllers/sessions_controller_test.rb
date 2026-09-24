@@ -25,6 +25,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Signed in successfully.", flash[:notice]
   end
 
+  # @card-15.1
   test "create in appliance mode with invalid password returns generic error and 422" do
     User.create!(email: "parent@example.com", password: "valid-password123")
 
@@ -35,6 +36,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil cookies[:session_token]
   end
 
+  # @card-15.1
   test "create in appliance mode with unknown email returns identical generic error (enumeration-safe)" do
     post session_path, params: { email: "unknown@example.com", password: "any-password" }
 
@@ -43,6 +45,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil cookies[:session_token]
   end
 
+  # @card-15.1
   test "create in appliance mode with passwordless user returns identical generic error" do
     User.create!(email: "nopass@example.com")
 
@@ -53,6 +56,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil cookies[:session_token]
   end
 
+  # @card-15.2
   test "create in appliance mode rate limits after 10 attempts" do
     email = "target@example.com"
     10.times do
@@ -65,6 +69,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Too many sign-in attempts. Please wait a few minutes and try again.", flash[:alert]
   end
 
+  # @card-15.3
   test "hosted mode renders hosted sign-in and sends 6-character code" do
     FamilyPlates.config.mode = "hosted"
     user = User.create!(email: "hosted@example.com")
@@ -84,6 +89,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert magic_code.expires_at > Time.current
   end
 
+  # @card-15.4
   test "hosted mode flow is identical for unknown email (enumeration-safe)" do
     FamilyPlates.config.mode = "hosted"
 
@@ -96,6 +102,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, MagicCode.where(email: "stranger@example.com").count
   end
 
+  # @card-15.5
   test "hosted mode verifies valid magic code, single-use destruction, and creates session" do
     FamilyPlates.config.mode = "hosted"
     user = User.create!(email: "hosted@example.com")
@@ -108,6 +115,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not MagicCode.exists?(magic_code.id)
   end
 
+  # @card-15.5
   test "hosted mode rejects expired or invalid magic code with generic error" do
     FamilyPlates.config.mode = "hosted"
     user = User.create!(email: "hosted@example.com")

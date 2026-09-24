@@ -12,6 +12,7 @@ class SessionTest < ActiveSupport::TestCase
     assert_nil session.expires_at
   end
 
+  # @card-16.1
   test "expires after 30 days of inactivity" do
     user = User.create!(email: "parent@example.com")
     session = user.sessions.create!(token: "token-1", last_active_at: 31.days.ago)
@@ -20,6 +21,7 @@ class SessionTest < ActiveSupport::TestCase
     assert session.idle_expired?
   end
 
+  # @card-16.1
   test "expires after 90 days absolute duration" do
     user = User.create!(email: "parent@example.com")
     session = user.sessions.create!(token: "token-2", created_at: 91.days.ago, last_active_at: 1.hour.ago)
@@ -28,6 +30,7 @@ class SessionTest < ActiveSupport::TestCase
     assert session.absolute_expired?
   end
 
+  # @card-18.2
   test "kiosk sessions do not expire" do
     user = User.create!(email: "parent@example.com")
     session = user.sessions.create!(token: "token-3", kind: "kiosk", created_at: 100.days.ago, last_active_at: 40.days.ago)
@@ -35,6 +38,7 @@ class SessionTest < ActiveSupport::TestCase
     assert_not session.expired?
   end
 
+  # @card-16.2
   test "resume throttles database writes to at most once per hour" do
     user = User.create!(email: "parent@example.com")
     session = user.sessions.create!(token: "token-4", last_active_at: 10.minutes.ago)

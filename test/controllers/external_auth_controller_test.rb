@@ -13,6 +13,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  # @card-20.1
   test "passthru redirects with alert when provider is disabled" do
     post auth_request_path(provider: :google)
 
@@ -41,6 +42,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:alert], "The user denied access"
   end
 
+  # @card-20.4
   test "callback rejects request when state does not match session (CSRF protection)" do
     get auth_callback_path(provider: :google), params: { code: "valid-code", state: "forged-state" }
 
@@ -48,6 +50,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Authentication failed: invalid state.", flash[:alert]
   end
 
+  # @card-20.2
   test "callback logs in and links identity to existing user matching email" do
     FamilyPlates.config.google_auth_enabled = true
     FamilyPlates.config.google_client_id = "test-client-id"
@@ -78,6 +81,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     assert @user.identities.exists?(provider: "google", uid: "google-sub-456")
   end
 
+  # @card-20.3
   test "callback creates new user when email does not exist" do
     FamilyPlates.config.oidc_auth_enabled = true
     FamilyPlates.config.oidc_client_id = "sso-client"
@@ -106,6 +110,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-20.8
   test "Apple POST form_post callback authenticates without CSRF authenticity token" do
     FamilyPlates.config.apple_auth_enabled = true
     FamilyPlates.config.apple_client_id = "com.familyplates.app"
@@ -130,6 +135,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-20.5
   test "connect mode links identity to currently logged in user" do
     sign_in_user
 
@@ -161,6 +167,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     assert @user.identities.exists?(provider: "google", uid: "google-linked-id")
   end
 
+  # @card-20.5
   test "destroy_identity allows disconnect when user has another sign-in method" do
     sign_in_user
 
@@ -174,6 +181,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # @card-20.5
   test "destroy_identity prevents disconnect when it is the user's sole credential" do
     passwordless_user = User.create!(email: "only_google@example.com")
     identity = passwordless_user.identities.create!(provider: "google", uid: "google-sole-id")

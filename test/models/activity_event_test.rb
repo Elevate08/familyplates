@@ -1,6 +1,7 @@
 require "test_helper"
 
 class ActivityEventTest < ActiveSupport::TestCase
+  # @card-45.1
   test "records a meaningful event with household actor and target" do
     household = households(:one)
     actor = family_members(:one)
@@ -22,6 +23,7 @@ class ActivityEventTest < ActiveSupport::TestCase
     assert_equal "Dad created recipe #{recipe.title}", event.human_description
   end
 
+  # @card-45.3
   test "does not require an actor for system events" do
     event = ActivityEvent.track!(
       household: households(:one),
@@ -41,6 +43,7 @@ class ActivityEventTest < ActiveSupport::TestCase
     assert_includes event.errors[:event_type], "can't be blank"
   end
 
+  # @card-45.3
   test "humanizes unknown event verbs without an identity map" do
     event = ActivityEvent.track!(
       household: households(:one),

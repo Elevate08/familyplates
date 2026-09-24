@@ -22,6 +22,7 @@ class PantryItemStockTest < ActiveSupport::TestCase
     end
   end
 
+  # @card-35.4
   test "restocking clears the flag and the shield comes back" do
     @salt.mark_low!
     @salt.mark_restocked!
