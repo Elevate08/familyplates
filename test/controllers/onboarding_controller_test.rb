@@ -43,6 +43,13 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "the icon-only remove-member button says whom it removes" do
+    sign_in_as(family_members(:one))
+    get onboarding_members_url
+
+    assert_select "button[aria-label='Remove #{family_members(:two).name}']"
+  end
+
   test "should add additional family member" do
     member_admin = family_members(:one)
     sign_in_as(member_admin)

@@ -36,8 +36,6 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 const HOUSEHOLD = ["member", "admin"] as Role[];
 const PLATFORM_ADMIN_PAGES = targets.map((t) => t.key).filter((key) => key.startsWith("GET /platform_admin"));
 const KNOWN_AXE_ISSUES = knownIssues(
-  [["admin"], ["GET /onboarding/members"], "axe button-name: the icon-only remove-member button has no name"],
-  [HOUSEHOLD, ["GET /pantry_items"], "axe button-name: the icon-only remove-item buttons have no name"],
   [["guest", "member", "admin"], PLATFORM_ADMIN_PAGES,
     "axe label: platform-admin sign-in email and password fields have no label"],
   [["platform-admin"], ["GET /platform_admin/session/new"],
