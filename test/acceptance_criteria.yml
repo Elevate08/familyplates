@@ -234,8 +234,8 @@ cards:
       "46.2": Operator sign-in needs a password and a current MFA code.
       "46.3": A failed operator sign-in says nothing about which part was wrong and takes as long for an unknown email.
       "46.4": An operator can sign out.
+      "46.5": Operator sign-in stops accepting attempts after 10 tries.
     not_shipped:
-      - Rate limiting on operator sign-in. Household sign-in has it; this does not.
       - New-session or new-device notification, a recovery process, and passkeys.
 
   47:

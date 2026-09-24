@@ -87,6 +87,24 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     password_class.define_method(:create, original)
   end
 
+  # @card-46.5
+  test "sign-in stops accepting attempts after 10 tries, even with the right credentials" do
+    10.times do
+      post platform_admin_session_path, params: { email: @admin.email, password: "wrong", otp_code: "000000" }
+      assert_response :unprocessable_entity
+    end
+
+    post platform_admin_session_path, params: {
+      email: @admin.email,
+      password: "correct horse battery staple",
+      otp_code: PlatformAdminAccount::Totp.code(@admin.otp_secret)
+    }
+
+    assert_redirected_to new_platform_admin_session_path
+    assert_equal "Too many sign-in attempts. Please wait a few minutes and try again.", flash[:alert]
+    assert_not PlatformAdminSession.exists?
+  end
+
   # @card-46.4
   test "authenticated platform admin can sign out" do
     sign_in_platform_admin(@admin)

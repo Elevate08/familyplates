@@ -1,6 +1,11 @@
 module PlatformAdmin
   class SessionsController < BaseController
+    include LoginThrottling
+
     allow_platform_admin_unauthenticated_access only: %i[new create]
+    # MFA does not make guessing free: without a limit, a stolen password
+    # leaves only a 6-digit code between an attacker and every household.
+    throttle_login_attempts only: :create
 
     def new
     end
@@ -36,6 +41,10 @@ module PlatformAdmin
     end
 
     private
+
+    def login_throttled_path
+      new_platform_admin_session_path
+    end
 
     def password_hash_cost
       ActiveModel::SecurePassword.min_cost ? BCrypt::Engine::MIN_COST : BCrypt::Engine.cost
