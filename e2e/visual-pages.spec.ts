@@ -53,16 +53,16 @@ test.describe("Visual Regression: Core Pages", () => {
   test("fridge print view", async ({ page }) => {
     await signInAs(page, "Dad", "1234");
     await page.goto("/");
-    // Click print view link from planner
-    const printLink = page.locator('a[href*="/print"]').first();
-    if (await printLink.isVisible()) {
-      await printLink.click();
-    } else {
-      await page.goto("/meal_plans/1/print");
-    }
-    await preparePageForSnapshot(page);
+    // The planner opens the fridge sheet in a new tab. Register before the
+    // click so even a fast popup is captured, then prepare that document.
+    const printPagePromise = page.waitForEvent("popup");
+    await page.getByRole("link", { name: "Print Week Schedule", exact: true }).click();
+    const printPage = await printPagePromise;
+    await printPage.waitForLoadState("domcontentloaded");
+    await expect(printPage).toHaveURL(/\/meal_plans\/\d+\/print\?/);
+    await preparePageForSnapshot(printPage);
 
-    await expect(page.locator("body")).toBeVisible();
-    await expect(page).toHaveScreenshot("fridge-print-view.png");
+    await expect(printPage.getByRole("heading", { name: "Fridge Print Preview (Weekly Landscape Table)", exact: true })).toBeVisible();
+    await expect(printPage).toHaveScreenshot("fridge-print-view.png");
   });
 });
