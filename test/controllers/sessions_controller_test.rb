@@ -102,6 +102,28 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, MagicCode.where(email: "stranger@example.com").count
   end
 
+  # @card-15.9
+  test "a hosted sign-in code never reaches the log, even at debug level" do
+    FamilyPlates.config.mode = "hosted"
+    User.create!(email: "hosted@example.com")
+    log = StringIO.new
+    # Debug is the level at which Rails would log the whole email.
+    capture = ActiveSupport::Logger.new(log, level: :debug)
+    Rails.logger.broadcast_to(capture)
+
+    perform_enqueued_jobs do
+      post session_path, params: { email: "hosted@example.com" }
+    end
+    code = MagicCode.last.code
+    post verify_session_path, params: { email: "hosted@example.com", code: code }
+
+    assert_redirected_to root_url
+    assert_match "Delivered mail", log.string, "the capture should see the mailer's own log line"
+    assert_no_match code, log.string
+  ensure
+    Rails.logger.stop_broadcasting_to(capture) if capture
+  end
+
   # @card-15.5
   test "hosted mode verifies valid magic code, single-use destruction, and creates session" do
     FamilyPlates.config.mode = "hosted"
