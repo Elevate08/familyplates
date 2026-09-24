@@ -21,6 +21,7 @@ module PlatformAdmin
       )
     end
 
+    # @card-49.5
     test "requires platform admin authentication for all actions" do
       get platform_admin_bulk_operations_url
       assert_redirected_to new_platform_admin_session_path
@@ -69,6 +70,7 @@ module PlatformAdmin
       assert_includes response.body, "Send Service Announcement"
     end
 
+    # @card-49.1
     test "preview validates reason and renders preview statistics and sample households" do
       sign_in_as_operator(@admin)
 
@@ -86,6 +88,7 @@ module PlatformAdmin
       assert_includes response.body, @household1.name
     end
 
+    # @card-49.2
     test "preview rejects empty reason" do
       sign_in_as_operator(@admin)
 
@@ -99,6 +102,7 @@ module PlatformAdmin
       assert_includes response.body, "valid operational reason is required"
     end
 
+    # @card-49.3
     test "create rejects execution when unconfirmed" do
       sign_in_as_operator(@admin)
 
@@ -114,6 +118,7 @@ module PlatformAdmin
       assert_includes response.body, "Bulk operation was not confirmed"
     end
 
+    # @card-49.4
     test "create executes bulk operation and records audit log" do
       sign_in_as_operator(@admin)
 

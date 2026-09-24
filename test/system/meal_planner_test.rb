@@ -52,6 +52,7 @@ class MealPlannerTest < ApplicationSystemTestCase
     assert_no_browser_errors
   end
 
+  # @card-50.2
   test "leftover capacity depletion hides depleted meal from subsequent slots" do
     monday = @plan.week_start_date
     tuesday = monday + 1.day
@@ -100,6 +101,7 @@ class MealPlannerTest < ApplicationSystemTestCase
     end
   end
 
+  # @card-50.3
   test "leftover shelf life expiration hides meal past freshness date" do
     monday = @plan.week_start_date
     tuesday = monday + 1.day

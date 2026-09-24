@@ -100,6 +100,7 @@ class RecipeTest < ActiveSupport::TestCase
     assert_equal 3, recipe.effective_leftover_shelf_life_days
   end
 
+  # @card-50.1
   test "validates leftover capacity between 1 and 10" do
     household = households(:one)
     recipe = household.recipes.build(title: "Soup")
@@ -116,6 +117,7 @@ class RecipeTest < ActiveSupport::TestCase
     assert recipe.valid?
   end
 
+  # @card-50.1
   test "validates leftover shelf life between 1 and 14" do
     household = households(:one)
     recipe = household.recipes.build(title: "Fish Stew")

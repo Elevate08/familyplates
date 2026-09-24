@@ -1,0 +1,38 @@
+# Acceptance criteria for Fizzy cards, and the convention that ties each one to
+# the tests that prove it. bin/coverage-criteria lists every criterion no test
+# is tagged with.
+#
+# Tag a test with the criterion it proves:
+#
+#   Minitest    a comment on the line above the test:   # @card-49.1
+#   Playwright  in the title, or as a tag:              test("... @card-49.1", ...)
+#                                                       test("...", { tag: "@card-49.1" }, ...)
+#
+# One test may carry several tags, and a criterion may be proved by several
+# tests. Criteria are written as what a person can observe, so they survive a
+# refactor that the test names do not.
+#
+# Seeded from the commit messages and tasks/ plans for the cards shipped before
+# this file existed. Cards without criteria here have not been written up yet.
+
+cards:
+  49:
+    title: Guarded bulk operations for platform operators
+    criteria:
+      "49.1": Before anything changes, the operator sees how many households match and how many are eligible.
+      "49.2": An operation will not preview or run without an operational reason.
+      "49.3": An operation will not run until the operator explicitly confirms it.
+      "49.4": Every operation that runs is recorded in the platform audit log.
+      "49.5": Only a signed-in platform operator can reach bulk operations.
+      "49.6": Adding a tag is idempotent, and removing one leaves other households untouched.
+      "49.7": A trial can be extended, but never for a household with an active paid subscription.
+      "49.8": Only an active promotion program can be assigned.
+      "49.9": An announcement reaches each household as a support thread with an operator message.
+
+  50:
+    title: Leftover capacity and shelf life
+    criteria:
+      "50.1": A recipe records how many leftover meals it yields (1 to 10) and how many days they keep (1 to 14).
+      "50.2": Once a dish's leftovers are used up, the planner stops offering it for later slots.
+      "50.3": Leftovers past their shelf life are no longer offered.
+      "50.4": A leftover slot remembers which cooked meal it came from.

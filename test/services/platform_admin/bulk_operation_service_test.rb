@@ -21,6 +21,7 @@ module PlatformAdmin
       )
     end
 
+    # @card-49.1
     test "preview calculates matched and eligible counts for tag operations" do
       @household1.add_operational_tag("beta_tester")
       @household1.save!
@@ -39,6 +40,7 @@ module PlatformAdmin
       assert_operator preview[:ineligible_count], :>=, 1
     end
 
+    # @card-49.6
     test "execute adds tag idempotently to matching households" do
       service = BulkOperationService.new(
         operator: @operator,
@@ -69,6 +71,7 @@ module PlatformAdmin
       assert_equal 1, result2.skipped_count
     end
 
+    # @card-49.6
     test "execute removes tag from matching households" do
       @household1.add_operational_tag("stale")
       @household1.save!
@@ -86,6 +89,7 @@ module PlatformAdmin
       assert_not @household1.reload.has_operational_tag?("stale")
     end
 
+    # @card-49.8
     test "assign_promotion validates active promotion and applies to eligible households" do
       service = BulkOperationService.new(
         operator: @operator,
@@ -100,6 +104,7 @@ module PlatformAdmin
       assert_equal "BULKTEST20", @household1.reload.promotion_code
     end
 
+    # @card-49.7
     test "extend_trial extends trial date and rejects paid active subscriptions" do
       original_trial = @household1.trial_ends_at
 
@@ -117,6 +122,7 @@ module PlatformAdmin
       assert_operator @household1.trial_ends_at, :>, original_trial
     end
 
+    # @card-49.9
     test "send_announcement creates support thread and operator message for households" do
       service = BulkOperationService.new(
         operator: @operator,
@@ -142,6 +148,7 @@ module PlatformAdmin
       assert_equal @operator, thread.messages.first.platform_admin
     end
 
+    # @card-49.2
     test "execute requires a non-blank reason" do
       service = BulkOperationService.new(
         operator: @operator,

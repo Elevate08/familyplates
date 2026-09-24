@@ -273,6 +273,7 @@ class MealPlanSlotsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Not Yours", other_slot.reload.custom_title
   end
 
+  # @card-50.4
   test "should create and update leftover slot with leftover_source_slot_id" do
     source_slot = meal_plan_slots(:one)
     # Inside the recipe's default three-day shelf life, which is now enforced.
