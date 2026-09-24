@@ -7,6 +7,19 @@ class FirstBootOnboardingTest < ActionDispatch::IntegrationTest
   # allow_unauthenticated_access and no inline check would simply have been
   # unguarded. require_installation runs regardless, and this asserts it across
   # the paths a stranger can actually reach on a fresh install.
+  # The first-boot wizard is the one page the Playwright route crawl cannot
+  # reach, because the crawl runs against an installed household.
+  test "the first-boot wizard names every avatar colour swatch" do
+    Household.destroy_all
+
+    get onboarding_family_path
+
+    assert_response :success
+    FamilyMember::AVATAR_COLOR_NAMES.each do |hex, name|
+      assert_select "input[type=radio][value='#{hex}'][aria-label='#{name}']"
+    end
+  end
+
   test "every route outside the wizard sends a fresh install to onboarding" do
     Household.destroy_all
 

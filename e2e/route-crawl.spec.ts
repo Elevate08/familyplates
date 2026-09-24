@@ -36,10 +36,6 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 const HOUSEHOLD = ["member", "admin"] as Role[];
 const PLATFORM_ADMIN_PAGES = targets.map((t) => t.key).filter((key) => key.startsWith("GET /platform_admin"));
 const KNOWN_AXE_ISSUES = knownIssues(
-  [["guest", "platform-admin"], ["GET /signup", "GET /signup/new", "GET /signup/verify"],
-    "axe label: avatar colour swatches have no accessible name"],
-  [["admin"], ["GET /admin/family_members", "GET /admin/family_members/:id/edit", "GET /onboarding/members"],
-    "axe label: avatar colour swatches have no accessible name"],
   [["admin"], ["GET /onboarding/members"], "axe button-name: the icon-only remove-member button has no name"],
   [HOUSEHOLD, ["GET /pantry_items"], "axe button-name: the icon-only remove-item buttons have no name"],
   [["guest", "member", "admin"], PLATFORM_ADMIN_PAGES,

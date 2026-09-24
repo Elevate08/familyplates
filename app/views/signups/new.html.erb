@@ -33,7 +33,7 @@
           <% selected_color = params[:avatar_color].presence || FamilyMember::DEFAULT_COLOR %>
           <% FamilyMember::AVATAR_COLORS.each do |color| %>
             <label class="cursor-pointer">
-              <%= radio_button_tag :avatar_color, color, selected_color == color, class: "sr-only peer" %>
+              <%= radio_button_tag :avatar_color, color, selected_color == color, class: "sr-only peer", aria: { label: FamilyMember::AVATAR_COLOR_NAMES[color] } %>
               <span class="inline-block w-8 h-8 rounded-full shadow-xs peer-checked:ring-4 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-900 peer-checked:ring-slate-900 dark:peer-checked:ring-white peer-checked:scale-110 transition-all"
                     style="background-color: <%= color %>"></span>
             </label>

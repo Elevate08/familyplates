@@ -25,6 +25,12 @@ class FamilyMember < ApplicationRecord
     "#64748B"  # Slate (Graphite)
   ].freeze
 
+  # What a screen reader announces for each swatch, which is otherwise only a
+  # colour. The names match the ones on the preferences page.
+  AVATAR_COLOR_NAMES = AVATAR_COLORS.zip(
+    %w[Carrot Ocean Sage Amber Chili Plum Berry Mint Twilight Olive Sky Graphite]
+  ).to_h.freeze
+
   AVATAR_ICONS = %w[chef-hat utensils heart star smile flame sparkles award].freeze
 
   # Stores only a digest. `pin` is a write-only virtual attribute, so a PIN that

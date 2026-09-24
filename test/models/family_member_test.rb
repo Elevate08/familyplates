@@ -1,6 +1,11 @@
 require "test_helper"
 
 class FamilyMemberTest < ActiveSupport::TestCase
+  test "every avatar colour has a name a screen reader can announce" do
+    assert_equal FamilyMember::AVATAR_COLORS, FamilyMember::AVATAR_COLOR_NAMES.keys
+    assert FamilyMember::AVATAR_COLOR_NAMES.values.all?(&:present?)
+  end
+
   test "assigns a UUID when created" do
     member = FamilyMember.create!(household: households(:one), name: "New Member")
 
