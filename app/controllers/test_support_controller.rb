@@ -33,11 +33,14 @@ class TestSupportController < ActionController::Base
     primary = Household.find_by(name: "Spencer Family") || Household.first
     Household.where.not(id: primary.id).destroy_all if primary
 
-    if defined?(Pay::Subscription)
-      Pay::Subscription.destroy_all
-      Pay::Customer.destroy_all
-      Pay::PaymentMethod.destroy_all if defined?(Pay::PaymentMethod)
-      Pay::Charge.destroy_all if defined?(Pay::Charge)
+    # Children first: a charge points at its subscription and customer, so
+    # clearing subscriptions ahead of charges fails the foreign key the first
+    # time a test really pays.
+    if defined?(Pay::Customer)
+      Pay::Charge.delete_all
+      Pay::PaymentMethod.delete_all
+      Pay::Subscription.delete_all
+      Pay::Customer.delete_all
     end
 
     render json: { status: "ok", mode: FamilyPlates.config.mode }
