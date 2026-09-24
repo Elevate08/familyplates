@@ -158,6 +158,18 @@ jobs:
 
       - name: Run Playwright
         run: bin/e2e
+        # Optional. With STRIPE_TEST_SECRET_KEY set, the real Stripe Checkout
+        # test runs against the sandbox; without it (and on pull requests from
+        # forks, which get no secrets) that one test skips and the rest run.
+        # Test-mode keys only: the suite and the Rails test environment both
+        # refuse to start with a live one.
+        env:
+          ENABLE_REAL_STRIPE_TESTS: ${{ secrets.STRIPE_TEST_SECRET_KEY != '' && 'true' || '' }}
+          STRIPE_PRIVATE_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          STRIPE_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_TEST_MONTHLY_PRICE_ID }}
+          STRIPE_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_TEST_ANNUAL_PRICE_ID }}
 
       # The HTML report carries the trace, video and screenshot diff of every
       # failure, so a red run can be replayed without reproducing it locally.

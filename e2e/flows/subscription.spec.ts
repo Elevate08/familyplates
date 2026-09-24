@@ -64,11 +64,15 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
   // Level 2: Real Stripe Checkout Sandbox Flow
   // Requires STRIPE_PRIVATE_KEY=sk_test_... and ENABLE_REAL_STRIPE_TESTS=true
   // in .env.test.local or environment variables. Gracefully skips when not set.
+  // In CI these come from the optional STRIPE_TEST_* repository secrets, which
+  // pull requests from forks never receive. playwright.config.ts refuses to
+  // start at all with a key that is not a test key.
   // ---------------------------------------------------------------------------
   test("Level 2: real Stripe checkout sandbox redirect and test payment", async ({ page, request }) => {
+    const stripeKey = process.env.STRIPE_PRIVATE_KEY || process.env.STRIPE_SECRET_KEY || "";
     test.skip(
-      !process.env.ENABLE_REAL_STRIPE_TESTS,
-      "Skipped: Set ENABLE_REAL_STRIPE_TESTS=true with test key in .env.test.local to run real Stripe checkout"
+      !process.env.ENABLE_REAL_STRIPE_TESTS || !/^(sk|rk)_test_/.test(stripeKey),
+      "Skipped: Set ENABLE_REAL_STRIPE_TESTS=true with a sk_test_/rk_test_ key in .env.test.local to run real Stripe checkout"
     );
 
     // Reset database into hosted mode

@@ -14,6 +14,18 @@ for (const envFile of [".env.test.local", ".env.local"]) {
   }
 }
 
+// The real-checkout test creates a customer and pays with a test card. Given a
+// live key it would do that to the real Stripe account, so a run with one
+// stops here, before the web server is handed the key. The Rails test
+// environment makes the same check at boot (FamilyPlates::StripeSandbox).
+const STRIPE_SANDBOX_KEY = /^(sk|rk|pk)_test_/;
+for (const name of ["STRIPE_SECRET_KEY", "STRIPE_PRIVATE_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_PUBLIC_KEY"]) {
+  const key = process.env[name];
+  if (key && !STRIPE_SANDBOX_KEY.test(key)) {
+    throw new Error(`${name} is not a Stripe test key (sk_test_, rk_test_ or pk_test_). E2E runs use a Stripe sandbox only.`);
+  }
+}
+
 // Where the browser comes from, in order of preference:
 //
 // 1. PLAYWRIGHT_WS_ENDPOINT - a browser already running in the pinned Playwright
@@ -113,6 +125,7 @@ export default defineConfig({
       STRIPE_PRIVATE_KEY: process.env.STRIPE_PRIVATE_KEY || "",
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
       STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || "",
+      STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY || "",
       STRIPE_SIGNING_SECRET: process.env.STRIPE_SIGNING_SECRET || "",
       STRIPE_MONTHLY_PRICE_ID: process.env.STRIPE_MONTHLY_PRICE_ID || "",
       STRIPE_ANNUAL_PRICE_ID: process.env.STRIPE_ANNUAL_PRICE_ID || ""
