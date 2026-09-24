@@ -214,5 +214,7 @@ Rails.application.routes.draw do
     post "__test/reset", to: "test_support#reset"
     post "__test/sign_in", to: "test_support#sign_in"
     post "__test/set_mode", to: "test_support#set_mode"
+    post "__test/sign_in_platform_admin", to: "test_support#sign_in_platform_admin"
+    post "__test/crawl_records", to: "test_support#crawl_records"
   end
 end
