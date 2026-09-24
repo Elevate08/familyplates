@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
-// What the route crawl (e2e/route-crawl.spec.ts) does with each route the app
+// What the route crawl (e2e/support/route-crawl.ts) does with each route the app
 // answers. A GET route with no parameters is crawled automatically. Anything
 // else must appear below, either with the path to visit or with the reason it
 // is not visited. A route in neither list fails the "every GET route is

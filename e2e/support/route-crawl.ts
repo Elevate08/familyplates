@@ -1,5 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
-import { fastSignIn, resetDatabase, runAxeAudit } from "./support/test-helpers";
+import fs from "node:fs";
+import path from "node:path";
+import { fastSignIn, resetDatabase, runAxeAudit } from "./test-helpers";
 import {
   CrawlRecords,
   PARAMETERISED,
@@ -12,16 +14,20 @@ import {
   loadRoutes,
   routeKey,
   skipReason
-} from "./support/route-catalogue";
+} from "./route-catalogue";
 
-// Visits every page the app routes, as every kind of visitor, in every project,
-// and holds each to the same invariants: no server error, no JavaScript error,
+// Visits every page the app routes, as every kind of visitor, and holds each to
+// the same invariants: no server error, no JavaScript error,
 // nothing same-origin that fails to load, no horizontal scroll on a phone, and
 // no serious axe violation. The page list comes from config/routes.rb (see
 // route-catalogue.ts), so a new page is covered the day it is added.
 //
 // A redirect is not a failure: a guest sent to the profile picker is the app
 // working. The invariants are checked against wherever the visit ends up.
+//
+// Each role's crawl is its own spec file under e2e/crawl/, because a file is
+// what Playwright hands to a worker: one file would keep the whole crawl on
+// one worker however many run.
 
 const routes = loadRoutes();
 const targets = crawlTargets(routes);
@@ -58,7 +64,7 @@ function knownIssues(...groups: [Role[], string[], string][]): Record<string, st
   return issues;
 }
 
-test.describe("route crawl: every GET route is classified", () => {
+export function checkEveryRouteIsClassified() {
   test("each GET route is crawled or skipped with a reason", async ({}, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-light", "The route list is the same in every project");
 
@@ -79,10 +85,13 @@ test.describe("route crawl: every GET route is classified", () => {
       (key) => !known.has(key)
     );
     expect(stale, "These catalogue entries name routes that no longer exist").toEqual([]);
-  });
-});
 
-for (const role of ROLES) {
+    const uncrawled = ROLES.filter((role) => !fs.existsSync(path.join(__dirname, "..", "crawl", `${role}.spec.ts`)));
+    expect(uncrawled, "Each role needs e2e/crawl/<role>.spec.ts calling crawlAs(role)").toEqual([]);
+  });
+}
+
+export function crawlAs(role: Role) {
   test.describe(`route crawl as ${role}`, () => {
     let records: CrawlRecords;
 

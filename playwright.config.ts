@@ -41,6 +41,18 @@ for (const name of ["STRIPE_SECRET_KEY", "STRIPE_PRIVATE_KEY", "STRIPE_PUBLISHAB
 const wsEndpoint = process.env.PLAYWRIGHT_WS_ENDPOINT;
 const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 
+// Workers run side by side, each against its own Rails server and SQLite file:
+// a test resets the database and sets the server's mode and clock, so two
+// workers sharing one would undo each other mid-test. Worker N (Playwright's
+// parallel index, stable for the life of the run) talks to port 3100 + N.
+//
+// This file is evaluated again inside each worker, where Playwright has set
+// TEST_PARALLEL_INDEX, which is how baseURL below picks the worker's server.
+const WORKERS = Number(process.env.E2E_WORKERS || 4);
+const FIRST_PORT = 3100;
+const serverPort = (index: number) => FIRST_PORT + index;
+const parallelIndex = Number(process.env.TEST_PARALLEL_INDEX ?? 0);
+
 export default defineConfig({
   testDir: "./e2e",
   snapshotPathTemplate: "{testDir}/snapshots/{projectName}/{testFilePath}/{arg}{ext}",
@@ -51,13 +63,16 @@ export default defineConfig({
       animations: "disabled"
     }
   },
+  // A file runs start to finish in one worker, so a spec's beforeAll reset
+  // holds for its tests. The route crawl is split into a file per role
+  // (e2e/crawl/) so its visits spread across the workers.
   fullyParallel: false,
-  workers: 1, // Single worker ensures deterministic database resets against the local SQLite database
+  workers: WORKERS,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
 
   use: {
-    baseURL: "http://127.0.0.1:3100",
+    baseURL: `http://127.0.0.1:${serverPort(parallelIndex)}`,
     // Kept for every failure, not only a retried one, so a CI failure can be
     // replayed from the uploaded report without reproducing it locally.
     trace: "retain-on-failure",
@@ -97,7 +112,7 @@ export default defineConfig({
       // from the same code in either colour scheme, and axe runs on
       // desktop-light only, so crawling again in dark repeated a quarter of the
       // run to learn nothing new. Dark is still held to its screenshots and flows.
-      testIgnore: /route-crawl\.spec\.ts/,
+      testIgnore: /crawl\//,
       use: {
         viewport: { width: 1400, height: 900 },
         colorScheme: "dark"
@@ -114,18 +129,20 @@ export default defineConfig({
     }
   ],
 
-  // Its own database file: resets and sign-ins leave rows in tables that have no
-  // fixtures (sessions, platform-admin accounts), and in storage/test.sqlite3
-  // those broke Minitest runs that count them. db:prepare builds the file on a
-  // fresh checkout and migrates it after a pull.
-  webServer: {
-    command: "bin/rails db:prepare && bin/rails server -p 3100",
-    url: "http://127.0.0.1:3100/up",
+  // Each worker's server has its own database file: resets and sign-ins leave
+  // rows in tables that have no fixtures (sessions, platform-admin accounts),
+  // and in storage/test.sqlite3 those broke Minitest runs that count them.
+  // db:prepare builds the file on a fresh checkout and migrates it after a
+  // pull. Each server also needs its own pid file, or the second refuses to
+  // start while the first holds tmp/pids/server.pid.
+  webServer: Array.from({ length: WORKERS }, (_, index) => ({
+    command: `bin/rails db:prepare && bin/rails server -p ${serverPort(index)} -P tmp/pids/e2e-${index}.pid`,
+    url: `http://127.0.0.1:${serverPort(index)}/up`,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
     env: {
       RAILS_ENV: "test",
-      TEST_DATABASE_PATH: "storage/e2e.sqlite3",
+      TEST_DATABASE_PATH: `storage/e2e-${index}.sqlite3`,
       ENABLE_REAL_STRIPE_TESTS: process.env.ENABLE_REAL_STRIPE_TESTS || "",
       STRIPE_PRIVATE_KEY: process.env.STRIPE_PRIVATE_KEY || "",
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
@@ -135,5 +152,5 @@ export default defineConfig({
       STRIPE_MONTHLY_PRICE_ID: process.env.STRIPE_MONTHLY_PRICE_ID || "",
       STRIPE_ANNUAL_PRICE_ID: process.env.STRIPE_ANNUAL_PRICE_ID || ""
     }
-  }
+  }))
 });

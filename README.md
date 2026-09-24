@@ -107,6 +107,12 @@ render identically on every machine. Arguments pass through to `playwright test`
 `E2E_BROWSER=local bin/e2e` uses a local Chromium (`PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium`
 for a system one): flows are checked, but screenshot diffs there are not meaningful.
 
+**Four workers by default** (`E2E_WORKERS=2 bin/e2e` for fewer). Each worker has its own
+Rails server on port 3100 + N and its own `storage/e2e-N.sqlite3`, because a test resets the
+database and sets the server's mode and clock. Playwright hands out whole spec files, so a
+long spec keeps one worker busy: the route crawl is one file per role in `e2e/crawl/` for
+that reason.
+
 **Screenshot baselines** live in `e2e/snapshots/` and are only ever recorded with
 `bin/e2e-update-snapshots`, which uses the same container. On Omarchy, where users are not in the
 `docker` group by default, both scripts ask for your sudo password once at the start and elevate only
