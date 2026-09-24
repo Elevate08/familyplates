@@ -33,10 +33,8 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 // in) so the rest of the crawl stays green and gating. The other projects
 // still hold these pages to every other invariant. Each entry says what is
 // wrong; remove it with the fix.
-const HOUSEHOLD = ["member", "admin"] as Role[];
 const KNOWN_AXE_ISSUES = knownIssues(
-  [HOUSEHOLD, ["GET /grocery_list", "GET /grocery_list/:meal_plan_id"],
-    "axe label: disabled grocery checkboxes have no label"]
+  // [["member", "admin"], ["GET /pantry_items"], "axe button-name: the remove buttons have no name"],
 );
 
 function knownIssues(...groups: [Role[], string[], string][]): Record<string, string> {
