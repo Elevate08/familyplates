@@ -35,8 +35,6 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 // wrong; remove it with the fix.
 const HOUSEHOLD = ["member", "admin"] as Role[];
 const KNOWN_AXE_ISSUES = knownIssues(
-  [HOUSEHOLD, ["GET /recipes/new"], "axe select-name: the ingredient aisle select has no label"],
-  [["admin"], ["GET /recipes/:id/edit"], "axe select-name: the ingredient aisle select has no label"],
   [HOUSEHOLD, ["GET /grocery_list", "GET /grocery_list/:meal_plan_id"],
     "axe label: disabled grocery checkboxes have no label"]
 );

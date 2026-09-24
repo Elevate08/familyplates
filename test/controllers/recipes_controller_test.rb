@@ -64,6 +64,18 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # The visible labels are hidden on desktop, where column headings replace
+  # them, so each field has to carry its own name.
+  test "every ingredient row field is named at every width" do
+    get new_recipe_url
+
+    assert_select "select[name$='[aisle_category]']:not([aria-label='Grocery Aisle'])", count: 0
+    %w[quantity unit name].zip([ "Quantity", "Measurement", "Ingredient Name" ]).each do |field, name|
+      assert_select "input[name$='[#{field}]'][name^='recipe[recipe_ingredients_attributes]']:not([aria-label='#{name}'])", count: 0
+    end
+    assert_select "select[name$='[aisle_category]']", minimum: 1
+  end
+
   test "should create recipe" do
     assert_difference([ "Recipe.count", "ActivityEvent.where(event_type: 'recipe.created').count" ], 1) do
       post recipes_url, params: {

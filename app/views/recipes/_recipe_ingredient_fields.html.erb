@@ -12,9 +12,12 @@
   <% end %>
 
   <div class="w-full sm:w-24 shrink-0">
+    <%# The labels are hidden from sm: up, where the column headings take over, and
+        a display:none label names nothing. aria-label keeps each field named. %>
     <%= f.label :quantity, "Quantity", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :quantity, value: (f.object.quantity.present? ? f.object.display_quantity : nil),
           placeholder: "Qty (1)",
+          aria: { label: "Quantity" },
           class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold" %>
   </div>
 
@@ -22,6 +25,7 @@
     <%= f.label :unit, "Measurement", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :unit, 
           placeholder: "Unit (cups, count)",
+          aria: { label: "Measurement" },
           data: { 
             "ingredient-autofill-target": "unitInput",
             action: "input->ingredient-autofill#onUnitInput focus->ingredient-autofill#onUnitFocus keydown->ingredient-autofill#onUnitKeydown"
@@ -53,6 +57,7 @@
     <%= f.label :name, "Ingredient Name", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.text_field :name, 
           placeholder: "Ingredient name (e.g. Chicken Breast, Garlic)",
+          aria: { label: "Ingredient Name" },
           data: { 
             "ingredient-autofill-target": "nameInput",
             action: "input->ingredient-autofill#onNameInput focus->ingredient-autofill#onNameFocus keydown->ingredient-autofill#onNameKeydown"
@@ -83,6 +88,7 @@
   <div class="w-full sm:w-44 shrink-0">
     <%= f.label :aisle_category, "Grocery Aisle", class: "block sm:hidden text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5" %>
     <%= f.select :aisle_category, RecipeIngredient::AISLE_CATEGORIES.map { |c| [c, c] }, {},
+          aria: { label: "Grocery Aisle" },
           data: { "ingredient-autofill-target": "aisleSelect" },
           class: "themed-select w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold cursor-pointer" %>
   </div>
