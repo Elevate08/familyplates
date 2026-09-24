@@ -91,6 +91,14 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
 
     // Verify Stripe checkout page loaded the plan and price correctly
     await expect(page.locator("body")).toContainText("FamilyPlates Annual Plan");
+
+    // Adaptive Pricing shows the price in the currency of the visitor's IP, and
+    // CI runners geolocate abroad (a run was priced in CLP). Switch back to USD
+    // so the assertion checks the configured price, not a conversion.
+    const chooseCurrency = page.getByRole("group", { name: "Choose currency" });
+    if (await chooseCurrency.isVisible()) {
+      await chooseCurrency.getByRole("button", { name: /USD/ }).click();
+    }
     await expect(page.locator("body")).toContainText("$35.00");
 
     // Fill standard Stripe test credentials if Stripe elements are present

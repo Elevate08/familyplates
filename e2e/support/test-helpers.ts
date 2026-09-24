@@ -35,6 +35,23 @@ export async function preparePageForSnapshot(page: Page) {
   // 3. Ensure all fonts and DOM assets are fully painted
   await page.evaluate(() => document.fonts.ready);
   await page.waitForLoadState("domcontentloaded");
+
+  // 4. Wait for every image. Recipe cards lazy-load a remote photo, and a
+  //    screenshot taken before it arrives shows a blank card (a CI run
+  //    differed on 24% of the recipes page that way). Loading them eagerly
+  //    also covers cards below the fold of a full-page shot.
+  await page.evaluate(async () => {
+    await Promise.all(
+      Array.from(document.images).map((img) => {
+        img.loading = "eager";
+        if (img.complete) return;
+        return new Promise((resolve) => {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+        });
+      })
+    );
+  });
 }
 
 /**
