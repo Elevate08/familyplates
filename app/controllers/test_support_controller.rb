@@ -1,10 +1,24 @@
+require "active_support/testing/time_helpers"
+
 class TestSupportController < ActionController::Base
+  # The Playwright suite freezes the browser clock, but fixtures and pages are
+  # built from the server's clock. Left running, the week on screen - and the
+  # "cook tonight" banner - moved with the real date, and the baselines went
+  # stale within days of being recorded. The server is frozen at the same moment.
+  #
+  # TimeHelpers keeps its stubs on the object that set them, and every request
+  # gets a new controller, so one long-lived object owns the clock.
+  CLOCK = Object.new.extend(ActiveSupport::Testing::TimeHelpers)
+
   skip_forgery_protection
 
   before_action :ensure_test_environment
 
   def reset
     FamilyPlates.config.mode = params[:mode] || "appliance"
+
+    CLOCK.travel_back
+    CLOCK.travel_to(Time.iso8601(params[:now])) if params[:now].present?
 
     ActiveRecord::FixtureSet.reset_cache
     ActiveRecord::FixtureSet.create_fixtures(

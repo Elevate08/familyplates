@@ -4,10 +4,12 @@ import AxeBuilder from "@axe-core/playwright";
 export const FROZEN_TEST_TIME = "2026-09-22T12:00:00.000Z";
 
 /**
- * Resets the SQLite test database back to pristine test fixtures.
+ * Resets the SQLite test database back to pristine test fixtures, with the
+ * server clock frozen at FROZEN_TEST_TIME so fixture dates and rendered pages
+ * match the frozen browser clock whatever day the suite runs on.
  */
-export async function resetDatabase(request: APIRequestContext) {
-  const response = await request.post("/__test/reset");
+export async function resetDatabase(request: APIRequestContext, { mode = "appliance" } = {}) {
+  const response = await request.post("/__test/reset", { data: { mode, now: FROZEN_TEST_TIME } });
   expect(response.ok()).toBeTruthy();
 }
 

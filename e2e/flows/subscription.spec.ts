@@ -11,7 +11,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     request
   }) => {
     // Reset database into hosted mode
-    await request.post("/__test/reset", { data: { mode: "hosted" } });
+    await resetDatabase(request, { mode: "hosted" });
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
@@ -72,7 +72,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     );
 
     // Reset database into hosted mode
-    await request.post("/__test/reset", { data: { mode: "hosted" } });
+    await resetDatabase(request, { mode: "hosted" });
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
