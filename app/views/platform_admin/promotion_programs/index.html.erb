@@ -14,8 +14,8 @@
       <%= form.text_field :code, placeholder: "Customer-facing code", required: true, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
       <%= form.number_field :discount_percent, placeholder: "Discount %", min: 1, max: 100, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
       <%= form.text_field :provider_promotion_code_id, placeholder: "Stripe promotion-code ID", class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
-      <%= form.datetime_local_field :starts_at, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
-      <%= form.datetime_local_field :ends_at, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
+      <%= form.datetime_local_field :starts_at, aria: { label: "Starts at" }, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
+      <%= form.datetime_local_field :ends_at, aria: { label: "Ends at" }, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
       <%= form.number_field :max_redemptions, placeholder: "Max redemptions", min: 1, class: "rounded-xl border border-slate-300 px-3.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" %>
       <%= form.submit "Create program", class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 cursor-pointer transition-colors" %>
     <% end %>

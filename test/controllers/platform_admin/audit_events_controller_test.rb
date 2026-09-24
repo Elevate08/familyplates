@@ -11,6 +11,13 @@ class PlatformAdmin::AuditEventsControllerTest < ActionDispatch::IntegrationTest
     PlatformAuditEvent.record!(action: "household.viewed", actor: @admin, target: households(:one))
   end
 
+  test "the audit log filters have accessible names" do
+    get platform_admin_audit_events_path
+
+    assert_select "select#action_name[aria-label='Action']"
+    assert_select "select#admin_id[aria-label='Operator']"
+  end
+
   test "operator can inspect the recent audit log" do
     get platform_admin_audit_events_path
 

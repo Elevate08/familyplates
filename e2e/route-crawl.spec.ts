@@ -35,8 +35,6 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 // wrong; remove it with the fix.
 const HOUSEHOLD = ["member", "admin"] as Role[];
 const KNOWN_AXE_ISSUES = knownIssues(
-  [["platform-admin"], ["GET /platform_admin/audit_events", "GET /platform_admin/households", "GET /platform_admin/promotion_programs"],
-    "axe label/select-name: platform-admin filter selects and promotion date fields have no label"],
   [HOUSEHOLD, ["GET /recipes/new"], "axe select-name: the ingredient aisle select has no label"],
   [["admin"], ["GET /recipes/:id/edit"], "axe select-name: the ingredient aisle select has no label"],
   [HOUSEHOLD, ["GET /grocery_list", "GET /grocery_list/:meal_plan_id"],

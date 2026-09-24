@@ -20,6 +20,12 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  test "the status filter has an accessible name" do
+    get platform_admin_households_path
+
+    assert_select "select#status[aria-label='Status']"
+  end
+
   test "lists household metadata and lifecycle info" do
     get platform_admin_households_path
 

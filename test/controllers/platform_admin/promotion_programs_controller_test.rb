@@ -6,6 +6,13 @@ class PlatformAdmin::PromotionProgramsControllerTest < ActionDispatch::Integrati
     sign_in_platform_admin(@admin)
   end
 
+  test "the program date fields have accessible names" do
+    get platform_admin_promotion_programs_path
+
+    assert_select "input#promotion_program_starts_at[aria-label='Starts at']"
+    assert_select "input#promotion_program_ends_at[aria-label='Ends at']"
+  end
+
   test "operator can create and deactivate a promotion program" do
     post platform_admin_promotion_programs_path, params: { promotion_program: { name: "Launch", code: "launch", discount_percent: 20 } }
     assert_redirected_to platform_admin_promotion_programs_path

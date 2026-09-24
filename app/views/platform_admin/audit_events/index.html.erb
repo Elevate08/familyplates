@@ -48,12 +48,14 @@
           <div>
             <%= f.select :action_name, options_for_select([["All Specific Actions", ""]] + @available_actions.map { |a| [a.tr(".", " ").humanize, a] }, @action_name),
                   {},
+                  aria: { label: "Action" },
                   class: "w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
           </div>
 
           <div>
             <%= f.select :admin_id, options_for_select([["All Operators", ""]] + @platform_admins.map { |adm| [adm.email, adm.id] }, @admin_id),
                   {},
+                  aria: { label: "Operator" },
                   class: "w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" %>
           </div>
 
