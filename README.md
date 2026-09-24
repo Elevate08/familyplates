@@ -111,7 +111,9 @@ for a system one): flows are checked, but screenshot diffs there are not meaning
 Rails server on port 3100 + N and its own `storage/e2e-N.sqlite3`, because a test resets the
 database and sets the server's mode and clock. Playwright hands out whole spec files, so a
 long spec keeps one worker busy: the route crawl is one file per role in `e2e/crawl/` for
-that reason.
+that reason. CI runs one worker per runner, since a single worker's Chromium fills a 4-CPU
+runner, and splits the suite across three runners instead (`--shard`). The `e2e` check passes
+only when every shard does.
 
 **Screenshot baselines** live in `e2e/snapshots/` and are only ever recorded with
 `bin/e2e-update-snapshots`, which uses the same container. On Omarchy, where users are not in the

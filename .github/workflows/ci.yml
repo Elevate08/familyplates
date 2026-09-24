@@ -152,9 +152,19 @@ jobs:
   # bin/e2e runs the browser in the pinned Playwright container, the same one
   # bin/e2e-update-snapshots records baselines in, so a screenshot diff here
   # means the page changed rather than that the runner's fonts differ.
-  e2e:
+  # Playwright is split across three runners. A runner has four CPUs and one
+  # worker's Chromium already fills them, so more workers on one machine only
+  # take turns; more machines divide the run. The crawl is one spec file per
+  # role (e2e/crawl/) so the shards come out even.
+  e2e_shard:
+    name: e2e shard ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      # Every shard runs to the end, so one red run shows every failure.
+      fail-fast: false
+      matrix:
+        shard: [ 1, 2, 3 ]
 
     steps:
       - name: Install packages
@@ -180,7 +190,7 @@ jobs:
         run: npm ci
 
       - name: Run Playwright
-        run: bin/e2e
+        run: bin/e2e --shard=${{ matrix.shard }}/3
         # Optional. With STRIPE_TEST_SECRET_KEY set, the real Stripe Checkout
         # test runs against the sandbox; without it (and on pull requests from
         # forks, which get no secrets) that one test skips and the rest run.
@@ -202,7 +212,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report
           retention-days: 14
           if-no-files-found: ignore
@@ -211,10 +221,27 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.shard }}
           path: |
             test-results
             log/e2e-browser-server.log
             log/test.log
           retention-days: 14
           if-no-files-found: ignore
+
+  # The check branch protection requires, under the one name it has always had
+  # however many shards run. It must run even when a shard fails: GitHub counts
+  # a skipped required check as passed, so a gate skipped by a red shard would
+  # let the pull request merge.
+  e2e:
+    needs: e2e_shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every Playwright shard passed
+        env:
+          SHARDS: ${{ needs.e2e_shard.result }}
+        run: |
+          echo "Playwright shards: $SHARDS"
+          test "$SHARDS" = success
