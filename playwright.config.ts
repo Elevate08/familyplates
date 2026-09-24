@@ -14,6 +14,21 @@ for (const envFile of [".env.test.local", ".env.local"]) {
   }
 }
 
+// Where the browser comes from, in order of preference:
+//
+// 1. PLAYWRIGHT_WS_ENDPOINT - a browser already running in the pinned Playwright
+//    container (bin/e2e starts one). This is what CI uses and what the committed
+//    screenshot baselines are recorded against; see bin/e2e-browser-server.
+// 2. PLAYWRIGHT_CHROMIUM_PATH - a system Chromium, e.g. /usr/bin/chromium on
+//    Arch where Playwright's bundled build has no matching libraries.
+// 3. Playwright's bundled Chromium (`npx playwright install chromium`).
+//
+// Only (1) is expected to match the baselines. The other two render with
+// whatever fonts the machine has, so they are for debugging flows, not for
+// judging a screenshot diff.
+const wsEndpoint = process.env.PLAYWRIGHT_WS_ENDPOINT;
+const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+
 export default defineConfig({
   testDir: "./e2e",
   snapshotPathTemplate: "{testDir}/snapshots/{projectName}/{testFilePath}/{arg}{ext}",
@@ -31,10 +46,21 @@ export default defineConfig({
 
   use: {
     baseURL: "http://127.0.0.1:3100",
-    trace: "on-first-retry",
+    // Kept for every failure, not only a retried one, so a CI failure can be
+    // replayed from the uploaded report without reproducing it locally.
+    trace: "retain-on-failure",
+    // Recording needs Playwright's own ffmpeg, which the container and a
+    // `playwright install chromium` both have and a system Chromium does not.
+    video: chromiumPath ? "off" : "retain-on-failure",
     screenshot: "only-on-failure",
+    // exposeNetwork sends the container's requests for 127.0.0.1 back through
+    // this process, so the browser reaches the Rails server without the
+    // container sharing the host's network.
+    ...(wsEndpoint ? { connectOptions: { wsEndpoint, exposeNetwork: "<loopback>" } } : {}),
+    // Apply to a local browser only: a remote browser server does not take
+    // Chromium args from its clients. The container needs none to be consistent.
     launchOptions: {
-      executablePath: "/usr/bin/chromium",
+      ...(chromiumPath ? { executablePath: chromiumPath } : {}),
       args: [
         "--no-sandbox",
         "--disable-dev-shm-usage",

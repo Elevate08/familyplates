@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Runs the Playwright browser in the official Playwright container and serves it
+# on ws://127.0.0.1:$PLAYWRIGHT_SERVER_PORT/. The test runner and Rails stay on
+# the host; only the browser moves into the container.
+#
+# Screenshot baselines are compared pixel for pixel, and the pixels depend on
+# the browser build and on the fonts installed next to it. An Arch laptop and an
+# ubuntu CI runner disagree on both, so baselines made on one fail on the other.
+# Pinning the browser to one image makes the rendering the same everywhere that
+# can run Docker, without having to install Ruby into the Playwright image.
+#
+# The image tag is read from the installed @playwright/test, so the browser and
+# the client protocol cannot drift apart. The port is published on the host's
+# loopback only. The browser reaches the Rails server on 127.0.0.1 through the
+# client (exposeNetwork in playwright.config.ts), not through the Docker network.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+port="${PLAYWRIGHT_SERVER_PORT:-3300}"
+version="$(node -p 'require("@playwright/test/package.json").version')"
+image="mcr.microsoft.com/playwright:v${version}-noble"
+
+# The host's playwright-core is mounted read-only rather than fetched with npx,
+# so the server is exactly the version in package-lock.json.
+#
+# The server does not accept Chromium args from the client, so the font flags in
+# playwright.config.ts apply only to a local browser. The container needs none:
+# it renders the same way on every machine that runs it.
+exec docker run --rm --init \
+  --name "familyplates-e2e-browser-${port}" \
+  --user pwuser \
+  --publish "127.0.0.1:${port}:${port}" \
+  --volume "$PWD/node_modules:/e2e/node_modules:ro" \
+  "$image" \
+  node /e2e/node_modules/playwright-core/cli.js run-server --host 0.0.0.0 --port "$port"

@@ -9,9 +9,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "playwright test",
-    "test:e2e": "playwright test",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test": "bin/e2e",
+    "test:e2e": "bin/e2e",
+    "test:e2e:update": "bin/e2e-update-snapshots"
   },
   "repository": {
     "type": "git",

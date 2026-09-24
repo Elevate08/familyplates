@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Re-records the Playwright screenshot baselines in the pinned browser container,
+# the same one CI compares against. Arguments narrow the run like bin/e2e's:
+#
+#   bin/e2e-update-snapshots
+#   bin/e2e-update-snapshots e2e/visual-pages.spec.ts
+#
+# Review the changed PNGs before committing them: an update accepts whatever
+# the page looks like now, including a regression.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# A baseline recorded by a local Chromium passes on that machine and fails in
+# CI, which then reads as a regression in whichever commit touches the page next.
+if [ "${E2E_BROWSER:-container}" = "local" ]; then
+  echo "bin/e2e-update-snapshots: baselines must come from the container CI uses," >&2
+  echo "not a local browser. Unset E2E_BROWSER and start Docker." >&2
+  exit 1
+fi
+
+exec bin/e2e --update-snapshots "$@"
