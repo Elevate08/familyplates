@@ -1,5 +1,6 @@
 import { defineConfig } from "@playwright/test";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 // Load local environment files if present
@@ -48,7 +49,14 @@ const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 //
 // This file is evaluated again inside each worker, where Playwright has set
 // TEST_PARALLEL_INDEX, which is how baseURL below picks the worker's server.
-const WORKERS = Number(process.env.E2E_WORKERS || 4);
+//
+// One worker per four CPUs. A single worker's Chromium already keeps about
+// four busy - it renders across several processes and threads - so more
+// workers only take turns: on four CPUs the crawl took 167s with one worker
+// and 157-166s with two to four, each test several times slower. GitHub's
+// 4-CPU runner therefore runs one; a 16-core machine runs four, 2.2x faster.
+// availableParallelism honours CPU affinity, so a pinned run is sized right.
+const WORKERS = Number(process.env.E2E_WORKERS || Math.max(1, Math.floor(os.availableParallelism() / 4)));
 const FIRST_PORT = 3100;
 const serverPort = (index: number) => FIRST_PORT + index;
 const parallelIndex = Number(process.env.TEST_PARALLEL_INDEX ?? 0);

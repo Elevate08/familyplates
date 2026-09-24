@@ -110,13 +110,16 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
 
     // Checkout lists its payment methods closed. The Card radio sits under a
     // zero-size accordion button whose cover takes the pointer, so it is
-    // checked directly rather than clicked.
-    await page.locator("#payment-method-accordion-item-title-card").check({ force: true });
-
-    // These must appear: a Checkout page without them has changed shape, and
-    // the test should fail rather than skip the payment it is named for.
+    // checked directly rather than clicked. A click that lands before Stripe's
+    // page has hydrated is ignored, so the choice is retried until the card
+    // fields open. They must open: a Checkout page without them has changed
+    // shape, and the test should fail rather than skip the payment it is
+    // named for.
     const cardNumber = page.locator("#cardNumber");
-    await expect(cardNumber).toBeVisible();
+    await expect(async () => {
+      await page.locator("#payment-method-accordion-item-title-card").check({ force: true, timeout: 2_000 });
+      await expect(cardNumber).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
     await cardNumber.fill("4242 4242 4242 4242");
     await page.locator("#cardExpiry").fill("12 / 34");
     await page.locator("#cardCvc").fill("123");
