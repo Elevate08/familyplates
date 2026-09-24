@@ -150,6 +150,17 @@ Point `CHROME_BIN` at your browser if it is not the default:
 CHROME_BIN=/usr/bin/chromium bin/rails test:system
 ```
 
+The Playwright suite runs through `bin/e2e`, with the browser in the pinned
+Playwright Docker image so screenshots match CI. It also crawls every page as
+every kind of visitor. See the Testing section of the [README](../README.md)
+for running it without Docker, re-recording screenshots, and what a new route
+needs.
+
+```bash
+bin/e2e                 # Playwright, needs Docker
+bin/ci                  # everything CI runs
+```
+
 
 ---
 
@@ -182,8 +193,10 @@ Visit [`http://localhost:3000`](http://localhost:3000) in your browser.
 
 ### 3. Running Automated Tests
 ```bash
-bundle exec rails test
+bin/rails test
 ```
+
+See [Running the tests](#running-the-tests) for the browser suites.
 
 ---
 
