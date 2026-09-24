@@ -124,6 +124,7 @@ cards:
       "23.7": Only signed Stripe webhooks change a household's access, and each Stripe status maps to a defined access state.
       "23.8": Charges are recorded as paid, failed, pending, refunded or disputed from Stripe's events.
       "23.9": The subscription page shows the plans and their prices.
+      "23.10": Returning from Stripe Checkout activates the kitchen at once, without waiting for the webhook.
 
   25:
     title: CSP allows the Google OAuth and Stripe Checkout form posts

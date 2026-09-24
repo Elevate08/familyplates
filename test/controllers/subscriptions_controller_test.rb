@@ -37,6 +37,47 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button, input[type=submit]", text: /Subscribe/i
   end
 
+  # @card-23.10
+  test "returning from Stripe Checkout syncs the session Pay named in the return URL" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    synced = []
+    original = Pay::Stripe.method(:sync_checkout_session)
+    # Stands in for Stripe: what a completed Checkout leaves behind once synced.
+    Pay::Stripe.define_singleton_method(:sync_checkout_session) do |session_id, **|
+      synced << session_id
+      household.set_payment_processor :fake_processor, allow_fake: true
+      household.payment_processor.subscriptions.create!(
+        name: "default", processor_id: "sub_returned", processor_plan: "annual",
+        status: "active", current_period_start: Time.current, current_period_end: 1.year.from_now
+      )
+    end
+
+    # Pay appends stripe_checkout_session_id={CHECKOUT_SESSION_ID} to the
+    # success_url; this is the request Stripe sends the customer back with.
+    get subscription_path(success: true, stripe_checkout_session_id: "cs_test_returned")
+
+    assert_equal [ "cs_test_returned" ], synced
+    assert household.reload.active_subscription?
+    assert_match "Thank you for subscribing", flash[:notice]
+  ensure
+    Pay::Stripe.define_singleton_method(:sync_checkout_session, original)
+  end
+
+  # @card-23.10
+  test "a return whose session does not subscribe this household claims nothing" do
+    FamilyPlates.config.mode = "hosted"
+    original = Pay::Stripe.method(:sync_checkout_session)
+    Pay::Stripe.define_singleton_method(:sync_checkout_session) { |*, **| nil }
+
+    get subscription_path(success: true, stripe_checkout_session_id: "cs_test_someone_else")
+
+    assert_response :success
+    assert_no_match "Thank you for subscribing", flash[:notice].to_s
+  ensure
+    Pay::Stripe.define_singleton_method(:sync_checkout_session, original)
+  end
+
   # @card-23.4
   test "create in hosted mode subscribes to plan" do
     FamilyPlates.config.mode = "hosted"

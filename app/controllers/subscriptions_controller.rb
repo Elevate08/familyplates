@@ -9,16 +9,8 @@ class SubscriptionsController < ApplicationController
       redirect_to root_path, notice: "Subscriptions are only enabled in hosted mode." and return
     end
 
-    if params[:session_id].present? && defined?(Pay::Stripe::Subscription)
-      begin
-        Pay::Stripe::Subscription.sync_from_checkout_session(params[:session_id])
-        flash.now[:notice] = "Thank you for subscribing! Your kitchen is now fully activated. 🎉"
-      rescue StandardError => e
-        Rails.logger.warn("Could not sync checkout session: #{e.message}")
-      end
-    end
-
     @household = current_household
+    sync_returning_checkout
     @subscription = @household.payment_processor&.subscription
     @status = @household.subscription_status
     @plans = Household::PLANS
@@ -71,6 +63,24 @@ class SubscriptionsController < ApplicationController
   end
 
   private
+
+  # Stripe sends the customer back with the session Pay appended to the
+  # success_url. Syncing it here activates the kitchen on arrival rather than
+  # whenever the webhook lands, which the customer would otherwise wait on
+  # while looking at the Subscribe buttons they just used. The session id
+  # comes from the URL, so the thank-you depends on this household ending up
+  # subscribed, not on the sync merely succeeding.
+  def sync_returning_checkout
+    session_id = params[:stripe_checkout_session_id].presence
+    return unless session_id
+
+    Pay::Stripe.sync_checkout_session(session_id)
+    if @household.reload.active_subscription?
+      flash.now[:notice] = "Thank you for subscribing! Your kitchen is now fully activated. 🎉"
+    end
+  rescue StandardError => e
+    Rails.logger.warn("Could not sync checkout session #{session_id}: #{e.class}: #{e.message}")
+  end
 
   def stripe_secret_key
     ENV["STRIPE_SECRET_KEY"].presence ||
