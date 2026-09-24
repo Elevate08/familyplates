@@ -67,6 +67,32 @@ class CookingModeTest < ApplicationSystemTestCase
     assert_current_path recipe_path(@recipe)
   end
 
+  # @card-36.6
+  test "a countdown that reaches zero says time is up and beeps" do
+    click_on "Next Step"
+    timer = find("[data-controller='step-timer']")
+
+    # Count the beeps rather than listen for them, and bring the deadline to
+    # now instead of waiting twenty minutes for it.
+    page.execute_script(<<~JS)
+      window.beeps = 0
+      const createOscillator = AudioContext.prototype.createOscillator
+      AudioContext.prototype.createOscillator = function () {
+        window.beeps += 1
+        return createOscillator.call(this)
+      }
+    JS
+    timer.find("button", text: "20:00").click
+    page.execute_script(<<~JS)
+      const element = document.querySelector("[data-controller='step-timer']")
+      Stimulus.getControllerForElementAndIdentifier(element, "step-timer").deadline = Date.now()
+    JS
+
+    assert timer.has_text?(/time's up/i)
+    assert timer.matches_css?(".cook-timer-finished")
+    assert_equal 3, page.evaluate_script("window.beeps")
+  end
+
   # @card-36.3
   test "the ingredient drawer opens, remembers its ticks, and closes on Escape" do
     assert_no_selector "[data-cook-mode-target='drawer']", visible: true
