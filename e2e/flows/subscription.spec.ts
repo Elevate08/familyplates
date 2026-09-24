@@ -70,12 +70,17 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
   // start at all with a key that is not a test key.
   // ---------------------------------------------------------------------------
   // @card-23.4
-  test("Level 2: real Stripe checkout sandbox redirect and test payment", async ({ page, request }) => {
+  test("Level 2: real Stripe checkout sandbox redirect and test payment", async ({ page, request }, testInfo) => {
     const stripeKey = process.env.STRIPE_PRIVATE_KEY || process.env.STRIPE_SECRET_KEY || "";
     test.skip(
       !process.env.ENABLE_REAL_STRIPE_TESTS || !/^(sk|rk)_test_/.test(stripeKey),
       "Skipped: Set ENABLE_REAL_STRIPE_TESTS=true with a sk_test_/rk_test_ key in .env.test.local to run real Stripe checkout"
     );
+    // A payment round trip through Stripe does not change with the colour
+    // scheme or the viewport, and each run is a real sandbox subscription.
+    test.skip(testInfo.project.name !== "desktop-light", "Real Stripe checkout runs once, on desktop-light");
+    // Two trips to Stripe and a real payment outlast the default 30s.
+    test.setTimeout(90_000);
 
     // Reset database into hosted mode
     await resetDatabase(request, { mode: "hosted" });
@@ -103,26 +108,38 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     }
     await expect(page.locator("body")).toContainText("$35.00");
 
-    // Fill standard Stripe test credentials if Stripe elements are present
-    const emailInput = page.locator('input[type="email"]#email, input[name="email"]').first();
-    if (await emailInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await emailInput.fill("tester@household.test");
+    // Checkout lists its payment methods closed. The Card radio sits under a
+    // zero-size accordion button whose cover takes the pointer, so it is
+    // checked directly rather than clicked.
+    await page.locator("#payment-method-accordion-item-title-card").check({ force: true });
+
+    // These must appear: a Checkout page without them has changed shape, and
+    // the test should fail rather than skip the payment it is named for.
+    const cardNumber = page.locator("#cardNumber");
+    await expect(cardNumber).toBeVisible();
+    await cardNumber.fill("4242 4242 4242 4242");
+    await page.locator("#cardExpiry").fill("12 / 34");
+    await page.locator("#cardCvc").fill("123");
+    await page.locator("#billingName").fill("Test Dad");
+
+    // A postal code is asked for only where the billing country uses one, and
+    // the country defaults to wherever the runner's IP geolocates.
+    const country = page.locator("#billingCountry");
+    if (await country.count()) await country.selectOption("US");
+    await page.locator("#billingPostalCode").fill("10001");
+
+    // Link is opted in by default and then insists on a phone number.
+    const saveWithLink = page.locator("#enableStripePass");
+    if ((await saveWithLink.count()) && (await saveWithLink.isChecked())) {
+      await saveWithLink.uncheck({ force: true });
     }
 
-    const cardNumberInput = page.locator('input#cardNumber, input[name="cardNumber"]').first();
-    if (await cardNumberInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // Standard Stripe test card
-      await cardNumberInput.fill("4242424242424242");
-      await page.locator('input#cardExpiry, input[name="cardExpiry"]').fill("12/28");
-      await page.locator('input#cardCvc, input[name="cardCvc"]').fill("123");
-      await page.locator('input#billingName, input[name="billingName"]').fill("Test Dad");
+    await page.locator("button[type=submit].SubmitButton").click();
 
-      // Submit checkout
-      await page.locator('button[type="submit"].SubmitButton').click();
-
-      // Verify return redirect to FamilyPlates with activated subscription
-      await page.waitForURL((url) => url.pathname.includes("/subscription"), { timeout: 30_000 });
-      await expect(page.locator("body")).toContainText("Active Subscription");
-    }
+    // Back on FamilyPlates, activated by the sync on return rather than by a
+    // webhook, which never reaches a CI runner.
+    await page.waitForURL((url) => url.hostname === "127.0.0.1" && url.pathname === "/subscription", { timeout: 45_000 });
+    await expect(page.locator("body")).toContainText("Thank you for subscribing");
+    await expect(page.locator("body")).toContainText("Active Subscription");
   });
 });
