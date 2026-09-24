@@ -93,6 +93,11 @@ export default defineConfig({
     },
     {
       name: "desktop-dark",
+      // The crawl's checks - server errors, script errors, broken images - come
+      // from the same code in either colour scheme, and axe runs on
+      // desktop-light only, so crawling again in dark repeated a quarter of the
+      // run to learn nothing new. Dark is still held to its screenshots and flows.
+      testIgnore: /route-crawl\.spec\.ts/,
       use: {
         viewport: { width: 1400, height: 900 },
         colorScheme: "dark"

@@ -26,6 +26,14 @@ import {
 const routes = loadRoutes();
 const targets = crawlTargets(routes);
 
+// Pages axe has already passed this run, by role and where the visit landed.
+// Most of a crawl lands on a handful of pages - a guest is sent to the profile
+// picker from 41 of 66 routes - and auditing each landing again cost more than
+// half the crawl's axe time for no new finding. Every visit still gets every
+// other check. A worker that fails starts afresh, so a failing page is audited
+// again rather than excused.
+const audited = new Set<string>();
+
 // Console output that is not this application's doing.
 const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 
@@ -112,9 +120,16 @@ for (const role of ROLES) {
         expect(problems, `${path} (ended at ${landedOn})`).toEqual([]);
 
         // axe is the slow part and does not vary with the viewport's colour
-        // scheme, so it runs once per page, on desktop-light.
+        // scheme, so it runs on desktop-light, once per page a role lands on.
         if (testInfo.project.name === "desktop-light") {
-          await runAxeAudit(page, `${role} ${path} (ended at ${landedOn})`);
+          const landed = new URL(page.url());
+          const auditKey = `${role} ${landed.pathname}${landed.search}`;
+          if (audited.has(auditKey)) {
+            testInfo.annotations.push({ type: "axe", description: `already audited this run: ${auditKey}` });
+          } else {
+            await runAxeAudit(page, `${role} ${path} (ended at ${landedOn})`);
+            audited.add(auditKey);
+          }
         }
       });
     }
