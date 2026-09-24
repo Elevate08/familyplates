@@ -9,6 +9,16 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "each sign-in field is labelled" do
+    get new_platform_admin_session_path
+
+    assert_response :success
+    %w[admin_email admin_password admin_otp_code].each do |id|
+      assert_select "input##{id}"
+      assert_select "label[for='#{id}']"
+    end
+  end
+
   test "login requires password and current MFA code" do
     get new_platform_admin_session_path
     assert_response :success

@@ -34,12 +34,7 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 // still hold these pages to every other invariant. Each entry says what is
 // wrong; remove it with the fix.
 const HOUSEHOLD = ["member", "admin"] as Role[];
-const PLATFORM_ADMIN_PAGES = targets.map((t) => t.key).filter((key) => key.startsWith("GET /platform_admin"));
 const KNOWN_AXE_ISSUES = knownIssues(
-  [["guest", "member", "admin"], PLATFORM_ADMIN_PAGES,
-    "axe label: platform-admin sign-in email and password fields have no label"],
-  [["platform-admin"], ["GET /platform_admin/session/new"],
-    "axe label: platform-admin sign-in email and password fields have no label"],
   [["platform-admin"], ["GET /platform_admin/audit_events", "GET /platform_admin/households", "GET /platform_admin/promotion_programs"],
     "axe label/select-name: platform-admin filter selects and promotion date fields have no label"],
   [HOUSEHOLD, ["GET /recipes/new"], "axe select-name: the ingredient aisle select has no label"],
