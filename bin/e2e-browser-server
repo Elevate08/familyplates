@@ -27,7 +27,7 @@ image="mcr.microsoft.com/playwright:v${version}-noble"
 # The server does not accept Chromium args from the client, so the font flags in
 # playwright.config.ts apply only to a local browser. The container needs none:
 # it renders the same way on every machine that runs it.
-exec docker run --rm --init \
+exec bin/e2e-docker run --rm --init \
   --name "familyplates-e2e-browser-${port}" \
   --user pwuser \
   --publish "127.0.0.1:${port}:${port}" \

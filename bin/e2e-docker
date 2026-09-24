@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Runs docker for the E2E scripts, through sudo only when this user cannot reach
+# the daemon's socket directly.
+#
+# Omarchy leaves users out of the docker group on purpose, since membership is
+# passwordless root, and ships omarchy-sudo-docker to answer whether a command
+# must elevate. Everywhere else (CI runners, machines already in the group) the
+# helper is absent or says no, and docker runs as it is. Only docker is
+# elevated; Rails and the test runner stay unprivileged.
+set -euo pipefail
+
+if command -v omarchy-sudo-docker >/dev/null 2>&1 && omarchy-sudo-docker; then
+  exec sudo docker "$@"
+fi
+
+exec docker "$@"

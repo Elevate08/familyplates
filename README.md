@@ -108,7 +108,9 @@ render identically on every machine. Arguments pass through to `playwright test`
 for a system one): flows are checked, but screenshot diffs there are not meaningful.
 
 **Screenshot baselines** live in `e2e/snapshots/` and are only ever recorded with
-`bin/e2e-update-snapshots`, which uses the same container. Review the PNGs before
+`bin/e2e-update-snapshots`, which uses the same container. On Omarchy, where users are not in the
+`docker` group by default, both scripts ask for your sudo password once at the start and elevate only
+the `docker` commands. Review the PNGs before
 committing them: an update accepts whatever the page looks like now.
 
 **Adding a route.** Two tests read `config/routes.rb` and fail until a new route is

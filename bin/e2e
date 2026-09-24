@@ -17,7 +17,20 @@ if [ -n "${PLAYWRIGHT_WS_ENDPOINT:-}" ] || [ "${E2E_BROWSER:-container}" = "loca
   exec npx playwright test "$@"
 fi
 
-if ! docker info >/dev/null 2>&1; then
+# Where Docker needs sudo (see bin/e2e-docker), ask for the password once, up
+# front and in the foreground: the browser server starts in the background,
+# where a prompt could not be answered. The loop keeps the credentials fresh
+# for the length of the run, so stopping the container at the end does not
+# prompt again.
+if command -v omarchy-sudo-docker >/dev/null 2>&1 && omarchy-sudo-docker; then
+  echo "bin/e2e: Docker needs sudo on this machine; only docker commands are elevated."
+  sudo -v
+  while sleep 60; do sudo -n true 2>/dev/null || exit; done &
+  sudo_keepalive_pid=$!
+  trap 'kill "$sudo_keepalive_pid" 2>/dev/null || true' EXIT
+fi
+
+if ! bin/e2e-docker info >/dev/null 2>&1; then
   echo "bin/e2e: cannot reach Docker, which runs the pinned browser the baselines" >&2
   echo "are recorded in. Start Docker, or run E2E_BROWSER=local bin/e2e to use a" >&2
   echo "local Chromium (flows are checked; screenshot diffs are not meaningful)." >&2
@@ -30,7 +43,7 @@ server_log="log/e2e-browser-server.log"
 
 bin/e2e-browser-server >"$server_log" 2>&1 &
 server_pid=$!
-trap 'docker stop "$container" >/dev/null 2>&1 || true; wait "$server_pid" 2>/dev/null || true' EXIT
+trap 'bin/e2e-docker stop "$container" >/dev/null 2>&1 || true; wait "$server_pid" 2>/dev/null || true; [ -n "${sudo_keepalive_pid:-}" ] && kill "$sudo_keepalive_pid" 2>/dev/null || true' EXIT
 
 # The first run pulls the image, which can take a few minutes on a cold cache.
 echo "bin/e2e: waiting for the browser server on 127.0.0.1:${port}..."
