@@ -36,8 +36,6 @@ const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
 const HOUSEHOLD = ["member", "admin"] as Role[];
 const PLATFORM_ADMIN_PAGES = targets.map((t) => t.key).filter((key) => key.startsWith("GET /platform_admin"));
 const KNOWN_AXE_ISSUES = knownIssues(
-  [HOUSEHOLD, ["GET /cook", "GET /recipes/:id/cook", "GET /meal_plans/:id/print", "GET /meal_plans/:id/print?view=month"],
-    "axe html-has-lang: the cook and print layouts have no <html lang>"],
   [["guest", "platform-admin"], ["GET /signup", "GET /signup/new", "GET /signup/verify"],
     "axe label: avatar colour swatches have no accessible name"],
   [["admin"], ["GET /admin/family_members", "GET /admin/family_members/:id/edit", "GET /onboarding/members"],
