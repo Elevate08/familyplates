@@ -120,3 +120,71 @@ jobs:
           name: system-test-screenshots
           path: tmp/screenshots
           if-no-files-found: ignore
+
+  # Playwright drives the app the way a person does, on desktop and phone
+  # viewports in light and dark mode. It catches what the Selenium system tests
+  # do not look for: layout that overflows a phone screen, accessibility
+  # regressions, and pages that changed appearance when nobody meant them to.
+  # Until this job existed the suite only ran on one laptop, so a release could
+  # break any of it and still go green here.
+  #
+  # bin/e2e runs the browser in the pinned Playwright container, the same one
+  # bin/e2e-update-snapshots records baselines in, so a screenshot diff here
+  # means the page changed rather than that the runner's fonts differ.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Playwright
+        run: npm ci
+
+      - name: Prepare the test database
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:test:prepare
+
+      - name: Run Playwright
+        run: bin/e2e
+
+      # The HTML report carries the trace, video and screenshot diff of every
+      # failure, so a red run can be replayed without reproducing it locally.
+      # Kept on success too: it is the record of what the release was checked
+      # against.
+      - name: Keep the Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Keep the raw failure output
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: |
+            test-results
+            log/e2e-browser-server.log
+            log/test.log
+          retention-days: 14
+          if-no-files-found: ignore
