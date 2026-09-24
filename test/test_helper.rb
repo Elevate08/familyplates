@@ -3,6 +3,7 @@ require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
 require_relative "support/page_catalogue"
+require_relative "support/route_inventory"
 
 module ActiveSupport
   class TestCase
