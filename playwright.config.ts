@@ -97,12 +97,18 @@ export default defineConfig({
     }
   ],
 
+  // Its own database file: resets and sign-ins leave rows in tables that have no
+  // fixtures (sessions, platform-admin accounts), and in storage/test.sqlite3
+  // those broke Minitest runs that count them. db:prepare builds the file on a
+  // fresh checkout and migrates it after a pull.
   webServer: {
-    command: "bin/rails server -e test -p 3100",
+    command: "bin/rails db:prepare && bin/rails server -p 3100",
     url: "http://127.0.0.1:3100/up",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     env: {
+      RAILS_ENV: "test",
+      TEST_DATABASE_PATH: "storage/e2e.sqlite3",
       ENABLE_REAL_STRIPE_TESTS: process.env.ENABLE_REAL_STRIPE_TESTS || "",
       STRIPE_PRIVATE_KEY: process.env.STRIPE_PRIVATE_KEY || "",
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
