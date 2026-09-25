@@ -24,6 +24,14 @@ class WikiSyncTest < ActiveSupport::TestCase
     assert_equal "See [editions](getting-started) and [the license](https://example.test/blob/master/LICENSE.md)", page("deploying")
   end
 
+  test "leaves the planning notes in docs/ideas out, and links to them go to GitHub" do
+    write "Home.md", "[the plan](ideas/tenancy.md)"
+    write "ideas/tenancy.md", "notes"
+
+    assert_equal %w[Home], sync
+    assert_equal "[the plan](https://example.test/blob/master/docs/ideas/tenancy.md)", page("Home")
+  end
+
   test "leaves URLs and anchors alone" do
     write "Home.md", "[site](https://example.com/a.md) [top](#top) [mail](mailto:a@b.c)"
 

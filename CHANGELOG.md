@@ -78,7 +78,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * CI actions are pinned to commit SHAs and don't get credentials they don't need.
 
 ### 📚 Documentation
-* New guides: [Editions](docs/editions.md), [Deploying the hosted service](docs/hosted/deploying.md) and [Stripe billing](docs/hosted/stripe-billing.md). The GitHub wiki is now published from `docs/` on every change to `master`, and a broken link stops the publish.
+* New guides: [Editions](docs/editions.md), [Deploying the hosted service](docs/hosted/deploying.md) and [Stripe billing](docs/hosted/stripe-billing.md). The GitHub wiki is now published from `docs/` on every change to `master`, leaving out the planning notes in `docs/ideas/`. A pull request that changes the docs runs the same sync without publishing, so a broken link fails the PR.
 * The self-hosting guide no longer suggests running the published image in hosted mode.
 
 ### 🧹 Removed

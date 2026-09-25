@@ -12,6 +12,10 @@
 # rewritten to match: a link to another doc becomes its page name, and a link
 # to anything else in the repository becomes its GitHub URL. A link to a file
 # that does not exist, or two docs with the same name, stops the sync.
+#
+# docs/ideas/ is left out: the wiki is for people using or running
+# FamilyPlates, and the planning notes stay in the repository. A published page
+# that links to one gets its GitHub URL.
 
 require "fileutils"
 require "pathname"
@@ -23,6 +27,7 @@ class WikiSync
   ROOT = Pathname(__dir__).parent
 
   LINK = /(!?\[[^\]]*\]\()([^)\s]+)(\))/
+  UNPUBLISHED = %w[ideas].freeze
 
   def initialize(docs:, wiki:, root: ROOT, repo_url: REPO_URL)
     @docs = Pathname(docs).expand_path
@@ -47,7 +52,7 @@ class WikiSync
   private
 
   def page_sources
-    sources = @docs.glob("**/*.md").sort
+    sources = @docs.glob("**/*.md").reject { |path| unpublished?(path) }.sort
     by_name = sources.group_by { |path| path.basename(".md").to_s }
     clashes = by_name.select { |_, paths| paths.size > 1 }
     if clashes.any?
@@ -76,12 +81,16 @@ class WikiSync
       return target
     end
 
-    page = if resolved.extname == ".md" && resolved.to_s.start_with?("#{@docs}/")
+    page = if resolved.extname == ".md" && resolved.to_s.start_with?("#{@docs}/") && !unpublished?(resolved)
       resolved.basename(".md").to_s
     else
       "#{@repo_url}/#{resolved.relative_path_from(@root)}"
     end
     anchor ? "#{page}##{anchor}" : page
+  end
+
+  def unpublished?(path)
+    UNPUBLISHED.any? { |dir| path.to_s.start_with?("#{@docs.join(dir)}/") }
   end
 
   def clear_wiki

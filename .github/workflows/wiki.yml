@@ -1,9 +1,14 @@
 name: Wiki
 
-# Publishes docs/ to the GitHub wiki whenever it changes on master. docs/ is
-# the source; bin/wiki-sync mirrors it, flattening pages and rewriting links,
-# and refuses to publish a broken link. Edits made on the wiki directly are
-# overwritten by the next sync.
+# Publishes docs/ to the GitHub wiki whenever it changes on master, so the
+# wiki always describes the released version. docs/ is the source;
+# bin/wiki-sync mirrors it (leaving out docs/ideas/), flattening pages and
+# rewriting links, and refuses to publish a broken link. Edits made on the
+# wiki directly are overwritten by the next sync.
+#
+# On a pull request the same sync runs and nothing is published: a broken
+# link fails the PR, and a dry-run push checks the token can still write to
+# the wiki. (A fork's PR gets a read-only token, so it skips that check.)
 
 on:
   push:
@@ -11,19 +16,28 @@ on:
     paths:
       - "docs/**"
       - "bin/wiki-sync"
+      - ".github/workflows/wiki.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "bin/wiki-sync"
+      - ".github/workflows/wiki.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: wiki
+  group: wiki-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  wiki:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' }}
+      SAME_REPO: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
     steps:
       - name: Checkout code
@@ -41,14 +55,29 @@ jobs:
       - name: Mirror docs/ into the wiki
         run: bin/wiki-sync wiki
 
-      - name: Publish
+      - name: Commit the changes
+        id: commit
         working-directory: wiki
         run: |
           git add -A
           if git diff --cached --quiet; then
             echo "The wiki already matches docs/."
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --cached --stat
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
-          git push
+
+      # --dry-run still authenticates against the wiki's receive-pack, so it
+      # fails if the token cannot write, without changing anything.
+      - name: Check the token can publish (dry run)
+        if: env.PUBLISH != 'true' && env.SAME_REPO == 'true'
+        working-directory: wiki
+        run: git push --dry-run
+
+      - name: Publish
+        if: env.PUBLISH == 'true' && steps.commit.outputs.changed == 'true'
+        working-directory: wiki
+        run: git push
