@@ -84,6 +84,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:session_token].blank?
   end
 
+  # @card-17.2
   test "signing into another account clears the previous organizer profile" do
     first_user = User.create!(email: "first@example.com", password: "password123")
     second_user = User.create!(email: "second@example.com", password: "password123")
