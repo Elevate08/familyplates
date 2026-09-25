@@ -72,6 +72,7 @@
           </div>
         </label>
 
+        <% if current_platform_admin.can_manage_billing? %>
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "assign_promotion", checked: (@action == "assign_promotion"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>
           <div class="space-y-2 flex-1">
@@ -94,6 +95,7 @@
             </div>
           </div>
         </label>
+        <% end %>
 
         <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors">
           <%= form.radio_button :bulk_action, "send_announcement", checked: (@action == "send_announcement"), class: "mt-1 text-primary-600 focus:ring-primary-500" %>

@@ -113,6 +113,63 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Invalid or expired verification code.", flash[:alert]
   end
 
+  test "hosted signup stops emailing an address after repeated attempts" do
+    FamilyPlates.config.mode = "hosted"
+    params = { household_name: "The Bakers", organizer_name: "Baker", email: "baker@example.com", pin: "4826" }
+
+    5.times do
+      post signup_path, params: params
+      assert_redirected_to verify_signup_path
+    end
+
+    assert_no_difference -> { MagicCode.count } do
+      assert_no_enqueued_emails do
+        post signup_path, params: params
+      end
+    end
+
+    assert_redirected_to new_signup_path
+    assert_equal "Too many signup attempts. Please wait a few minutes and try again.", flash[:alert]
+  end
+
+  test "hosted signup stops accepting verification guesses" do
+    FamilyPlates.config.mode = "hosted"
+    post signup_path, params: {
+      household_name: "The Hosted Family", organizer_name: "Alice", email: "alice@example.com", pin: "4826"
+    }
+    code = MagicCode.find_by!(email: "alice@example.com").code
+
+    10.times do
+      post verify_signup_path, params: { code: "WRONG1" }
+      assert_response :unprocessable_entity
+    end
+
+    assert_no_difference -> { Household.count } do
+      post verify_signup_path, params: { code: code }
+    end
+
+    assert_redirected_to verify_signup_path
+    assert_equal "Too many signup attempts. Please wait a few minutes and try again.", flash[:alert]
+    assert MagicCode.exists?(email: "alice@example.com")
+  end
+
+  test "hosted signup rejects an oversized household name before sending a code" do
+    FamilyPlates.config.mode = "hosted"
+
+    assert_no_difference -> { MagicCode.count } do
+      assert_no_enqueued_emails do
+        post signup_path, params: {
+          household_name: "A" * 500,
+          organizer_name: "Baker",
+          email: "baker@example.com",
+          pin: "4826"
+        }
+      end
+    end
+
+    assert_response :unprocessable_entity
+  end
+
   test "appliance mode create provisions household and organizer immediately" do
     assert_difference -> { Household.count } => 1, -> { User.count } => 1, -> { FamilyMember.count } => 1 do
       post signup_path, params: {

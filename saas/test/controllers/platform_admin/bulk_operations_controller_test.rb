@@ -118,6 +118,56 @@ module PlatformAdmin
       assert_includes response.body, "Bulk operation was not confirmed"
     end
 
+    # @card-42.3 @card-49.7
+    test "support operators cannot extend trials or assign promotions in bulk" do
+      support = PlatformAdminAccount.create!(
+        email: "support@example.com", password: "correct horse battery staple", role: "support"
+      )
+      sign_in_as_operator(support)
+      before = @household1.trial_ends_at
+
+      post platform_admin_bulk_operations_url, params: {
+        bulk_action: "extend_trial",
+        operation_params: { days: "30" },
+        filter_params: { search: @household1.name },
+        reason: "Goodwill",
+        confirmed: "1"
+      }
+
+      assert_redirected_to new_platform_admin_bulk_operation_path
+      assert_equal "Operation aborted: Only owner and billing operators can change a household's billing.", flash[:alert]
+      assert_equal before.to_i, @household1.reload.trial_ends_at.to_i
+      assert_nil @household1.promotion_code
+
+      post platform_admin_bulk_operations_url, params: {
+        bulk_action: "assign_promotion",
+        operation_params: { promotion_code: "SUMMER50" },
+        filter_params: { search: @household1.name },
+        reason: "Goodwill",
+        confirmed: "1"
+      }
+
+      assert_nil @household1.reload.promotion_code
+    end
+
+    # @card-49.7
+    test "a bulk trial extension longer than 90 days is refused" do
+      sign_in_as_operator(@admin)
+      before = @household1.trial_ends_at
+
+      post platform_admin_bulk_operations_url, params: {
+        bulk_action: "extend_trial",
+        operation_params: { days: "36500" },
+        filter_params: { search: @household1.name },
+        reason: "Forever",
+        confirmed: "1"
+      }
+
+      assert_redirected_to new_platform_admin_bulk_operation_path
+      assert_match "1 to 90 days", flash[:alert]
+      assert_equal before.to_i, @household1.reload.trial_ends_at.to_i
+    end
+
     # @card-49.4
     test "create executes bulk operation and records audit log" do
       sign_in_as_operator(@admin)

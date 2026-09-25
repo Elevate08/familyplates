@@ -3,6 +3,10 @@
 module PlatformAdmin
   class BulkOperationService
     ALLOWED_ACTIONS = %w[add_tag remove_tag assign_promotion extend_trial send_announcement].freeze
+    # Comping from the household page is capped at 12 months. This is the
+    # same kind of free access, so it stays inside the same bound the form shows.
+    BILLING_ACTIONS = %w[assign_promotion extend_trial].freeze
+    MAX_EXTEND_TRIAL_DAYS = 90
 
     Result = Data.define(:action, :reason, :matched_count, :success_count, :skipped_count, :error_count, :errors, :audit_event)
 
@@ -54,6 +58,7 @@ module PlatformAdmin
     end
 
     def preview
+      assert_permitted!
       households = base_scope.includes(:pay_subscriptions, :users).to_a
       eligible = []
       ineligible = []
@@ -81,6 +86,7 @@ module PlatformAdmin
     def execute!
       raise ArgumentError, "Reason is mandatory for bulk operations" if reason.blank?
       raise ArgumentError, "Invalid action: #{action}" unless valid_action?
+      assert_permitted!
 
       households = base_scope.includes(:pay_subscriptions, :users).to_a
       success_count = 0
@@ -158,8 +164,8 @@ module PlatformAdmin
         { eligible: true, detail: "Apply promotion '#{code}' (#{prog.name})" }
 
       when "extend_trial"
-        days = params[:days].to_i
-        return { eligible: false, reason: "Days must be greater than 0" } if days <= 0
+        days = trial_extension_days
+        return { eligible: false, reason: "Days must be between 1 and #{MAX_EXTEND_TRIAL_DAYS}" } unless days.between?(1, MAX_EXTEND_TRIAL_DAYS)
         return { eligible: false, reason: "Cannot extend trial for active paid subscriber" } if household.active_subscription?
         new_date = (household.trial_ends_at || Time.current) + days.days
         { eligible: true, detail: "Extend trial to #{new_date.to_date}" }
@@ -191,7 +197,7 @@ module PlatformAdmin
         household.update!(promotion_code: code)
 
       when "extend_trial"
-        days = params[:days].to_i
+        days = trial_extension_days
         new_end = (household.trial_ends_at || Time.current) + days.days
         household.update!(trial_extended_until: new_end)
 
@@ -220,6 +226,23 @@ module PlatformAdmin
 
     def sanitized_params
       params.except(:password, :token)
+    end
+
+    # Cancelling, refunding, and comping are already limited to owner and
+    # billing operators. Extending a trial or assigning a promotion is the
+    # same money movement, reached through a different form.
+    def assert_permitted!
+      if BILLING_ACTIONS.include?(action) && !operator&.can_manage_billing?
+        raise ArgumentError, "Only owner and billing operators can change a household's billing."
+      end
+      return unless action == "extend_trial"
+      return if trial_extension_days.between?(1, MAX_EXTEND_TRIAL_DAYS)
+
+      raise ArgumentError, "Extend a trial by 1 to #{MAX_EXTEND_TRIAL_DAYS} days."
+    end
+
+    def trial_extension_days
+      Integer(params[:days].to_s, exception: false) || 0
     end
   end
 end

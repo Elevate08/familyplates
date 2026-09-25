@@ -15,7 +15,9 @@ class TransfersController < ApplicationController
       redirect_to root_path, alert: "You already have an active profile in this household." and return
     end
 
-    @member.transfer_to!(current_user)
+    unless @member.transfer_to!(current_user)
+      redirect_to select_profile_path, alert: "This transfer link is invalid or has expired." and return
+    end
     start_new_session_for(@member)
     redirect_to root_path, notice: "Profile #{@member.name} successfully transferred to your account!"
   end

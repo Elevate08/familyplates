@@ -43,6 +43,8 @@ module PlatformAdmin
       end
 
       @preview = service.preview
+    rescue ArgumentError => e
+      redirect_to new_platform_admin_bulk_operation_path, alert: "Operation aborted: #{e.message}"
     end
 
     def create

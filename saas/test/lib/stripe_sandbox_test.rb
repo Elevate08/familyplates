@@ -23,6 +23,30 @@ class StripeSandboxTest < ActiveSupport::TestCase
     end
   end
 
+  test "production refuses test-mode webhook events unless the operator opts in" do
+    production = ActiveSupport::EnvironmentInquirer.new("production")
+    test_env = ActiveSupport::EnvironmentInquirer.new("test")
+    saved = ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+
+    ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS")
+    FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: test_env)
+    assert_nil ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+
+    FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: production)
+    assert_equal "false", ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+
+    ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = "true"
+    FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: production)
+    assert_equal "true", ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+
+    ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS")
+    opted_in = { stripe: { webhook_receive_test_events: true } }
+    FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: production, credentials: opted_in)
+    assert_nil ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+  ensure
+    saved.nil? ? ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS") : ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = saved
+  end
+
   test "the Stripe sandbox check leaves other environments alone" do
     %w[development production].each do |name|
       assert_nothing_raised do
