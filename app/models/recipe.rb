@@ -193,56 +193,18 @@ class Recipe < ApplicationRecord
     end
   end
 
+  # Active Storage already sets content_type from the file's bytes on upload,
+  # so an HTML or SVG body arrives as text/html or image/svg+xml and fails the
+  # check below. The extension check stops an image being stored under a
+  # script-bearing file name.
   def acceptable_image
     blob = image.blob
-    ext = blob.filename.extension.to_s.downcase
-    unless ALLOWED_IMAGE_EXTENSIONS.include?(ext)
+    unless ALLOWED_IMAGE_EXTENSIONS.include?(blob.filename.extension.to_s.downcase) &&
+        ALLOWED_IMAGE_CONTENT_TYPES.include?(blob.content_type)
       errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
-      return
     end
-
-    unless ALLOWED_IMAGE_CONTENT_TYPES.include?(blob.content_type)
-      errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
-      return
-    end
-
     if blob.byte_size.to_i > MAX_IMAGE_BYTES
       errors.add(:image, "must be smaller than 8 MB")
-      return
-    end
-
-    detected_type = detected_image_type(blob)
-    unless ALLOWED_IMAGE_CONTENT_TYPES.include?(detected_type)
-      errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
-    end
-  rescue StandardError => e
-    Rails.logger.warn("Image verification failed: #{e.class}: #{e.message}")
-    errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
-  end
-
-  def detected_image_type(blob)
-    if (change = attachment_changes["image"])
-      attachable = change.attachable
-      io = if attachable.respond_to?(:tempfile)
-        attachable.tempfile
-      elsif attachable.is_a?(Hash) && attachable[:io]
-        attachable[:io]
-      elsif attachable.respond_to?(:read)
-        attachable
-      end
-
-      if io
-        io.rewind if io.respond_to?(:rewind)
-        type = Marcel::MimeType.for(io, name: blob.filename.to_s)
-        io.rewind if io.respond_to?(:rewind)
-        return type
-      end
-    end
-
-    if blob.service.exist?(blob.key)
-      blob.open { |file| Marcel::MimeType.for(file, name: blob.filename.to_s) }
-    else
-      Marcel::MimeType.for(name: blob.filename.to_s)
     end
   end
 

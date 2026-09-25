@@ -24,7 +24,7 @@
 | FP-SEC-01 | High | `app/services/outbound_url_policy.rb` | SSRF filter bypass via IPv4-compatible IPv6 addresses (`::127.0.0.1`), 6to4 encapsulation (`2002::/16`), deprecated site-local/reserved IPv6 ranges (`fec0::/10`, `::/96`, `64:ff9b:1::/48`), and arbitrary destination port reachability (attacking internal Redis 6379, SMTP 25, etc.). | Fixed | Commit `c490107` |
 | FP-SEC-02 | Medium | `app/services/recipe_scraper.rb` | Image URL scheme smuggling: `absolutize` permitted `data:` and `javascript:` URIs extracted from scraped pages without scheme sanitization. Malicious pages could smuggle inline SVG/JS into imported recipe images. | Fixed | Commit `d2f2841` |
 | FP-SEC-03 | High | `app/models/recipe.rb`, `app/views/recipes/show.html.erb` | Stored XSS / URL scheme execution: `source_url` and `image_url` allowed dangerous schemes (`javascript:`, `data:`, `vbscript:`, `file:`) that execute in the browser upon click or image render. Solved via scheme validation and `safe_source_url` / `safe_url?` guards. | Fixed | Commit `7fbc747` |
-| FP-SEC-04 | High | `app/models/recipe.rb` | Active Storage file content spoofing: `acceptable_image` previously only inspected the client-supplied `content_type` header without verifying file extension or actual byte stream content via Marcel, permitting polyglot HTML/SVG uploads disguised as JPEG. | Fixed | Commit `7fbc747` |
+| FP-SEC-04 | Low | `app/models/recipe.rb` | An image with a forged `image/jpeg` type could be stored under a non-image file name such as `.html`. It is still served as `image/jpeg` with `nosniff`, so no script runs; the extension check is hardening. The byte-sniffing half of the original finding was already handled: Active Storage identifies the type from the file's bytes on upload, and the HTML-as-JPEG test passes on the old code. | Fixed (extension check only) | Commit `7fbc747`; Marcel re-read removed in review |
 | FP-SEC-05 | Low | `app/views/recipes/show.html.erb` | Reverse tabnabbing & referrer leak on external recipe source links: `rel: "noopener"` updated to `rel: "noopener noreferrer"`. | Fixed | Commit `7fbc747` |
 
 ---
@@ -77,16 +77,16 @@
 
 ---
 
-### 4. Active Storage File Extension and Magic Byte Inspection (FP-SEC-04)
-- **Vulnerability:**
-  `Recipe#acceptable_image` previously only inspected `blob.content_type`, which is taken directly from the client request's `Content-Type` header. An attacker could upload an HTML, SVG, or executable payload with a forged `Content-Type: image/jpeg` header and `.html` filename.
+### 4. Active Storage File Extension Check (FP-SEC-04)
+- **Finding (revised in review):**
+  Active Storage already sets `content_type` from the uploaded bytes (Marcel, with the declared type as a hint), so an HTML or SVG body arrives as `text/html` or `image/svg+xml` and fails the existing allowlist. The test for that case passes on the old code. What remained was a text payload with no recognizable magic bytes, a forged `image/jpeg` type, and an `.html` name. It is served as `image/jpeg` with `X-Content-Type-Options: nosniff`, so it does not execute.
 - **Fix:**
-  - Enforced `ALLOWED_IMAGE_EXTENSIONS = %w[jpg jpeg png gif webp]`.
-  - Added inspection of actual file byte signatures via `Marcel::MimeType.for(io, name: blob.filename.to_s)` before record commit, catching polyglots and disguised files.
+  - Enforced `ALLOWED_IMAGE_EXTENSIONS = %w[jpg jpeg png gif webp]` alongside the content-type allowlist.
+  - The original commit also re-read every attached image with Marcel on each validation. That duplicated Active Storage and read the whole file from storage on every recipe save, so it was removed in review.
 - **Test Proof:**
   - `test/models/recipe_test.rb`:
-    - `test_rejects_an_upload_with_non-image_extension_even_if_content_type_header_is_forged`
-    - `test_rejects_an_upload_with_image_extension_when_content_is_actually_HTML_or_SVG`
+    - `test_rejects_an_upload_with_non-image_extension_even_if_content_type_header_is_forged` (fails on old code)
+    - `test_rejects_an_upload_with_image_extension_when_content_is_actually_HTML_or_SVG` (regression guard; passes on old code)
 
 ---
 
