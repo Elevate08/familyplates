@@ -378,14 +378,24 @@ class RecipeScraper
   end
 
   # Relative and protocol-relative image paths are common on self-hosted blogs
-  # and are useless to store as-is.
+  # and are useless to store as-is. Strictly allow http and https URLs only.
   def absolutize(candidate)
     value = candidate.to_s.strip
     return nil if value.blank?
-    return value if value.start_with?("http://", "https://", "data:")
-    return nil if url.blank?
 
-    URI.join(url, value).to_s
+    uri = if value.start_with?("http://", "https://")
+      URI.parse(value)
+    elsif value.start_with?("//")
+      base = URI.parse(url) rescue nil
+      scheme = base&.scheme.presence || "https"
+      URI.parse("#{scheme}:#{value}")
+    elsif url.present?
+      URI.join(url, value)
+    end
+
+    return nil if uri.nil? || !%w[http https].include?(uri.scheme) || uri.host.blank?
+
+    uri.to_s
   rescue URI::Error, ArgumentError
     nil
   end
