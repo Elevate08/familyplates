@@ -4,12 +4,16 @@
 # the Miller Family, which is the arbitrariness that resolver exists to remove.
 one:
   name: "Spencer Family"
-  google_calendar_enabled: false
+  join_code: "TEST-ONE0-CODE"
+  calendar_feed_token: "test_feed_token_one"
+  onboarded_at: <%= 2.years.ago %>
   created_at: <%= 2.years.ago %>
 
 # Only ever the *other* household. Nothing outside the cross-tenant suite should
 # depend on it existing.
 two:
   name: "Miller Family"
-  google_calendar_enabled: false
+  join_code: "TEST-TWO0-CODE"
+  calendar_feed_token: "test_feed_token_two"
+  onboarded_at: <%= 1.year.ago %>
   created_at: <%= 1.year.ago %>

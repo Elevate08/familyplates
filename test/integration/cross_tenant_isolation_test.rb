@@ -26,9 +26,10 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
       avatar_color: "#10B981", avatar_icon: "star"
     )
     @other_recipe = @other.recipes.create!(
-      title: "Miller Casserole", instructions: "Bake it."
+      title: "Miller Casserole", instructions: "Bake it.", number: 99
     )
     @other_meal_plan = meal_plans(:two)
+    @other_meal_plan.update_column(:number, 99)
     @other_pantry_item = @other.pantry_items.create!(
       name: "Miller Flour", aisle_category: "Pantry & Grains"
     )
@@ -45,6 +46,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
   end
 
   # Reading another household's records.
+  # @card-21.4
   test "a signed-in organizer cannot read another household's recipe" do
     get recipe_url(@other_recipe)
     assert_response :not_found
@@ -66,6 +68,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
   end
 
   # Writing to another household's records.
+  # @card-21.4
   test "a signed-in organizer cannot edit another household's recipe" do
     patch recipe_url(@other_recipe), params: { recipe: { title: "Owned" } }
     assert_response :not_found
@@ -79,6 +82,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # @card-21.4
   test "a signed-in organizer cannot toggle another household's pantry staple" do
     was = @other_pantry_item.is_staple
     patch toggle_staple_pantry_item_url(@other_pantry_item)
@@ -93,6 +97,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # @card-21.4
   test "a signed-in organizer cannot add a slot to another household's meal plan" do
     assert_no_difference "MealPlanSlot.count" do
       post meal_plan_meal_plan_slots_url(@other_meal_plan), params: {
@@ -128,6 +133,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
 
   # Bulk endpoints take a list of IDs rather than a single :id, so they bypass
   # the set_* finders entirely and need scoping of their own.
+  # @card-21.4
   test "bulk destroy ignores another household's recipe ids" do
     assert_no_difference "Recipe.count" do
       post bulk_destroy_recipes_url, params: { recipe_ids: [ @other_recipe.id ] }
@@ -146,6 +152,7 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
   # appliance install - the operator has not opted into REQUIRE_LOGIN - so the
   # only thing standing between a stranger and a profile is which household the
   # picker is willing to look in.
+  # @card-21.5
   test "an anonymous visitor cannot take a PIN-less profile in another household" do
     sign_out
 
@@ -162,12 +169,14 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     assert_nil active_family_member_id, "a correct PIN must not help across households"
   end
 
+  # @card-21.5
   test "a signed-in member cannot switch into another household's profile" do
     post set_profile_url(@other_child)
     assert_response :not_found
     assert signed_in_as?(@intruder), "the original session must be untouched"
   end
 
+  # @card-21.6
   test "the picker does not list another household's profiles" do
     sign_out
 
@@ -179,18 +188,21 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
 
   # Listings must not leak the other household's rows, which no :id-based test
   # would catch.
+  # @card-21.6
   test "the recipe index does not list another household's recipes" do
     get recipes_url
     assert_response :success
     assert_no_match(/Miller Casserole/, response.body)
   end
 
+  # @card-21.6
   test "the roster does not list another household's members" do
     get family_members_url
     assert_response :success
     assert_no_match(/Miller Mum/, response.body)
   end
 
+  # @card-21.6
   test "the admin roster does not list another household's members" do
     get admin_family_members_url
     assert_response :success

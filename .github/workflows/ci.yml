@@ -9,16 +9,23 @@ on:
   # privilege escalation, because nothing connected the two workflows.
   workflow_call:
 
+# Nothing here writes to the repository, so the token cannot either. Without
+# this the token gets the repository's default, which may be read-write.
+permissions:
+  contents: read
+
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
         with:
           bundler-cache: true
 
@@ -27,16 +34,21 @@ jobs:
       
       - name: Scan for known security vulnerabilities in gems used
         run: bin/bundler-audit
+
+      - name: Scan the hosted edition's gems too
+        run: bin/bundler-audit check --gemfile-lock Gemfile.saas.lock
       
   scan_js:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
         with:
           bundler-cache: true
 
@@ -49,15 +61,17 @@ jobs:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
         with:
           bundler-cache: true
 
       - name: Prepare RuboCop cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         env:
           DEPENDENCIES_HASH: ${{ hashFiles('.ruby-version', '**/.rubocop.yml', '**/.rubocop_todo.yml', 'Gemfile.lock') }}
         with:
@@ -69,18 +83,48 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
-  test:
+      # Fails when a Fizzy card acceptance criterion has no test tagged with it
+      # (see test/acceptance_criteria.yml), so a card cannot be called done on
+      # a green suite that never checks what the card promised.
+      - name: Check every acceptance criterion has a test
+        run: bin/coverage-criteria --verbose
+
+      # Placeholder values: this only checks saas/config/deploy.yml still
+      # resolves. Nothing here connects to a server.
+      - name: The hosted deploy config resolves
+        env:
+          HOSTED_SERVER: 203.0.113.10
+          APP_HOST: plates.example.com
+          SMTP_ADDRESS: smtp.example.com
+          STRIPE_MONTHLY_PRICE_ID: price_monthly
+          STRIPE_ANNUAL_PRICE_ID: price_annual
+        run: bin/kamal config > /dev/null
+
+  # Each edition runs its own suite: the appliance on the core Gemfile, the
+  # hosted service on Gemfile.saas, which adds the saas/ engine and its tests.
+  # The ruleset requires a check named "test", so test_edition runs the
+  # editions and test reports whether both passed.
+  test_edition:
+    name: test (${{ matrix.edition }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [ appliance, hosted ]
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.edition == 'hosted' && 'Gemfile.saas' || 'Gemfile' }}
 
     steps:
       - name: Install packages
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
         with:
           bundler-cache: true
 
@@ -89,22 +133,44 @@ jobs:
           RAILS_ENV: test
         run: bin/rails db:test:prepare test
 
+  test:
+    needs: test_edition
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Both editions passed
+        env:
+          EDITIONS: ${{ needs.test_edition.result }}
+        run: |
+          echo "Editions: $EDITIONS"
+          test "$EDITIONS" = success
+
   # Separate job because these drive a real browser and are slower than the rest.
   # They exist to catch what a request test structurally cannot: JavaScript that
   # fails to load, scripts the Content Security Policy refuses, and interactions
   # that render fine but do not work.
-  system_test:
+  system_test_edition:
+    name: system_test (${{ matrix.edition }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [ appliance, hosted ]
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.edition == 'hosted' && 'Gemfile.saas' || 'Gemfile' }}
 
     steps:
       - name: Install packages
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
         with:
           bundler-cache: true
 
@@ -114,9 +180,163 @@ jobs:
         run: bin/rails db:test:prepare test:system
 
       - name: Keep the failure screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
-          name: system-test-screenshots
+          name: system-test-screenshots-${{ matrix.edition }}
           path: tmp/screenshots
           if-no-files-found: ignore
+
+  system_test:
+    needs: system_test_edition
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Both editions passed
+        env:
+          EDITIONS: ${{ needs.system_test_edition.result }}
+        run: |
+          echo "Editions: $EDITIONS"
+          test "$EDITIONS" = success
+
+  # Builds both images and checks each is the edition it claims to be: the
+  # appliance carries no saas/ engine or Pay gem and boots with no deployment
+  # settings; the hosted image boots once it has them.
+  docker:
+    name: docker (${{ matrix.edition }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [ appliance, hosted ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the ${{ matrix.edition }} image
+        run: docker build --build-arg EDITION=${{ matrix.edition }} -t familyplates:${{ matrix.edition }} .
+
+      - name: The appliance image leaves the hosted edition out
+        if: matrix.edition == 'appliance'
+        run: |
+          docker run --rm --entrypoint sh familyplates:appliance -c 'test ! -e saas && test ! -e Gemfile.saas && ! gem list -i "^pay$"'
+          docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted' | grep -x booted
+          ! docker run --rm -e FAMILYPLATES_MODE=hosted -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted'
+
+      - name: The hosted image boots with its deployment settings
+        if: matrix.edition == 'hosted'
+        run: |
+          docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" -e APP_HOST=plates.example.com -e SMTP_ADDRESS=smtp.example.com \
+            familyplates:hosted ./bin/rails runner 'puts [FamilyPlates.saas?, FamilyPlates.config.mode].inspect' | grep -Fx '[true, "hosted"]'
+
+  # Playwright drives the app the way a person does, on desktop and phone
+  # viewports in light and dark mode. It catches what the Selenium system tests
+  # do not look for: layout that overflows a phone screen, accessibility
+  # regressions, and pages that changed appearance when nobody meant them to.
+  # Until this job existed the suite only ran on one laptop, so a release could
+  # break any of it and still go green here.
+  #
+  # bin/e2e runs the browser in the pinned Playwright container, the same one
+  # bin/e2e-update-snapshots records baselines in, so a screenshot diff here
+  # means the page changed rather than that the runner's fonts differ.
+  # Playwright is split across three runners. A runner has four CPUs and one
+  # worker's Chromium already fills them, so more workers on one machine only
+  # take turns; more machines divide the run. The crawl is one spec file per
+  # role (e2e/crawl/) so the shards come out even.
+  e2e_shard:
+    name: e2e shard ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The hosted edition: the crawl reaches every route, console included.
+    env:
+      BUNDLE_GEMFILE: Gemfile.saas
+    strategy:
+      # Every shard runs to the end, so one red run shows every failure.
+      fail-fast: false
+      matrix:
+        shard: [ 1, 2, 3 ]
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@762794c140bbeda0f1224786aa33b4b46783a6c1 # v1.326.0
+        with:
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Playwright
+        run: npm ci
+
+      - name: Run Playwright
+        run: bin/e2e --shard=${{ matrix.shard }}/3
+        # Optional. With STRIPE_TEST_SECRET_KEY set, the real Stripe Checkout
+        # test runs against the sandbox; without it (and on pull requests from
+        # forks, which get no secrets) that one test skips and the rest run.
+        # Test-mode keys only: the suite and the Rails test environment both
+        # refuse to start with a live one.
+        env:
+          ENABLE_REAL_STRIPE_TESTS: ${{ secrets.STRIPE_TEST_SECRET_KEY != '' && 'true' || '' }}
+          STRIPE_PRIVATE_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          STRIPE_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_TEST_MONTHLY_PRICE_ID }}
+          STRIPE_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_TEST_ANNUAL_PRICE_ID }}
+
+      # The HTML report carries the trace, video and screenshot diff of every
+      # failure, so a red run can be replayed without reproducing it locally.
+      # Kept on success too: it is the record of what the release was checked
+      # against.
+      - name: Keep the Playwright report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Keep the raw failure output
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: playwright-test-results-${{ matrix.shard }}
+          path: |
+            test-results
+            log/e2e-browser-server.log
+            log/test.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The check branch protection requires, under the one name it has always had
+  # however many shards run. It must run even when a shard fails: GitHub counts
+  # a skipped required check as passed, so a gate skipped by a red shard would
+  # let the pull request merge.
+  e2e:
+    needs: e2e_shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every Playwright shard passed
+        env:
+          SHARDS: ${{ needs.e2e_shard.result }}
+        run: |
+          echo "Playwright shards: $SHARDS"
+          test "$SHARDS" = success

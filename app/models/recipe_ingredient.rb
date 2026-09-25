@@ -59,11 +59,7 @@ class RecipeIngredient < ApplicationRecord
   validates :name, presence: true
   validates :aisle_category, inclusion: { in: AISLE_CATEGORIES }
 
-  # Saving a recipe saves every ingredient, and each one used to re-derive the
-  # aisle mappings for its own name - so importing a fifteen-ingredient recipe
-  # did that fifteen times over, most of it recomputing counts that the next
-  # ingredient would recompute again. Bulk callers suspend it and resync each
-  # distinct name once when the whole recipe has landed.
+  # Bulk saves suspend per-row resync and do each distinct name once. Otherwise a 15-ingredient import recomputes the same counts 15 times.
   def self.without_aisle_sync
     previous = Thread.current[:familyplates_suspend_aisle_sync]
     Thread.current[:familyplates_suspend_aisle_sync] = true
@@ -96,13 +92,8 @@ class RecipeIngredient < ApplicationRecord
       self.name = raw_text.strip
     end
 
-    # Only classify when no aisle was supplied. "Other" is a real option in the
-    # form's select, so treating it as "unset" meant a deliberate choice was
-    # overwritten on every save - file Truffle Oil under Other and it kept
-    # jumping back to whatever the heuristic guessed.
-    #
-    # Callers that mean "I have no opinion" pass nil; the import paths used to
-    # default to "Other", which is why this could not tell them apart.
+    # Classify only when no aisle was supplied. "Other" is a real choice, not unset.
+    # Callers with no opinion pass nil.
     if aisle_category.blank? && name.present?
       suggested = IngredientAisleMapping.most_likely_aisle(name, recipe&.household)
       self.aisle_category = suggested if suggested.present?
@@ -114,10 +105,7 @@ class RecipeIngredient < ApplicationRecord
   def sync_aisle_mappings
     return if self.class.aisle_sync_suspended?
 
-    # Both names, when one replaced the other. Re-syncing only the current name
-    # left the old one's mapping behind at its full count forever - correcting
-    # "chikcen breast" to "chicken breast" kept the typo in the autocomplete
-    # list, and it sorts by weight so it stayed near the top.
+    # Resync the old name too. Leaving it kept the typo at the top of autocomplete, which sorts by weight.
     [ name, previous_name ].compact_blank.uniq.each do |ingredient_name|
       IngredientAisleMapping.sync_ingredient_usage!(ingredient_name, recipe&.household)
     end

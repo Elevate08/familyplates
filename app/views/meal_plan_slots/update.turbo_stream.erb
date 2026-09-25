@@ -1,14 +1,37 @@
+<% plan_to_render = @slot.meal_plan || @meal_plan %>
+<% @slots_by_key ||= plan_to_render.meal_plan_slots.includes(:recipe, :family_member, :leftover_source_slot).index_by { |s| [s.date, s.meal_type] } %>
+<% @leftover_sources ||= plan_to_render.preloaded_leftover_sources %>
+
 <% if @old_date && @old_meal_type && @slot.meal_plan_id != @meal_plan.id %>
+  <% old_slot = @slots_by_key[[@old_date, @old_meal_type]] %>
+  <% old_cands = @meal_plan.available_leftovers_for(@old_date, @old_meal_type, current_slot: old_slot, preloaded_sources: @leftover_sources) %>
   <%= turbo_stream.replace "slot_#{@old_date}_#{@old_meal_type}" do %>
-    <%= render "meal_plans/slot", meal_plan: @meal_plan, date: @old_date, meal_type: @old_meal_type %>
+    <%= render "meal_plans/slot",
+          meal_plan: @meal_plan,
+          date: @old_date,
+          meal_type: @old_meal_type,
+          slot: old_slot,
+          recipes: @recipes,
+          recipes_map: @recipes_map,
+          family_members: @family_members,
+          leftover_candidates: old_cands %>
   <% end %>
 <% end %>
 
-<% plan_to_render = @slot.meal_plan || @meal_plan %>
 <% plan_to_render.days.each do |day| %>
   <% %w[breakfast lunch dinner].each do |meal_type| %>
+    <% slot = @slots_by_key[[day, meal_type]] %>
+    <% cands = plan_to_render.available_leftovers_for(day, meal_type, current_slot: slot, preloaded_sources: @leftover_sources) %>
     <%= turbo_stream.replace "slot_#{day}_#{meal_type}" do %>
-      <%= render "meal_plans/slot", meal_plan: plan_to_render, date: day, meal_type: meal_type %>
+      <%= render "meal_plans/slot",
+            meal_plan: plan_to_render,
+            date: day,
+            meal_type: meal_type,
+            slot: slot,
+            recipes: @recipes,
+            recipes_map: @recipes_map,
+            family_members: @family_members,
+            leftover_candidates: cands %>
     <% end %>
   <% end %>
 <% end %>

@@ -1,0 +1,148 @@
+<% content_for :title, "Preview Bulk Operation | Platform Operator Console" %>
+
+<div class="mx-auto max-w-5xl space-y-6 py-6 sm:py-8">
+  <div class="border-b border-slate-200 pb-6 dark:border-slate-800">
+    <%= link_to "← Edit configuration", new_platform_admin_bulk_operation_path(bulk_action: @action, filter_params: @filter_params, operation_params: @operation_params, reason: @reason), class: "text-xs font-bold text-primary-600 hover:underline dark:text-primary-400" %>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Preview Bulk Operation</h1>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Review the exact impact and eligibility of this operation before confirming execution.</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Matching Households</p>
+      <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white"><%= @preview[:matched_count] %></p>
+      <p class="mt-1 text-xs text-slate-400">Matched by search & filters</p>
+    </div>
+
+    <div class="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm dark:border-emerald-900/60 dark:bg-slate-900">
+      <p class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Eligible to Update</p>
+      <p class="mt-2 text-3xl font-black text-emerald-600 dark:text-emerald-400"><%= @preview[:eligible_count] %></p>
+      <p class="mt-1 text-xs text-slate-400">Passes all safety guardrails</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Ineligible / Skipped</p>
+      <p class="mt-2 text-3xl font-black text-slate-600 dark:text-slate-400"><%= @preview[:ineligible_count] %></p>
+      <p class="mt-1 text-xs text-slate-400">Will be safely bypassed</p>
+    </div>
+  </div>
+
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Planned Action</span>
+      <span class="inline-flex items-center rounded-lg bg-primary-100 dark:bg-primary-950/80 px-2.5 py-1 text-xs font-bold text-primary-800 dark:text-primary-300">
+        <%= @preview[:details] %>
+      </span>
+    </div>
+    <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Operational Reason</p>
+      <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200"><%= @reason %></p>
+    </div>
+  </div>
+
+  <% if @preview[:samples].any? %>
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+      <div class="border-b border-slate-100 p-6 dark:border-slate-800">
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Sample Affected Households (First <%= @preview[:samples].size %>)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-left text-xs dark:divide-slate-800">
+          <thead class="bg-slate-50 font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50">
+            <tr>
+              <th class="px-6 py-3">Household</th>
+              <th class="px-6 py-3">Current Status</th>
+              <th class="px-6 py-3">Target Change</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <% @preview[:samples].each do |item| %>
+              <% h = item[:household] %>
+              <tr>
+                <td class="px-6 py-3.5 font-bold text-slate-900 dark:text-white">
+                  <%= h.name %>
+                  <span class="block text-[10px] font-mono text-slate-400"><%= h.id %></span>
+                </td>
+                <td class="px-6 py-3.5 text-slate-600 dark:text-slate-300">
+                  <span class="capitalize"><%= h.subscription_status %></span>
+                  <% if h.promotion_code.present? %>
+                    <span class="text-slate-400">· promo: <%= h.promotion_code %></span>
+                  <% end %>
+                  <% if h.operational_tags.present? %>
+                    <span class="text-slate-400">· tags: <%= h.operational_tags %></span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-3.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <%= item[:detail] %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @preview[:ineligible_samples].any? %>
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+      <div class="border-b border-slate-100 p-6 dark:border-slate-800">
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Skipped / Ineligible Samples</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-left text-xs dark:divide-slate-800">
+          <thead class="bg-slate-50 font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50">
+            <tr>
+              <th class="px-6 py-3">Household</th>
+              <th class="px-6 py-3">Exclusion Reason</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <% @preview[:ineligible_samples].each do |item| %>
+              <% h = item[:household] %>
+              <tr>
+                <td class="px-6 py-3.5 font-bold text-slate-800 dark:text-slate-200">
+                  <%= h.name %>
+                </td>
+                <td class="px-6 py-3.5 text-rose-600 dark:text-rose-400 font-medium">
+                  <%= item[:reason] %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%= form_with url: platform_admin_bulk_operations_path, method: :post, local: true, class: "space-y-6" do |form| %>
+    <%= form.hidden_field :bulk_action, value: @action %>
+    <%= form.hidden_field :reason, value: @reason %>
+
+    <% @filter_params.each do |k, v| %>
+      <%= form.hidden_field "filter_params[#{k}]", value: v %>
+    <% end %>
+
+    <% @operation_params.each do |k, v| %>
+      <%= form.hidden_field "operation_params[#{k}]", value: v %>
+    <% end %>
+
+    <div class="rounded-3xl border border-amber-200 bg-amber-50/50 p-6 dark:border-amber-900/60 dark:bg-amber-950/20 space-y-4">
+      <div class="flex items-start gap-3">
+        <span class="text-xl">⚠️</span>
+        <div>
+          <h3 class="font-extrabold text-sm text-slate-900 dark:text-white">Operator Double Confirmation</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">This operation will execute synchronously across <%= @preview[:eligible_count] %> eligible households and write an audit event with your identity.</p>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-3 cursor-pointer pt-2">
+        <%= form.check_box :confirmed, { class: "rounded border-slate-300 text-primary-600 focus:ring-primary-500", required: true }, "1", "0" %>
+        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">I confirm that I have reviewed the target count and want to execute this bulk operation.</span>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <%= link_to "← Back to Edit", new_platform_admin_bulk_operation_path(bulk_action: @action, filter_params: @filter_params, operation_params: @operation_params, reason: @reason), class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" %>
+      <%= form.submit "Execute Bulk Operation (#{@preview[:eligible_count]} Households)", class: "rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-500 cursor-pointer transition-all", disabled: (@preview[:eligible_count] == 0) %>
+    </div>
+  <% end %>
+</div>

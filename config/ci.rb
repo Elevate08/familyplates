@@ -8,11 +8,13 @@ CI.run do
   step "Security: Gem audit", "bin/bundler-audit"
   step "Security: Importmap vulnerability audit", "bin/importmap audit"
   step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
+  step "Style: Acceptance criteria have tests", "bin/coverage-criteria"
   step "Tests: Rails", "bin/rails test"
+  step "Tests: System", "bin/rails test:system"
+  # Needs Docker for the pinned browser. E2E_BROWSER=local bin/ci runs the flows
+  # against a local Chromium instead, where screenshot diffs are not meaningful.
+  step "Tests: Playwright", "bin/e2e"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
-
-  # Optional: Run system tests
-  # step "Tests: System", "bin/rails test:system"
 
   # Optional: set a green GitHub commit status to unblock PR merge.
   # Requires the `gh` CLI and `gh extension install basecamp/gh-signoff`.

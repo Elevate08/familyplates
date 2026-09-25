@@ -1,16 +1,49 @@
 require "test_helper"
 
 class FamilyMemberTest < ActiveSupport::TestCase
+  test "every avatar colour has a name a screen reader can announce" do
+    assert_equal FamilyMember::AVATAR_COLORS, FamilyMember::AVATAR_COLOR_NAMES.keys
+    assert FamilyMember::AVATAR_COLOR_NAMES.values.all?(&:present?)
+  end
+
   test "assigns a UUID when created" do
     member = FamilyMember.create!(household: households(:one), name: "New Member")
 
     assert_match(/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/, member.id)
   end
 
+  # @card-14.2
   test "validates name presence" do
     member = FamilyMember.new(household: households(:one), name: "")
     assert_not member.valid?
     assert_includes member.errors[:name], "can't be blank"
+  end
+
+  # @card-14.3
+  test "may belong to a user once per household" do
+    user = User.create!(email: "parent@example.com")
+    first = family_members(:one)
+    first.update!(user: user)
+    duplicate = FamilyMember.new(household: first.household, user: user, name: "Duplicate")
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:user_id], "has already been taken"
+  end
+
+  test "generates signed transfer token and finds member" do
+    member = family_members(:two)
+    token = member.transfer_id
+
+    assert_equal member, FamilyMember.find_by_transfer_id(token)
+  end
+
+  # @card-16.5
+  test "transfer_to! reassigns profile to another user" do
+    user = User.create!(email: "newuser@example.com")
+    member = family_members(:two)
+
+    member.transfer_to!(user)
+    assert_equal user.id, member.reload.user_id
   end
 
   test "calculates initial" do
@@ -35,6 +68,7 @@ class FamilyMemberTest < ActiveSupport::TestCase
     assert_not member.verify_pin("9999")
   end
 
+  # @card-17.5
   test "requires pin for admin members" do
     member = FamilyMember.new(household: households(:one), name: "Admin Person", role: "admin", pin: nil)
     assert_not member.valid?

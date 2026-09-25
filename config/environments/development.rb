@@ -31,6 +31,11 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # Fixed, non-secret keys so encrypted attributes work in development without manual env vars.
+  # Production takes these from the environment - see config/initializers/active_record_encryption.rb.
+  config.active_record.encryption.primary_key = ENV.fetch("ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY", "development-only-primary-key-not-a-secret")
+  config.active_record.encryption.key_derivation_salt = ENV.fetch("ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT", "development-only-salt-not-a-secret")
+
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
 

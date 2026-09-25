@@ -1,0 +1,15 @@
+<% content_for :title, "Your data | FamilyPlates" %>
+
+<div class="mx-auto max-w-2xl space-y-6 py-6 sm:py-8">
+  <div>
+    <p class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">Privacy</p>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Your data</h1>
+    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Export your household data whenever you need it.</p>
+  </div>
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-extrabold text-slate-900 dark:text-white">Download a copy</h2>
+    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Includes your recipes, ingredients, pantry items, meal plans, and household members. Security tokens and credentials are never included.</p>
+    <%= link_to "Export household data", export_account_data_path, class: "mt-4 inline-flex rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700" %>
+  </div>
+  <%= hosted_render "account_data_deletion" %>
+</div>

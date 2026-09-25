@@ -1,12 +1,17 @@
 class FamilyMember < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
+  DEFAULT_COLOR = "#F97316"
+  DEFAULT_ICON = "chef-hat"
+
   belongs_to :household
+  belongs_to :user, optional: true
+  has_many :activity_events, foreign_key: :actor_id, dependent: :nullify
   has_many :recipe_requests, dependent: :destroy
   has_many :meal_plan_slots, dependent: :nullify
 
   AVATAR_COLORS = [
-    "#F97316", # Orange (Warm Carrot)
+    "#F97316", # Orange (Warm Carrot / Brand)
     "#3B82F6", # Blue (Ocean)
     "#10B981", # Emerald (Sage)
     "#F59E0B", # Amber (Golden)
@@ -20,18 +25,38 @@ class FamilyMember < ApplicationRecord
     "#64748B"  # Slate (Graphite)
   ].freeze
 
+  # What a screen reader announces for each swatch, which is otherwise only a
+  # colour. The names match the ones on the preferences page.
+  AVATAR_COLOR_NAMES = AVATAR_COLORS.zip(
+    %w[Carrot Ocean Sage Amber Chili Plum Berry Mint Twilight Olive Sky Graphite]
+  ).to_h.freeze
+
   AVATAR_ICONS = %w[chef-hat utensils heart star smile flame sparkles award].freeze
 
   # Stores only a digest. `pin` is a write-only virtual attribute, so a PIN that
   # has been saved cannot be read back out of the record, out of a database copy,
   # or out of a page that renders the model.
   has_secure_password :pin, validations: false
+  attr_accessor :current_pin
+
+  TRANSFER_LINK_EXPIRY_DURATION = 4.hours
+
+  def transfer_id
+    signed_id(purpose: :transfer, expires_in: TRANSFER_LINK_EXPIRY_DURATION)
+  end
+
+  def self.find_by_transfer_id(id)
+    find_signed(id, purpose: :transfer)
+  end
+
+  def transfer_to!(new_user)
+    update!(user: new_user)
+  end
 
   validates :name, presence: true
-  # allow_blank, because `pin` reads back as nil on a record loaded from the
-  # database and blank on a form submitted without changing it - only a PIN
-  # actually being set is format-checked. Presence is asserted against the
-  # digest instead, which survives a reload.
+  validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
+  # allow_blank: a loaded record's pin is nil, and an unchanged form submits blank.
+  # Presence is checked on the digest, which survives a reload.
   validates :pin, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, allow_blank: true, if: :admin?
   validate :admin_requires_a_pin
   before_validation :clear_pin_unless_admin
@@ -48,10 +73,8 @@ class FamilyMember < ApplicationRecord
     admin?
   end
 
-  # bcrypt compares in constant time, so this keeps the timing property the
-  # plaintext secure_compare gave, and adds resistance to offline guessing if a
-  # database copy leaks. The deliberate slowness is affordable because PIN entry
-  # is rate-limited (see PinThrottling).
+  # bcrypt is constant-time and resists offline guessing if the database leaks.
+  # The slowness is fine because PIN entry is rate-limited.
   def verify_pin(input)
     given = input.to_s.strip
     return false if pin_digest.blank? || given.empty?

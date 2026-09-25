@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+# Lists the acceptance criteria in test/acceptance_criteria.yml that no test is
+# tagged with, and any tag that names a criterion the file does not have.
+# Exits 1 if there are either, so CI can report it.
+#
+#   bin/coverage-criteria            # what is missing
+#   bin/coverage-criteria --verbose  # and which tests prove the rest
+#
+# A green test suite says the tests pass, not that the card's criteria are the
+# things being tested. This closes that gap without a person reading every test
+# against every card. It reads files only; it never calls Fizzy.
+require "yaml"
+
+# COVERAGE_CRITERIA_ROOT is for this script's own tests.
+ROOT = ENV.fetch("COVERAGE_CRITERIA_ROOT", File.expand_path("..", __dir__))
+CRITERIA_FILE = File.join(ROOT, "test/acceptance_criteria.yml")
+TAG = /@card-(\d+(?:\.\d+)?)(?![\w.])/
+
+# A tag counts only where the convention puts it: in a comment, or on the line
+# that declares a test. "@card-49" inside an assertion or a fixture is not a
+# claim that the test proves anything.
+TAGGABLE = {
+  ".rb" => /\A\s*(#|test\s)/,
+  ".ts" => %r{\A\s*(//|\*|test(\.\w+)*\(|tag:|\{\s*tag:)}
+}.freeze
+
+SOURCES = [ "test/**/*_test.rb", "saas/test/**/*_test.rb", "e2e/**/*.spec.ts" ].freeze
+
+def tagged_tests
+  tags = Hash.new { |hash, key| hash[key] = [] }
+  # Snapshot directories are named after their spec (e2e/snapshots/*/x.spec.ts/).
+  SOURCES.flat_map { |glob| Dir.glob(File.join(ROOT, glob)) }.select { |path| File.file?(path) }.sort.each do |path|
+    pattern = TAGGABLE.fetch(File.extname(path))
+    File.foreach(path).with_index(1) do |line, number|
+      next unless line.match?(pattern)
+
+      line.scan(TAG).flatten.each { |id| tags[id] << "#{path.delete_prefix("#{ROOT}/")}:#{number}" }
+    end
+  end
+  tags
+end
+
+cards = YAML.safe_load_file(CRITERIA_FILE).fetch("cards") || {}
+tags = tagged_tests
+verbose = ARGV.include?("--verbose")
+
+known = cards.flat_map { |card, spec| [ card.to_s, *(spec["criteria"] || {}).keys.map(&:to_s) ] }
+missing = []
+
+cards.each do |card, spec|
+  criteria = spec["criteria"] || {}
+  puts "Card ##{card}: #{spec['title']}"
+
+  if criteria.empty?
+    covered = tags.key?(card.to_s)
+    missing << "##{card} (no criteria written yet)" unless covered
+    puts "  #{covered ? 'ok     ' : 'MISSING'} no criteria written yet#{covered ? '' : ' - add them, or tag a test @card-' + card.to_s}"
+    next
+  end
+
+  criteria.each do |id, text|
+    proofs = tags[id.to_s]
+    missing << id.to_s if proofs.empty?
+    puts "  #{proofs.empty? ? 'MISSING' : 'ok     '} #{id}  #{text}"
+    proofs.each { |location| puts "            #{location}" } if verbose
+  end
+end
+
+unknown = tags.keys - known
+unknown.each do |id|
+  puts "Unknown tag @card-#{id} (not in #{CRITERIA_FILE.delete_prefix("#{ROOT}/")}): #{tags[id].join(', ')}"
+end
+
+total = cards.sum { |_, spec| [ (spec["criteria"] || {}).size, 1 ].max }
+puts
+puts "#{total - missing.size} of #{total} criteria have a tagged test."
+
+if missing.any? || unknown.any?
+  puts "Without a test: #{missing.join(', ')}" if missing.any?
+  exit 1
+end

@@ -36,7 +36,6 @@
   }
 </style>
 
-<!-- Non-print action bar -->
 <div class="no-print mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-primary-50 dark:bg-slate-900 border border-primary-200 dark:border-slate-800 rounded-2xl shadow-xs">
   <div class="flex items-center gap-3">
     <span class="text-primary-600 dark:text-primary-400"><%= icon_tag("printer", css_class: "w-6 h-6") %></span>
@@ -47,7 +46,6 @@
   </div>
 
   <div class="flex items-center gap-2.5">
-    <!-- View switcher in print preview -->
     <div class="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
       <%= link_to "Weekly Table", print_meal_plan_path(@meal_plan, view: "week"), 
             class: "px-3 py-1 rounded-lg text-xs font-bold transition-colors #{@view == 'week' ? 'bg-slate-900 dark:bg-slate-700 text-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
@@ -64,46 +62,39 @@
 </div>
 
 <% if @view == "month" %>
-  <!-- FULL MONTH FRIDGE CALENDAR (Landscape 1-Page Matrix) -->
   <div class="print-page-container border-4 border-slate-900 dark:border-slate-700 rounded-3xl p-5 bg-white dark:bg-slate-900 flex flex-col justify-start h-full shadow-md transition-colors">
-    <!-- Centered Month/Year Header (Clean & space-maximized) -->
     <div class="border-b-2 border-slate-900 dark:border-slate-700 pb-2 mb-2 text-center">
       <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
         <%= @month_date.strftime("%B %Y") %>
       </h1>
     </div>
 
-    <!-- Day Headers -->
     <div class="grid grid-cols-7 gap-1.5 pb-1 text-center border-b border-slate-300 dark:border-slate-700 mb-1">
       <% %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday].each do |dname| %>
         <div class="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200"><%= dname %></div>
       <% end %>
     </div>
 
-    <!-- Month Grid Rows -->
     <div class="grid grid-cols-7 gap-1.5 flex-1 my-auto">
       <% @leading_blank_days.to_i.times do %>
         <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-slate-50/20 dark:bg-slate-800/20 min-h-[74px]"></div>
       <% end %>
 
       <% @month_days.each do |day| %>
-        <% is_today = (day == Date.current) %>
+        <% is_today = (day == household_today) %>
         <% b_slot = @month_slots_by_date[[day, "breakfast"]]&.first %>
         <% l_slot = @month_slots_by_date[[day, "lunch"]]&.first %>
         <% d_slot = @month_slots_by_date[[day, "dinner"]]&.first %>
 
         <div class="border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-xl p-1.5 flex flex-col justify-between min-h-[74px] transition-colors">
-          <!-- Date Number -->
           <div class="flex items-center justify-between pb-0.5">
             <span class="text-xs font-black text-slate-900 dark:text-white"><%= day.strftime("%-d") %></span>
           </div>
 
-          <!-- Spelled out Meals (Breakfast, Lunch, Dinner with light divider bars) -->
           <div class="space-y-1 flex-1 justify-between flex flex-col py-0.5">
-            <!-- Breakfast -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= b_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-amber-400 uppercase text-[9px] tracking-wider text-center">Breakfast</div>
-              <% if b_slot&.display_title.present? && b_slot.display_title != "No Meal Planned" %>
+              <% if b_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= b_slot.display_title %></div>
                 <% if b_slot.family_member || (b_slot.recipe && b_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -120,13 +111,11 @@
               <% end %>
             </div>
 
-            <!-- Light Separator Bar -->
             <hr class="border-t border-slate-300 dark:border-slate-800 my-0.5 w-full shrink-0 block" />
 
-            <!-- Lunch -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= l_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-teal-400 uppercase text-[9px] tracking-wider text-center">Lunch</div>
-              <% if l_slot&.display_title.present? && l_slot.display_title != "No Meal Planned" %>
+              <% if l_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= l_slot.display_title %></div>
                 <% if l_slot.family_member || (l_slot.recipe && l_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -143,13 +132,11 @@
               <% end %>
             </div>
 
-            <!-- Light Separator Bar -->
             <hr class="border-t border-slate-300 dark:border-slate-800 my-0.5 w-full shrink-0 block" />
 
-            <!-- Dinner -->
             <div class="text-[9.5px] leading-tight break-words text-center <%= d_slot ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300 dark:text-slate-700' %>">
               <div class="font-black text-slate-900 dark:text-primary-400 uppercase text-[9px] tracking-wider text-center">Dinner</div>
-              <% if d_slot&.display_title.present? && d_slot.display_title != "No Meal Planned" %>
+              <% if d_slot&.planned? %>
                 <div class="font-bold text-slate-900 dark:text-white mt-0.5 text-center"><%= d_slot.display_title %></div>
                 <% if d_slot.family_member || (d_slot.recipe && d_slot.recipe.total_time.to_i > 0) %>
                   <div class="text-[8.5px] text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center flex-wrap gap-x-1.5 mt-0.5">
@@ -172,16 +159,13 @@
   </div>
 
 <% else %>
-  <!-- 7-DAY WEEKLY FRIDGE TABLE (Flipped: Days as Columns, Meals as Rows - Shifted to Top for Clean Cutting) -->
   <div class="print-page-container border-4 border-slate-900 dark:border-slate-700 rounded-3xl p-5 bg-white dark:bg-slate-900 flex flex-col justify-start shadow-md transition-colors">
-    <!-- Centered Week Header (Clean & space-maximized) -->
     <div class="border-b-2 border-slate-900 dark:border-slate-700 pb-2 mb-3 text-center">
       <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
         <%= @meal_plan.week_label %>
       </h1>
     </div>
 
-    <!-- Flipped Matrix Table with Rounded Corners -->
     <div class="rounded-2xl overflow-hidden border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-900">
       <table class="w-full border-collapse table-fixed bg-white dark:bg-slate-900">
         <thead>
@@ -206,7 +190,7 @@
               <% @meal_plan.days.each do |day| %>
                 <% slot = @meal_plan.slot_for(day, meal_type) %>
                 <td class="p-2 border-r-2 border-slate-900 dark:border-slate-700 last:border-r-0 align-top bg-white dark:bg-slate-900">
-                  <% if slot&.display_title.present? && slot.display_title != "No Meal Planned" %>
+                  <% if slot&.planned? %>
                     <div class="flex flex-col justify-between h-full min-h-[75px]">
                       <div class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug break-words flex items-center gap-1 flex-wrap">
                         <span><%= slot.display_title %></span>

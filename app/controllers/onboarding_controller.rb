@@ -9,7 +9,6 @@ class OnboardingController < ApplicationController
   before_action :require_admin, only: WIZARD_STEPS_AFTER_SETUP
   before_action :load_starter_recipes, only: %i[recipes save_recipes]
 
-  # Step 1: Kitchen & Family Setup
   def family
     @household = Household.new(
       name: "",
@@ -19,8 +18,8 @@ class OnboardingController < ApplicationController
     )
     @admin_member = FamilyMember.new(
       role: "admin",
-      avatar_color: "#3B82F6",
-      avatar_icon: "chef-hat"
+      avatar_color: FamilyMember::DEFAULT_COLOR,
+      avatar_icon: FamilyMember::DEFAULT_ICON
     )
   end
 
@@ -31,8 +30,8 @@ class OnboardingController < ApplicationController
 
       initial_name = admin_member_params[:name].presence || "Head Chef"
       initial_pin = admin_member_params[:pin]
-      initial_color = admin_member_params[:avatar_color].presence || "#3B82F6"
-      initial_icon = admin_member_params[:avatar_icon].presence || "chef-hat"
+      initial_color = admin_member_params[:avatar_color].presence || FamilyMember::DEFAULT_COLOR
+      initial_icon = admin_member_params[:avatar_icon].presence || FamilyMember::DEFAULT_ICON
 
       @admin_member = @household.family_members.create!(
         name: initial_name,
@@ -52,7 +51,6 @@ class OnboardingController < ApplicationController
     render :family, status: :unprocessable_entity
   end
 
-  # Step 2: Family Roster
   def members
     @family_members = current_household.family_members.order(:created_at, :id)
     @new_member = current_household.family_members.build(
@@ -94,7 +92,6 @@ class OnboardingController < ApplicationController
     end
   end
 
-  # Step 3: Starter Recipes
   def recipes
     @selected_recipe_ids = @starter_recipes.map { |r| r["id"] }
   end
@@ -106,33 +103,33 @@ class OnboardingController < ApplicationController
 
     ActiveRecord::Base.transaction do
       RecipeIngredient.without_aisle_sync do
-      @starter_recipes.each do |starter|
-        next unless selected_ids.include?(starter["id"])
+        @starter_recipes.each do |starter|
+          next unless selected_ids.include?(starter["id"])
 
-        recipe = current_household.recipes.find_or_create_by!(title: starter["title"]) do |r|
-          r.description = starter["description"]
-          r.prep_time = starter["prep_time"]
-          r.cook_time = starter["cook_time"]
-          r.servings = starter["servings"] || 4
-          r.image_url = starter["image_url"]
-          r.instructions = starter["instructions"]
-          r.tags = Array(starter["tags"]).join(", ")
-        end
-
-        if recipe.recipe_ingredients.empty?
-          Array(starter["ingredients"]).each do |ing|
-            recipe.recipe_ingredients.create!(
-              raw_text: ing["raw_text"],
-              name: ing["name"],
-              quantity: ing["quantity"],
-              unit: ing["unit"],
-              aisle_category: ing["aisle_category"].presence
-            )
+          recipe = current_household.recipes.find_or_create_by!(title: starter["title"]) do |r|
+            r.description = starter["description"]
+            r.prep_time = starter["prep_time"]
+            r.cook_time = starter["cook_time"]
+            r.servings = starter["servings"] || 4
+            r.image_url = starter["image_url"]
+            r.instructions = starter["instructions"]
+            r.tags = Array(starter["tags"]).join(", ")
           end
-        end
 
-        created << recipe
-      end
+          if recipe.recipe_ingredients.empty?
+            Array(starter["ingredients"]).each do |ing|
+              recipe.recipe_ingredients.create!(
+                raw_text: ing["raw_text"],
+                name: ing["name"],
+                quantity: ing["quantity"],
+                unit: ing["unit"],
+                aisle_category: ing["aisle_category"].presence
+              )
+            end
+          end
+
+          created << recipe
+        end
       end
     end
 
@@ -143,7 +140,6 @@ class OnboardingController < ApplicationController
     redirect_to onboarding_pantry_path, notice: "Great picks! Now let's confirm what you keep on hand."
   end
 
-  # Step 4: Pantry Staples
   def pantry
     @default_staples = PantryItem::DEFAULT_STAPLES
   end
@@ -156,10 +152,7 @@ class OnboardingController < ApplicationController
         is_selected = selected_staple_names.include?(staple[:name])
         item = current_household.pantry_items.find_or_initialize_by(name: staple[:name])
 
-        # Seed the defaults only when creating. This step used to assign them
-        # unconditionally, so re-running the wizard reset a household's
-        # hand-picked category and icon back to the DEFAULT_STAPLES values. Only
-        # the checkbox is the user's answer on this screen.
+        # Seed defaults only on create. Re-running the wizard must not reset a hand-picked category or icon.
         if item.new_record?
           item.aisle_category = staple[:aisle_category]
           item.emoji = staple[:emoji]
@@ -173,18 +166,32 @@ class OnboardingController < ApplicationController
     redirect_to onboarding_complete_path
   end
 
-  # Step 5: Completion & Celebration
   def complete
     @members_count = current_household.family_members.count
     @recipes_count = current_household.recipes.count
     @staples_count = current_household.pantry_items.staples.count
     @current_meal_plan = current_household.current_meal_plan
+
+    current_household.mark_onboarded! unless current_household.onboarded?
   end
 
   private
 
   def ensure_household_unconfigured
-    return unless Household.exists?
+    if FamilyPlates.config.hosted?
+      if Current.user.nil?
+        redirect_to new_signup_path, alert: "In hosted mode, please sign up to create a household." and return
+      elsif current_household&.onboarded?
+        redirect_to root_path, alert: "Your family kitchen is already set up." and return
+      elsif current_household.present?
+        redirect_to onboarding_recipes_path and return
+      else
+        redirect_to new_signup_path and return
+      end
+    end
+
+    target = current_household || Household.installation
+    return unless target&.onboarded?
 
     if authenticated?
       redirect_to root_path, alert: "Your family kitchen is already set up."

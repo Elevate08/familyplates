@@ -1,0 +1,4 @@
+<% extra = local_assigns[:extra_class].presence %>
+<div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl<%= " #{extra}" if extra %>">
+  <%= yield %>
+</div>

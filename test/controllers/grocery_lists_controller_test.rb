@@ -8,6 +8,16 @@ class GroceryListsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@admin)
   end
 
+  test "each checklist box is named by its item" do
+    get grocery_list_url
+
+    boxes = css_select("input[type=checkbox][data-checklist-target=checkbox]")
+    assert boxes.any?, "precondition: the fixture plan puts items on the list"
+    boxes.each do |box|
+      assert_select "##{box['aria-labelledby']}", 1
+    end
+  end
+
   test "should get current grocery list" do
     get grocery_list_url
     assert_response :success

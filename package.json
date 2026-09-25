@@ -1,0 +1,32 @@
+{
+  "name": "familyplates",
+  "version": "1.0.0",
+  "description": "**Family meal planning, curated recipes, 1-page fridge calendar printouts, and universal calendar subscriptions.**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "bin/e2e",
+    "test:e2e": "bin/e2e",
+    "test:e2e:update": "bin/e2e-update-snapshots"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Elevate08/familyplates.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Elevate08/familyplates/issues"
+  },
+  "homepage": "https://github.com/Elevate08/familyplates#readme",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0"
+  }
+}

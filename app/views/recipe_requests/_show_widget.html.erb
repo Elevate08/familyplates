@@ -1,4 +1,4 @@
-<% week_start = Date.current.beginning_of_week %>
+<% week_start = household_today.beginning_of_week %>
 <% requested = recipe.requested_by?(current_family_member, week_start) %>
 <% requesters = recipe.requesters_for_week(week_start).to_a %>
 <% total = requesters.size %>

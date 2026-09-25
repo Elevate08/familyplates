@@ -7,6 +7,7 @@ export default class extends Controller {
     "mealTypeSelect",
     "timeInput",
     "recipeInput",
+    "leftoverSourceInput",
     "recipeDropdownButton",
     "recipeDropdownMenu",
     "recipeSelectedDisplay",
@@ -104,8 +105,39 @@ export default class extends Controller {
       this.recipeInputTarget.value = recipeId
     }
 
+    if (this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = ""
+    }
+
     this.syncSelectedRecipeDisplay()
     this.hideRecipeDropdown()
+  }
+
+  selectLeftover(event) {
+    if (event) event.preventDefault()
+    const btn = event.currentTarget
+    const recipeId = btn.dataset.recipeId || ""
+    const sourceSlotId = btn.dataset.sourceSlotId || ""
+
+    if (this.hasRecipeInputTarget) {
+      this.recipeInputTarget.value = recipeId
+    }
+
+    if (this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = sourceSlotId
+    }
+
+    const form = btn.closest("form")
+    const checkbox = form?.querySelector("input[name='meal_plan_slot[is_leftover]']")
+    if (checkbox) checkbox.checked = true
+
+    this.syncSelectedRecipeDisplay()
+  }
+
+  toggleLeftover(event) {
+    if (!event.target.checked && this.hasLeftoverSourceInputTarget) {
+      this.leftoverSourceInputTarget.value = ""
+    }
   }
 
   // image_url can arrive from a scraped third-party page, so anything that is
@@ -123,7 +155,6 @@ export default class extends Controller {
     }
   }
 
-  // Was an inline onclick that walked up to the form and ticked the checkbox.
   markAsLeftover(event) {
     const form = event.target.closest("form")
     const checkbox = form?.querySelector("input[name='meal_plan_slot[is_leftover]']")
@@ -150,7 +181,7 @@ export default class extends Controller {
           el("div", { className: "flex-1 min-w-0" }, [
             el("div", { className: "font-extrabold text-xs text-slate-900 truncate", text: recipeData.title }),
             el("div", { className: "flex items-center gap-2 mt-0.5" }, [
-              el("span", { className: "text-[10px] font-bold text-slate-500", text: `⏱️ ${recipeData.total_time || 30}m` }),
+              el("span", { className: "text-[10px] font-bold text-slate-500", text: `⏱️ ${recipeData.total_time ? `${recipeData.total_time}m` : "—"}` }),
               el("div", { className: "flex flex-wrap gap-1" }, tagBadges)
             ])
           ]),

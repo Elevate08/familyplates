@@ -133,4 +133,24 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_no_match(/<img/, markup)
     assert_includes markup, "text-base"
   end
+
+  test "css_class containing script injection payload is escaped in icon_tag and pantry_icon_tag" do
+    hostile_class = '"><script>alert(1)</script>'
+
+    icon_markup = icon_tag("check", css_class: hostile_class)
+    assert_no_match(/<script>/, icon_markup)
+    assert_includes icon_markup, "&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"
+
+    pantry_markup = pantry_icon_tag("pepper-shaker", css_class: hostile_class)
+    assert_no_match(/<script>/, pantry_markup)
+    assert_includes pantry_markup, "&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"
+  end
+
+  test "recipe_minutes shows a dash for an unknown time instead of zero" do
+    assert_equal "—", recipe_minutes(nil)
+    assert_equal "—", recipe_minutes(0)
+    assert_equal "—", recipe_minutes(nil, style: :short)
+    assert_equal "25 mins", recipe_minutes(25)
+    assert_equal "25m", recipe_minutes(25, style: :short)
+  end
 end

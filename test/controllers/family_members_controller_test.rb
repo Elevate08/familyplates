@@ -44,6 +44,26 @@ class FamilyMembersControllerTest < ActionDispatch::IntegrationTest
     assert signed_in_as?(@admin)
   end
 
+  test "user with profiles in multiple households can switch kitchens" do
+    user = User.create!(email: "multi@example.com", password: "password123")
+    @member.update!(user: user)
+    household2 = Household.create!(name: "Second Home")
+    member2 = household2.family_members.create!(name: "Alex", role: "member", user: user)
+
+    post session_path, params: { email: user.email, password: "password123" }
+    post set_profile_path(@member)
+    assert signed_in_as?(@member)
+
+    post switch_family_member_url(member2)
+    assert_response :redirect
+    assert signed_in_as?(member2)
+
+    # And switch back
+    post switch_family_member_url(@member)
+    assert_response :redirect
+    assert signed_in_as?(@member)
+  end
+
   # --- Roster mutation is not reachable here ---------------------------------
   #
   # These verbs used to live on this controller with no admin check at all, so a

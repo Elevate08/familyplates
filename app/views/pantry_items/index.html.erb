@@ -1,20 +1,26 @@
 <div class="max-w-4xl mx-auto py-6">
-  <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
         <span>Pantry & On-Hand Inventory</span>
+        <%# Counts what is actually shielding right now. A staple flagged low is
+            on the grocery list, so calling it "on hand" would be a lie. %>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">
-          <%= @pantry_items.where(is_staple: true).count %> on hand
+          <%= @pantry_items.count(&:shielding?) %> on hand
         </span>
+        <% low_count = @pantry_items.count(&:low_stock?) %>
+        <% if low_count > 0 %>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300">
+            <%= low_count %> running low
+          </span>
+        <% end %>
       </h1>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Items marked as on hand are automatically shielded and excluded from your weekly grocery shopping list.
+        Items marked as on hand are shielded from your weekly grocery list — until you flag one as running low, which puts it back on the list until it is bought.
       </p>
     </div>
   </div>
 
-  <!-- Elegant Add Item Card with Interactive Picker -->
   <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-10" data-controller="pantry-item-form">
     <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
       <%= icon_tag("plus", css_class: "w-4 h-4 text-primary-500") %>
@@ -31,7 +37,6 @@
       <%= f.hidden_field :emoji, value: "", data: { pantry_item_form_target: "iconInput" } %>
 
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <!-- Interactive Icon Picker Trigger & Floating Dropdown -->
         <div class="relative shrink-0">
           <button type="button" 
                   data-action="click->pantry-item-form#togglePicker"
@@ -45,11 +50,9 @@
             </span>
           </button>
 
-          <!-- Floating Icon Search Dropdown (Uniform Rounded-3xl Shell) -->
           <div data-pantry-item-form-target="pickerContainer" 
                class="hidden absolute left-0 top-full mt-2 z-50 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100 w-80 sm:w-96">
             
-            <!-- Search Bar Header -->
             <div class="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
               <div class="relative">
                 <input type="text"
@@ -64,9 +67,7 @@
               </div>
             </div>
 
-            <!-- Scrollable Grid of Icons -->
             <div data-pantry-item-form-target="iconGrid" class="grid grid-cols-5 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto overflow-x-hidden themed-scrollbar overscroll-contain">
-              <!-- Custom SVGs -->
               <button type="button" data-icon-id="pepper-shaker" data-icon-label="black pepper shaker pepper" data-action="click->pantry-item-form#pickIcon" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/60 hover:scale-105 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center transition-all cursor-pointer" title="Black Pepper Shaker">
                 <%= pantry_icon_tag("pepper-shaker", css_class: "w-6 h-6") %>
                 <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Pepper</span>
@@ -87,7 +88,6 @@
                 <span class="text-[8px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-full">Spices</span>
               </button>
 
-              <!-- Popular Icons -->
               <% [
                 ["🧂", "Salt", "salt shaker kosher sea"],
                 ["🍾", "Olive Oil", "olive oil bottle extra virgin"],
@@ -138,14 +138,12 @@
           </div>
         </div>
 
-        <!-- Name Input with auto-suggest -->
         <div class="flex-1 w-full">
           <%= f.text_field :name, placeholder: "e.g. Black Pepper, Brown Sugar, Olive Oil, Basmati Rice...", required: true,
                 data: { pantry_item_form_target: "nameInput", action: "input->pantry-item-form#onNameChange" },
                 class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white" %>
         </div>
 
-        <!-- Submit & Always Stocked Toggle -->
         <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
           <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
             <%= f.check_box :is_staple, checked: true, class: "w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 dark:border-slate-600" %>
@@ -155,7 +153,6 @@
         </div>
       </div>
 
-      <!-- Category Quick-Select Chips (Native Radio with Peer-Checked Styling) -->
       <div>
         <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Aisle Category</span>
         <div class="flex flex-wrap gap-1.5">
@@ -181,7 +178,6 @@
     <% end %>
   </div>
 
-  <!-- Aisle Categories Display -->
   <div class="space-y-6">
     <% PantryItem::CATEGORIES.each do |category| %>
       <% items = @items_by_category[category] || [] %>

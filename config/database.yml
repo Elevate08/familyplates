@@ -11,14 +11,17 @@ default: &default
 
 development:
   <<: *default
-  database: storage/development.sqlite3
+  database: <%= ENV.fetch("DATABASE_PATH", "storage/development.sqlite3") %>
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: storage/test.sqlite3
+  # The Playwright server overrides this (see playwright.config.ts) so what the
+  # browser suite writes never lands in the database Minitest runs against.
+  database: <%= ENV.fetch("TEST_DATABASE_PATH", "storage/test.sqlite3") %>
+  timeout: 15000
 
 # Store production database in the storage/ directory, which by default
 # is mounted as a persistent Docker volume in config/deploy.yml.

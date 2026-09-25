@@ -43,8 +43,24 @@ export default class extends Controller {
     }
 
     this.applyRowState(row, checkbox.checked)
+    this.syncPantryStock(row, checkbox.checked)
     this.saveState()
     this.updateProgress()
+  }
+
+  // Ticking a restock line means the staple was bought and can shield itself again.
+  // Fire and forget: the endpoints are idempotent, and a shopper with no signal must not see an error.
+  syncPantryStock(row, isChecked) {
+    const url = isChecked ? row.dataset.restockUrl : row.dataset.markLowUrl
+    if (!url) return
+
+    fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Accept": "application/json",
+        "X-CSRF-Token": document.querySelector("meta[name='csrf-token']")?.content || ""
+      }
+    }).catch(() => {})
   }
 
   applyRowState(row, isChecked) {

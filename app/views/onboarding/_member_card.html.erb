@@ -29,6 +29,7 @@
   <% if current_household.family_members.count > 1 && (!member.admin? || current_household.family_members.where(role: "admin").count > 1) %>
     <%= button_to onboarding_remove_member_path(member), method: :delete,
           data: { turbo_confirm: "Remove #{member.name} from the family roster?" },
+          aria: { label: "Remove #{member.name}" },
           class: "p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" do %>
       <%= icon_tag("trash", css_class: "w-4 h-4") %>
     <% end %>

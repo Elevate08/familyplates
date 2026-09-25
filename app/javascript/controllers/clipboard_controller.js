@@ -1,7 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Replaces an inline onclick that read an input and called alert(). Also drops
-// the alert() for an inline confirmation on the button itself.
+// Copies without alert(). Inline onclick cannot carry a CSP nonce.
 export default class extends Controller {
   static targets = ["source", "feedback"]
   static values = { confirmation: { type: String, default: "Copied!" } }

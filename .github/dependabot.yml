@@ -10,3 +10,9 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
+  # Workflows pin each action to a commit SHA with the version in a comment;
+  # Dependabot moves both. One PR for all of them keeps the pins in step.
+  groups:
+    github-actions:
+      patterns:
+        - "*"

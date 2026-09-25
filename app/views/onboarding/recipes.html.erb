@@ -1,8 +1,6 @@
 <div class="max-w-4xl mx-auto py-4 sm:py-8" data-controller="select-all">
-  <!-- Progress Bar -->
   <%= render "onboarding/progress_bar", current_step: 3 %>
 
-  <!-- Header -->
   <div class="text-center mb-8">
     <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-primary-500 text-white shadow-lg shadow-primary-500/30 mb-3">
       <%= icon_tag("book-open", css_class: "w-8 h-8") %>
@@ -14,7 +12,6 @@
   </div>
 
   <%= form_with url: onboarding_save_recipes_path, method: :post do |f| %>
-    <!-- Selection Control Bar -->
     <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6">
       <div class="flex items-center gap-2">
         <button type="button" data-action="click->select-all#selectAll"
@@ -32,12 +29,10 @@
       </span>
     </div>
 
-    <!-- Selection Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
       <% @starter_recipes.each do |recipe| %>
         <label class="group relative flex flex-col rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 has-checked:border-primary-500 dark:has-checked:border-primary-500 has-checked:shadow-md has-checked:shadow-primary-500/10 shadow-xs cursor-pointer transition-all overflow-hidden">
           
-          <!-- Recipe Image Banner -->
           <div class="relative h-44 sm:h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <% if recipe["image_url"].present? %>
               <img src="<%= recipe["image_url"] %>" alt="<%= recipe["title"] %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-controller="image-fallback" data-action="error->image-fallback#failed">
@@ -60,7 +55,6 @@
               <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
             <% end %>
 
-            <!-- Top Right Checkbox Selector -->
             <div class="absolute top-3 right-3 z-10">
               <div class="p-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs shadow-md border border-white/60 dark:border-slate-700 flex items-center justify-center transition-transform group-hover:scale-110">
                 <%= check_box_tag "recipe_ids[]", recipe["id"], true, 
@@ -69,10 +63,9 @@
               </div>
             </div>
 
-            <!-- Bottom Left Time & Servings Badges on Image -->
             <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white drop-shadow-sm font-semibold">
               <span class="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-bold">
-                ⏱️ <%= (recipe["prep_time"] || 0) + (recipe["cook_time"] || 0) %> mins
+                ⏱️ <%= recipe_minutes([ recipe["prep_time"], recipe["cook_time"] ].compact.sum) %>
               </span>
               <span class="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-bold">
                 🍽️ Serves <%= recipe["servings"] || 4 %>
@@ -80,7 +73,6 @@
             </div>
           </div>
 
-          <!-- Recipe Card Content -->
           <div class="p-5 flex-1 flex flex-col justify-between">
             <div>
               <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
@@ -111,10 +103,9 @@
       <% end %>
     </div>
 
-    <!-- Actions -->
     <div class="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto">
       <%= link_to "← Back to Roster", onboarding_members_path, class: "text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" %>
-      <%= f.submit "Next: Pantry Staples →", class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>
+      <%= f.submit "Next: Pantry →", class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>
     </div>
   <% end %>
 </div>

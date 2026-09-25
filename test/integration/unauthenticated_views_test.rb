@@ -84,4 +84,16 @@ class UnauthenticatedViewsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/Set Up Kitchen/, response.body)
   end
+
+
+  test "an appliance links to no hosted pages" do
+    sign_in_as(family_members(:one))
+
+    get root_url
+    follow_redirect!
+
+    assert_response :success
+    assert_select "a[href^='/support_threads'], a[href^='/signup'], a[href^='/subscription']", false,
+      "an appliance has no operator to contact, no sign-up and no billing"
+  end
 end

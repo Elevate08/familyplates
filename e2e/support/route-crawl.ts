@@ -1,0 +1,215 @@
+import { test, expect, Page } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+import { fastSignIn, resetDatabase, runAxeAudit } from "./test-helpers";
+import {
+  CrawlRecords,
+  PARAMETERISED,
+  ROLES,
+  Role,
+  SKIPPED,
+  VARIANTS,
+  crawlTargets,
+  isParameterised,
+  loadRoutes,
+  routeKey,
+  skipReason
+} from "./route-catalogue";
+
+// Visits every page the app routes, as every kind of visitor, and holds each to
+// the same invariants: no server error, no JavaScript error,
+// nothing same-origin that fails to load, no horizontal scroll on a phone, and
+// no serious axe violation. The page list comes from config/routes.rb (see
+// route-catalogue.ts), so a new page is covered the day it is added.
+//
+// A redirect is not a failure: a guest sent to the profile picker is the app
+// working. The invariants are checked against wherever the visit ends up.
+//
+// Each role's crawl is its own spec file under e2e/crawl/, because a file is
+// what Playwright hands to a worker: one file would keep the whole crawl on
+// one worker however many run.
+
+const routes = loadRoutes();
+const targets = crawlTargets(routes);
+
+// Pages axe has already passed this run, by role and where the visit landed.
+// Most of a crawl lands on a handful of pages - a guest is sent to the profile
+// picker from 41 of 66 routes - and auditing each landing again cost more than
+// half the crawl's axe time for no new finding. Every visit still gets every
+// other check. A worker that fails starts afresh, so a failing page is audited
+// again rather than excused.
+const audited = new Set<string>();
+
+// Console output that is not this application's doing.
+const IGNORED_CONSOLE = [/Autofocus processing was blocked/];
+
+// Known axe failures, marked test.fixme on desktop-light (the project axe runs
+// in) so the rest of the crawl stays green and gating. The other projects
+// still hold these pages to every other invariant. Each entry says what is
+// wrong; remove it with the fix.
+const KNOWN_AXE_ISSUES = knownIssues(
+  // [["member", "admin"], ["GET /pantry_items"], "axe button-name: the remove buttons have no name"],
+);
+
+function knownIssues(...groups: [Role[], string[], string][]): Record<string, string> {
+  const issues: Record<string, string> = {};
+  for (const [roles, keys, reason] of groups) {
+    for (const role of roles) {
+      for (const key of keys) {
+        const id = `${role} ${key}`;
+        issues[id] = issues[id] ? `${issues[id]}; ${reason}` : reason;
+      }
+    }
+  }
+  return issues;
+}
+
+export function checkEveryRouteIsClassified() {
+  test("each GET route is crawled or skipped with a reason", async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-light", "The route list is the same in every project");
+
+    const unclassified = routes
+      .filter((route) => route.verb === "GET" && isParameterised(route))
+      .map(routeKey)
+      .filter((key) => !PARAMETERISED[key] && !skipReason(key));
+
+    expect(
+      unclassified,
+      "These GET routes take parameters the crawl cannot guess. Add each to PARAMETERISED " +
+        "with the record to visit it with, or to SKIPPED with the reason it is not a page, " +
+        "in e2e/support/route-catalogue.ts"
+    ).toEqual([]);
+
+    const known = new Set(routes.map(routeKey));
+    const stale = [...Object.keys(PARAMETERISED), ...Object.keys(SKIPPED), ...Object.keys(VARIANTS)].filter(
+      (key) => !known.has(key)
+    );
+    expect(stale, "These catalogue entries name routes that no longer exist").toEqual([]);
+
+    const uncrawled = ROLES.filter((role) => !fs.existsSync(path.join(__dirname, "..", "crawl", `${role}.spec.ts`)));
+    expect(uncrawled, "Each role needs e2e/crawl/<role>.spec.ts calling crawlAs(role)").toEqual([]);
+  });
+}
+
+export function crawlAs(role: Role) {
+  test.describe(`route crawl as ${role}`, () => {
+    let records: CrawlRecords;
+
+    test.beforeAll(async ({ request }) => {
+      await resetDatabase(request);
+      const response = await request.post("/__test/crawl_records");
+      expect(response.ok()).toBeTruthy();
+      records = await response.json();
+    });
+
+    for (const target of targets) {
+      test(`${role} ${target.key}`, async ({ page, baseURL, isMobile }, testInfo) => {
+        const issue = KNOWN_AXE_ISSUES[`${role} ${target.key}`];
+        test.fixme(!!issue && testInfo.project.name === "desktop-light", issue);
+
+        await signIn(page, role);
+        const problems = watchForProblems(page, baseURL!);
+
+        const path = target.path(records);
+        const response = await page.goto(path, { waitUntil: "load" });
+        const landedOn = new URL(page.url()).pathname;
+
+        expect(response, `no response for ${path}`).not.toBeNull();
+        expect(response!.status(), `${path} ended at ${landedOn} with ${response!.status()}`).toBeLessThan(400);
+
+        problems.push(...(await brokenImages(page, baseURL!)));
+
+        if (isMobile) {
+          const overflow = await page.evaluate(
+            () => document.documentElement.scrollWidth - window.innerWidth
+          );
+          expect(overflow, `${landedOn} scrolls ${overflow}px sideways on a phone`).toBeLessThanOrEqual(0);
+        }
+
+        expect(problems, `${path} (ended at ${landedOn})`).toEqual([]);
+
+        // axe is the slow part and does not vary with the viewport's colour
+        // scheme, so it runs on desktop-light, once per page a role lands on.
+        if (testInfo.project.name === "desktop-light") {
+          const landed = new URL(page.url());
+          const auditKey = `${role} ${landed.pathname}${landed.search}`;
+          if (audited.has(auditKey)) {
+            testInfo.annotations.push({ type: "axe", description: `already audited this run: ${auditKey}` });
+          } else {
+            await runAxeAudit(page, `${role} ${path} (ended at ${landedOn})`);
+            audited.add(auditKey);
+          }
+        }
+      });
+    }
+  });
+}
+
+async function signIn(page: Page, role: Role) {
+  switch (role) {
+    case "guest":
+      return;
+    case "member":
+      return fastSignIn(page, "Mom");
+    case "admin":
+      return fastSignIn(page, "Dad");
+    case "platform-admin": {
+      const response = await page.request.post("/__test/sign_in_platform_admin");
+      expect(response.ok()).toBeTruthy();
+    }
+  }
+}
+
+// Collects, from the moment it is called, every server error, same-origin
+// load failure, uncaught exception and console error on the page.
+function watchForProblems(page: Page, baseURL: string): string[] {
+  const origin = new URL(baseURL).origin;
+  const sameOrigin = (url: string) => url.startsWith(origin);
+  const problems: string[] = [];
+
+  page.on("response", (response) => {
+    const url = response.url();
+    if (!sameOrigin(url)) return;
+    const status = response.status();
+    const isDocument = response.request().resourceType() === "document";
+    if (status >= 500 || (!isDocument && status >= 400)) {
+      problems.push(`${status} ${response.request().method()} ${url}`);
+    }
+  });
+
+  page.on("requestfailed", (request) => {
+    // ERR_ABORTED is a request the page itself cancelled - a Turbo prefetch
+    // superseded by navigation - not something that failed to load.
+    const error = request.failure()?.errorText ?? "";
+    if (sameOrigin(request.url()) && !error.includes("ERR_ABORTED")) {
+      problems.push(`request failed: ${request.url()} (${error})`);
+    }
+  });
+
+  page.on("pageerror", (error) => problems.push(`uncaught: ${error.message}`));
+
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (IGNORED_CONSOLE.some((pattern) => pattern.test(text))) return;
+    // A third-party image that will not load (recipe photos point at Unsplash)
+    // is not this app failing. Same-origin failures are caught above with
+    // their status.
+    if (text.startsWith("Failed to load resource") && !sameOrigin(message.location().url)) return;
+    problems.push(`console: ${text}`);
+  });
+
+  return problems;
+}
+
+async function brokenImages(page: Page, baseURL: string): Promise<string[]> {
+  const origin = new URL(baseURL).origin;
+  const broken = await page.evaluate(
+    (origin) =>
+      Array.from(document.images)
+        .filter((img) => img.currentSrc.startsWith(origin) && img.complete && img.naturalWidth === 0)
+        .map((img) => img.currentSrc),
+    origin
+  );
+  return broken.map((src) => `broken image: ${src}`);
+}

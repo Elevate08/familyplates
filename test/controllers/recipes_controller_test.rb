@@ -38,6 +38,19 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show and index display a dash for a recipe with no stated times" do
+    untimed = households(:one).recipes.create!(title: "Untimed Soup", instructions: "1. Simmer.")
+
+    get recipe_url(untimed)
+    assert_response :success
+    assert_select "span", text: "—", minimum: 3
+    assert_not_includes response.body, "0 mins"
+
+    get recipes_url
+    assert_response :success
+    assert_includes response.body, "⏱️ —"
+  end
+
   test "should get show with meal planning form" do
     get recipe_url(@recipe)
     assert_response :success
@@ -51,8 +64,20 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # The visible labels are hidden on desktop, where column headings replace
+  # them, so each field has to carry its own name.
+  test "every ingredient row field is named at every width" do
+    get new_recipe_url
+
+    assert_select "select[name$='[aisle_category]']:not([aria-label='Grocery Aisle'])", count: 0
+    %w[quantity unit name].zip([ "Quantity", "Measurement", "Ingredient Name" ]).each do |field, name|
+      assert_select "input[name$='[#{field}]'][name^='recipe[recipe_ingredients_attributes]']:not([aria-label='#{name}'])", count: 0
+    end
+    assert_select "select[name$='[aisle_category]']", minimum: 1
+  end
+
   test "should create recipe" do
-    assert_difference("Recipe.count", 1) do
+    assert_difference([ "Recipe.count", "ActivityEvent.where(event_type: 'recipe.created').count" ], 1) do
       post recipes_url, params: {
         recipe: {
           title: "Lemon Herb Salmon",
@@ -69,6 +94,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to recipe_url(Recipe.last)
+    assert_equal family_members(:one), ActivityEvent.order(:created_at).last.actor
   end
 
   test "should create recipe with meal types and image upload" do
@@ -92,10 +118,19 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
   test "should update recipe" do
     patch recipe_url(@recipe), params: {
-      recipe: { title: "Super Taco Tuesday" }
+      recipe: {
+        title: "Super Taco Tuesday",
+        yields_leftovers: true,
+        leftover_capacity: 4,
+        leftover_shelf_life_days: 5
+      }
     }
     assert_redirected_to recipe_url(@recipe)
-    assert_equal "Super Taco Tuesday", @recipe.reload.title
+    @recipe.reload
+    assert_equal "Super Taco Tuesday", @recipe.title
+    assert_equal true, @recipe.yields_leftovers
+    assert_equal 4, @recipe.leftover_capacity
+    assert_equal 5, @recipe.leftover_shelf_life_days
   end
 
   test "should destroy recipe" do

@@ -10,8 +10,7 @@ require "application_system_test_case"
 # the repo, so a module that will not load fails here instead of in a browser.
 class StimulusRegistrationTest < ApplicationSystemTestCase
   # index.js is the manifest, application.js the setup; neither defines a
-  # controller. hello_controller is Rails' generated sample and is registered
-  # like any other, so it stays in.
+  # controller.
   NOT_CONTROLLERS = %w[index.js application.js].freeze
 
   def expected_identifiers

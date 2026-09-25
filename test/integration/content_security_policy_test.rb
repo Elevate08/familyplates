@@ -93,6 +93,30 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     assert_includes csp, "object-src 'none'"
   end
 
+  # @card-25.1
+  test "forms may post to the sign-in providers, Stripe in the hosted edition, and nowhere else" do
+    sign_in_as(@admin)
+    get root_path
+    settle
+
+    # form-action also governs where a submitted form is redirected, so the
+    # POST to /auth/google or /subscription is blocked at the provider's door
+    # unless its origin is listed.
+    form_action = response.headers["Content-Security-Policy"][/form-action ([^;]*)/, 1]
+    assert form_action.present?, "the policy sets no form-action"
+
+    allowed = %w['self' https://accounts.google.com https://appleid.apple.com]
+    stripe = %w[https://checkout.stripe.com https://billing.stripe.com]
+    allowed += stripe if FamilyPlates.saas?
+    allowed.each { |origin| assert_includes form_action.split, origin }
+    assert_empty form_action.split & stripe, "an appliance has no billing, so no reason to post to Stripe" unless FamilyPlates.saas?
+
+    # A configured OIDC provider adds its own origin; nothing else may appear.
+    unless ENV["OIDC_ISSUER"].present? || ENV["OIDC_AUTH_URL"].present?
+      assert_empty form_action.split - allowed
+    end
+  end
+
   test "the viewport does not block pinch-zoom" do
     sign_in_as(@admin)
     get root_path

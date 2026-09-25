@@ -1,4 +1,6 @@
 class MealPlanSlotsController < ApplicationController
+  include PlannerLoading
+
   before_action :set_meal_plan
   before_action :require_admin, only: %i[create update destroy]
 
@@ -10,7 +12,13 @@ class MealPlanSlotsController < ApplicationController
     @slot.assign_attributes(slot_params)
 
     if @slot.save
+      track_activity(
+        "meal_plan_slot.created",
+        target: @slot,
+        metadata: { target_name: slot_target_name(@slot) }
+      )
       RecipeRequest.auto_fulfill_passed_slots!(current_household)
+      prepare_planner_preloads
       respond_to do |format|
         if params[:return_to] == "recipe" && @slot.recipe.present?
           format.turbo_stream do
@@ -43,20 +51,28 @@ class MealPlanSlotsController < ApplicationController
         end
       end
     end
+  rescue ActiveRecord::InvalidForeignKey
+    @slot.errors.add(:base, "That recipe, cook, or leftover meal no longer exists.")
+    respond_to do |format|
+      format.turbo_stream { render :create, status: :unprocessable_entity }
+      format.html { redirect_to meal_plan_path(@meal_plan), alert: @slot.errors.full_messages.to_sentence }
+    end
   end
 
   def update
-    # Household has_many :meal_plan_slots, through: :meal_plans, so this is one
-    # query scoped to the household. The chain it replaces ran a join, took the
-    # first plan, searched it, and fell back to @meal_plan - which quietly
-    # widened the scope to any slot in the current plan if the first lookup
-    # missed.
+    # One household-scoped query. Falling back to @meal_plan widened a miss to any slot in the current plan.
     @slot = current_household.meal_plan_slots.find(params[:id])
 
     @old_date = @slot.date
     @old_meal_type = @slot.meal_type
 
     if @slot.move(slot_params, household: current_household)
+      track_activity(
+        "meal_plan_slot.updated",
+        target: @slot,
+        metadata: { target_name: slot_target_name(@slot) }
+      )
+      prepare_planner_preloads(@slot.meal_plan)
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to meal_plan_path(@meal_plan), notice: "Planned meal updated successfully!" }
@@ -73,7 +89,13 @@ class MealPlanSlotsController < ApplicationController
     @slot = @meal_plan.meal_plan_slots.find(params[:id])
     @date = @slot.date
     @meal_type = @slot.meal_type
+    track_activity(
+      "meal_plan_slot.deleted",
+      target: @slot,
+      metadata: { target_name: slot_target_name(@slot) }
+    )
     @slot.destroy
+    prepare_planner_preloads
 
     respond_to do |format|
       format.turbo_stream
@@ -85,9 +107,9 @@ class MealPlanSlotsController < ApplicationController
 
   def set_meal_plan
     if params[:meal_plan_id].present?
-      @meal_plan = current_household.meal_plans.find(params[:meal_plan_id])
+      @meal_plan = find_meal_plan!(params[:meal_plan_id])
     elsif params[:meal_plan_slot] && params[:meal_plan_slot][:date].present?
-      date = Date.parse(params[:meal_plan_slot][:date].to_s) rescue Date.current
+      date = MealPlanSlot.parse_date(params[:meal_plan_slot][:date]) || household_today
       @meal_plan = current_household.meal_plans.find_or_create_by!(week_start_date: date.beginning_of_week)
     else
       @meal_plan = current_household.current_meal_plan
@@ -95,6 +117,10 @@ class MealPlanSlotsController < ApplicationController
   end
 
   def slot_params
-    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes, :is_leftover)
+    params.require(:meal_plan_slot).permit(:date, :meal_type, :scheduled_time, :recipe_id, :family_member_id, :custom_title, :notes, :is_leftover, :leftover_source_slot_id)
+  end
+
+  def slot_target_name(slot)
+    slot.recipe&.title || slot.custom_title || slot.date.to_s
   end
 end

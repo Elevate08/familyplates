@@ -1,12 +1,11 @@
 <div class="max-w-5xl mx-auto py-6 sm:py-8 space-y-8">
-  <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
     <div class="flex items-center gap-3.5">
       <div class="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shadow-md border border-slate-700">
         <%= icon_tag("cog", css_class: "w-6 h-6") %>
       </div>
       <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Admin Control Center</h1>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Admin Dashboard</h1>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage kitchen branding, family roster, security PINs, and Google Calendar sync.</p>
       </div>
     </div>
@@ -23,9 +22,7 @@
     </div>
   </div>
 
-  <!-- 3 Dedicated Management Gateways -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-    <!-- Household & Meal Schedule Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div>
         <div class="flex items-center justify-between mb-3">
@@ -42,7 +39,6 @@
       </div>
     </div>
 
-    <!-- Kitchen Roster Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div>
         <div class="flex items-center justify-between mb-3">
@@ -59,33 +55,28 @@
       </div>
     </div>
 
-    <!-- Google Calendar Direct Sync Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Google Calendar</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Calendar Subscriptions</span>
           <span class="text-lg">📅</span>
         </div>
         <div class="flex items-center gap-2">
-          <% if @household.google_calendar_enabled? && @household.google_calendar_id.present? %>
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Direct Sync Active</h2>
-          <% else %>
-            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-            <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Sync Disabled</h2>
-          <% end %>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h2 class="text-base font-extrabold text-slate-900 dark:text-white truncate">Universal Feeds Active</h2>
         </div>
-        <p class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 truncate">
-          <%= @household.google_calendar_id.presence || "No calendar configured" %>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+          Apple Calendar, Google Calendar, Outlook (.ics/webcal)
         </p>
       </div>
       <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <%= link_to "Calendar Settings →", edit_admin_calendar_path, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
       </div>
     </div>
+
+    <%= hosted_render "admin_dashboard_billing", household: @household %>
   </div>
 
-  <!-- Family Members & PIN Management Section -->
   <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex items-center justify-between mb-6">
       <div>

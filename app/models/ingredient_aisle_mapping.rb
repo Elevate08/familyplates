@@ -15,7 +15,6 @@ class IngredientAisleMapping < ApplicationRecord
     resolved_household = extract_household(household)
     return unless resolved_household
 
-    # Query actual distinct recipe counts in this household for each aisle category
     counts_by_aisle = resolved_household.recipes.joins(:recipe_ingredients)
                                         .where("LOWER(recipe_ingredients.name) = ?", clean_name)
                                         .group("recipe_ingredients.aisle_category")
@@ -24,13 +23,8 @@ class IngredientAisleMapping < ApplicationRecord
     reconcile!(h_id, clean_name, counts_by_aisle)
   end
 
-  # Brings the stored mappings for one ingredient name into line with the counts
-  # just computed, as three statements rather than a find_by plus a save or
-  # destroy for each of the eight aisle categories.
-  #
-  # insert_all and delete_all skip callbacks, which is safe here because the only
-  # callback is normalize_fields and both values are already normalized - the
-  # name by normalize_name above, the aisle by coming from AISLE_CATEGORIES.
+  # Rewrite one name's rows in three statements. insert_all skips callbacks;
+  # safe because the name and aisle are already normalized.
   def self.reconcile!(h_id, clean_name, counts_by_aisle)
     wanted = counts_by_aisle.select { |aisle, n| n.to_i.positive? && RecipeIngredient::AISLE_CATEGORIES.include?(aisle) }
     existing = where(household_id: h_id, name: clean_name).to_a
@@ -106,7 +100,6 @@ class IngredientAisleMapping < ApplicationRecord
                 .first
     return learned.aisle_category if learned
 
-    # 3. Check existing recipe ingredients in household
     resolved_household = extract_household(household)
     if resolved_household
       recipe_mapping = resolved_household.recipes.joins(:recipe_ingredients)
@@ -118,7 +111,6 @@ class IngredientAisleMapping < ApplicationRecord
       return recipe_mapping if recipe_mapping.present?
     end
 
-    # 4. Keyword heuristic categorization
     heuristic = IngredientClassifier.call(clean_name)
     return heuristic unless IngredientClassifier.unknown?(heuristic)
 
@@ -126,10 +118,8 @@ class IngredientAisleMapping < ApplicationRecord
   end
 
   def self.available_ingredients_with_aisles(household = nil)
-    # Collect from IngredientAisleMapping, RecipeIngredient, and PantryItem defaults
     ingredients_map = {}
 
-    # Seed with base defaults
     default_staples.each do |item|
       name = item[:name].strip
       key = name.downcase
@@ -142,7 +132,6 @@ class IngredientAisleMapping < ApplicationRecord
 
     h_id = extract_household_id(household)
 
-    # Overlay database mappings
     scope = where(household_id: [ nil, h_id ].compact)
     scope.find_each do |m|
       key = m.name.downcase
@@ -156,7 +145,6 @@ class IngredientAisleMapping < ApplicationRecord
       end
     end
 
-    # Overlay recipe ingredients from household
     resolved_household = extract_household(household)
     if resolved_household
       resolved_household.recipes.joins(:recipe_ingredients)

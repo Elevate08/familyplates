@@ -1,25 +1,57 @@
 class ApplicationController < ActionController::Base
   include Authentication
+  include PermanentSignedCookie
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  helper_method :household_today, :household_now
+
   private
 
+  # Kitchen-local today. Date.current is UTC, already tomorrow after 7pm in the Americas.
+  def household_today
+    current_household&.today || Date.current
+  end
+
+  def household_now
+    current_household&.current_time || Time.current
+  end
+
+  def track_activity(event_type, target: nil, metadata: {}, source: "web")
+    ActivityEvent.track!(
+      household: current_household,
+      actor: current_family_member,
+      event_type: event_type,
+      target: target,
+      source: source,
+      metadata: metadata
+    )
+  end
+
   def require_admin
+    if Current.session&.kiosk?
+      deny_access("Kiosk devices cannot access household settings or admin tools.")
+      return
+    end
+
     return if current_family_member&.admin?
 
+    deny_access("Access restricted to household organizers / admins.")
+  end
+
+  def deny_access(message)
     respond_to do |format|
       format.html do
-        redirect_back fallback_location: root_path, alert: "Access restricted to household organizers / admins."
+        redirect_back fallback_location: root_path, alert: message
       end
       format.turbo_stream do
-        render turbo_stream: turbo_stream.replace("flash-messages", partial: "shared/flash", locals: { alert: "Access restricted to household organizers / admins." }), status: :forbidden
+        render turbo_stream: turbo_stream.replace("flash-messages", partial: "shared/flash", locals: { alert: message }), status: :forbidden
       end
       format.json do
-        render json: { error: "Access restricted to household organizers / admins." }, status: :forbidden
+        render json: { error: message }, status: :forbidden
       end
     end
   end

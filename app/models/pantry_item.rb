@@ -36,9 +36,60 @@ class PantryItem < ApplicationRecord
 
   scope :staples, -> { where(is_staple: true) }
   scope :by_category, -> { order(:aisle_category, :name) }
+  scope :low_stock, -> { where.not(low_stock_at: nil) }
+  scope :stocked, -> { where(low_stock_at: nil) }
+
+  # A staple that is running low is still a staple - it just stops shielding
+  # itself from the grocery list until it has been bought again.
+  scope :shielding, -> { staples.stocked }
 
   def toggle_staple!
     update!(is_staple: !is_staple)
+  end
+
+  def low_stock?
+    low_stock_at.present?
+  end
+
+  # Both marks are idempotent, because the grocery list drives them from a
+  # checkbox that can be toggled twice as easily as once, and from a device that
+  # may retry.
+  def mark_low!
+    return self if low_stock?
+
+    update!(low_stock_at: Time.current)
+    self
+  end
+
+  def mark_restocked!
+    return self unless low_stock?
+
+    update!(low_stock_at: nil)
+    self
+  end
+
+  def toggle_low!
+    low_stock? ? mark_restocked! : mark_low!
+  end
+
+  # Whether this item is currently keeping itself off the grocery list.
+  def shielding?
+    is_staple? && !low_stock?
+  end
+
+  # The pantry row for this name, or nil. Exact normalized match only —
+  # a substring made "Peanut butter" vanish against the Butter staple.
+  def self.matching(household, ingredient_name)
+    return nil if household.nil? || ingredient_name.blank?
+
+    target = normalize_for_match(ingredient_name)
+    return nil if target.blank?
+
+    household.pantry_items.find { |item| normalize_for_match(item.name) == target }
+  end
+
+  def self.normalize_for_match(value)
+    value.to_s.downcase.strip.squeeze(" ").singularize
   end
 
   def display_emoji
@@ -50,19 +101,15 @@ class PantryItem < ApplicationRecord
   def self.emoji_for(name, category = nil)
     n = name.to_s.downcase
     case n
-    when /olive oil/ then "🍾"
     when /vegetable oil|canola oil|sunflower oil|corn oil/ then "🌻"
-    when /sesame oil|cooking oil|oil/ then "🍾"
+    when /olive oil|sesame oil|cooking oil|oil/ then "🍾"
     when /salt/ then "🧂"
-    when /black pepper|pepper powder|peppercorn/ then "🫙"
-    when /garlic powder|garlic salt/ then "🫙"
-    when /onion powder|onion flakes/ then "🫙"
+    when /black pepper|pepper powder|peppercorn|garlic powder|garlic salt|onion powder|onion flakes/ then "🫙"
     when /garlic/ then "🧄"
     when /onion/ then "🧅"
     when /butter/ then "🧈"
     when /egg/ then "🥚"
-    when /milk/ then "🥛"
-    when /cream|sour cream/ then "🥛"
+    when /milk|cream/ then "🥛"
     when /cheese|cheddar|mozzarella|parmesan|feta/ then "🧀"
     when /flour/ then "🌾"
     when /sugar/ then "🥄"

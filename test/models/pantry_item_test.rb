@@ -19,4 +19,24 @@ class PantryItemTest < ActiveSupport::TestCase
     item.toggle_staple!
     assert_not item.reload.is_staple?
   end
+
+  test "emoji_for matches expected emojis with correct precedence" do
+    assert_equal "🥛", PantryItem.emoji_for("sour cream")
+    assert_equal "🥛", PantryItem.emoji_for("milk")
+    assert_equal "🥛", PantryItem.emoji_for("heavy cream")
+
+    assert_equal "🫙", PantryItem.emoji_for("garlic powder")
+    assert_equal "🧄", PantryItem.emoji_for("garlic")
+
+    assert_equal "🫙", PantryItem.emoji_for("onion powder")
+    assert_equal "🧅", PantryItem.emoji_for("yellow onion")
+
+    assert_equal "🌻", PantryItem.emoji_for("canola oil")
+    assert_equal "🌻", PantryItem.emoji_for("vegetable oil")
+    assert_equal "🍾", PantryItem.emoji_for("olive oil")
+    assert_equal "🍾", PantryItem.emoji_for("cooking oil")
+
+    assert_equal "🥬", PantryItem.emoji_for("unknown vegetable", "Produce")
+    assert_equal "📦", PantryItem.emoji_for("unknown item", "Other")
+  end
 end

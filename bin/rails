@@ -1,4 +1,11 @@
 #!/usr/bin/env ruby
 APP_PATH = File.expand_path("../config/application", __dir__)
 require_relative "../config/boot"
+
+# On the hosted bundle, `rails test` also runs the engine's tests.
+if File.basename(ENV["BUNDLE_GEMFILE"].to_s) == "Gemfile.saas"
+  ENV["DEFAULT_TEST"] ||= "{saas/test,test}/**/*_test.rb"
+  ENV["DEFAULT_TEST_EXCLUDE"] ||= "{saas/test,test}/{system,dummy,fixtures}/**/*_test.rb"
+end
+
 require "rails/commands"

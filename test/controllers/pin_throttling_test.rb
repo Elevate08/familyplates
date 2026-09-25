@@ -77,6 +77,28 @@ class PinThrottlingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a PIN on the user's other household still spends the attempt budget" do
+    user = User.create!(email: "two-kitchens@example.com")
+    @admin.update!(user: user)
+    other = households(:two).family_members.create!(
+      name: "Miller Organizer", role: "admin", pin: "5678",
+      avatar_color: "#8B5CF6", avatar_icon: "star", user: user
+    )
+    sign_in_user(user)
+    sign_in_as(@admin)
+
+    headers = { "REMOTE_ADDR" => "203.0.113.8" }
+    PinThrottling::MAX_ATTEMPTS.times do
+      post set_profile_url(other), params: { pin: "0000" }, headers: headers
+      assert_equal "Incorrect 4-digit PIN for Miller Organizer.", flash[:alert]
+    end
+
+    post set_profile_url(other), params: { pin: "5678" }, headers: headers
+
+    assert_equal "Too many attempts. Please wait a few minutes and try again.", flash[:alert]
+    assert signed_in_as?(@admin), "the correct PIN must not switch households while throttled"
+  end
+
   test "the switch endpoint shares the budget with profile selection" do
     sign_in_as(@member)
 

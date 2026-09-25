@@ -2,20 +2,14 @@ require "ipaddr"
 require "resolv"
 require "uri"
 
-# Decides whether the application may make an HTTP request to a user-supplied
-# URL. Recipe import hands us a URL typed by whoever is using the app, so the
-# only safe posture is to decide by resolved address, never by hostname: a name
-# an attacker controls can be pointed anywhere, including at this container's own
-# network, the Docker bridge, or a cloud metadata service.
+# Allow a user-supplied URL only by resolved address, never hostname.
+# An attacker-controlled name can point at this container, the Docker bridge, or cloud metadata.
 class OutboundUrlPolicy
   class Rejected < StandardError; end
 
   ALLOWED_SCHEMES = %w[http https].freeze
 
-  # open-uri mixes its reader into URI::HTTP, URI::HTTPS *and* URI::FTP, so
-  # ftp:// is a real third scheme that must be turned away here. (file:// is not
-  # reachable that way — URI::File has no #open — but the allowlist covers it
-  # regardless rather than relying on that.)
+  # open-uri also opens ftp://, so that scheme is rejected here. The allowlist covers file:// too.
   BLOCKED_IPV4 = %w[
     0.0.0.0/8
     10.0.0.0/8

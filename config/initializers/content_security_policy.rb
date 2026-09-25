@@ -7,6 +7,11 @@
 # inline scripts are allowed by nonce instead, which an injected payload cannot
 # guess. Inline event handlers cannot be nonced at all, so all sixteen of them
 # were converted to Stimulus actions to make this possible.
+# Stripe Checkout and the billing portal exist only in the hosted edition, so
+# an appliance's pages may not reach Stripe at all. (FamilyPlatesSaas is the
+# engine gem, which Bundler has loaded by now; FamilyPlates is not yet.)
+stripe_origins = defined?(FamilyPlatesSaas) ? [ "https://checkout.stripe.com", "https://billing.stripe.com" ] : []
+
 Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src :self
@@ -16,7 +21,7 @@ Rails.application.configure do
     policy.img_src     :self, :data, :blob, :https
     policy.object_src  :none
     policy.script_src  :self
-    policy.connect_src :self
+    policy.connect_src :self, *stripe_origins, *("https://api.stripe.com" if stripe_origins.any?)
 
     # style-src keeps 'unsafe-inline' deliberately. Avatar and theme colours are
     # per-record inline style attributes, and style-src-attr has no nonce
@@ -26,7 +31,19 @@ Rails.application.configure do
     policy.style_src   :self, :unsafe_inline
 
     policy.base_uri    :self
-    policy.form_action :self
+
+    # External form actions permitted for OAuth providers and Stripe Checkout redirects
+    allowed_form_actions = [ :self, "https://accounts.google.com", "https://appleid.apple.com", *stripe_origins ]
+    if (oidc_url = ENV["OIDC_ISSUER"].presence || ENV["OIDC_AUTH_URL"].presence)
+      begin
+        uri = URI.parse(oidc_url)
+        allowed_form_actions << "#{uri.scheme}://#{uri.host}#{":#{uri.port}" if uri.port && ![ 80, 443 ].include?(uri.port)}"
+      rescue URI::InvalidURIError
+        # Ignore malformed URI
+      end
+    end
+    policy.form_action(*allowed_form_actions)
+
     policy.frame_ancestors :self
   end
 

@@ -18,12 +18,21 @@ class SafeHttpFetcher
     new(url, headers: headers).get
   end
 
+  # Returns status too, so import can tell a 403/429 block from a page with no recipe.
+  def self.get_response(url, headers: {})
+    new(url, headers: headers).get_response
+  end
+
   def initialize(url, headers: {})
     @url = url
     @headers = headers
   end
 
   def get
+    get_response.body
+  end
+
+  def get_response
     url = @url
     seen = 0
 
@@ -31,23 +40,19 @@ class SafeHttpFetcher
       target = OutboundUrlPolicy.check!(url)
       result = perform_request(target)
 
-      return result.body unless result.redirect?
+      return result unless result.redirect?
 
       seen += 1
       raise Rejected, "more than #{MAX_REDIRECTS} redirects" if seen > MAX_REDIRECTS
 
-      # A redirect to a private address is the standard way around a check that
-      # only looks at the URL the user typed, so the new location goes back
-      # through the policy on the next pass rather than being followed here.
+      # Re-check the hop. A private redirect is the usual bypass of a check on the typed URL.
       url = URI.join(target.uri, result.location).to_s
     end
   end
 
   private
 
-  # The network seam. Connects to the address the policy pinned, while leaving
-  # the hostname in place for TLS SNI and the Host header, so nothing re-resolves
-  # between the check and the connection.
+  # Connect to the pinned address. Keep the hostname for SNI and Host so DNS is not resolved again.
   def perform_request(target)
     uri = target.uri
     http = Net::HTTP.new(uri.host, uri.port)
@@ -69,8 +74,7 @@ class SafeHttpFetcher
     end
   end
 
-  # Streams and stops at the cap, so a response that never ends cannot exhaust
-  # memory. Content-Length is not trusted; it is trivially wrong or absent.
+  # Stop at MAX_BYTES. Content-Length is not trusted.
   def read_capped(response)
     body = +""
 

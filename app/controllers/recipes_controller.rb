@@ -1,5 +1,5 @@
 class RecipesController < ApplicationController
-  before_action :set_recipe, only: %i[show edit update destroy]
+  before_action :set_recipe, only: %i[show edit update destroy cook]
   before_action :require_admin, only: %i[edit update destroy bulk_update bulk_destroy]
   before_action :set_available_tags, only: %i[index new create edit update]
 
@@ -9,13 +9,13 @@ class RecipesController < ApplicationController
     if params[:query].present?
       words = params[:query].strip.downcase.split(/\s+/).reject(&:blank?)
       words.each do |word|
-        q = "%#{word}%"
-        @recipes = @recipes.where("LOWER(recipes.title) LIKE :q OR LOWER(recipes.tags) LIKE :q OR LOWER(recipes.description) LIKE :q", q: q)
+        q = "%#{Recipe.sanitize_sql_like(word)}%"
+        @recipes = @recipes.where("LOWER(recipes.title) LIKE :q ESCAPE '\\' OR LOWER(recipes.tags) LIKE :q ESCAPE '\\' OR LOWER(recipes.description) LIKE :q ESCAPE '\\'", q: q)
       end
     end
 
     if params[:tag].present?
-      @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{params[:tag].strip.downcase}%")
+      @recipes = @recipes.where("LOWER(tags) LIKE ? ESCAPE '\\'", "%#{Recipe.sanitize_sql_like(params[:tag].strip.downcase)}%")
     elsif params[:filter].present?
       case params[:filter]
       when "requested"
@@ -28,23 +28,29 @@ class RecipesController < ApplicationController
         @recipes = @recipes.quick
       when "breakfast", "lunch", "dinner"
         @recipes = @recipes.for_meal_type(params[:filter])
-      else
-        if params[:filter].start_with?("tag:")
-          selected_tag = params[:filter].sub(/\Atag:/, "").strip
-          @recipes = @recipes.where("LOWER(tags) LIKE ?", "%#{selected_tag.downcase}%")
-        end
+      when /\Atag:/
+        selected_tag = params[:filter].delete_prefix("tag:").strip
+        @recipes = @recipes.where("LOWER(tags) LIKE ? ESCAPE '\\'", "%#{Recipe.sanitize_sql_like(selected_tag.downcase)}%")
       end
     end
   end
 
   def show
-    @week_start = Date.current.beginning_of_week
+    @week_start = household_today.beginning_of_week
     @requested_by_current = @recipe.requested_by?(current_family_member, @week_start)
     @total_requests = @recipe.request_count_for_week(@week_start)
   end
 
+  # Cook Mode: one step at a time, full screen, no application chrome. Every
+  # profile can reach it, kiosk sessions included - a kitchen display that can
+  # open a recipe but not cook from it would be the wrong way round.
+  def cook
+    @steps = @recipe.cooking_steps
+    render layout: "cook"
+  end
+
   def new
-    @recipe = current_household.recipes.build(servings: 4, prep_time: 15, cook_time: 20)
+    @recipe = current_household.recipes.build(servings: 4)
     5.times { @recipe.recipe_ingredients.build }
   end
 
@@ -52,6 +58,7 @@ class RecipesController < ApplicationController
     @recipe = current_household.recipes.build(recipe_params)
 
     if @recipe.save
+      track_activity("recipe.created", target: @recipe)
       redirect_to @recipe, notice: "Recipe \"#{@recipe.title}\" was successfully added to your recipe box!"
     else
       render :new, status: :unprocessable_entity
@@ -64,6 +71,7 @@ class RecipesController < ApplicationController
 
   def update
     if @recipe.update(recipe_params)
+      track_activity("recipe.updated", target: @recipe)
       redirect_to @recipe, notice: "Recipe updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -71,6 +79,7 @@ class RecipesController < ApplicationController
   end
 
   def destroy
+    track_activity("recipe.deleted", target: @recipe)
     @recipe.destroy
     redirect_to recipes_path, notice: "Recipe deleted from recipe box."
   end
@@ -84,7 +93,6 @@ class RecipesController < ApplicationController
       return
     end
 
-    # Bulk Meal Types Update
     if params[:update_meal_types].present? || params[:meal_types_mode].present?
       selected_meal_types = Array(params[:meal_types]).reject(&:blank?)
       recipes.each do |recipe|
@@ -92,7 +100,6 @@ class RecipesController < ApplicationController
       end
     end
 
-    # Bulk Tags Update
     if params[:update_tags].present? || params[:tags_mode].present?
       new_tags = params[:tags].to_s.split(",").map(&:strip).reject(&:blank?)
       recipes.each do |recipe|
@@ -125,7 +132,8 @@ class RecipesController < ApplicationController
   private
 
   def set_recipe
-    @recipe = current_household.recipes.find(params[:id])
+    @recipe = current_household.recipes.find_by(number: params[:id]) || current_household.recipes.find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Couldn't find Recipe with 'id'=#{params[:id]}" unless @recipe
   end
 
   def set_available_tags
@@ -142,6 +150,7 @@ class RecipesController < ApplicationController
     cleaned_params = params.require(:recipe).permit(
       :title, :description, :prep_time, :cook_time, :total_time, :equipment, :servings,
       :source_url, :image_url, :image, :instructions, :tags, :meal_types, :yields_leftovers,
+      :leftover_capacity, :leftover_shelf_life_days,
       meal_types: [],
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
     )

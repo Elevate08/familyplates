@@ -1,0 +1,36 @@
+<%# The one control a cook needs from this page: the meal the clock says is
+    being made, one tap from the full-screen step view. Renders nothing when the
+    day holds no planned meal, rather than sitting there as a dead button. %>
+<% if slot.present? %>
+  <div class="mb-6 rounded-3xl border <%= cooking ? 'border-primary-300 dark:border-primary-800 bg-primary-50/70 dark:bg-primary-950/40' : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900' %> p-4 sm:p-5 shadow-xs">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-4 min-w-0">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl <%= cooking ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' %>">
+          <%= icon_tag("chef-hat", css_class: "w-6 h-6") %>
+        </div>
+
+        <div class="min-w-0">
+          <p class="text-[11px] font-black uppercase tracking-[0.15em] <%= cooking ? 'text-primary-700 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500' %>">
+            <% if cooking %>
+              Cooking now · <%= slot.meal_type.capitalize %> at <%= slot.scheduled_at.strftime("%-l:%M %p") %>
+            <% else %>
+              Up next · <%= slot.meal_type.capitalize %> at <%= slot.scheduled_at.strftime("%-l:%M %p") %>
+            <% end %>
+          </p>
+          <p class="truncate text-lg font-extrabold text-slate-900 dark:text-white sm:text-xl">
+            <%= slot.recipe.title %>
+          </p>
+          <% if slot.cook_name.present? %>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Cook: <%= slot.cook_name %></p>
+          <% end %>
+        </div>
+      </div>
+
+      <%= link_to cook_now_path,
+            class: "shrink-0 inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl px-6 font-bold text-white shadow-sm transition-colors #{cooking ? 'bg-primary-600 hover:bg-primary-500' : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600'}" do %>
+        <span>Start Cook Mode</span>
+        <span aria-hidden="true">&rarr;</span>
+      <% end %>
+    </div>
+  </div>
+<% end %>

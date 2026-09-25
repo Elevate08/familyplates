@@ -73,12 +73,60 @@ docker run -d \
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `SECRET_KEY_BASE` | *(Required in prod)* | 64-byte random key used for encrypted cookies and credentials. |
-| `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` | *(Required for Google Calendar)* | Encrypts the stored Google service account key. `openssl rand -hex 32`. Must not change once set. |
-| `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` | *(Required for Google Calendar)* | Paired with the key above. `openssl rand -hex 32`. Must not change once set. |
 | `RAILS_ENV` | `production` | Environment mode (`production`, `development`, `test`). |
 | `RAILS_SERVE_STATIC_FILES` | `true` | Serves compiled CSS/JS assets directly from the application. |
 | `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |
 | `PORT` | `80` | Internal listening port inside the container. |
+| `APP_HOST` | *(None)* | Public hostname, such as `plates.example.com`. No scheme, no path. |
+| `SMTP_ADDRESS` | *(None)* | Mail server hostname. Optional on an appliance. |
+| `SMTP_PORT` | `587` | Mail server port. |
+| `SMTP_USER_NAME` | *(None)* | Mail server username, when the server requires one. |
+| `SMTP_PASSWORD` | *(None)* | Mail server password. Required when a username is set. |
+| `MAILER_DEFAULT_FROM` | `noreply@familyplates.app` | From address on sign-in mail. |
+
+### Public hostname and email
+
+A home server on the LAN does not set `APP_HOST` or any `SMTP_*` variable. It starts without them.
+
+If you expose your appliance on the internet, set `APP_HOST` to its public hostname. The app then allows only that host, and any mail it sends links to it. Email is optional on an appliance, which signs in with profiles, PINs and passwords.
+
+If you set any SMTP variable, the app will not start until `SMTP_ADDRESS` is set. If you set `SMTP_USER_NAME`, you must also set `SMTP_PASSWORD`.
+
+The health check at `/up` stays reachable by the container's own address so Docker can probe it.
+
+```yaml
+environment:
+  - APP_HOST=plates.example.com
+  - SMTP_ADDRESS=smtp.example.com
+  - SMTP_PORT=587
+  - SMTP_USER_NAME=mailer
+  - SMTP_PASSWORD=replace-me
+  - MAILER_DEFAULT_FROM=noreply@plates.example.com
+```
+
+The published image is the **appliance** edition. It doesn't include the hosted service's billing, sign-up or operator console, and it refuses to start with `FAMILYPLATES_MODE=hosted`. See [Editions](editions.md).
+
+### External Authentication & Single Sign-On (Optional)
+
+All external identity providers are disabled by default. Configure these variables to enable Google, Apple, generic OpenID Connect, or trusted reverse proxy headers:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `AUTH_GOOGLE_ENABLED` | `false` | Enable Google OAuth sign-in (`true` / `false`). |
+| `GOOGLE_CLIENT_ID` | *(None)* | Google OAuth 2.0 Client ID. |
+| `GOOGLE_CLIENT_SECRET` | *(None)* | Google OAuth 2.0 Client Secret. |
+| `AUTH_APPLE_ENABLED` | `false` | Enable Sign in with Apple (`true` / `false`). |
+| `APPLE_CLIENT_ID` | *(None)* | Apple Services ID (e.g. `com.example.familyplates.auth`). |
+| `APPLE_CLIENT_SECRET` | *(None)* | Apple generated secret, or set `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY`. |
+| `AUTH_OIDC_ENABLED` | `false` | Enable generic OpenID Connect / SSO (`true` / `false`). |
+| `OIDC_ISSUER` | *(None)* | OIDC Issuer URL for discovery (e.g. `https://auth.example.com`). |
+| `OIDC_CLIENT_ID` | *(None)* | OIDC Client ID. |
+| `OIDC_CLIENT_SECRET` | *(None)* | OIDC Client Secret. |
+| `OIDC_DISPLAY_NAME` | `Single Sign-On` | Button label for SSO on sign-in screen (e.g. `Authentik` or `Authelia`). |
+| `AUTH_FORWARD_AUTH_ENABLED` | `false` | Enable trusted reverse proxy forward-auth (`true` / `false`). |
+| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | Comma-separated trusted reverse proxy IPs or CIDR subnets (e.g. `10.0.0.0/8`). |
+| `FORWARD_AUTH_EMAIL_HEADERS` | `Remote-Email,X-Forwarded-Email,Tailscale-User-Login` | Headers checked for user email from trusted proxies. |
+| `FORWARD_AUTH_LOGOUT_URL` | *(None)* | Optional URL to redirect to on sign-out (e.g. proxy SSO logout page). |
 
 ## Running the tests
 
@@ -98,6 +146,17 @@ Point `CHROME_BIN` at your browser if it is not the default:
 
 ```bash
 CHROME_BIN=/usr/bin/chromium bin/rails test:system
+```
+
+The Playwright suite runs through `bin/e2e`, with the browser in the pinned
+Playwright Docker image so screenshots match CI. It also crawls every page as
+every kind of visitor. See the Testing section of the [README](../README.md)
+for running it without Docker, re-recording screenshots, and what a new route
+needs.
+
+```bash
+bin/e2e                 # Playwright, needs Docker
+bin/ci                  # everything CI runs
 ```
 
 
@@ -132,8 +191,10 @@ Visit [`http://localhost:3000`](http://localhost:3000) in your browser.
 
 ### 3. Running Automated Tests
 ```bash
-bundle exec rails test
+bin/rails test
 ```
+
+See [Running the tests](#running-the-tests) for the browser suites.
 
 ---
 
@@ -145,4 +206,4 @@ When launching FamilyPlates for the first time, the 4-step **Onboarding Wizard**
 3. **Starter Recipes:** Select curated starter recipes to populate your vault.
 4. **On-Hand Inventory (Pantry Shield):** Confirm kitchen basics to keep your weekly supermarket grocery lists clean.
 
-Next, follow the **[Google Calendar Sync Guide](google-calendar-integration)** to connect your shared family calendar!
+Next, follow the **[Universal Calendar Subscriptions Guide](universal-calendar-subscriptions)** to connect your shared family calendar!
