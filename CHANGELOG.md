@@ -13,6 +13,9 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * **Hosted mode refuses to boot without `APP_HOST` and `SMTP_ADDRESS`.** It also forces HTTPS by default: set `FORCE_SSL` to override, or `ASSUME_SSL` behind a TLS-terminating proxy. Appliance mode is unchanged.
 * **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
 * **The published image is the appliance, and it refuses hosted mode.** `FAMILYPLATES_MODE=hosted` needs the hosted edition, built with `--build-arg EDITION=hosted`. An appliance image started in hosted mode stops at once with `HostedEditionMissingError`, before it asks for any deployment settings.
+* **Profile transfer links made before the upgrade stop working.** Links are now tied to the profile's owner when issued, so ask for a new link.
+* **Recipe links must be `http` or `https`.** A recipe whose source or image link uses another scheme, such as `data:`, has to have that link fixed before it can be saved again. The URL importer only fetches from ports 80, 443, 8080 and 8443.
+* **Hosted production ignores Stripe test-mode webhooks.** Set `STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS=true`, or the same key in credentials, to accept them.
 
 ### 📄 License
 * **FamilyPlates is now under the [O'Saasy License](LICENSE.md).** It's MIT plus one condition: you may not offer FamilyPlates to others as a competing hosted service. Self-hosting, modifying and sharing it stay free. Earlier releases were labelled MIT.
@@ -56,6 +59,17 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * Sign-in codes stay out of the log at debug level, and PINs and passkey credentials are filtered from request logs.
 * Operator sign-in shares the household sign-in's rate limit.
 * A blank organizer PIN at sign-up is no longer stored as `1234`. Uploaded recipe images must be images under 8 MB, `%` in a search is no longer a wildcard, and calendar feeds can't be cached publicly.
+* **When login is required, a profile cookie on its own no longer opens the app.** Before, an organizer profile chosen earlier kept working without an account session.
+* **Signing into a different account drops the previous profile.** Before, the second account kept the first one's organizer profile without its PIN.
+* **A claimed transfer link can't be used again.** Before, a second account could replay it within its 4 hours and take the profile from its new owner.
+* **Only `owner` and `billing` operators can extend trials or assign promotions in bulk, or create and edit promotion programs.** Bulk trial extensions are capped at 90 days.
+* **Stripe webhooks are processed once.** A repeated `invoice.payment_failed` no longer emails the organizer again, and `customer.deleted` ends access only after Stripe confirms the customer is gone.
+* **The Checkout return page syncs only the household's own session.** Before, it synced any session ID in the URL.
+* **Production no longer grants a free subscription when no Stripe key is set.** Subscribe now says billing isn't available.
+* **Hosted sign-up is rate-limited** by email, by IP and by verification guesses, and household and organizer names have a length limit. A used code clears that email's other codes.
+* **An operator's authenticator code works once.** A captured code can't open a second operator session.
+* **Recipe source and image links must be `http` or `https`**, both when saved and when shown, and imported images drop `data:` and `javascript:` links. Uploaded images need a JPEG, PNG, GIF or WebP file extension.
+* **The URL importer refuses more internal addresses:** IPv4-compatible IPv6, 6to4, site-local and other reserved ranges, and ports other than 80, 443, 8080 and 8443.
 
 ### 🐛 Correctness
 * **The Docker image hadn't built since passkeys arrived.** The `webauthn` gem needs OpenSSL headers, which the image's build stage didn't install. Both editions build again, and CI now builds them on every change.
