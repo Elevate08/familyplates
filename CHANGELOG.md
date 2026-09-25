@@ -13,7 +13,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * **Hosted mode refuses to boot without `APP_HOST` and `SMTP_ADDRESS`.** It also forces HTTPS by default: set `FORCE_SSL` to override, or `ASSUME_SSL` behind a TLS-terminating proxy. Appliance mode is unchanged.
 * **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
 * **Hosted billing needs a Stripe webhook endpoint** subscribed to the right events. See [docs/hosted/stripe-billing.md](docs/hosted/stripe-billing.md).
-* **The published image is the appliance, and it refuses hosted mode.** `FAMILYPLATES_MODE=hosted` needs the hosted edition, built with `--build-arg EDITION=hosted` or deployed with `bin/kamal` ([docs/hosted/deploying.md](docs/hosted/deploying.md)). An appliance image started in hosted mode fails with `HostedEditionMissingError`.
+* **The published image is the appliance, and it refuses hosted mode.** `FAMILYPLATES_MODE=hosted` needs the hosted edition, built with `--build-arg EDITION=hosted`. An appliance image started in hosted mode stops at once with `HostedEditionMissingError`, before it asks for any deployment settings.
 
 ### 📄 License
 * **FamilyPlates is now under the [O'Saasy License](LICENSE.md).** It's MIT plus one condition: you may not offer FamilyPlates to others as a competing hosted service. Self-hosting, modifying and sharing it stay free. Earlier releases were labelled MIT.
@@ -59,6 +59,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * A blank organizer PIN at sign-up is no longer stored as `1234`. Uploaded recipe images must be images under 8 MB, `%` in a search is no longer a wildcard, and calendar feeds can't be cached publicly.
 
 ### 🐛 Correctness
+* **The Docker image hadn't built since passkeys arrived.** The `webauthn` gem needs OpenSSL headers, which the image's build stage didn't install. Both editions build again, and CI now builds them on every change.
 * **Production didn't boot at all.** A deploy check that runs only in production used `FamilyPlates` before Rails could load it, so every production start raised `NameError`. A new test boots production for real.
 * **Operator bulk operations didn't work in a browser.** Turbo discarded the preview page, so **Preview** did nothing.
 * A bad `?week=` or `?month=` parameter no longer causes a server error.
@@ -83,7 +84,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 ### 🧹 Removed
 * The `hosted:simulate_customers` and `scale:validate` development rake tasks. Their results are recorded in `docs/ideas/household-identity-and-tenancy.md`.
 * Dead code: an orphaned landing view, the sample `hello` controller, and unused model methods.
-* The stock Kamal scaffold `config/deploy.yml`. Kamal now deploys only the hosted service, from `saas/config/deploy.yml`.
+* The stock Kamal scaffold `config/deploy.yml`. Kamal is for the hosted service only; a first draft of its deploy config is in `saas/config/deploy.yml` ([docs/hosted/deploying.md](docs/hosted/deploying.md)), not yet used for a real deploy.
 
 ## [v1.2.0] - 2026-09-02
 
