@@ -131,6 +131,37 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
   end
 
   # @card-23.7
+  test "a signed customer.deleted event does not end access while Stripe still has the customer" do
+    object = subscription_object("sub_still_there", "active", period_end: 1.month.from_now)
+    @subscriptions[object[:id]] = object
+    deliver("customer.subscription.created", object)
+    assert @household.reload.entitled?
+
+    with_customer_retrieve(Stripe::Customer.construct_from(id: @customer_id, object: "customer", deleted: false)) do
+      deliver("customer.deleted", { id: @customer_id, object: "customer" })
+    end
+
+    assert @household.reload.entitled?
+    assert_nil @household.payment_processor.deleted_at
+  end
+
+  # @card-23.7
+  test "a signed customer.deleted event ends access once Stripe reports the customer gone" do
+    object = subscription_object("sub_customer_gone", "active", period_end: 1.month.from_now)
+    @subscriptions[object[:id]] = object
+    deliver("customer.subscription.created", object)
+
+    deleted = Stripe::Customer.construct_from(id: @customer_id, object: "customer", deleted: true)
+    with_customer_retrieve(deleted) do
+      deliver("customer.deleted", { id: @customer_id, object: "customer" })
+    end
+
+    assert_not @household.reload.entitled?
+    customer = Pay::Customer.find_by!(processor: :stripe, processor_id: @customer_id)
+    assert customer.deleted_at.present?
+  end
+
+  # @card-23.7
   test "signed subscription.deleted ends access" do
     object = subscription_object("sub_canceled", "canceled", period_end: 1.day.ago)
     object[:ended_at] = 1.hour.ago.to_i
@@ -224,6 +255,23 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
 
     assert_equal [ @household.email ], ActionMailer::Base.deliveries.last.to
     assert_match "payment was declined", ActionMailer::Base.deliveries.last.body.encoded
+  end
+
+  # @card-23.7
+  test "a replayed payment-failed webhook does not email the organizer again" do
+    @household.family_members.find_by!(role: "admin").update!(user: User.create!(email: "organizer@example.com"))
+    object = subscription_object("sub_replay", "past_due", period_end: 2.days.ago)
+    @subscriptions[object[:id]] = object
+    deliver("customer.subscription.updated", object)
+    invoice = invoice_object("in_replay", "sub_replay")
+
+    assert_emails 1 do
+      deliver("invoice.payment_failed", invoice, event_id: "evt_payment_failed_replay")
+    end
+
+    assert_no_emails do
+      deliver("invoice.payment_failed", invoice, event_id: "evt_payment_failed_replay")
+    end
   end
 
   test "signed invoice.payment_failed for a subscription we never saw changes nothing" do
@@ -323,8 +371,8 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     object
   end
 
-  def deliver(type, object)
-    payload = event_payload(type, object)
+  def deliver(type, object, event_id: nil)
+    payload = event_payload(type, object, id: event_id)
     timestamp = Time.now
     signature = Stripe::Webhook::Signature.compute_signature(timestamp, payload, SIGNING_SECRET)
     header = Stripe::Webhook::Signature.generate_header(timestamp, signature)
@@ -339,9 +387,12 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_response :ok, response.body
   end
 
-  def event_payload(type, object)
+  def event_payload(type, object, id: nil)
+    # A repeated subscription id is still a new Stripe event. Reuse an id only
+    # when a test is replaying the same delivery.
+    @event_sequence = @event_sequence.to_i + 1
     {
-      id: "evt_#{type}_#{object[:id]}",
+      id: id || "evt_#{type}_#{object[:id]}_#{@event_sequence}",
       object: "event",
       type: type,
       livemode: false,
@@ -352,6 +403,16 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
 
   def state_for(processor_id)
     PayChargeState.for(@household.pay_charges.find_by!(processor_id: processor_id))
+  end
+
+  def with_customer_retrieve(result)
+    original = Stripe::Customer.method(:retrieve)
+    Stripe::Customer.define_singleton_method(:retrieve) do |*|
+      result.is_a?(Exception) ? raise(result) : result
+    end
+    yield
+  ensure
+    Stripe::Customer.define_singleton_method(:retrieve, original)
   end
 
   def install_retrieve_stubs
