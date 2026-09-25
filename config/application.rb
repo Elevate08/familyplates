@@ -26,6 +26,12 @@ Bundler.require(*Rails.groups)
 # deployment_guard.rb use it and run before the autoloader is set up.
 require_relative "../lib/family_plates"
 
+# FAMILYPLATES_MODE=hosted on a bundle without the saas/ engine (an appliance
+# image, or BUNDLE_GEMFILE forced to Gemfile) would serve hosted pages with no
+# billing or console behind them. Refuse before anything else, so this is the
+# first thing a mis-deployed appliance says rather than a missing APP_HOST.
+FamilyPlates.require_hosted_edition! if FamilyPlates.config.hosted?
+
 module HomeMealPlanner
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.

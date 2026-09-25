@@ -1,7 +1,7 @@
 # The hosted edition runs on its own bundle, which adds the saas/ engine.
 # Anything else is the appliance, whose bundle does not contain it. Where
 # Gemfile.saas is absent (an appliance image), hosted mode falls through to
-# the core bundle, and config/initializers/hosted_edition.rb then refuses to
+# the core bundle, and config/application.rb then refuses to
 # boot with a message that says why.
 hosted = [ ENV["FAMILYPLATES_MODE"], ENV["APP_MODE"] ].compact.find { |mode| !mode.empty? } == "hosted" ||
   File.exist?(File.expand_path("../tmp/hosted.txt", __dir__))

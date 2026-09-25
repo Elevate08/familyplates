@@ -21,6 +21,14 @@ class ProductionBootTest < ActiveSupport::TestCase
     assert_includes err, "APP_HOST is not set"
   end
 
+  test "an appliance in hosted mode says it is the wrong edition before asking for APP_HOST" do
+    _out, err, status = boot_production("FAMILYPLATES_MODE" => "hosted", "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s)
+
+    assert_not status.success?
+    assert_includes err, "HostedEditionMissingError"
+    assert_not_includes err, "APP_HOST is not set"
+  end
+
   test "an image build boots production to precompile assets, without deployment settings" do
     mode = FamilyPlates.saas? ? "hosted" : "appliance"
     out, err, status = boot_production("FAMILYPLATES_MODE" => mode, "SECRET_KEY_BASE_DUMMY" => "1")

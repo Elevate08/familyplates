@@ -204,8 +204,9 @@ module FamilyPlates
   def self.require_hosted_edition!
     return if saas?
 
-    raise HostedEditionMissingError, "Hosted mode needs the hosted edition. Run with FAMILYPLATES_MODE=hosted " \
-      "so config/boot.rb selects Gemfile.saas, or build the hosted image."
+    raise HostedEditionMissingError, "FAMILYPLATES_MODE is hosted, but this is the appliance edition: it does not " \
+      "include the saas/ engine. Use the hosted image (docker build --build-arg EDITION=hosted), or run from a " \
+      "checkout with Gemfile.saas. To run an appliance, unset FAMILYPLATES_MODE."
   end
 
   def self.configure

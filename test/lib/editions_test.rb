@@ -24,7 +24,7 @@ class EditionsTest < ActiveSupport::TestCase
     FamilyPlates.define_singleton_method(:saas?) { false }
 
     error = assert_raises(FamilyPlates::HostedEditionMissingError) { FamilyPlates.require_hosted_edition! }
-    assert_match "FAMILYPLATES_MODE=hosted", error.message
+    assert_match "this is the appliance edition", error.message
   ensure
     FamilyPlates.define_singleton_method(:saas?, original)
   end
