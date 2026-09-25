@@ -30,6 +30,8 @@ class SubscriptionsController < ApplicationController
 
     if simulate_checkout?
       subscribe_with_fake_processor(plan_key, plan)
+    elsif stripe_secret_key.blank?
+      redirect_to subscription_path, alert: "Billing is not available right now."
     else
       redirect_to_stripe_checkout(plan_key, plan)
     end
@@ -107,11 +109,13 @@ class SubscriptionsController < ApplicationController
       (Pay::Stripe.private_key if defined?(Pay::Stripe))
   end
 
-  # Test runs, and any environment with no Stripe secret, never leave the app.
+  # Tests, and development with no Stripe secret, never leave the app.
+  # Production must not: a missing key used to subscribe the household for free.
   def simulate_checkout?
-    (Rails.env.test? && params[:simulate].present?) ||
-      (Rails.env.test? && ENV["ENABLE_REAL_STRIPE_TESTS"].blank?) ||
-      stripe_secret_key.blank?
+    return false if Rails.env.production?
+    return true if Rails.env.test? && (params[:simulate].present? || ENV["ENABLE_REAL_STRIPE_TESTS"].blank?)
+
+    stripe_secret_key.blank?
   end
 
   def subscribe_with_fake_processor(plan_key, plan)
