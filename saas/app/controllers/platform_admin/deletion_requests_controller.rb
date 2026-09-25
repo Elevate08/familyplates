@@ -14,7 +14,7 @@ module PlatformAdmin
       users = household.users.to_a
       # Cancelled before the household row goes, because destroying it removes
       # the local Pay records that are the only link to the Stripe subscription.
-      uncancelled = household.cancel_active_pay_subscriptions!
+      uncancelled = household.cancel_subscriptions_before_deletion!
       record_platform_audit!(
         "household.permanently_deleted",
         target: household,

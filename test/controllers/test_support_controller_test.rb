@@ -17,22 +17,6 @@ class TestSupportControllerTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2026, 9, 22), Date.current
   end
 
-  test "reset clears a paid subscription, its charge and its card" do
-    household = households(:one)
-    household.set_payment_processor :fake_processor, allow_fake: true
-    customer = household.payment_processor
-    subscription = customer.subscriptions.create!(
-      name: "default", processor_id: "sub_paid", processor_plan: "annual", status: "active"
-    )
-    customer.charges.create!(processor_id: "ch_paid", amount: 3500, subscription: subscription)
-    customer.payment_methods.create!(processor_id: "pm_card", default: true, payment_method_type: "card")
-
-    post "/__test/reset", as: :json
-
-    assert_response :success
-    assert_equal 0, Pay::Charge.count + Pay::PaymentMethod.count + Pay::Subscription.count + Pay::Customer.count
-  end
-
   test "reset without a moment lets the clock run" do
     TestSupportController::CLOCK.travel_to(Time.iso8601(FROZEN))
 

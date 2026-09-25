@@ -3,7 +3,11 @@
 # A public deploy names its hostname and, when it sends mail, its SMTP server.
 # Both are checked here so a hosted instance never boots half-configured.
 # A LAN appliance leaves APP_HOST and SMTP unset and starts as before.
-if Rails.env.production?
+#
+# Not while building an image: assets:precompile boots production with
+# SECRET_KEY_BASE_DUMMY set and no deployment settings, and there is nothing
+# to serve or email yet.
+if Rails.env.production? && ENV["SECRET_KEY_BASE_DUMMY"].blank?
   if (host = FamilyPlates.public_host)
     FamilyPlates.apply_public_host!(host)
   end

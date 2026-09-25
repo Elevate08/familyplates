@@ -1,0 +1,73 @@
+# Deploys the hosted FamilyPlates service with Kamal. Appliances do not use
+# this: they run the published appliance image with Docker Compose.
+#
+#   bin/kamal setup      # first deploy to a new server
+#   bin/kamal deploy     # every deploy after that
+#   bin/kamal rollback <version>
+#
+# bin/kamal reads this file by default. Nothing about the server is committed:
+# the settings below come from the deployer's environment, and the secrets
+# from saas/.kamal/secrets. See docs/hosted/deploying.md.
+<% require "dotenv"; Dotenv.load(".env.hosted") if File.exist?(".env.hosted") %>
+
+service: familyplates-hosted
+image: familyplates-hosted
+
+servers:
+  web:
+    - <%= ENV.fetch("HOSTED_SERVER") %>
+
+# kamal-proxy terminates TLS with a Let's Encrypt certificate for APP_HOST.
+proxy:
+  ssl: true
+  host: <%= ENV.fetch("APP_HOST") %>
+  healthcheck:
+    path: /up
+
+# A registry on the server, reached over SSH, so the image is never published.
+registry:
+  server: localhost:5555
+
+# Built at deploy time from the committed code, as the hosted edition.
+builder:
+  arch: amd64
+  args:
+    EDITION: hosted
+
+ssh:
+  user: <%= ENV.fetch("HOSTED_SSH_USER", "root") %>
+
+env:
+  clear:
+    APP_HOST: <%= ENV.fetch("APP_HOST") %>
+    # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
+    ASSUME_SSL: true
+    SOLID_QUEUE_IN_PUMA: true
+    SMTP_ADDRESS: <%= ENV.fetch("SMTP_ADDRESS") %>
+    SMTP_PORT: <%= ENV.fetch("SMTP_PORT", "587") %>
+    MAILER_DEFAULT_FROM: <%= ENV.fetch("MAILER_DEFAULT_FROM", "FamilyPlates <no-reply@#{ENV.fetch("APP_HOST")}>") %>
+    STRIPE_MONTHLY_PRICE_ID: <%= ENV.fetch("STRIPE_MONTHLY_PRICE_ID") %>
+    STRIPE_ANNUAL_PRICE_ID: <%= ENV.fetch("STRIPE_ANNUAL_PRICE_ID") %>
+  secret:
+    - SECRET_KEY_BASE
+    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - STRIPE_PRIVATE_KEY
+    - STRIPE_SIGNING_SECRET
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole"
+
+# The SQLite databases and uploaded images.
+volumes:
+  - "familyplates_hosted_storage:/rails/storage"
+
+asset_path: /rails/public/assets
+
+secrets_path: saas/.kamal/secrets
+hooks_path: saas/.kamal/hooks

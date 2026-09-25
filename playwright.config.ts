@@ -15,10 +15,16 @@ for (const envFile of [".env.test.local", ".env.local"]) {
   }
 }
 
+// Playwright drives the hosted edition (Gemfile.saas): its crawl covers every
+// route, the operator console and billing included, and a test resets the
+// server into appliance mode where it needs one. The appliance bundle's own
+// routing is proved by the Rails authorization matrix on that bundle.
+process.env.BUNDLE_GEMFILE ??= path.resolve(__dirname, "Gemfile.saas");
+
 // The real-checkout test creates a customer and pays with a test card. Given a
 // live key it would do that to the real Stripe account, so a run with one
 // stops here, before the web server is handed the key. The Rails test
-// environment makes the same check at boot (FamilyPlates::StripeSandbox).
+// environment makes the same check at boot (FamilyPlatesSaas::StripeSandbox).
 const STRIPE_SANDBOX_KEY = /^(sk|rk|pk)_test_/;
 for (const name of ["STRIPE_SECRET_KEY", "STRIPE_PRIVATE_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_PUBLIC_KEY"]) {
   const key = process.env[name];
@@ -150,6 +156,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       RAILS_ENV: "test",
+      BUNDLE_GEMFILE: process.env.BUNDLE_GEMFILE,
       TEST_DATABASE_PATH: `storage/e2e-${index}.sqlite3`,
       ENABLE_REAL_STRIPE_TESTS: process.env.ENABLE_REAL_STRIPE_TESTS || "",
       STRIPE_PRIVATE_KEY: process.env.STRIPE_PRIVATE_KEY || "",

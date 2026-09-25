@@ -78,7 +78,7 @@ docker run -d \
 | `RAILS_LOG_TO_STDOUT` | `true` | Emits application logs to standard out for Docker/K8s log collection. |
 | `PORT` | `80` | Internal listening port inside the container. |
 | `APP_HOST` | *(None)* | Public hostname, such as `plates.example.com`. No scheme, no path. |
-| `SMTP_ADDRESS` | *(None)* | Mail server hostname. Required in hosted mode. |
+| `SMTP_ADDRESS` | *(None)* | Mail server hostname. Optional on an appliance. |
 | `SMTP_PORT` | `587` | Mail server port. |
 | `SMTP_USER_NAME` | *(None)* | Mail server username, when the server requires one. |
 | `SMTP_PASSWORD` | *(None)* | Mail server password. Required when a username is set. |
@@ -88,18 +88,14 @@ docker run -d \
 
 A home server on the LAN does not set `APP_HOST` or any `SMTP_*` variable. It starts without them.
 
-**Hosted mode will not start** until both of these are set:
+If you expose your appliance on the internet, set `APP_HOST` to its public hostname. The app then allows only that host, and any mail it sends links to it. Email is optional on an appliance, which signs in with profiles, PINs and passwords.
 
-- `APP_HOST` is the public hostname. The app allows only that host, and sign-in mail uses it.
-- `SMTP_ADDRESS` is the mail server. Hosted mode sends sign-in codes by email.
-
-If you set any SMTP variable, including on a home server, the app will not start until `SMTP_ADDRESS` is set. If you set `SMTP_USER_NAME`, you must also set `SMTP_PASSWORD`.
+If you set any SMTP variable, the app will not start until `SMTP_ADDRESS` is set. If you set `SMTP_USER_NAME`, you must also set `SMTP_PASSWORD`.
 
 The health check at `/up` stays reachable by the container's own address so Docker can probe it.
 
 ```yaml
 environment:
-  - FAMILYPLATES_MODE=hosted
   - APP_HOST=plates.example.com
   - SMTP_ADDRESS=smtp.example.com
   - SMTP_PORT=587
@@ -107,6 +103,8 @@ environment:
   - SMTP_PASSWORD=replace-me
   - MAILER_DEFAULT_FROM=noreply@plates.example.com
 ```
+
+The published image is the **appliance** edition. It doesn't include the hosted service's billing, sign-up or operator console, and it refuses to start with `FAMILYPLATES_MODE=hosted`. See [Editions](editions.md).
 
 ### External Authentication & Single Sign-On (Optional)
 

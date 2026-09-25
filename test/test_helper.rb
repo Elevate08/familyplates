@@ -1,6 +1,13 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+
+# Every test starts as an appliance, on either bundle; a hosted test sets
+# FamilyPlates.config.mode = "hosted" itself.
+FamilyPlates.config.default_mode = "appliance"
+
+# The hosted edition's test support, such as its authorization-matrix rows.
+Dir[Rails.root.join("saas/test/support/**/*.rb")].sort.each { |file| require file } if FamilyPlates.saas?
 require_relative "test_helpers/session_test_helper"
 require_relative "support/page_catalogue"
 require_relative "support/route_inventory"

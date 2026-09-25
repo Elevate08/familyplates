@@ -4,7 +4,7 @@ The hosted deployment has a private operator console at `/platform_admin`. It is
 
 ## First setup
 
-Create the initial owner account from the deployment environment. Use a secure secret manager or a protected shell when supplying the password:
+Create the initial owner account from the deployment environment. On the deployed service, run the command through Kamal (see [Deploying](deploying.md)). Use a secure secret manager or a protected shell when supplying the password:
 
 ```sh
 EMAIL=you@example.com PASSWORD='use-a-long-unique-password' bin/rails platform_admin:create

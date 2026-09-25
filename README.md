@@ -21,7 +21,7 @@ FamilyPlates is a streamlined, self-hosted web application built for modern fami
 
 ## 📚 Documentation & Wiki
 
-Explore the full documentation and guides in the [`docs/`](./docs/README.md) directory:
+Explore the full documentation and guides in the [`docs/`](./docs/README.md) directory. The same guides are published to the [project wiki](https://github.com/Elevate08/familyplates/wiki) whenever they change on `master`.
 
 | Guide | Link |
 | :--- | :--- |
@@ -31,6 +31,7 @@ Explore the full documentation and guides in the [`docs/`](./docs/README.md) dir
 | **Weekly & Monthly Meal Planning** | [Read Guide](./docs/weekly-meal-planning.md) |
 | **Recipes & Pantry Management** | [Read Guide](./docs/recipes-and-pantry.md) |
 | **System Architecture & Tech Stack** | [Read Guide](./docs/architecture.md) |
+| **Editions: Appliance and Hosted Service** | [Read Guide](./docs/editions.md) |
 
 ---
 
@@ -65,7 +66,7 @@ docker compose up -d
 
 Visit [`http://localhost:3000`](http://localhost:3000) in your browser to launch the initial 4-step onboarding wizard.
 
-A home server does not need a public hostname or a mail server. Hosted mode will not start until `APP_HOST` and `SMTP_ADDRESS` are set. The [deployment guide](./docs/getting-started.md) lists both.
+A home server does not need a public hostname or a mail server. The [getting started guide](./docs/getting-started.md) covers both for an appliance you expose to the internet. This image is the appliance edition; the [editions page](./docs/editions.md) explains how it differs from the hosted service.
 
 ---
 
@@ -144,4 +145,4 @@ Playwright config and the Rails test environment refuse to start with a live key
 ---
 
 ## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+FamilyPlates is released under the [O'Saasy License](LICENSE.md): you may use, modify and self-host it freely, but not offer it to others as a competing hosted service. Releases up to v1.2.0 were labelled MIT.

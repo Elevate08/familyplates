@@ -156,22 +156,13 @@ module Authentication
     end
   end
 
+  # Hooks for the hosted edition, which suspends and bills households; its
+  # HostedAccess concern fills them in. Declared here so they keep their place
+  # in the chain above. An appliance household is never suspended or unpaid.
   def handle_suspended_household
-    return unless current_household&.suspended?
-
-    redirect_to suspended_path
   end
 
   def ensure_household_entitled!
-    return unless FamilyPlates.config.hosted?
-    return if current_household.nil?
-    return if current_household.entitled?
-
-    if current_family_member&.admin?
-      redirect_to subscription_path, alert: "Your trial has expired. Please select a subscription to continue using your kitchen." and return
-    else
-      redirect_to select_profile_path, alert: "Your family's subscription is inactive. Please ask a household organizer to reactivate." and return
-    end
   end
 
   def after_authentication_url

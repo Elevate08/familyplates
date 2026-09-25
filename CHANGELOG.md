@@ -4,7 +4,7 @@ All notable changes to FamilyPlates are documented in this file.
 
 ## [v1.3.0] - Unreleased
 
-FamilyPlates can now run as a hosted, multi-household service with Stripe billing and a private operator console. Appliance mode stays free, single-household and fully offline-capable. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
+FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
 
 ### ⚠️ Upgrading from v1.2.0
 * **Back up the database first.** Household and family-member IDs move from integers to UUIDs, along with the seven foreign keys that point at them. The migration keeps every relationship and has a tested rollback, but it rewrites core tables.
@@ -13,8 +13,13 @@ FamilyPlates can now run as a hosted, multi-household service with Stripe billin
 * **Hosted mode refuses to boot without `APP_HOST` and `SMTP_ADDRESS`.** It also forces HTTPS by default: set `FORCE_SSL` to override, or `ASSUME_SSL` behind a TLS-terminating proxy. Appliance mode is unchanged.
 * **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
 * **Hosted billing needs a Stripe webhook endpoint** subscribed to the right events. See [docs/hosted/stripe-billing.md](docs/hosted/stripe-billing.md).
+* **The published image is the appliance, and it refuses hosted mode.** `FAMILYPLATES_MODE=hosted` needs the hosted edition, built with `--build-arg EDITION=hosted`. An appliance image started in hosted mode stops at once with `HostedEditionMissingError`, before it asks for any deployment settings.
+
+### 📄 License
+* **FamilyPlates is now under the [O'Saasy License](LICENSE.md).** It's MIT plus one condition: you may not offer FamilyPlates to others as a competing hosted service. Self-hosting, modifying and sharing it stay free. Earlier releases were labelled MIT.
 
 ### 🚀 Highlights
+* **Two editions** ([docs/editions.md](docs/editions.md)). Billing, the operator console, public sign-up, support conversations and deletion requests move into a `saas/` Rails engine, loaded only by `Gemfile.saas` when `FAMILYPLATES_MODE=hosted`. The appliance bundle has no Pay or Stripe and no hosted routes. The appliance image doesn't even contain `saas/`, and its Content Security Policy doesn't allow Stripe.
 * **Hosted multi-household mode** (`FAMILYPLATES_MODE=hosted`): public sign-up, per-household onboarding, and tenant isolation for every record.
 * **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $35/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
 * **Operator console** at `/platform_admin`, behind its own password, TOTP and rate limit. It has a household health view, household activity, support conversations, reversible suspension, export and deletion requests, promotion programs, guarded bulk operations and a filterable audit log.
@@ -54,6 +59,8 @@ FamilyPlates can now run as a hosted, multi-household service with Stripe billin
 * A blank organizer PIN at sign-up is no longer stored as `1234`. Uploaded recipe images must be images under 8 MB, `%` in a search is no longer a wildcard, and calendar feeds can't be cached publicly.
 
 ### 🐛 Correctness
+* **The Docker image hadn't built since passkeys arrived.** The `webauthn` gem needs OpenSSL headers, which the image's build stage didn't install. Both editions build again, and CI now builds them on every change.
+* **Production didn't boot at all.** A deploy check that runs only in production used `FamilyPlates` before Rails could load it, so every production start raised `NameError`. A new test boots production for real.
 * **Operator bulk operations didn't work in a browser.** Turbo discarded the preview page, so **Preview** did nothing.
 * A bad `?week=` or `?month=` parameter no longer causes a server error.
 * A calendar feed no longer drops a meal whose custom title happens to be "No Meal Planned".
@@ -63,15 +70,21 @@ FamilyPlates can now run as a hosted, multi-household service with Stripe billin
 * Every page is checked with axe for every kind of visitor. Named the icon-only buttons, colour swatches, grocery checkboxes, ingredient fields and operator form fields, and declared the page language on the cook and print layouts.
 
 ### 🧪 Testing & CI
+* CI tests both editions and builds both images. It checks that the appliance image has no hosted code and refuses hosted mode, and that the hosted image boots. It also audits the hosted lockfile and checks that the hosted deploy config resolves.
 * A Playwright suite visits every GET route as every kind of visitor. It checks for server and JavaScript errors, broken assets, horizontal scroll on a phone, and accessibility, and it compares screenshots in light, dark and mobile. It runs in a pinned container, sharded across three CI runners.
 * Signed Stripe webhook tests cover every charge and subscription state, plus Checkout completion, new subscriptions, failed-payment emails and invoice updates.
 * Real Stripe sandbox tests pay through Checkout, comp and cancel that subscription from the console, and confirm an assigned promotion is applied. They only run with a test key, and the suite refuses to start with a live key.
 * Every Fizzy acceptance criterion is linked to the tests that prove it, and CI fails when a criterion has no test.
 * CI actions are pinned to commit SHAs and don't get credentials they don't need.
 
+### 📚 Documentation
+* New guides: [Editions](docs/editions.md), [Deploying the hosted service](docs/hosted/deploying.md) and [Stripe billing](docs/hosted/stripe-billing.md). The GitHub wiki is now published from `docs/` on every change to `master`, leaving out the planning notes in `docs/ideas/`. A pull request that changes the docs runs the same sync without publishing, so a broken link fails the PR.
+* The self-hosting guide no longer suggests running the published image in hosted mode.
+
 ### 🧹 Removed
 * The `hosted:simulate_customers` and `scale:validate` development rake tasks. Their results are recorded in `docs/ideas/household-identity-and-tenancy.md`.
 * Dead code: an orphaned landing view, the sample `hello` controller, and unused model methods.
+* The stock Kamal scaffold `config/deploy.yml`. Kamal is for the hosted service only; a first draft of its deploy config is in `saas/config/deploy.yml` ([docs/hosted/deploying.md](docs/hosted/deploying.md)), not yet used for a real deploy.
 
 ## [v1.2.0] - 2026-09-02
 

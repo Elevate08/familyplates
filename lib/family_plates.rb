@@ -4,13 +4,24 @@ module FamilyPlates
   class Error < StandardError; end
   class AdminPasswordRequiredError < Error; end
   class OutboundEmailNotConfiguredError < Error; end
-  class LiveStripeKeyError < Error; end
+
+  class HostedEditionMissingError < Error; end
 
   class Config
-    attr_writer :mode
+    # Hosted mode needs the saas/ engine, which only the hosted bundle loads,
+    # and the hosted bundle defaults to it. The test suite pins a default of
+    # its own (test_helper.rb), so a test runs as an appliance on either
+    # bundle unless it asks for hosted.
+    attr_writer :default_mode
+
+    def mode=(value)
+      FamilyPlates.require_hosted_edition! if value.to_s == "hosted"
+      @mode = value
+    end
 
     def mode
-      @mode || ENV["FAMILYPLATES_MODE"].presence || ENV["APP_MODE"].presence || "appliance"
+      @mode || @default_mode || ENV["FAMILYPLATES_MODE"].presence || ENV["APP_MODE"].presence ||
+        (FamilyPlates.saas? ? "hosted" : "appliance")
     end
 
     def appliance?
@@ -185,6 +196,19 @@ module FamilyPlates
     @config ||= Config.new
   end
 
+  # True when the hosted edition's engine is loaded (Gemfile.saas).
+  def self.saas?
+    defined?(FamilyPlatesSaas::Engine) ? true : false
+  end
+
+  def self.require_hosted_edition!
+    return if saas?
+
+    raise HostedEditionMissingError, "FAMILYPLATES_MODE is hosted, but this is the appliance edition: it does not " \
+      "include the saas/ engine. Use the hosted image (docker build --build-arg EDITION=hosted), or run from a " \
+      "checkout with Gemfile.saas. To run an appliance, unset FAMILYPLATES_MODE."
+  end
+
   def self.configure
     yield config
   end
@@ -258,33 +282,5 @@ module FamilyPlates
       end
     end
     private_class_method :smtp_address_message
-  end
-
-  # A test run talks to Stripe through a sandbox or not at all. The real-checkout
-  # Playwright test and the webhook suites create customers and pay with test
-  # cards; handed a live key they would do that to the real account. So the test
-  # environment will not boot with one, wherever it came from.
-  module StripeSandbox
-    ENV_KEYS = %w[STRIPE_SECRET_KEY STRIPE_PRIVATE_KEY STRIPE_PUBLISHABLE_KEY STRIPE_PUBLIC_KEY].freeze
-    SANDBOX_KEY = /\A(sk|rk|pk)_test_/
-
-    def self.verify!(environment: Rails.env, keys: configured_keys)
-      return unless environment.test?
-
-      live = keys.select { |_source, key| key.present? && !key.match?(SANDBOX_KEY) }.keys
-      return if live.empty?
-
-      raise LiveStripeKeyError, "#{live.join(', ')} is not a Stripe test key (sk_test_, rk_test_ or pk_test_). " \
-        "Tests run against a Stripe sandbox only."
-    end
-
-    def self.configured_keys
-      keys = ENV_KEYS.index_with { |name| ENV[name] }
-      if defined?(Pay::Stripe)
-        keys["Pay private_key"] = Pay::Stripe.private_key
-        keys["Pay public_key"] = Pay::Stripe.public_key
-      end
-      keys
-    end
   end
 end
