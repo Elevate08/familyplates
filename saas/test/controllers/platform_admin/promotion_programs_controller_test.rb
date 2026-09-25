@@ -13,6 +13,22 @@ class PlatformAdmin::PromotionProgramsControllerTest < ActionDispatch::Integrati
     assert_select "input#promotion_program_ends_at[aria-label='Ends at']"
   end
 
+  test "support operators cannot create a promotion program" do
+    support = PlatformAdminAccount.create!(
+      email: "support@example.com", password: "correct horse battery staple", role: "support"
+    )
+    sign_in_platform_admin(support)
+
+    assert_no_difference -> { PromotionProgram.count } do
+      post platform_admin_promotion_programs_path, params: {
+        promotion_program: { name: "Free", code: "FREE", discount_percent: 100, provider_promotion_code_id: "promo_free" }
+      }
+    end
+
+    assert_redirected_to platform_admin_promotion_programs_path
+    assert_equal "Only owner and billing operators can change promotions.", flash[:alert]
+  end
+
   # @card-42.2
   test "operator can create and deactivate a promotion program" do
     post platform_admin_promotion_programs_path, params: { promotion_program: { name: "Launch", code: "launch", discount_percent: 20 } }
