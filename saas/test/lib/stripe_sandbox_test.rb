@@ -38,6 +38,11 @@ class StripeSandboxTest < ActiveSupport::TestCase
     ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = "true"
     FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: production)
     assert_equal "true", ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+
+    ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS")
+    opted_in = { stripe: { webhook_receive_test_events: true } }
+    FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!(environment: production, credentials: opted_in)
+    assert_nil ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
   ensure
     saved.nil? ? ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS") : ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = saved
   end

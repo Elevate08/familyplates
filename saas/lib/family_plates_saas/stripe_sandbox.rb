@@ -24,10 +24,13 @@ module FamilyPlatesSaas
     # Pay processes livemode:false events when STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS
     # is unset. A production deploy that points at a test webhook, or that
     # leaves the default in place, would apply those events to real households.
-    # An explicit true or false is left as the operator set it.
-    def self.apply_production_webhook_defaults!(environment: Rails.env)
+    # An explicit true or false is left as the operator set it. Pay reads ENV
+    # before credentials, so a value in credentials must also stop the default.
+    def self.apply_production_webhook_defaults!(environment: Rails.env, credentials: Rails.application.credentials)
       return unless environment.production?
       return if ENV.key?("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS")
+      return unless credentials.dig(:production, :stripe, :webhook_receive_test_events).nil?
+      return unless credentials.dig(:stripe, :webhook_receive_test_events).nil?
 
       ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = "false"
     end
