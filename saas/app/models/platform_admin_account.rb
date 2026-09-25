@@ -26,11 +26,16 @@ class PlatformAdminAccount < ApplicationRecord
     normalized = value.to_s.strip
     return false unless normalized.match?(/\A\d{6}\z/)
 
-    (-1..1).any? do |offset|
-      ActiveSupport::SecurityUtils.secure_compare(
-        Totp.code(otp_secret, at: at + offset * Totp::STEP), normalized
+    (-1..1).each do |offset|
+      moment = at + (offset * Totp::STEP)
+      timestep = Integer(moment.to_i / Totp::STEP)
+      next unless ActiveSupport::SecurityUtils.secure_compare(
+        Totp.code(otp_secret, at: Time.at(timestep * Totp::STEP)), normalized
       )
+
+      return consume_totp_timestep!(timestep)
     end
+    false
   end
 
   module Totp
@@ -96,6 +101,17 @@ class PlatformAdminAccount < ApplicationRecord
   end
 
   private
+
+  # The code stays valid for the neighboring 30-second steps. Remember the
+  # step that matched so a captured code cannot open a second session.
+  def consume_totp_timestep!(timestep)
+    Rails.application.config.pin_attempt_store.write(
+      "platform_admin_totp:#{id}:#{timestep}",
+      true,
+      expires_in: 2.minutes,
+      unless_exist: true
+    ) != false
+  end
 
   def generate_otp_secret
     self.otp_secret ||= Totp.secret

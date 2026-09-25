@@ -105,6 +105,24 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not PlatformAdminSession.exists?
   end
 
+  # @card-46.2
+  test "an authenticator code cannot be used twice" do
+    code = PlatformAdminAccount::Totp.code(@admin.otp_secret)
+    params = { email: @admin.email, password: "correct horse battery staple", otp_code: code }
+
+    post platform_admin_session_path, params: params
+    assert_redirected_to platform_admin_root_path
+
+    delete platform_admin_session_path
+
+    post platform_admin_session_path, params: params
+
+    assert_response :unprocessable_entity
+    assert_equal "Invalid email, password, or verification code.", flash[:alert]
+    assert cookies[:platform_admin_session_token].blank?
+    assert_not PlatformAdminSession.exists?
+  end
+
   # @card-46.4
   test "authenticated platform admin can sign out" do
     sign_in_platform_admin(@admin)
