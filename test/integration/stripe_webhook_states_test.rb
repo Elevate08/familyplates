@@ -183,6 +183,35 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert @household.entitled?
   end
 
+  test "a new subscription copies Stripe's redemption counts onto the promotion programs" do
+    live = PromotionProgram.create!(name: "Founders", code: "FOUNDERS", provider_promotion_code_id: "promo_live", max_redemptions: 2)
+    gone = PromotionProgram.create!(name: "Deleted in Stripe", code: "GONE", provider_promotion_code_id: "promo_gone")
+    ended = PromotionProgram.create!(name: "Ended", code: "ENDED", provider_promotion_code_id: "promo_ended", active: false)
+    local = PromotionProgram.create!(name: "Local only", code: "LOCAL")
+    asked = []
+    original = Stripe::PromotionCode.method(:retrieve)
+    Stripe::PromotionCode.define_singleton_method(:retrieve) do |id, *|
+      asked << id
+      raise Stripe::InvalidRequestError.new("No such promotion code", "id") if id == "promo_gone"
+
+      Stripe::PromotionCode.construct_from(id: id, times_redeemed: 2)
+    end
+    object = subscription_object("sub_promo", "active", period_end: 1.month.from_now)
+    @subscriptions[object[:id]] = object
+
+    deliver("customer.subscription.created", object)
+
+    assert_equal %w[promo_gone promo_live], asked.sort
+    assert_equal 2, live.reload.redeemed_count
+    assert_not live.currently_active?, "a program Stripe says is used up stops being applied at Checkout"
+    assert_equal 0, gone.reload.redeemed_count
+    assert_equal 0, ended.reload.redeemed_count
+    assert_equal 0, local.reload.redeemed_count
+    assert @household.reload.entitled?, "a failed count does not hold up the subscription"
+  ensure
+    Stripe::PromotionCode.define_singleton_method(:retrieve, original)
+  end
+
   test "signed invoice.payment_failed emails the household's organizer" do
     @household.family_members.find_by!(role: "admin").update!(user: User.create!(email: "organizer@example.com"))
     object = subscription_object("sub_declined", "past_due", period_end: 2.days.ago)

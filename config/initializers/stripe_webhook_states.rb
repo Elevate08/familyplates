@@ -15,9 +15,17 @@ class StripeChargeStateSync
   end
 end
 
+# A new subscription is when a promotion code is redeemed.
+class PromotionRedemptionSync
+  def call(_event)
+    PromotionProgram.refresh_redemptions!
+  end
+end
+
 Pay::Webhooks.configure do |events|
   handler = StripeChargeStateSync.new
   events.subscribe "stripe.charge.failed", handler
   events.subscribe "stripe.charge.pending", handler
   events.subscribe "stripe.charge.dispute.created", handler
+  events.subscribe "stripe.customer.subscription.created", PromotionRedemptionSync.new
 end

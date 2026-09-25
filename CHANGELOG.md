@@ -2,6 +2,77 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [v1.3.0] - Unreleased
+
+FamilyPlates can now run as a hosted, multi-household service with Stripe billing and a private operator console. Appliance mode stays free, single-household and fully offline-capable. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
+
+### ⚠️ Upgrading from v1.2.0
+* **Back up the database first.** Household and family-member IDs move from integers to UUIDs, along with the seven foreign keys that point at them. The migration keeps every relationship and has a tested rollback, but it rewrites core tables.
+* **Existing sessions keep working.** Session tokens are hashed in place, so nobody is signed out. Rolling back that migration clears sessions, because the hashes can't be reversed.
+* **Google Calendar direct sync is gone.** Use the calendar subscription feeds instead. The migration drops the stored service-account settings.
+* **Hosted mode refuses to boot without `APP_HOST` and `SMTP_ADDRESS`.** It also forces HTTPS by default: set `FORCE_SSL` to override, or `ASSUME_SSL` behind a TLS-terminating proxy. Appliance mode is unchanged.
+* **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
+* **Hosted billing needs a Stripe webhook endpoint** subscribed to the right events. See [docs/hosted/stripe-billing.md](docs/hosted/stripe-billing.md).
+
+### 🚀 Highlights
+* **Hosted multi-household mode** (`FAMILYPLATES_MODE=hosted`): public sign-up, per-household onboarding, and tenant isolation for every record.
+* **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $35/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
+* **Operator console** at `/platform_admin`, behind its own password, TOTP and rate limit. It has a household health view, household activity, support conversations, reversible suspension, export and deletion requests, promotion programs, guarded bulk operations and a filterable audit log.
+* **Calendar subscriptions** (`.ics`/`webcal`) with one-tap setup for Apple, Google and Outlook.
+* **Cook Mode:** a distraction-free, step-by-step kitchen screen with countdown timers, an ingredient drawer and a screen wake lock. `/cook` opens whichever meal is due by the household's own serving times.
+
+### 👥 Accounts, sign-in & devices
+* Accounts are separate from household profiles, so one person can belong to several households and switch between them from the profile menu.
+* Appliances sign in with a password; hosted sign-in uses single-use 6-character email codes. Both give the same response for known and unknown emails, and both are rate-limited.
+* Passkeys (WebAuthn), plus sign-in with Google, Apple, generic OIDC, or a trusted forward-auth proxy.
+* Kiosk device pairing (RFC 8628) with restricted kiosk sessions, a connected-devices list, and revoking one device or all of them.
+* Browser sessions slide: 30 days idle, 90 days at most. Join codes can be reset, and profiles can be handed to another device through a 4-hour signed link with a QR code.
+* Changing an admin's preferences asks for their PIN.
+
+### 💳 Billing & operator console
+* **Operators can cancel a subscription** (at period end or immediately), **refund a charge** (in full or part) and **comp free months** from a household's page. Comping moves the next Stripe charge back, so annual plans work too; for a household that isn't paying, it extends the free trial. Each action needs a reason for the audit log, and only `owner` and `billing` operators can take them.
+* **An operator-assigned promotion is now applied at Stripe Checkout.** Before, assigning one only changed the household record, and the promotion-code ID never reached Stripe.
+* **Promotion redemption counts come from Stripe** and refresh on every new subscription, including codes typed at Checkout. A program that has reached its limit stops being applied.
+* Operator roles are enforced for billing: `support` and `privacy` operators can see billing but not change it.
+* Coming back from Checkout activates the kitchen immediately, without waiting for the webhook.
+* The operator sees every charge state: paid, pending, uncaptured, failed, refunded, partially refunded and disputed.
+
+### 🍳 Recipes, pantry & planning
+* Leftovers have a capacity and a shelf life. A cooked meal feeds later slots until it runs out or goes past its date, and clearing a slot cleans up the leftovers that came from it.
+* Pantry staples can be flagged as running low from the pantry or from a recipe. They then join the grocery list, and ticking them off marks them restocked.
+* Recipes and meal plans are numbered per household.
+* The recipe URL importer handles JSON-LD, microdata and failed fetches more reliably.
+* The planner has a date-range picker with a calendar popover, and dates follow the household's time zone.
+* Recipe images from CDNs that block hotlinking now load, and a placeholder shows when one fails.
+
+### 🔐 Security
+* A meal slot accepted any household's recipe ID, so one household could read another's recipe. Fixed, along with the other cross-tenant and sign-up gaps a new route-by-role authorization table found.
+* Nobody signed in now means no household at all. Before, anonymous requests resolved to the installation's household, which hid missing scope checks.
+* Session tokens are stored as SHA-256 hashes, and a device-pairing code can't be reused.
+* Sign-in codes stay out of the log at debug level, and PINs and passkey credentials are filtered from request logs.
+* Operator sign-in shares the household sign-in's rate limit.
+* A blank organizer PIN at sign-up is no longer stored as `1234`. Uploaded recipe images must be images under 8 MB, `%` in a search is no longer a wildcard, and calendar feeds can't be cached publicly.
+
+### 🐛 Correctness
+* **Operator bulk operations didn't work in a browser.** Turbo discarded the preview page, so **Preview** did nothing.
+* A bad `?week=` or `?month=` parameter no longer causes a server error.
+* A calendar feed no longer drops a meal whose custom title happens to be "No Meal Planned".
+* 27 tests failed on Mondays and Tuesdays, when fixture slots collided with the day's slots.
+
+### ♿ Accessibility
+* Every page is checked with axe for every kind of visitor. Named the icon-only buttons, colour swatches, grocery checkboxes, ingredient fields and operator form fields, and declared the page language on the cook and print layouts.
+
+### 🧪 Testing & CI
+* A Playwright suite visits every GET route as every kind of visitor. It checks for server and JavaScript errors, broken assets, horizontal scroll on a phone, and accessibility, and it compares screenshots in light, dark and mobile. It runs in a pinned container, sharded across three CI runners.
+* Signed Stripe webhook tests cover every charge and subscription state, plus Checkout completion, new subscriptions, failed-payment emails and invoice updates.
+* Real Stripe sandbox tests pay through Checkout, comp and cancel that subscription from the console, and confirm an assigned promotion is applied. They only run with a test key, and the suite refuses to start with a live key.
+* Every Fizzy acceptance criterion is linked to the tests that prove it, and CI fails when a criterion has no test.
+* CI actions are pinned to commit SHAs and don't get credentials they don't need.
+
+### 🧹 Removed
+* The `hosted:simulate_customers` and `scale:validate` development rake tasks. Their results are recorded in `docs/ideas/household-identity-and-tenancy.md`.
+* Dead code: an orphaned landing view, the sample `hello` controller, and unused model methods.
+
 ## [v1.2.0] - 2026-09-02
 
 A security, correctness and performance release. Three independent reviews of the

@@ -12,6 +12,8 @@ EMAIL=you@example.com PASSWORD='use-a-long-unique-password' bin/rails platform_a
 
 The command prints a one-time TOTP provisioning URI. Add it to an authenticator before signing in at `/platform_admin`.
 
+Pass `ROLE=` to create an account with a narrower role: `owner` (the default), `billing`, `support` or `privacy`. Only `owner` and `billing` can cancel, refund or comp a household's subscription. See [Stripe billing](stripe-billing.md) for billing setup and what those actions do.
+
 ## Operating rules
 
 - Use the operator console for metadata, health signals, support, exports, suspension, deletion requests, and the audit log.
