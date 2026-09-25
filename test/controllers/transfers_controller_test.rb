@@ -41,6 +41,25 @@ class TransfersControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:active_family_member_id].present?
   end
 
+  # @card-16.5
+  test "a claimed transfer link cannot be replayed to take over the profile" do
+    member = family_members(:two)
+    token = member.transfer_id
+    first_user = User.create!(email: "first@example.com", password: "password123")
+    second_user = User.create!(email: "second@example.com", password: "password123")
+
+    post session_path, params: { email: first_user.email, password: "password123" }
+    post claim_transfer_path(token: token)
+    assert_equal first_user, member.reload.user
+
+    delete session_path
+    post session_path, params: { email: second_user.email, password: "password123" }
+    post claim_transfer_path(token: token)
+
+    assert_redirected_to select_profile_path
+    assert_equal first_user, member.reload.user
+  end
+
   # @card-14.3
   test "claim prevents user from having two profiles in same household" do
     user = User.create!(email: "parent@example.com", password: "password123")
