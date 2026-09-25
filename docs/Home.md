@@ -28,7 +28,7 @@ graph TD
     C --> D
     D --> E[1-Page Fridge Sheet Printout]
     D --> F[Aisle-Organized Grocery List]
-    D --> G[Universal Calendar Subscriptions (.ics)]
+    D --> G["Universal Calendar Subscriptions (.ics)"]
     B --> H[User Preferences: Icons & Colors]
     B --> I[Admin Control Center: PINs & Settings]
 ```

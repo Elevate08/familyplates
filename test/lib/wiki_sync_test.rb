@@ -32,6 +32,14 @@ class WikiSyncTest < ActiveSupport::TestCase
     assert_equal "[the plan](https://example.test/blob/master/docs/ideas/tenancy.md)", page("Home")
   end
 
+  test "a Mermaid label with parentheses must be quoted" do
+    write "Home.md", "```mermaid\ngraph TD\n    D --> G[Feeds (.ics)]\n    D --> H[\"Prints (A4)\"]\n```\n"
+
+    error = assert_raises(WikiSync::Error) { sync }
+    assert_match "docs/Home.md has a Mermaid label with parentheses and no quotes: D --> G[Feeds (.ics)]", error.message
+    assert_no_match "Prints", error.message
+  end
+
   test "leaves URLs and anchors alone" do
     write "Home.md", "[site](https://example.com/a.md) [top](#top) [mail](mailto:a@b.c)"
 

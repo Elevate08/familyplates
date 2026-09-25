@@ -11,7 +11,9 @@
 # (docs/hosted/deploying.md becomes the page "deploying") and links are
 # rewritten to match: a link to another doc becomes its page name, and a link
 # to anything else in the repository becomes its GitHub URL. A link to a file
-# that does not exist, or two docs with the same name, stops the sync.
+# that does not exist, two docs with the same name, or a Mermaid node label
+# that has parentheses without quotes (which GitHub cannot render) stops the
+# sync.
 #
 # docs/ideas/ is left out: the wiki is for people using or running
 # FamilyPlates, and the planning notes stay in the repository. A published page
@@ -28,6 +30,10 @@ class WikiSync
 
   LINK = /(!?\[[^\]]*\]\()([^)\s]+)(\))/
   UNPUBLISHED = %w[ideas].freeze
+  MERMAID = /^```mermaid\n(.*?)^```/m
+  # A [label] with ( or ) in it and no quotes: Mermaid reads the parenthesis
+  # as the start of a new node shape and the diagram fails to render.
+  UNQUOTED_PARENS = /\w\[(?!")[^\]]*[()][^\]]*\]/
 
   def initialize(docs:, wiki:, root: ROOT, repo_url: REPO_URL)
     @docs = Pathname(docs).expand_path
@@ -40,6 +46,7 @@ class WikiSync
     pages = page_sources
     problems = []
     rendered = pages.to_h do |name, source|
+      check_mermaid(source, problems)
       [ name, rewrite_links(source, problems) ]
     end
     raise Error, problems.uniq.join("\n") if problems.any?
@@ -60,6 +67,15 @@ class WikiSync
     end
 
     by_name.transform_values(&:first)
+  end
+
+  def check_mermaid(source, problems)
+    source.read.scan(MERMAID).flatten.each do |diagram|
+      diagram.each_line.grep(UNQUOTED_PARENS).each do |line|
+        problems << "#{relative(source)} has a Mermaid label with parentheses and no quotes: #{line.strip} " \
+          "(write it as [\"...\"])"
+      end
+    end
   end
 
   def rewrite_links(source, problems)
