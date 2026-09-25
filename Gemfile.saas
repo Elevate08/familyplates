@@ -1,0 +1,6 @@
+# The hosted edition: the core Gemfile plus the saas/ engine and the gems
+# only the hosted service needs. config/boot.rb selects this bundle when
+# FAMILYPLATES_MODE=hosted.
+eval_gemfile "Gemfile"
+
+gem "familyplates-saas", path: "saas", require: "family_plates_saas"

@@ -6,11 +6,18 @@ module FamilyPlates
   class OutboundEmailNotConfiguredError < Error; end
   class LiveStripeKeyError < Error; end
 
+  class HostedEditionMissingError < Error; end
+
   class Config
-    attr_writer :mode
+    # Hosted mode needs the saas/ engine, which only the hosted bundle loads,
+    # and the hosted bundle defaults to it. The test suite pins a default of
+    # its own (test_helper.rb), so a test runs as an appliance on either
+    # bundle unless it asks for hosted.
+    attr_writer :mode, :default_mode
 
     def mode
-      @mode || ENV["FAMILYPLATES_MODE"].presence || ENV["APP_MODE"].presence || "appliance"
+      @mode || @default_mode || ENV["FAMILYPLATES_MODE"].presence || ENV["APP_MODE"].presence ||
+        (FamilyPlates.saas? ? "hosted" : "appliance")
     end
 
     def appliance?
@@ -183,6 +190,18 @@ module FamilyPlates
 
   def self.config
     @config ||= Config.new
+  end
+
+  # True when the hosted edition's engine is loaded (Gemfile.saas).
+  def self.saas?
+    defined?(FamilyPlatesSaas::Engine) ? true : false
+  end
+
+  def self.require_hosted_edition!
+    return if saas?
+
+    raise HostedEditionMissingError, "Hosted mode needs the hosted edition. Run with FAMILYPLATES_MODE=hosted " \
+      "so config/boot.rb selects Gemfile.saas, or build the hosted image."
   end
 
   def self.configure

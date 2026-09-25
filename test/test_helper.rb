@@ -1,6 +1,10 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+
+# Every test starts as an appliance, on either bundle; a hosted test sets
+# FamilyPlates.config.mode = "hosted" itself.
+FamilyPlates.config.default_mode = "appliance"
 require_relative "test_helpers/session_test_helper"
 require_relative "support/page_catalogue"
 require_relative "support/route_inventory"
