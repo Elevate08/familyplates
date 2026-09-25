@@ -24,7 +24,7 @@ TAGGABLE = {
   ".ts" => %r{\A\s*(//|\*|test(\.\w+)*\(|tag:|\{\s*tag:)}
 }.freeze
 
-SOURCES = [ "test/**/*_test.rb", "e2e/**/*.spec.ts" ].freeze
+SOURCES = [ "test/**/*_test.rb", "saas/test/**/*_test.rb", "e2e/**/*.spec.ts" ].freeze
 
 def tagged_tests
   tags = Hash.new { |hash, key| hash[key] = [] }
