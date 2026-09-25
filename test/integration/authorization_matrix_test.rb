@@ -166,6 +166,9 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "GET /platform_admin/households/:id" => [ :operator ],
     "POST /platform_admin/households/:id/suspend" => [ :operator ],
     "POST /platform_admin/households/:id/restore" => [ :operator ],
+    "POST /platform_admin/households/:id/cancel_subscription" => [ :operator ],
+    "POST /platform_admin/households/:id/comp" => [ :operator ],
+    "POST /platform_admin/households/:id/charges/:charge_id/refund" => [ :operator ],
     "GET /platform_admin/support_threads" => [ :operator ],
     "GET /platform_admin/support_threads/:id" => [ :operator ],
     "POST /platform_admin/support_threads/:id/reply" => [ :operator ],
@@ -283,6 +286,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     [ "platform_admin/deletion_requests", "id" ] => :deletion_request,
     [ "platform_admin/promotion_programs", "id" ] => :promotion_program,
     [ "platform_admin/households", "id" ] => :household,
+    [ "platform_admin/households", "charge_id" ] => :charge,
     [ "platform_admin/support_threads", "id" ] => :support_thread,
     [ "calendar_feeds", "token" ] => :calendar_token,
     [ "calendar_feeds", "member_id" ] => :mom,
@@ -393,6 +397,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
         transfer_token: mom.transfer_id,
         deletion_request: household.account_deletion_requests.create!(requested_at: Time.current).id,
         promotion_program: PromotionProgram.create!(name: "Matrix", code: "MATRIX", discount_percent: 10).id,
+        charge: matrix_charge(household).id,
         calendar_token: household.calendar_feed_token,
         pantry_item: pantry_items(:one).id,
         recipe: recipes(:one).id,
@@ -429,6 +434,11 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
         meal_plan_slot: plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "dinner", custom_title: "Miller dinner").id
       )
     end
+  end
+
+  def matrix_charge(household)
+    household.set_payment_processor :fake_processor, allow_fake: true
+    household.payment_processor.charges.create!(processor_id: "ch_matrix", amount: 400)
   end
 
   def passkey_for(user)

@@ -73,6 +73,33 @@
         <p class="text-sm font-mono font-medium text-slate-700 dark:text-slate-300 mt-1"><%= stripe_cus_id.presence || "None" %></p>
       </div>
     </div>
+
+    <% if current_platform_admin.can_manage_billing? %>
+      <% field_class = "rounded-xl border border-slate-300 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900" %>
+      <div class="grid gap-4 border-t border-slate-100 pt-4 dark:border-slate-800 lg:grid-cols-2">
+        <%= form_with url: comp_platform_admin_household_path(@household), method: :post, class: "space-y-2" do |form| %>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Comp free months</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400"><%= @household.active_subscription? ? "Moves the next Stripe charge back by these months; billing resumes by itself." : "Not paying, so this extends the free trial." %></p>
+          <div class="flex flex-wrap items-center gap-2">
+            <%= form.number_field :months, value: 1, min: 1, max: PlatformAdmin::HouseholdBilling::MAX_COMP_MONTHS, aria: { label: "Free months" }, class: "w-20 #{field_class}" %>
+            <%= form.text_field :reason, required: true, placeholder: "Reason", aria: { label: "Reason for comp" }, class: "w-48 #{field_class}" %>
+            <%= form.submit "Comp", class: "rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700 cursor-pointer", data: { turbo_confirm: "Give this household free months?" } %>
+          </div>
+        <% end %>
+
+        <% if @household.active_subscription? %>
+          <%= form_with url: cancel_subscription_platform_admin_household_path(@household), method: :post, class: "space-y-2" do |form| %>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Cancel subscription</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Cancelling now ends access with no refund; refund a charge below if one is owed.</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <%= form.select :when, [ [ "At period end", "period_end" ], [ "Now", "now" ] ], {}, aria: { label: "When to cancel" }, class: field_class %>
+              <%= form.text_field :reason, required: true, placeholder: "Reason", aria: { label: "Reason for cancelling" }, class: "w-48 #{field_class}" %>
+              <%= form.submit "Cancel subscription", class: "rounded-xl bg-rose-700 px-3 py-2 text-xs font-bold text-white hover:bg-rose-800 cursor-pointer", data: { turbo_confirm: "Cancel this household's subscription?" } %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 
   <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
@@ -119,6 +146,14 @@
                 <a href="<%= receipt_url %>" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400 hover:underline">
                   Receipt ↗
                 </a>
+              <% end %>
+              <% refundable = charge.amount - charge.amount_refunded.to_i %>
+              <% if current_platform_admin.can_manage_billing? && refundable.positive? && charge_state.key.in?(%i[paid partially_refunded]) %>
+                <%= form_with url: refund_charge_platform_admin_household_path(@household, charge_id: charge.id), method: :post, class: "flex items-center gap-2" do |form| %>
+                  <%= form.text_field :amount, value: format("%.2f", refundable / 100.0), inputmode: "decimal", aria: { label: "Refund amount in dollars" }, class: "w-20 rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" %>
+                  <%= form.text_field :reason, required: true, placeholder: "Reason", aria: { label: "Reason for refund" }, class: "w-32 rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" %>
+                  <%= form.submit "Refund", class: "rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-700 cursor-pointer", data: { turbo_confirm: "Refund this charge?" } %>
+                <% end %>
               <% end %>
             </div>
           </div>

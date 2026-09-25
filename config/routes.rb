@@ -126,7 +126,10 @@ Rails.application.routes.draw do
       member do
         post :suspend
         post :restore
+        post :cancel_subscription
+        post :comp
       end
+      post "charges/:charge_id/refund", action: :refund_charge, on: :member, as: :refund_charge
     end
     resources :support_threads, only: %i[index show] do
       member do

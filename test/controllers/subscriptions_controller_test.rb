@@ -118,7 +118,132 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert sub.ends_at.present?
   end
 
+  test "the billing portal sends a Stripe customer to their Stripe portal session" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    household.set_payment_processor :stripe, allow_fake: true, processor_id: "cus_portal"
+    requested = []
+    with_stripe_secret_key do
+      stub_billing_portal(requested) do
+        get portal_subscription_path
+      end
+    end
+
+    assert_redirected_to "https://billing.stripe.com/p/session/test_portal"
+    assert_equal [ [ "cus_portal", subscription_url ] ], requested
+  end
+
+  test "the billing portal falls back to the dashboard for a household Stripe has not seen" do
+    FamilyPlates.config.mode = "hosted"
+    requested = []
+    with_stripe_secret_key do
+      stub_billing_portal(requested) do
+        get portal_subscription_path
+      end
+    end
+
+    assert_redirected_to subscription_path
+    assert_equal "Manage your subscription details below.", flash[:notice]
+    assert_empty requested
+  end
+
+  test "the billing portal is for organizers only" do
+    FamilyPlates.config.mode = "hosted"
+    sign_in_user(@member_user)
+    sign_in_as(@member)
+
+    get portal_subscription_path
+
+    assert_redirected_to root_path
+    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+  end
+
+  test "the billing portal is not offered in appliance mode" do
+    FamilyPlates.config.mode = "appliance"
+
+    get portal_subscription_path
+
+    assert_redirected_to root_path
+  end
+
+  test "Checkout applies the Stripe promotion an operator assigned to the household" do
+    household = @admin.household
+    PromotionProgram.create!(name: "Founders", code: "FOUNDERS", discount_percent: 50, provider_promotion_code_id: "promo_founders")
+    household.update!(promotion_code: "FOUNDERS")
+
+    args = checkout_with_real_stripe(household)
+
+    assert_equal [ { promotion_code: "promo_founders" } ], args[:discounts]
+    assert_equal({ metadata: { promotion_code: "FOUNDERS" } }, args[:subscription_data])
+    assert_not args.key?(:allow_promotion_codes), "Stripe rejects discounts and allow_promotion_codes together"
+  end
+
+  test "Checkout lets a household with no assigned promotion type a code" do
+    args = checkout_with_real_stripe(@admin.household)
+
+    assert args[:allow_promotion_codes]
+    assert_not args.key?(:discounts)
+  end
+
+  test "Checkout does not apply a promotion that has ended or Stripe does not know" do
+    household = @admin.household
+    PromotionProgram.create!(name: "Expired", code: "EXPIRED", provider_promotion_code_id: "promo_expired", ends_at: 1.day.ago)
+    PromotionProgram.create!(name: "Local only", code: "LOCALONLY")
+
+    %w[EXPIRED LOCALONLY].each do |code|
+      household.update!(promotion_code: code)
+      args = checkout_with_real_stripe(household)
+
+      assert args[:allow_promotion_codes], code
+      assert_not args.key?(:discounts), code
+    end
+  end
+
   private
+
+  # Subscribes through the Stripe path, not the simulated one, and returns
+  # what the app asked Stripe Checkout for.
+  def checkout_with_real_stripe(household)
+    FamilyPlates.config.mode = "hosted"
+    household.set_payment_processor :stripe, allow_fake: true, processor_id: "cus_checkout"
+    created = nil
+    original = Stripe::Checkout::Session.method(:create)
+    Stripe::Checkout::Session.define_singleton_method(:create) do |params, *|
+      created = params
+      Stripe::Checkout::Session.construct_from(url: "https://checkout.stripe.com/c/pay/cs_test_stub")
+    end
+
+    previous = ENV["ENABLE_REAL_STRIPE_TESTS"]
+    ENV["ENABLE_REAL_STRIPE_TESTS"] = "true"
+    with_stripe_secret_key { post subscription_path, params: { plan: "annual" } }
+
+    assert_redirected_to "https://checkout.stripe.com/c/pay/cs_test_stub"
+    created
+  ensure
+    previous ? ENV["ENABLE_REAL_STRIPE_TESTS"] = previous : ENV.delete("ENABLE_REAL_STRIPE_TESTS")
+    Stripe::Checkout::Session.define_singleton_method(:create, original)
+  end
+
+  def with_stripe_secret_key
+    previous = ENV["STRIPE_SECRET_KEY"]
+    ENV["STRIPE_SECRET_KEY"] = "sk_test_portal"
+    yield
+  ensure
+    previous ? ENV["STRIPE_SECRET_KEY"] = previous : ENV.delete("STRIPE_SECRET_KEY")
+  end
+
+  # Stands in for Stripe's billing portal API, recording who asked and where
+  # Stripe should send them back.
+  def stub_billing_portal(requested)
+    original = Pay::Stripe::Customer.instance_method(:billing_portal)
+    Pay::Stripe::Customer.define_method(:billing_portal) do |**options|
+      requested << [ processor_id, options[:return_url] ]
+      Stripe::BillingPortal::Session.construct_from(url: "https://billing.stripe.com/p/session/test_portal")
+    end
+    yield
+  ensure
+    Pay::Stripe::Customer.define_method(:billing_portal, original)
+  end
 
   def sign_in_user(user)
     session_record = user.sessions.create!(token: SecureRandom.hex(32), kind: "browser")

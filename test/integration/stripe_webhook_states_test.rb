@@ -153,7 +153,91 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     assert_not @household.entitled?
   end
 
+  # The return-URL sync covers a customer who comes back from Checkout. These
+  # cover one who closes the tab: the webhooks alone have to grant access.
+  test "signed checkout.session.completed grants access for the subscription it names" do
+    @subscriptions["sub_from_checkout"] = subscription_object("sub_from_checkout", "active", period_end: 1.month.from_now)
+    session = {
+      id: "cs_test_closed_tab",
+      object: "checkout.session",
+      mode: "subscription",
+      customer: @customer_id,
+      client_reference_id: nil,
+      payment_intent: nil,
+      subscription: "sub_from_checkout"
+    }
+
+    deliver("checkout.session.completed", session)
+
+    assert_equal :active, @household.reload.subscription_status
+    assert @household.entitled?
+  end
+
+  test "signed customer.subscription.created grants access" do
+    object = subscription_object("sub_created", "active", period_end: 1.month.from_now)
+    @subscriptions[object[:id]] = object
+
+    deliver("customer.subscription.created", object)
+
+    assert_equal :active, @household.reload.subscription_status
+    assert @household.entitled?
+  end
+
+  test "signed invoice.payment_failed emails the household's organizer" do
+    @household.family_members.find_by!(role: "admin").update!(user: User.create!(email: "organizer@example.com"))
+    object = subscription_object("sub_declined", "past_due", period_end: 2.days.ago)
+    @subscriptions[object[:id]] = object
+    deliver("customer.subscription.updated", object)
+
+    assert_emails 1 do
+      deliver("invoice.payment_failed", invoice_object("in_declined", "sub_declined"))
+    end
+
+    assert_equal [ @household.email ], ActionMailer::Base.deliveries.last.to
+    assert_match "payment was declined", ActionMailer::Base.deliveries.last.body.encoded
+  end
+
+  test "signed invoice.payment_failed for a subscription we never saw changes nothing" do
+    assert_no_emails do
+      deliver("invoice.payment_failed", invoice_object("in_unknown", "sub_unknown"))
+    end
+  end
+
+  test "signed invoice.updated for the latest invoice re-syncs the subscription" do
+    # Pay stores the subscription with latest_invoice expanded.
+    object = subscription_object("sub_invoiced", "active", period_end: 1.month.from_now)
+      .merge(latest_invoice: invoice_object("in_latest", "sub_invoiced"))
+    @subscriptions[object[:id]] = object
+    deliver("customer.subscription.created", object)
+    assert @household.reload.entitled?
+
+    # Stripe gave up collecting: the invoice update is how the app learns.
+    @subscriptions["sub_invoiced"] = subscription_object("sub_invoiced", "unpaid", period_end: 1.month.from_now)
+      .merge(latest_invoice: invoice_object("in_latest", "sub_invoiced"))
+
+    deliver("invoice.updated", invoice_object("in_latest", "sub_invoiced"))
+
+    assert_equal :unpaid, @household.reload.subscription_status
+    assert_not @household.entitled?
+  end
+
   private
+
+  def invoice_object(id, subscription_id)
+    {
+      id: id,
+      object: "invoice",
+      customer: @customer_id,
+      status: "open",
+      amount_due: 400,
+      currency: "usd",
+      parent: {
+        type: "subscription_details",
+        subscription_details: { subscription: subscription_id, metadata: {} }
+      },
+      lines: { object: "list", data: [], has_more: false }
+    }
+  end
 
   def charge_object(id, status, captured: true, amount_refunded: 0, refunded: false, disputed: false, dispute: nil)
     {

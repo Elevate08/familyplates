@@ -261,6 +261,15 @@ class Household < ApplicationRecord
     promotion_code.presence || current_subscription&.metadata&.dig("promotion_code")
   end
 
+  # The operator-assigned promotion Checkout should apply, if Stripe knows it
+  # and it can still be redeemed.
+  def checkout_promotion
+    return if promotion_code.blank?
+
+    program = PromotionProgram.find_by(code: promotion_code)
+    program if program&.provider_promotion_code_id.present? && program.currently_active?
+  end
+
   def subscription_status
     return :appliance unless FamilyPlates.config.hosted?
 

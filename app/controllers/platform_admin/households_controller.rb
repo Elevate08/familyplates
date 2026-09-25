@@ -2,7 +2,14 @@ module PlatformAdmin
   class HouseholdsController < BaseController
     PAGE_SIZE = 100
 
-    before_action :set_household, only: %i[show suspend restore]
+    BILLING_ACTIONS = %i[cancel_subscription refund_charge comp].freeze
+
+    before_action :set_household, only: %i[show suspend restore] + BILLING_ACTIONS
+    before_action :require_billing_role!, :require_billing_reason!, only: BILLING_ACTIONS
+
+    rescue_from PlatformAdmin::HouseholdBilling::Error do |error|
+      redirect_to platform_admin_household_path(@household), alert: error.message
+    end
 
     def index
       @search = params[:search].to_s.strip
@@ -56,7 +63,62 @@ module PlatformAdmin
       redirect_to platform_admin_household_path(@household), notice: "Household restored."
     end
 
+    def cancel_subscription
+      immediately = params[:when] == "now"
+      sub = billing.cancel_subscription!(immediately: immediately)
+      record_billing_audit!("household.subscription_canceled", subscription_id: sub.processor_id, immediately: immediately)
+      notice = immediately ? "Subscription canceled; access has ended." : "Subscription will end on #{sub.ends_at.to_date.to_formatted_s(:long)}."
+      redirect_to platform_admin_household_path(@household), notice: notice
+    end
+
+    def refund_charge
+      refunded = billing.refund_charge!(params[:charge_id], amount_cents: refund_amount_cents)
+      record_billing_audit!("household.charge_refunded", charge_id: params[:charge_id], amount_cents: refunded)
+      redirect_to platform_admin_household_path(@household), notice: "Refunded #{helpers.number_to_currency(refunded / 100.0)}."
+    end
+
+    def comp
+      months = Integer(params[:months].to_s, exception: false)
+      comped = billing.comp!(months)
+      record_billing_audit!("household.comped", months: months, applied_to: comped)
+      notice = if comped == :trial
+        "Free trial extended to #{@household.reload.trial_ends_at.to_date.to_formatted_s(:long)}."
+      else
+        "#{months} free #{"month".pluralize(months)} applied; the next charge is on #{@household.reload.payment_processor.subscription.trial_ends_at.to_date.to_formatted_s(:long)}."
+      end
+      redirect_to platform_admin_household_path(@household), notice: notice
+    end
+
     private
+
+    def billing
+      PlatformAdmin::HouseholdBilling.new(@household)
+    end
+
+    # Blank means refund everything still refundable.
+    def refund_amount_cents
+      return if params[:amount].blank?
+
+      (BigDecimal(params[:amount].to_s.delete("$, ")) * 100).round.to_i
+    rescue ArgumentError
+      raise PlatformAdmin::HouseholdBilling::Error, "Enter the refund as a dollar amount, like 4.00."
+    end
+
+    def require_billing_role!
+      return if current_platform_admin.can_manage_billing?
+
+      redirect_to platform_admin_household_path(@household), alert: "Only owner and billing operators can change a household's billing."
+    end
+
+    def require_billing_reason!
+      return if params[:reason].to_s.strip.present?
+
+      redirect_to platform_admin_household_path(@household), alert: "Give a reason; it goes in the audit log."
+    end
+
+    def record_billing_audit!(action, **metadata)
+      record_platform_audit!(action, target: @household, metadata: metadata.merge(reason: params[:reason].to_s.strip))
+    end
 
     def set_household
       @household = Household.includes(:family_members, :users, :pay_subscriptions, :pay_customers).find(params[:id])

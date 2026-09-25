@@ -380,7 +380,7 @@ development database, not only the test schema.
 
 ## Scale & Product Assumptions Validation As Measured
 
-Executed via `bin/rails scale:validate` against an isolated SQLite WAL database seeded with 500 realistic households:
+Executed via `bin/rails scale:validate` (removed in v1.3.0; recover it with `git show 85e3c81:lib/tasks/scale_validation.rake`) against an isolated SQLite WAL database seeded with 500 realistic households:
 
 | Metric | Measured Value | Target / Assessment |
 | :--- | :--- | :--- |

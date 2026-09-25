@@ -16,6 +16,12 @@ class PlatformAdminAccount < ApplicationRecord
 
   before_validation :generate_otp_secret, on: :create
 
+  # Cancelling, refunding, and comping move money, so support and privacy
+  # operators can see a household's billing but not change it.
+  def can_manage_billing?
+    role.in?(%w[owner billing])
+  end
+
   def valid_totp?(value, at: Time.current)
     normalized = value.to_s.strip
     return false unless normalized.match?(/\A\d{6}\z/)

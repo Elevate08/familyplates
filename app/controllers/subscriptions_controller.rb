@@ -117,11 +117,24 @@ class SubscriptionsController < ApplicationController
     checkout_session = @household.payment_processor.checkout(
       mode: :subscription,
       line_items: checkout_line_items(plan_key, plan),
-      allow_promotion_codes: true,
       success_url: subscription_url(success: true),
-      cancel_url: subscription_url(canceled: true)
+      cancel_url: subscription_url(canceled: true),
+      **checkout_discount_options
     )
     redirect_to checkout_session.url, allow_other_host: true
+  end
+
+  # Stripe takes either a discount or a promotion-code box, never both. A
+  # household an operator gave a promotion gets it applied; anyone else can
+  # type a code. The code rides on the subscription so the console can show it.
+  def checkout_discount_options
+    promotion = @household.checkout_promotion
+    return { allow_promotion_codes: true } unless promotion
+
+    {
+      discounts: [ { promotion_code: promotion.provider_promotion_code_id } ],
+      subscription_data: { metadata: { promotion_code: promotion.code } }
+    }
   end
 
   def checkout_line_items(plan_key, plan)
