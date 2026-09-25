@@ -172,6 +172,7 @@ module Authentication
   end
 
   def start_new_session_for_user(user)
+    target_household = Current.household || (FamilyPlates.config.hosted? ? user.households.first : Household.installation)
     session_record = user.sessions.create!(
       token: SecureRandom.hex(32),
       kind: "browser",
@@ -183,8 +184,10 @@ module Authentication
     write_permanent_signed_cookie(:device_kind, session_record.kind)
     Current.session = session_record
     Current.user = user
+    Current.family_member = nil
+    Current.household = nil
+    cookies.delete(:active_family_member_id)
 
-    target_household = Current.household || (FamilyPlates.config.hosted? ? user.households.first : Household.installation)
     if target_household && (member = user.family_members.find_by(household: target_household))
       start_new_session_for(member)
     end
