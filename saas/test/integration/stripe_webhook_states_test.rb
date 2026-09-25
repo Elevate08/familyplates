@@ -35,6 +35,21 @@ class StripeWebhookStatesTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.reset!
   end
 
+  test "a signed test-mode event is ignored when test-mode events are turned off" do
+    previous = ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"]
+    ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = "false"
+    object = subscription_object("sub_testmode", "active", period_end: 1.month.from_now)
+    @subscriptions[object[:id]] = object
+
+    assert_no_difference "Pay::Webhook.count" do
+      deliver("customer.subscription.created", object)
+    end
+
+    assert_not @household.reload.entitled?
+  ensure
+    previous.nil? ? ENV.delete("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS") : ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = previous
+  end
+
   # @card-23.7
   test "a bad signature is rejected and stores nothing" do
     payload = event_payload("charge.succeeded", charge_object("ch_rejected", "succeeded"))

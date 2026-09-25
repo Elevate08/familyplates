@@ -21,6 +21,17 @@ module FamilyPlatesSaas
         "Tests run against a Stripe sandbox only."
     end
 
+    # Pay processes livemode:false events when STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS
+    # is unset. A production deploy that points at a test webhook, or that
+    # leaves the default in place, would apply those events to real households.
+    # An explicit true or false is left as the operator set it.
+    def self.apply_production_webhook_defaults!(environment: Rails.env)
+      return unless environment.production?
+      return if ENV.key?("STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS")
+
+      ENV["STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS"] = "false"
+    end
+
     def self.configured_keys
       keys = ENV_KEYS.index_with { |name| ENV[name] }
       if defined?(Pay::Stripe)

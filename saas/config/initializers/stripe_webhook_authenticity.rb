@@ -61,6 +61,8 @@ module StripeCustomerDeletionConfirmation
   end
 end
 
+FamilyPlatesSaas::StripeSandbox.apply_production_webhook_defaults!
+
 Rails.application.config.to_prepare do
   replay = StripeWebhookReplayGuard
   controller = Pay::Webhooks::StripeController
