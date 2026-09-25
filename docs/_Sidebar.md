@@ -9,12 +9,6 @@
 * [🏗️ System Architecture](architecture)
 * [🧭 Editions](editions)
 
-**Hosted service**
-
-* [🚢 Deploying](deploying)
-* [💳 Stripe Billing](stripe-billing)
-* [🛠️ Operator Console](operator-console)
-
 ---
 
 **[GitHub Repo](https://github.com/Elevate08/familyplates)**
