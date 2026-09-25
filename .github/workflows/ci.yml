@@ -89,6 +89,17 @@ jobs:
       - name: Check every acceptance criterion has a test
         run: bin/coverage-criteria --verbose
 
+      # Placeholder values: this only checks saas/config/deploy.yml still
+      # resolves. Nothing here connects to a server.
+      - name: The hosted deploy config resolves
+        env:
+          HOSTED_SERVER: 203.0.113.10
+          APP_HOST: plates.example.com
+          SMTP_ADDRESS: smtp.example.com
+          STRIPE_MONTHLY_PRICE_ID: price_monthly
+          STRIPE_ANNUAL_PRICE_ID: price_annual
+        run: bin/kamal config > /dev/null
+
   # Each edition runs its own suite: the appliance on the core Gemfile, the
   # hosted service on Gemfile.saas, which adds the saas/ engine and its tests.
   # The ruleset requires a check named "test", so test_edition runs the
