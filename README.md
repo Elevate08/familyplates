@@ -144,4 +144,4 @@ Playwright config and the Rails test environment refuse to start with a live key
 ---
 
 ## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+FamilyPlates is released under the [O'Saasy License](LICENSE.md): you may use, modify and self-host it freely, but not offer it to others as a competing hosted service. Releases up to v1.2.0 were labelled MIT.

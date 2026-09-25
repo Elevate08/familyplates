@@ -14,6 +14,9 @@ FamilyPlates can now run as a hosted, multi-household service with Stripe billin
 * **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
 * **Hosted billing needs a Stripe webhook endpoint** subscribed to the right events. See [docs/hosted/stripe-billing.md](docs/hosted/stripe-billing.md).
 
+### 📄 License
+* **FamilyPlates is now under the [O'Saasy License](LICENSE.md).** It's MIT plus one condition: you may not offer FamilyPlates to others as a competing hosted service. Self-hosting, modifying and sharing it stay free. Earlier releases were labelled MIT.
+
 ### 🚀 Highlights
 * **Hosted multi-household mode** (`FAMILYPLATES_MODE=hosted`): public sign-up, per-household onboarding, and tenant isolation for every record.
 * **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $35/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
