@@ -74,6 +74,18 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to select_profile_url
   end
 
+  test "a selected profile cannot bypass appliance account sign in when login is required" do
+    user = User.create!(email: "owner@example.com", password: "password123")
+    @admin.update!(user: user)
+    FamilyPlates.config.require_login = true
+
+    get admin_root_path
+
+    assert_redirected_to new_session_path
+  ensure
+    FamilyPlates.config.reset!
+  end
+
   # --- Post-sign-in redirect --------------------------------------------------
   #
   # require_authentication stores request.url for any verb, and profiles#set now

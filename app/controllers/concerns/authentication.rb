@@ -107,11 +107,13 @@ module Authentication
     member_id = cookies.signed[:active_family_member_id]
     Current.family_member = FamilyMember.find_by(id: member_id) if member_id.present?
 
+    if (FamilyPlates.config.hosted? || FamilyPlates.config.require_login) && Current.user.nil?
+      Current.family_member = nil
+      cookies.delete(:active_family_member_id)
+    end
+
     if FamilyPlates.config.hosted?
-      if Current.user.nil?
-        Current.family_member = nil
-        cookies.delete(:active_family_member_id)
-      elsif Current.family_member.present? && !Current.user.household_ids.include?(Current.family_member.household_id)
+      if Current.user.present? && Current.family_member.present? && !Current.user.household_ids.include?(Current.family_member.household_id)
         Current.family_member = nil
         cookies.delete(:active_family_member_id)
       end
