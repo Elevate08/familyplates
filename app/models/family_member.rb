@@ -42,15 +42,30 @@ class FamilyMember < ApplicationRecord
   TRANSFER_LINK_EXPIRY_DURATION = 4.hours
 
   def transfer_id
-    signed_id(purpose: :transfer, expires_in: TRANSFER_LINK_EXPIRY_DURATION)
+    self.class.transfer_verifier.generate(
+      { "id" => id, "owner_id" => user_id },
+      purpose: :transfer,
+      expires_in: TRANSFER_LINK_EXPIRY_DURATION
+    )
   end
 
-  def self.find_by_transfer_id(id)
-    find_signed(id, purpose: :transfer)
+  def self.transfer_verifier
+    Rails.application.message_verifier(:family_member_transfer)
   end
 
-  def transfer_to!(new_user)
-    update!(user: new_user)
+  def self.find_by_transfer_id(token)
+    claims = transfer_verifier.verified(token, purpose: :transfer)
+    return unless claims.is_a?(Hash)
+
+    find_by(id: claims["id"], user_id: claims["owner_id"])
+  end
+
+  def transfer_to!(new_user, expected_owner_id: user_id)
+    with_lock do
+      return false unless user_id == expected_owner_id
+
+      update!(user: new_user)
+    end
   end
 
   validates :name, presence: true

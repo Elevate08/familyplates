@@ -84,6 +84,23 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert cookies[:session_token].blank?
   end
 
+  # @card-17.2
+  test "signing into another account clears the previous organizer profile" do
+    first_user = User.create!(email: "first@example.com", password: "password123")
+    second_user = User.create!(email: "second@example.com", password: "password123")
+    family_members(:one).update!(user: first_user)
+    FamilyPlates.config.require_login = true
+
+    post session_path, params: { email: first_user.email, password: "password123" }
+    assert_equal family_members(:one).id, active_family_member_id
+
+    post session_path, params: { email: second_user.email, password: "password123" }
+    get admin_root_path
+
+    assert_redirected_to select_profile_path
+    assert_nil active_family_member_id
+  end
+
   test "signed_out renders kiosk signed out screen with pair again button" do
     get signed_out_path(kind: "kiosk")
     assert_response :success

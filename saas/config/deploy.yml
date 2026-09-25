@@ -7,7 +7,7 @@
 #
 # bin/kamal reads this file by default. Nothing about the server is committed:
 # the settings below come from the deployer's environment, and the secrets
-# from saas/.kamal/secrets. See docs/hosted/deploying.md.
+# from saas/.kamal/secrets. The operating notes are kept internally.
 <% require "dotenv"; Dotenv.load(".env.hosted") if File.exist?(".env.hosted") %>
 
 service: familyplates-hosted

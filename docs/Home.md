@@ -16,14 +16,6 @@
 | **[🏗️ System Architecture](architecture)** | Technical stack, data models, Solid Queue workers, and security model. |
 | **[🧭 Editions](editions)** | The self-hosted appliance and the hosted service: what each includes and how the code is split. |
 
-### Running the hosted service
-
-| Guide | Summary |
-| :--- | :--- |
-| **[🚢 Deploying](deploying)** | Deploying the hosted service with Kamal: setup, deploys, rollback, backups. |
-| **[💳 Stripe Billing](stripe-billing)** | Keys, the webhook endpoint and its events, promotions, and managing a household's billing. |
-| **[🛠️ Operator Console](operator-console)** | Operator accounts and roles, and the console's operating rules. |
-
 ---
 
 ## 🌟 Core Architecture & Features
@@ -36,7 +28,7 @@ graph TD
     C --> D
     D --> E[1-Page Fridge Sheet Printout]
     D --> F[Aisle-Organized Grocery List]
-    D --> G[Universal Calendar Subscriptions (.ics)]
+    D --> G["Universal Calendar Subscriptions (.ics)"]
     B --> H[User Preferences: Icons & Colors]
     B --> I[Admin Control Center: PINs & Settings]
 ```
