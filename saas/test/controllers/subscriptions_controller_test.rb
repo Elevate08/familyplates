@@ -41,12 +41,16 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "returning from Stripe Checkout syncs the session Pay named in the return URL" do
     FamilyPlates.config.mode = "hosted"
     household = @admin.household
+    household.set_payment_processor :stripe, allow_fake: true, processor_id: "cus_returned"
     synced = []
     original = Pay::Stripe.method(:sync_checkout_session)
+    original_retrieve = Stripe::Checkout::Session.method(:retrieve)
+    Stripe::Checkout::Session.define_singleton_method(:retrieve) do |*|
+      Stripe::Checkout::Session.construct_from(id: "cs_test_returned", customer: "cus_returned")
+    end
     # Stands in for Stripe: what a completed Checkout leaves behind once synced.
     Pay::Stripe.define_singleton_method(:sync_checkout_session) do |session_id, **|
       synced << session_id
-      household.set_payment_processor :fake_processor, allow_fake: true
       household.payment_processor.subscriptions.create!(
         name: "default", processor_id: "sub_returned", processor_plan: "annual",
         status: "active", current_period_start: Time.current, current_period_end: 1.year.from_now
@@ -62,6 +66,29 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Thank you for subscribing", flash[:notice]
   ensure
     Pay::Stripe.define_singleton_method(:sync_checkout_session, original)
+    Stripe::Checkout::Session.define_singleton_method(:retrieve, original_retrieve) if original_retrieve
+  end
+
+  # @card-21.4 @card-23.10
+  test "a checkout return for another household's session is not synced" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    household.set_payment_processor :stripe, allow_fake: true, processor_id: "cus_mine"
+    synced = []
+    original_sync = Pay::Stripe.method(:sync_checkout_session)
+    original_retrieve = Stripe::Checkout::Session.method(:retrieve)
+    Pay::Stripe.define_singleton_method(:sync_checkout_session) { |session_id, **| synced << session_id }
+    Stripe::Checkout::Session.define_singleton_method(:retrieve) do |*|
+      Stripe::Checkout::Session.construct_from(id: "cs_test_theirs", customer: "cus_theirs")
+    end
+
+    get subscription_path(success: true, stripe_checkout_session_id: "cs_test_theirs")
+
+    assert_empty synced
+    assert_no_match "Thank you for subscribing", flash[:notice].to_s
+  ensure
+    Pay::Stripe.define_singleton_method(:sync_checkout_session, original_sync)
+    Stripe::Checkout::Session.define_singleton_method(:retrieve, original_retrieve)
   end
 
   # @card-23.10
@@ -76,6 +103,30 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Thank you for subscribing", flash[:notice].to_s
   ensure
     Pay::Stripe.define_singleton_method(:sync_checkout_session, original)
+  end
+
+  test "production does not grant a free subscription when Stripe is not configured" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    keys = %w[STRIPE_SECRET_KEY STRIPE_PRIVATE_KEY STRIPE_PUBLISHABLE_KEY STRIPE_PUBLIC_KEY]
+    saved = keys.to_h { |name| [ name, ENV[name] ] }
+    keys.each { |name| ENV.delete(name) }
+    original_key = Pay::Stripe.method(:private_key)
+    original_env = Rails.method(:env)
+    Pay::Stripe.define_singleton_method(:private_key) { nil }
+    Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new("production") }
+
+    assert_no_difference -> { Pay::Subscription.count } do
+      post subscription_path, params: { plan: "monthly" }
+    end
+
+    assert_redirected_to subscription_path
+    assert_equal "Billing is not available right now.", flash[:alert]
+    assert_not household.reload.active_subscription?
+  ensure
+    Pay::Stripe.define_singleton_method(:private_key, original_key)
+    Rails.define_singleton_method(:env, original_env)
+    saved.each { |name, value| value.nil? ? ENV.delete(name) : ENV[name] = value }
   end
 
   # @card-23.4

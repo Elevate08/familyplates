@@ -1,5 +1,7 @@
 module PlatformAdmin
   class PromotionProgramsController < BaseController
+    before_action :require_billing_role!, only: %i[create update]
+
     def index
       @promotion_programs = PromotionProgram.order(created_at: :desc, id: :desc)
       @promotion_program = PromotionProgram.new
@@ -30,6 +32,12 @@ module PlatformAdmin
 
     def promotion_program_params
       params.require(:promotion_program).permit(:name, :code, :discount_percent, :provider_promotion_code_id, :starts_at, :ends_at, :max_redemptions, :notes, :active)
+    end
+
+    def require_billing_role!
+      return if current_platform_admin.can_manage_billing?
+
+      redirect_to platform_admin_promotion_programs_path, alert: "Only owner and billing operators can change promotions."
     end
   end
 end

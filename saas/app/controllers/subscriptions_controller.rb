@@ -30,6 +30,8 @@ class SubscriptionsController < ApplicationController
 
     if simulate_checkout?
       subscribe_with_fake_processor(plan_key, plan)
+    elsif stripe_secret_key.blank?
+      redirect_to subscription_path, alert: "Billing is not available right now."
     else
       redirect_to_stripe_checkout(plan_key, plan)
     end
@@ -73,6 +75,9 @@ class SubscriptionsController < ApplicationController
   def sync_returning_checkout
     session_id = params[:stripe_checkout_session_id].presence
     return unless session_id
+    # The session id is in the return URL. Anyone who learns it could otherwise
+    # make this request pull and apply another household's Checkout session.
+    return unless checkout_session_belongs_to_household?(session_id)
 
     Pay::Stripe.sync_checkout_session(session_id)
     if @household.reload.active_subscription?
@@ -82,17 +87,35 @@ class SubscriptionsController < ApplicationController
     Rails.logger.warn("Could not sync checkout session #{session_id}: #{e.class}: #{e.message}")
   end
 
+  def checkout_session_belongs_to_household?(session_id)
+    customer_id = @household.payment_processor&.processor_id
+    return false if customer_id.blank?
+
+    session = ::Stripe::Checkout::Session.retrieve(session_id)
+    checkout_customer_id(session) == customer_id
+  rescue ::Stripe::StripeError => e
+    Rails.logger.warn("Rejected checkout session #{session_id} for household #{@household.id}: #{e.class}: #{e.message}")
+    false
+  end
+
+  def checkout_customer_id(session)
+    customer = session.customer
+    customer.respond_to?(:id) && !customer.is_a?(String) ? customer.id : customer.to_s
+  end
+
   def stripe_secret_key
     ENV["STRIPE_SECRET_KEY"].presence ||
       ENV["STRIPE_PRIVATE_KEY"].presence ||
       (Pay::Stripe.private_key if defined?(Pay::Stripe))
   end
 
-  # Test runs, and any environment with no Stripe secret, never leave the app.
+  # Tests, and development with no Stripe secret, never leave the app.
+  # Production must not: a missing key used to subscribe the household for free.
   def simulate_checkout?
-    (Rails.env.test? && params[:simulate].present?) ||
-      (Rails.env.test? && ENV["ENABLE_REAL_STRIPE_TESTS"].blank?) ||
-      stripe_secret_key.blank?
+    return false if Rails.env.production?
+    return true if Rails.env.test? && (params[:simulate].present? || ENV["ENABLE_REAL_STRIPE_TESTS"].blank?)
+
+    stripe_secret_key.blank?
   end
 
   def subscribe_with_fake_processor(plan_key, plan)

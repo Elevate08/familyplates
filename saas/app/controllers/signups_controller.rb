@@ -3,6 +3,31 @@
 class SignupsController < ApplicationController
   allow_unauthenticated_access only: %i[new create verify submit_verify]
 
+  MAX_HOUSEHOLD_NAME = 120
+  MAX_ORGANIZER_NAME = 80
+  MAX_EMAIL_LENGTH = 254
+  THROTTLE_ALERT = "Too many signup attempts. Please wait a few minutes and try again."
+
+  # Sending the code is the expensive part: cap one address, and cap one
+  # address's guesses, or a script can flood inboxes and grind the 6-character code.
+  rate_limit to: 5, within: 1.hour, name: "signup_by_email", scope: "signup_attempts",
+             store: LoginThrottling.store,
+             by: -> { "email:#{params[:email].to_s.strip.downcase[0, MAX_EMAIL_LENGTH]}" },
+             with: -> { signup_throttled! },
+             only: :create, if: -> { params[:email].present? }
+
+  rate_limit to: 20, within: 1.hour, name: "signup_by_ip", scope: "signup_attempts",
+             store: LoginThrottling.store,
+             by: -> { "ip:#{request.remote_ip}" },
+             with: -> { signup_throttled! },
+             only: :create
+
+  rate_limit to: 10, within: 15.minutes, name: "signup_verify", scope: "signup_attempts",
+             store: LoginThrottling.store,
+             by: -> { "verify:#{session.dig(:pending_signup, "email")}" },
+             with: -> { signup_throttled! },
+             only: :submit_verify, if: -> { session.dig(:pending_signup, "email").present? }
+
   def new
     if authenticated? && current_household&.onboarded?
       redirect_to root_path and return
@@ -17,7 +42,9 @@ class SignupsController < ApplicationController
     avatar_color = params[:avatar_color].to_s.strip.presence || FamilyMember::DEFAULT_COLOR
     avatar_icon = params[:avatar_icon].to_s.strip.presence || FamilyMember::DEFAULT_ICON
 
-    if household_name.blank? || organizer_name.blank? || email.blank?
+    if household_name.blank? || organizer_name.blank? || email.blank? ||
+        household_name.length > MAX_HOUSEHOLD_NAME || organizer_name.length > MAX_ORGANIZER_NAME ||
+        email.length > MAX_EMAIL_LENGTH
       flash.now[:alert] = "Please provide your household name, your name, and a valid email address."
       render :new, status: :unprocessable_entity and return
     end
@@ -97,7 +124,7 @@ class SignupsController < ApplicationController
     magic_code = MagicCode.active.find_by(email: email, code: code)
 
     if magic_code
-      magic_code.destroy
+      MagicCode.where(email: email).delete_all
       session.delete(:pending_signup)
 
       user = User.find_by(email: email) || User.create!(email: email)
@@ -119,6 +146,14 @@ class SignupsController < ApplicationController
   end
 
   private
+
+  def signup_throttled!
+    if action_name == "submit_verify" && session[:pending_signup]
+      redirect_to verify_signup_path, alert: THROTTLE_ALERT
+    else
+      redirect_to new_signup_path, alert: THROTTLE_ALERT
+    end
+  end
 
   def open_household_for(user:, household_name:, organizer_name:, pin:, avatar_color:, avatar_icon:)
     household = Household.create!(name: household_name)
