@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Mirrors docs/ into a checkout of the GitHub wiki, which is how the wiki is
+# published (.github/workflows/wiki.yml). docs/ is the source; anything on the
+# wiki that is not in docs/ is removed.
+#
+#   bin/wiki-sync path/to/familyplates.wiki
+#
+# The wiki names a page by its file name alone, so pages are flattened
+# (docs/hosted/deploying.md becomes the page "deploying") and links are
+# rewritten to match: a link to another doc becomes its page name, and a link
+# to anything else in the repository becomes its GitHub URL. A link to a file
+# that does not exist, or two docs with the same name, stops the sync.
+
+require "fileutils"
+require "pathname"
+
+class WikiSync
+  Error = Class.new(StandardError)
+
+  REPO_URL = "https://github.com/Elevate08/familyplates/blob/master"
+  ROOT = Pathname(__dir__).parent
+
+  LINK = /(!?\[[^\]]*\]\()([^)\s]+)(\))/
+
+  def initialize(docs:, wiki:, root: ROOT, repo_url: REPO_URL)
+    @docs = Pathname(docs).expand_path
+    @wiki = Pathname(wiki).expand_path
+    @root = Pathname(root).expand_path
+    @repo_url = repo_url
+  end
+
+  def run
+    pages = page_sources
+    problems = []
+    rendered = pages.to_h do |name, source|
+      [ name, rewrite_links(source, problems) ]
+    end
+    raise Error, problems.uniq.join("\n") if problems.any?
+
+    clear_wiki
+    rendered.each { |name, text| @wiki.join("#{name}.md").write(text) }
+    rendered.keys
+  end
+
+  private
+
+  def page_sources
+    sources = @docs.glob("**/*.md").sort
+    by_name = sources.group_by { |path| path.basename(".md").to_s }
+    clashes = by_name.select { |_, paths| paths.size > 1 }
+    if clashes.any?
+      raise Error, clashes.map { |name, paths| "Two docs would be the wiki page #{name}: #{paths.map { |p| relative(p) }.join(', ')}" }.join("\n")
+    end
+
+    by_name.transform_values(&:first)
+  end
+
+  def rewrite_links(source, problems)
+    source.read.gsub(LINK) do
+      open, target, close = Regexp.last_match.captures
+      "#{open}#{rewrite(target, source, problems)}#{close}"
+    end
+  end
+
+  def rewrite(target, source, problems)
+    return target if target.match?(%r{\A([a-z][a-z0-9+.-]*:|#|/)}i) # URLs, anchors, absolute paths
+
+    path, anchor = target.split("#", 2)
+    return target unless path.include?("/") || path.include?(".") # already a wiki page name
+
+    resolved = source.dirname.join(path).cleanpath
+    unless resolved.exist?
+      problems << "#{relative(source)} links to #{target}, which does not exist"
+      return target
+    end
+
+    page = if resolved.extname == ".md" && resolved.to_s.start_with?("#{@docs}/")
+      resolved.basename(".md").to_s
+    else
+      "#{@repo_url}/#{resolved.relative_path_from(@root)}"
+    end
+    anchor ? "#{page}##{anchor}" : page
+  end
+
+  def clear_wiki
+    @wiki.glob("**/*.md").each(&:delete)
+    @wiki.glob("**/").sort.reverse.each do |dir|
+      next if dir == @wiki || dir.to_s.include?("/.git")
+
+      dir.rmdir if dir.empty?
+    end
+  end
+
+  def relative(path)
+    path.relative_path_from(@root).to_s
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  abort "usage: bin/wiki-sync path/to/wiki-checkout" unless ARGV.size == 1
+  abort "#{ARGV.first} is not a git checkout of the wiki" unless File.directory?(File.join(ARGV.first, ".git"))
+
+  begin
+    pages = WikiSync.new(docs: WikiSync::ROOT.join("docs"), wiki: ARGV.first).run
+    puts "Synced #{pages.size} pages: #{pages.sort.join(', ')}"
+  rescue WikiSync::Error => e
+    abort "bin/wiki-sync: nothing was written.\n#{e.message}"
+  end
+end

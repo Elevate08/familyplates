@@ -7,6 +7,13 @@
 * [🗓️ Meal Planning](weekly-meal-planning)
 * [🍳 Recipes & Pantry](recipes-and-pantry)
 * [🏗️ System Architecture](architecture)
+* [🧭 Editions](editions)
+
+**Hosted service**
+
+* [🚢 Deploying](deploying)
+* [💳 Stripe Billing](stripe-billing)
+* [🛠️ Operator Console](operator-console)
 
 ---
 

@@ -1,0 +1,54 @@
+name: Wiki
+
+# Publishes docs/ to the GitHub wiki whenever it changes on master. docs/ is
+# the source; bin/wiki-sync mirrors it, flattening pages and rewriting links,
+# and refuses to publish a broken link. Edits made on the wiki directly are
+# overwritten by the next sync.
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - "docs/**"
+      - "bin/wiki-sync"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # WIKI_TOKEN, a fine-grained token with Contents: write on this
+      # repository, is used when set; otherwise the workflow's own token.
+      - name: Check out the wiki
+        env:
+          TOKEN: ${{ secrets.WIKI_TOKEN || github.token }}
+        run: git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+
+      - name: Mirror docs/ into the wiki
+        run: bin/wiki-sync wiki
+
+      - name: Publish
+        working-directory: wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki already matches docs/."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+          git push
