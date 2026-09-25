@@ -2,6 +2,7 @@
 
 require "pay"
 require "stripe"
+require "family_plates_saas/stripe_sandbox"
 require "family_plates_saas/engine"
 
 # The hosted edition of FamilyPlates. Loaded only by Gemfile.saas; an

@@ -4,3 +4,5 @@
 eval_gemfile "Gemfile"
 
 gem "familyplates-saas", path: "saas", require: "family_plates_saas"
+gem "pay", "~> 11.7"
+gem "stripe", "~> 19.0"

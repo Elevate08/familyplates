@@ -14,13 +14,21 @@ require "test_helper"
 # An outcome is about authorization only. :ok means the request got past the
 # checks and reached the action; a 400 or 422 for a bodyless write still counts,
 # because the action ran and refused the input, not the visitor.
+#
+# The hosted edition's routes, records and operator role are in
+# saas/test/support/hosted_authorization_matrix.rb, merged in below when the
+# engine is loaded.
 class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
-  ROLES = %i[guest member admin operator].freeze
+  HOSTED = defined?(HostedAuthorizationMatrix) ? HostedAuthorizationMatrix : nil
+  include HOSTED::TestHelpers if HOSTED
+
+  ROLES = (%i[guest member admin] + (HOSTED ? %i[operator] : [])).freeze
 
   # guest:    nobody signed in
   # member:   Mom, an ordinary profile with a user account, household one
   # admin:    Dad, the household organizer, with a user account, household one
-  # operator: a platform admin - a separate account with no household profile
+  # operator: a platform admin - a separate account with no household profile,
+  #           hosted edition only
   POLICIES = {
     # Anyone, signed in or not.
     open: { guest: :ok, member: :ok, admin: :ok, operator: :ok },
@@ -51,17 +59,6 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "POST /session/verify" => [ :open ],
     "DELETE /session" => [ :to_sign_in ],
     "GET /signed_out" => [ :open ],
-    "GET /signup" => [ :open ],
-    "GET /signup/new" => [ :open ],
-    "POST /signup" => [ :open ],
-    "GET /signup/verify" => [ :open ],
-    "POST /signup/verify" => [ :open ],
-
-    # Billing. Viewing is for the household; changing it is for the organizer.
-    "GET /subscription" => [ :household ],
-    "POST /subscription" => [ :organizer ],
-    "DELETE /subscription" => [ :organizer ],
-    "GET /subscription/portal" => [ :organizer ],
 
     # Profiles. The picker and set_profile are the appliance's front door.
     "GET /select_profile" => [ :open ],
@@ -69,19 +66,10 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "GET /family_members" => [ :household ],
     "POST /family_members/:id/switch" => [ :household, {}, :not_found ],
     "GET /activity" => [ :household ],
-    "GET /suspended" => [ :household ],
 
     # Account data export and deletion: organizer only.
     "GET /account_data" => [ :organizer ],
     "GET /account_data/export" => [ :organizer ],
-    "POST /account_data/request_deletion" => [ :organizer ],
-
-    # Support threads belong to the household.
-    "GET /support_threads" => [ :household ],
-    "POST /support_threads" => [ :household ],
-    "GET /support_threads/:id" => [ :household, {}, :not_found ],
-    "PATCH /support_threads/:id/resolve" => [ :household, {}, :not_found ],
-    "POST /support_threads/:support_thread_id/messages" => [ :household, {}, :not_found ],
 
     # Devices and passkeys belong to a user account, not a profile. A guest is
     # sent to account sign-in; the operator has no household user.
@@ -144,37 +132,6 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "GET /admin/calendar" => [ :organizer ],
     "GET /admin/calendar/edit" => [ :organizer ],
     "POST /admin/calendar/regenerate_feed_token" => [ :organizer ],
-
-    # Platform console. Its sign-in pages are open.
-    "GET /platform_admin/session/new" => [ :open ],
-    "POST /platform_admin/session" => [ :open ],
-    # Signing out, or never signed in: either way the visitor lands on sign-in.
-    "DELETE /platform_admin/session" => [ :operator, { operator: :operator_sign_in } ],
-    "GET /platform_admin" => [ :operator ],
-    "GET /platform_admin/audit_events" => [ :operator ],
-    "GET /platform_admin/deletion_requests" => [ :operator ],
-    "DELETE /platform_admin/deletion_requests/:id" => [ :operator ],
-    "GET /platform_admin/promotion_programs" => [ :operator ],
-    "POST /platform_admin/promotion_programs" => [ :operator ],
-    "PATCH /platform_admin/promotion_programs/:id" => [ :operator ],
-    "PUT /platform_admin/promotion_programs/:id" => [ :operator ],
-    "GET /platform_admin/bulk_operations" => [ :operator ],
-    "GET /platform_admin/bulk_operations/new" => [ :operator ],
-    "POST /platform_admin/bulk_operations" => [ :operator ],
-    "POST /platform_admin/bulk_operations/preview" => [ :operator ],
-    "GET /platform_admin/households" => [ :operator ],
-    "GET /platform_admin/households/:id" => [ :operator ],
-    "POST /platform_admin/households/:id/suspend" => [ :operator ],
-    "POST /platform_admin/households/:id/restore" => [ :operator ],
-    "POST /platform_admin/households/:id/cancel_subscription" => [ :operator ],
-    "POST /platform_admin/households/:id/comp" => [ :operator ],
-    "POST /platform_admin/households/:id/charges/:charge_id/refund" => [ :operator ],
-    "GET /platform_admin/support_threads" => [ :operator ],
-    "GET /platform_admin/support_threads/:id" => [ :operator ],
-    "POST /platform_admin/support_threads/:id/reply" => [ :operator ],
-    "PATCH /platform_admin/support_threads/:id/resolve" => [ :operator ],
-    "PATCH /platform_admin/support_threads/:id/reopen" => [ :operator ],
-    "PATCH /platform_admin/support_threads/:id/change_status" => [ :operator ],
 
     # Calendar feeds: the token is the credential, whoever presents it.
     "GET /calendars/feed/:token" => [ :open ],
@@ -250,7 +207,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "DELETE /meal_plan_slots/:id" => [ :organizer, {}, :not_found ],
     "GET /grocery_list" => [ :household ],
     "GET /grocery_list/:meal_plan_id" => [ :household, {}, :not_found ]
-  }.freeze
+  }.merge(HOSTED ? HOSTED::ROWS : {}).freeze
 
   # Routes the matrix does not drive, and why. Each is either not the app's
   # authorization to test, or is covered by a suite built for it.
@@ -258,13 +215,11 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "GET /up" => "Health check, public by design.",
     "GET /manifest" => "PWA manifest, public by design.",
     "GET /service-worker" => "Service worker script, public by design.",
-    "GET /pay/payments/:id" => "Pay engine page, keyed by a Stripe PaymentIntent id.",
-    "POST /pay/webhooks/stripe" => "Authenticated by Stripe's signature (stripe_webhook_states_test).",
     "ANY /cable" => "Action Cable; the app defines no channels.",
     "GET /recede_historical_location" => "turbo-rails native bridge, no app data.",
     "GET /resume_historical_location" => "turbo-rails native bridge, no app data.",
     "GET /refresh_historical_location" => "turbo-rails native bridge, no app data."
-  }.freeze
+  }.merge(HOSTED ? HOSTED::EXEMPT : {}).freeze
 
   EXEMPT_PREFIXES = {
     "/rails/" => "Framework endpoints (Active Storage, Action Mailbox and its conductor).",
@@ -275,19 +230,12 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
   PARAMS = {
     [ "profiles", "id" ] => :mom,
     [ "family_members", "id" ] => :mom,
-    [ "support_threads", "id" ] => :support_thread,
-    [ "support_messages", "support_thread_id" ] => :support_thread,
     [ "devices", "id" ] => :device,
     [ "passkeys", "id" ] => :passkey,
     [ "external_auth", "id" ] => :identity,
     [ "external_auth", "provider" ] => :provider,
     [ "transfers", "token" ] => :transfer_token,
     [ "admin/family_members", "id" ] => :mom,
-    [ "platform_admin/deletion_requests", "id" ] => :deletion_request,
-    [ "platform_admin/promotion_programs", "id" ] => :promotion_program,
-    [ "platform_admin/households", "id" ] => :household,
-    [ "platform_admin/households", "charge_id" ] => :charge,
-    [ "platform_admin/support_threads", "id" ] => :support_thread,
     [ "calendar_feeds", "token" ] => :calendar_token,
     [ "calendar_feeds", "member_id" ] => :mom,
     [ "onboarding", "id" ] => :mom,
@@ -299,7 +247,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     [ "meal_plan_slots", "meal_plan_id" ] => :meal_plan,
     [ "meal_plan_slots", "id" ] => :meal_plan_slot,
     [ "grocery_lists", "meal_plan_id" ] => :meal_plan
-  }.freeze
+  }.merge(HOSTED ? HOSTED::PARAMS : {}).freeze
 
   ADMIN_DENIAL = /Access restricted|Kiosk devices cannot/
 
@@ -363,12 +311,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
       sign_in_user(dad_user)
       sign_in_as(dad)
     when :operator
-      admin = PlatformAdminAccount.create!(email: "matrix-operator@example.com", password: "correct horse battery staple")
-      post platform_admin_session_path, params: {
-        email: admin.email, password: "correct horse battery staple",
-        otp_code: PlatformAdminAccount::Totp.code(admin.otp_secret)
-      }
-      assert_redirected_to platform_admin_root_path, "precondition: the operator signed in"
+      sign_in_operator
     end
   end
 
@@ -385,26 +328,21 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
   def records
     @records ||= begin
       household = households(:one)
-      thread = household.support_threads.create!(subject: "Matrix thread")
       {
         mom: mom.id,
         household: household.id,
-        support_thread: thread.id,
         device: own_user.sessions.create!(token: SecureRandom.hex(32), kind: "browser").id,
         passkey: passkey_for(own_user).id,
         identity: own_user.identities.create!(provider: "google_oauth2", uid: "matrix-own").id,
         provider: "google_oauth2",
         transfer_token: mom.transfer_id,
-        deletion_request: household.account_deletion_requests.create!(requested_at: Time.current).id,
-        promotion_program: PromotionProgram.create!(name: "Matrix", code: "MATRIX", discount_percent: 10).id,
-        charge: matrix_charge(household).id,
         calendar_token: household.calendar_feed_token,
         pantry_item: pantry_items(:one).id,
         recipe: recipes(:one).id,
         recipe_request: recipe_requests(:one).id,
         meal_plan: meal_plans(:one).id,
         meal_plan_slot: meal_plan_slots(:one).id
-      }
+      }.merge(HOSTED ? hosted_records(household) : {})
     end
   end
 
@@ -422,7 +360,6 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
       records.merge(
         mom: member.id,
         household: other.id,
-        support_thread: other.support_threads.create!(subject: "Miller thread").id,
         device: stranger.sessions.create!(token: SecureRandom.hex(32), kind: "browser").id,
         passkey: passkey_for(stranger).id,
         identity: stranger.identities.create!(provider: "google_oauth2", uid: "matrix-stranger").id,
@@ -431,14 +368,10 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
         recipe: recipe.id,
         recipe_request: recipe.recipe_requests.create!(family_member: member, week_start_date: Date.current.beginning_of_week).id,
         meal_plan: plan.id,
-        meal_plan_slot: plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "dinner", custom_title: "Miller dinner").id
+        meal_plan_slot: plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "dinner", custom_title: "Miller dinner").id,
+        **(HOSTED ? hosted_foreign_records(other) : {})
       )
     end
-  end
-
-  def matrix_charge(household)
-    household.set_payment_processor :fake_processor, allow_fake: true
-    household.payment_processor.charges.create!(processor_id: "ch_matrix", amount: 400)
   end
 
   def passkey_for(user)
@@ -458,7 +391,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     if response.status == 404 then :not_found
     elsif response.status == 403 then :denied
     elsif response.status >= 500 then :error
-    elsif response.redirect? && location == new_platform_admin_session_path then :operator_sign_in
+    elsif HOSTED && operator_sign_in_redirect?(location) then :operator_sign_in
     elsif response.redirect? && flash[:alert].to_s.match?(ADMIN_DENIAL) then :denied
     elsif response.redirect? && location.in?([ select_profile_path, new_session_path ]) then :sign_in
     else :ok

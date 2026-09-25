@@ -74,37 +74,22 @@ class TestSupportController < ActionController::Base
     render json: { status: "ok", member_id: member.id, name: member.name, user_id: user.id }
   end
 
-  # The platform operator is a separate account with its own session cookie,
-  # not a household profile, so the household sign-in above cannot stand in.
-  def sign_in_platform_admin
-    admin = PlatformAdminAccount.find_or_create_by!(email: "crawler@platform.test") do |account|
-      account.password = SecureRandom.hex(16)
-    end
-    session_record = admin.sessions.create!(ip_address: request.remote_ip, user_agent: request.user_agent)
-
-    cookies.signed.permanent[:platform_admin_session_token] = {
-      value: session_record.token, httponly: true, same_site: :lax, secure: request.ssl?
-    }
-
-    render json: { status: "ok", platform_admin_id: admin.id }
-  end
-
   # The records the Playwright route crawl puts into parameterised paths. The
-  # fixtures carry no support thread, so one is made here; everything else is
-  # the primary household's fixture data.
+  # fixtures carry no support thread, so the hosted edition makes one;
+  # everything else is the primary household's fixture data.
   def crawl_records
     household = Household.find_by!(name: "Spencer Family")
     member = household.family_members.find_by!(role: "member")
-    thread = household.support_threads.first_or_create!(subject: "Route crawl")
-
-    render json: {
+    records = {
       household: household.id,
       recipe: household.recipes.order(:id).first!.id,
       meal_plan: household.meal_plans.order(:id).first!.id,
       family_member: member.id,
-      support_thread: thread.id,
       transfer_token: member.transfer_id
     }
+    records[:support_thread] = household.support_threads.first_or_create!(subject: "Route crawl").id if FamilyPlates.saas?
+
+    render json: records
   end
 
   private

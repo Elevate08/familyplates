@@ -43,25 +43,6 @@ class FamilyPlatesTest < ActiveSupport::TestCase
   end
 
   # @card-15.7
-  test "hosted production refuses to start until SMTP_ADDRESS is set" do
-    FamilyPlates.config.mode = "hosted"
-    production = ActiveSupport::StringInquirer.new("production")
-
-    with_smtp_env(nil) do
-      error = assert_raises(FamilyPlates::OutboundEmailNotConfiguredError) do
-        FamilyPlates::OutboundEmail.validate!(environment: production)
-      end
-      assert_match "SMTP_ADDRESS", error.message
-    end
-
-    with_smtp_env("SMTP_ADDRESS" => "smtp.example.com") do
-      assert_nothing_raised do
-        FamilyPlates::OutboundEmail.validate!(environment: production)
-      end
-    end
-  end
-
-  # @card-15.7
   test "a LAN appliance starts without SMTP" do
     FamilyPlates.config.mode = "appliance"
     production = ActiveSupport::StringInquirer.new("production")
@@ -70,20 +51,6 @@ class FamilyPlatesTest < ActiveSupport::TestCase
       assert_nothing_raised do
         FamilyPlates::OutboundEmail.validate!(environment: production)
       end
-      assert_not FamilyPlates.hosted_host_missing?(environment: production)
-    end
-  end
-
-  test "hosted production refuses to start without APP_HOST" do
-    FamilyPlates.config.mode = "hosted"
-    production = ActiveSupport::StringInquirer.new("production")
-
-    with_smtp_env("APP_HOST" => nil) do
-      assert FamilyPlates.hosted_host_missing?(environment: production)
-    end
-
-    with_smtp_env("APP_HOST" => "https://plates.example.com/kitchen") do
-      assert_equal "plates.example.com", FamilyPlates.public_host
       assert_not FamilyPlates.hosted_host_missing?(environment: production)
     end
   end
@@ -149,38 +116,6 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_not FamilyPlates.config.google_auth_enabled?
     assert_not FamilyPlates.config.forward_auth_enabled?
     assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
-  end
-
-  test "the test environment refuses a live Stripe key from any source" do
-    test_env = ActiveSupport::EnvironmentInquirer.new("test")
-
-    [ "sk_live_x", "rk_live_x", "pk_live_x", "not-a-stripe-key" ].each do |key|
-      error = assert_raises(FamilyPlates::LiveStripeKeyError) do
-        FamilyPlates::StripeSandbox.verify!(environment: test_env, keys: { "STRIPE_SECRET_KEY" => key })
-      end
-      assert_includes error.message, "STRIPE_SECRET_KEY"
-      assert_not_includes error.message, key, "the key itself must not end up in a CI log"
-    end
-  end
-
-  test "the test environment accepts sandbox keys and no key at all" do
-    test_env = ActiveSupport::EnvironmentInquirer.new("test")
-
-    [ "sk_test_x", "rk_test_x", "pk_test_x", nil, "" ].each do |key|
-      assert_nothing_raised do
-        FamilyPlates::StripeSandbox.verify!(environment: test_env, keys: { "STRIPE_SECRET_KEY" => key })
-      end
-    end
-  end
-
-  test "the Stripe sandbox check leaves other environments alone" do
-    %w[development production].each do |name|
-      assert_nothing_raised do
-        FamilyPlates::StripeSandbox.verify!(
-          environment: ActiveSupport::EnvironmentInquirer.new(name), keys: { "STRIPE_SECRET_KEY" => "sk_live_x" }
-        )
-      end
-    end
   end
 
   private

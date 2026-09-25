@@ -13,18 +13,6 @@ Rails.application.routes.draw do
   end
   get "signed_out" => "sessions#signed_out", as: :signed_out
 
-  # Multi-tenant Signup & Email Verification
-  resource :signup, only: %i[new create] do
-    get :verify
-    post :verify, to: "signups#submit_verify"
-  end
-  get "signup" => "signups#new"
-
-  # Hosted Subscriptions & Billing
-  resource :subscription, only: %i[show create destroy] do
-    get :portal
-  end
-
   # Family Member Profiles & Switcher
   get "select_profile" => "profiles#select", as: :select_profile
   post "set_profile/:id" => "profiles#set", as: :set_profile
@@ -36,16 +24,8 @@ Rails.application.routes.draw do
     end
   end
   get "activity", to: "activity_events#index", as: :activity_history
-  get "suspended", to: "suspensions#show", as: :suspended
   resource :account_data, only: :show, controller: "account_data" do
     get :export
-    post :request_deletion
-  end
-  resources :support_threads, only: %i[index show create] do
-    member do
-      patch :resolve
-    end
-    resources :messages, only: :create, controller: "support_messages"
   end
 
   # Connected Devices
@@ -109,37 +89,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Private hosted-platform operator console. This is intentionally separate
-  # from the household organizer admin namespace and authentication boundary.
-  namespace :platform_admin do
-    root to: "dashboard#index"
-    resource :session, only: %i[new create destroy]
-    resources :audit_events, only: :index
-    resources :deletion_requests, only: %i[index destroy], controller: "deletion_requests"
-    resources :promotion_programs, only: %i[index create update]
-    resources :bulk_operations, only: %i[index new create] do
-      collection do
-        post :preview
-      end
-    end
-    resources :households, only: %i[index show] do
-      member do
-        post :suspend
-        post :restore
-        post :cancel_subscription
-        post :comp
-      end
-      post "charges/:charge_id/refund", action: :refund_charge, on: :member, as: :refund_charge
-    end
-    resources :support_threads, only: %i[index show] do
-      member do
-        post :reply
-        patch :resolve
-        patch :reopen
-        patch :change_status
-      end
-    end
-  end
 
   # Public iCalendar subscription feeds (token-authenticated)
   get "calendars/feed/:token", to: "calendar_feeds#show", as: :calendar_feed, defaults: { format: :ics }, constraints: { token: /[a-zA-Z0-9_-]+/ }
@@ -217,7 +166,6 @@ Rails.application.routes.draw do
     post "__test/reset", to: "test_support#reset"
     post "__test/sign_in", to: "test_support#sign_in"
     post "__test/set_mode", to: "test_support#set_mode"
-    post "__test/sign_in_platform_admin", to: "test_support#sign_in_platform_admin"
     post "__test/crawl_records", to: "test_support#crawl_records"
   end
 end
