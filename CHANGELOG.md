@@ -12,7 +12,6 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * **Google Calendar direct sync is gone.** Use the calendar subscription feeds instead. The migration drops the stored service-account settings.
 * **Hosted mode refuses to boot without `APP_HOST` and `SMTP_ADDRESS`.** It also forces HTTPS by default: set `FORCE_SSL` to override, or `ASSUME_SSL` behind a TLS-terminating proxy. Appliance mode is unchanged.
 * **Signing in is opt-in on an appliance.** `REQUIRE_LOGIN` can only be turned on once at least one admin profile has a linked account with a password.
-* **Hosted billing needs a Stripe webhook endpoint** subscribed to the right events. See [docs/hosted/stripe-billing.md](docs/hosted/stripe-billing.md).
 * **The published image is the appliance, and it refuses hosted mode.** `FAMILYPLATES_MODE=hosted` needs the hosted edition, built with `--build-arg EDITION=hosted`. An appliance image started in hosted mode stops at once with `HostedEditionMissingError`, before it asks for any deployment settings.
 
 ### 📄 License
@@ -78,13 +77,13 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * CI actions are pinned to commit SHAs and don't get credentials they don't need.
 
 ### 📚 Documentation
-* New guides: [Editions](docs/editions.md), [Deploying the hosted service](docs/hosted/deploying.md) and [Stripe billing](docs/hosted/stripe-billing.md). The GitHub wiki is now published from `docs/` on every change to `master`, leaving out the planning notes in `docs/ideas/`. A pull request that changes the docs runs the same sync without publishing, so a broken link fails the PR.
+* New guide: [Editions](docs/editions.md), on how the appliance and the hosted service differ. The GitHub wiki is now published from `docs/` on every change to `master`, leaving out the planning notes in `docs/ideas/`. A pull request that changes the docs runs the same sync without publishing, so a broken link fails the PR.
 * The self-hosting guide no longer suggests running the published image in hosted mode.
 
 ### 🧹 Removed
 * The `hosted:simulate_customers` and `scale:validate` development rake tasks. Their results are recorded in `docs/ideas/household-identity-and-tenancy.md`.
 * Dead code: an orphaned landing view, the sample `hello` controller, and unused model methods.
-* The stock Kamal scaffold `config/deploy.yml`. Kamal is for the hosted service only; a first draft of its deploy config is in `saas/config/deploy.yml` ([docs/hosted/deploying.md](docs/hosted/deploying.md)), not yet used for a real deploy.
+* The stock Kamal scaffold `config/deploy.yml`. Kamal is for the hosted service only; a first draft of its deploy config is in `saas/config/deploy.yml`, not yet used for a real deploy.
 
 ## [v1.2.0] - 2026-09-02
 
