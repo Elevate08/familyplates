@@ -168,4 +168,57 @@ class RecipeTest < ActiveSupport::TestCase
     assert_equal Recipe::DEFAULT_LEFTOVER_CAPACITY, recipe.reload.leftover_capacity
     assert_equal Recipe::DEFAULT_LEFTOVER_SHELF_LIFE_DAYS, recipe.leftover_shelf_life_days
   end
+
+  test "rejects dangerous URL schemes for source_url and image_url" do
+    recipe = households(:one).recipes.build(title: "XSS Test")
+
+    recipe.source_url = "javascript:alert(1)"
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:source_url], "must be a valid http or https link"
+
+    recipe.source_url = "data:text/html,<script>alert(1)</script>"
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:source_url], "must be a valid http or https link"
+
+    recipe.source_url = "https://example.com/recipe"
+    recipe.image_url = "javascript:alert(2)"
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image_url], "must be a valid http or https link"
+
+    recipe.image_url = "data:image/svg+xml;base64,PHN2Zz4="
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image_url], "must be a valid http or https link"
+
+    recipe.image_url = "https://example.com/photo.jpg"
+    assert recipe.valid?
+  end
+
+  test "display_image_url falls back to default if image_url has an unsafe scheme" do
+    recipe = Recipe.new(image_url: "javascript:alert(1)")
+    assert_includes recipe.display_image_url, "images.unsplash.com"
+  end
+
+  test "rejects an upload with non-image extension even if content_type header is forged" do
+    recipe = recipes(:one)
+    recipe.image.attach(
+      io: StringIO.new("<script>alert(1)</script>"),
+      filename: "not-an-image.html",
+      content_type: "image/jpeg"
+    )
+
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image], "must be a JPEG, PNG, GIF, or WebP"
+  end
+
+  test "rejects an upload with image extension when content is actually HTML or SVG" do
+    recipe = recipes(:one)
+    recipe.image.attach(
+      io: StringIO.new("<html><body><h1>Hello</h1></body></html>"),
+      filename: "fake.jpg",
+      content_type: "image/jpeg"
+    )
+
+    assert_not recipe.valid?
+    assert_includes recipe.errors[:image], "must be a JPEG, PNG, GIF, or WebP"
+  end
 end

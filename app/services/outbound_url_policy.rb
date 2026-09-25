@@ -8,6 +8,7 @@ class OutboundUrlPolicy
   class Rejected < StandardError; end
 
   ALLOWED_SCHEMES = %w[http https].freeze
+  ALLOWED_PORTS = [ 80, 443, 8080, 8443 ].freeze
 
   # open-uri also opens ftp://, so that scheme is rejected here. The allowlist covers file:// too.
   BLOCKED_IPV4 = %w[
@@ -30,11 +31,16 @@ class OutboundUrlPolicy
   BLOCKED_IPV6 = %w[
     ::/128
     ::1/128
+    ::/96
     64:ff9b::/96
+    64:ff9b:1::/48
     100::/64
+    2001::/23
     2001:db8::/32
+    2002::/16
     fc00::/7
     fe80::/10
+    fec0::/10
     ff00::/8
   ].map { |cidr| IPAddr.new(cidr) }.freeze
 
@@ -48,6 +54,11 @@ class OutboundUrlPolicy
 
     unless ALLOWED_SCHEMES.include?(uri.scheme)
       raise Rejected, "scheme #{uri.scheme.inspect} is not allowed"
+    end
+
+    port = uri.port
+    if port && !ALLOWED_PORTS.include?(port)
+      raise Rejected, "port #{port} is not allowed"
     end
 
     raise Rejected, "no host in #{url.inspect}" if uri.host.blank?
@@ -82,7 +93,7 @@ class OutboundUrlPolicy
 
   def self.rejection_reason(address)
     ip = IPAddr.new(address)
-    ip = ip.native if ip.ipv4_mapped?
+    ip = ip.native if ip.ipv4_mapped? || (ip.respond_to?(:ipv4_compat?) && ip.ipv4_compat?)
 
     blocked = ip.ipv4? ? BLOCKED_IPV4 : BLOCKED_IPV6
     return "not a global unicast address" if blocked.any? { |range| range.include?(ip) }

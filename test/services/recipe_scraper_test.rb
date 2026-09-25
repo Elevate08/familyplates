@@ -310,6 +310,22 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal "https://cdn.example.com/pie.jpg", twitter_only[:image_url]
   end
 
+  test "rejects data: and javascript: schemes in extracted images" do
+    html = <<~HTML
+      <html><head>
+        <meta property="og:image" content="javascript:alert(1)" />
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"Recipe","name":"XSS Pie",
+         "image": "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+         "recipeIngredient":["1 cup test"],"recipeInstructions":["Bake."]}
+        </script>
+      </head><body></body></html>
+    HTML
+
+    result = RecipeScraper.parse_html(html, "https://example.com/pie").recipe
+    assert_nil result[:image_url]
+  end
+
   # --- Resilience ---------------------------------------------------------
 
   # @card-34.5

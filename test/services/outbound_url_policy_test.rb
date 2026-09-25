@@ -69,6 +69,24 @@ class OutboundUrlPolicyTest < ActiveSupport::TestCase
     assert_rejected "http://[::ffff:10.0.0.1]/"
   end
 
+  test "refuses IPv4-compatible IPv6 spellings of blocked addresses" do
+    assert_rejected "http://[::127.0.0.1]/"
+    assert_rejected "http://[::169.254.169.254]/"
+    assert_rejected "http://[::10.0.0.1]/"
+    assert_rejected "http://[::192.168.1.1]/"
+  end
+
+  test "refuses 6to4 addresses encapsulating blocked IPv4 space" do
+    assert_rejected "http://[2002:7f00:1::]/"
+    assert_rejected "http://[2002:a9fe:a9fe::]/"
+  end
+
+  test "refuses non-web ports to prevent protocol smuggling and internal service probing" do
+    assert_rejected "http://93.184.216.34:25/", matching: /port/
+    assert_rejected "http://93.184.216.34:6379/", matching: /port/
+    assert_rejected "http://93.184.216.34:22/", matching: /port/
+  end
+
   test "refuses a URL with no host" do
     assert_rejected "http:///etc/passwd"
     assert_rejected "/etc/passwd", matching: /scheme/

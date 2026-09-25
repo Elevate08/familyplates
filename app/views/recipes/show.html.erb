@@ -73,9 +73,9 @@
             </p>
           <% end %>
 
-          <% if @recipe.source_url.present? %>
+          <% if @recipe.safe_source_url.present? %>
             <div class="mt-3">
-              <%= link_to @recipe.source_url, target: "_blank", rel: "noopener", class: "inline-flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium" do %>
+              <%= link_to @recipe.safe_source_url, target: "_blank", rel: "noopener noreferrer", class: "inline-flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium" do %>
                 <%= icon_tag("link", css_class: "w-3.5 h-3.5") %>
                 <span>Original Recipe Source</span>
               <% end %>

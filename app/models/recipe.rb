@@ -41,6 +41,8 @@ class Recipe < ApplicationRecord
   # SVG and HTML served from this origin would run as script. The declared type
   # is what the browser is sent, so anything else is refused.
   ALLOWED_IMAGE_CONTENT_TYPES = %w[image/jpeg image/png image/gif image/webp].freeze
+  ALLOWED_IMAGE_EXTENSIONS = %w[jpg jpeg png gif webp].freeze
+  DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80".freeze
   MAX_IMAGE_BYTES = 8.megabytes
 
   attribute :leftover_capacity, default: DEFAULT_LEFTOVER_CAPACITY
@@ -55,6 +57,7 @@ class Recipe < ApplicationRecord
   validates :number, presence: true, uniqueness: { scope: :household_id }
   validates :leftover_capacity, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 10 }, allow_nil: true
   validates :leftover_shelf_life_days, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_LEFTOVER_SHELF_LIFE_DAYS }, allow_nil: true
+  validate :validate_url_schemes
   validate :acceptable_image, if: -> { image.attached? }
   before_validation :assign_number, on: :create, if: -> { household_id.present? && number.blank? }
 
@@ -91,10 +94,10 @@ class Recipe < ApplicationRecord
   def display_image_url
     if image.attached?
       Rails.application.routes.url_helpers.rails_blob_path(image, only_path: true)
-    elsif image_url.present?
+    elsif safe_url?(image_url)
       image_url
     else
-      "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80"
+      DEFAULT_IMAGE_URL
     end
   end
 
@@ -146,11 +149,58 @@ class Recipe < ApplicationRecord
                 .where(recipe_requests: { recipe_id: id, fulfilled_at: nil })
   end
 
+  def safe_url?(candidate)
+    return false if candidate.blank?
+
+    uri = URI.parse(candidate.to_s.strip)
+    %w[http https].include?(uri.scheme) && uri.host.present?
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def safe_source_url
+    safe_url?(source_url) ? source_url : nil
+  end
+
   private
 
+  FORBIDDEN_URL_SCHEMES = %w[javascript vbscript data file].freeze
+
+  def validate_url_schemes
+    validate_url_scheme(:source_url, source_url) if source_url.present?
+    validate_url_scheme(:image_url, image_url) if image_url.present?
+  end
+
+  def validate_url_scheme(attribute, value)
+    cleaned = value.to_s.strip
+    return if cleaned.blank?
+
+    lowered = cleaned.downcase
+    if FORBIDDEN_URL_SCHEMES.any? { |s| lowered.start_with?("#{s}:") } || lowered.include?("javascript:")
+      errors.add(attribute, "must be a valid http or https link")
+      return
+    end
+
+    begin
+      uri = URI.parse(cleaned)
+      if uri.scheme.present? && !%w[http https].include?(uri.scheme)
+        errors.add(attribute, "must be a valid http or https link")
+      end
+    rescue URI::InvalidURIError
+      if cleaned.include?(":")
+        errors.add(attribute, "must be a valid http or https link")
+      end
+    end
+  end
+
+  # Active Storage already sets content_type from the file's bytes on upload,
+  # so an HTML or SVG body arrives as text/html or image/svg+xml and fails the
+  # check below. The extension check stops an image being stored under a
+  # script-bearing file name.
   def acceptable_image
     blob = image.blob
-    unless ALLOWED_IMAGE_CONTENT_TYPES.include?(blob.content_type)
+    unless ALLOWED_IMAGE_EXTENSIONS.include?(blob.filename.extension.to_s.downcase) &&
+        ALLOWED_IMAGE_CONTENT_TYPES.include?(blob.content_type)
       errors.add(:image, "must be a JPEG, PNG, GIF, or WebP")
     end
     if blob.byte_size.to_i > MAX_IMAGE_BYTES
