@@ -93,8 +93,8 @@
         <div class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="flex items-center gap-3.5">
             <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-xs font-bold text-sm"
-                 style="background-color: <%= member.avatar_color %>">
-              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
+                 style="background-color: <%= member.safe_avatar_color %>">
+              <%= icon_tag(member.safe_avatar_icon, css_class: "w-5 h-5") %>
             </div>
             <div>
               <div class="flex items-center gap-2">

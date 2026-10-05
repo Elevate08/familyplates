@@ -1,28 +1,22 @@
 # Deploys the hosted FamilyPlates service with Kamal. Appliances do not use
 # this: they run the published appliance image with Docker Compose.
 #
-#   bin/kamal setup      # first deploy to a new server
-#   bin/kamal deploy     # every deploy after that
-#   bin/kamal rollback <version>
+# Two destinations, each a separate service with its own image, host, volume,
+# Stripe account mode, SMTP account and secrets:
 #
-# bin/kamal reads this file by default. Nothing about the server is committed:
-# the settings below come from the deployer's environment, and the secrets
-# from saas/.kamal/secrets. The operating notes are kept internally.
-<% require "dotenv"; Dotenv.load(".env.hosted") if File.exist?(".env.hosted") %>
+#   bin/kamal setup -d staging        # first deploy to a new server
+#   bin/kamal deploy -d staging       # dev.familyplates.org, Stripe test mode
+#   bin/kamal deploy -d production    # familyplates.org, Stripe live mode
+#   bin/kamal rollback <version> -d production
+#
+# This file holds only what both share. deploy.production.yml and
+# deploy.staging.yml add the rest, and Kamal reads saas/.kamal/secrets.production
+# or saas/.kamal/secrets.staging for the destination given. Each destination
+# reads only deployer variables named for it (FAMILYPLATES_PRODUCTION_*,
+# FAMILYPLATES_STAGING_*); no .env file is loaded.
 
-service: familyplates-hosted
-image: familyplates-hosted
-
-servers:
-  web:
-    - <%= ENV.fetch("HOSTED_SERVER") %>
-
-# kamal-proxy terminates TLS with a Let's Encrypt certificate for APP_HOST.
-proxy:
-  ssl: true
-  host: <%= ENV.fetch("APP_HOST") %>
-  healthcheck:
-    path: /up
+# There is no default target: a deploy names the one it means.
+require_destination: true
 
 # A registry on the server, reached over SSH, so the image is never published.
 registry:
@@ -34,38 +28,11 @@ builder:
   args:
     EDITION: hosted
 
-ssh:
-  user: <%= ENV.fetch("HOSTED_SSH_USER", "root") %>
-
-env:
-  clear:
-    APP_HOST: <%= ENV.fetch("APP_HOST") %>
-    # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
-    ASSUME_SSL: true
-    SOLID_QUEUE_IN_PUMA: true
-    SMTP_ADDRESS: <%= ENV.fetch("SMTP_ADDRESS") %>
-    SMTP_PORT: <%= ENV.fetch("SMTP_PORT", "587") %>
-    MAILER_DEFAULT_FROM: <%= ENV.fetch("MAILER_DEFAULT_FROM", "FamilyPlates <no-reply@#{ENV.fetch("APP_HOST")}>") %>
-    STRIPE_MONTHLY_PRICE_ID: <%= ENV.fetch("STRIPE_MONTHLY_PRICE_ID") %>
-    STRIPE_ANNUAL_PRICE_ID: <%= ENV.fetch("STRIPE_ANNUAL_PRICE_ID") %>
-  secret:
-    - SECRET_KEY_BASE
-    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
-    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
-    - SMTP_USERNAME
-    - SMTP_PASSWORD
-    - STRIPE_PRIVATE_KEY
-    - STRIPE_SIGNING_SECRET
-
 aliases:
   console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
-
-# The SQLite databases and uploaded images.
-volumes:
-  - "familyplates_hosted_storage:/rails/storage"
 
 asset_path: /rails/public/assets
 

@@ -13,3 +13,20 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+  # Hosted only: sends billing acknowledgments that are due, including any
+  # whose job was never queued, and settles Checkout attempts whose outcome
+  # was lost. The appliance has no billing, so it skips this.
+  billing_consent_recovery:
+    command: "BillingConsentRecoveryJob.perform_now if FamilyPlates.saas?"
+    schedule: every 5 minutes
+  # Hosted only: queues and sends one notice per person of a changed Terms
+  # of Service version, 30 days before it is required of them.
+  terms_notice:
+    command: "TermsNoticeJob.perform_now if FamilyPlates.saas?"
+    schedule: every hour at minute 25
+  # Hosted only: emails a household's billing owner 72 and 24 hours before
+  # its free trial ends. Each reminder is sent once, by the run in the hour
+  # after it is due.
+  trial_reminder:
+    command: "TrialReminderJob.perform_now if FamilyPlates.saas?"
+    schedule: every hour at minute 40

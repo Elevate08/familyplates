@@ -38,6 +38,8 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       }
     });
 
+    // Subscribing needs the automatic-renewal terms agreed to, beside the button.
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeButton = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeButton.click();
 
@@ -83,12 +85,13 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     test.setTimeout(90_000);
 
     // Reset database into hosted mode
-    await resetDatabase(request, { mode: "hosted" });
+    await resetDatabase(request, { mode: "hosted", freezeTime: false });
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
 
     // Click subscribe to launch real Stripe checkout session
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeAnnual = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeAnnual.click();
 
@@ -106,18 +109,18 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     if (await chooseCurrency.isVisible()) {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
-    await expect(page.locator("body")).toContainText("$35.00");
+    await expect(page.locator("body")).toContainText("$50.00");
 
-    // Checkout lists its payment methods closed. The Card radio sits under a
-    // zero-size accordion button whose cover takes the pointer, so it is
-    // checked directly rather than clicked. A click that lands before Stripe's
+    // Checkout lists its payment methods closed. The card option is found by
+    // its role and name rather than Stripe's element ids, which change. It is
+    // a zero-size control behind the visible row, so the click is dispatched. A click that lands before Stripe's
     // page has hydrated is ignored, so the choice is retried until the card
     // fields open. They must open: a Checkout page without them has changed
     // shape, and the test should fail rather than skip the payment it is
     // named for.
     const cardNumber = page.locator("#cardNumber");
     await expect(async () => {
-      await page.locator("#payment-method-accordion-item-title-card").check({ force: true, timeout: 2_000 });
+      await page.getByRole("button", { name: "Pay with card" }).dispatchEvent("click", undefined, { timeout: 2_000 });
       await expect(cardNumber).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 20_000 });
     await cardNumber.fill("4242 4242 4242 4242");
@@ -195,7 +198,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       code
     });
 
-    await resetDatabase(request, { mode: "hosted" });
+    await resetDatabase(request, { mode: "hosted", freezeTime: false });
     expect((await page.request.post("/__test/sign_in_platform_admin")).ok()).toBeTruthy();
 
     await page.goto("/platform_admin/promotion_programs");
@@ -216,6 +219,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
+    await page.locator("#accept_renewal_terms_annual").check();
     await page.locator('input[value*="Annual"], button:has-text("Annual")').first().click();
     await page.waitForURL((url) => url.hostname.includes("stripe.com"), { timeout: 15_000 });
 
@@ -224,7 +228,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
     await expect(page.locator("body")).toContainText(code);
-    await expect(page.locator("body")).toContainText("$17.50");
+    await expect(page.locator("body")).toContainText("$25.00");
   });
 });
 

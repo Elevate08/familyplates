@@ -98,7 +98,7 @@ cards:
       "20.5": A signed-in user can link a provider, and can unlink it only while another sign-in method remains.
       "20.6": Forward-auth headers are trusted only from a configured proxy.
       "20.7": Signing out under forward auth does not immediately sign the user back in.
-      "20.8": Apple and generic OIDC sign-in are supported alongside Google.
+      "20.8": Generic OIDC sign-in is supported alongside Google, and a provider email that is not verified never links to or creates an account.
 
   21:
     title: Hosted multi-tenant mode
@@ -129,7 +129,7 @@ cards:
   25:
     title: CSP allows the Google OAuth and Stripe Checkout form posts
     criteria:
-      "25.1": Forms can submit to Google, Apple and Stripe Checkout without a Content Security Policy violation.
+      "25.1": Forms can submit to Google and Stripe Checkout without a Content Security Policy violation.
 
   34:
     title: Recipe URL scraper refinements

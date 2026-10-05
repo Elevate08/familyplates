@@ -51,7 +51,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
           household_name: "The Bakers",
           organizer_name: "Bob Baker",
           email: "baker@example.com",
-          pin: "4826"
+          pin: "4826",
+          **terms_assent_params
         }
       end
     end
@@ -70,7 +71,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
       household_name: "The Hosted Family",
       organizer_name: "Alice",
       email: "alice@example.com",
-      pin: "4826"
+      pin: "4826",
+      **terms_assent_params
     }
     assert_redirected_to verify_signup_path
 
@@ -102,7 +104,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
       household_name: "The Hosted Family",
       organizer_name: "Alice",
       email: "alice@example.com",
-      pin: "4826"
+      pin: "4826",
+      **terms_assent_params
     }
 
     assert_no_difference -> { Household.count } do
@@ -115,7 +118,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
 
   test "hosted signup stops emailing an address after repeated attempts" do
     FamilyPlates.config.mode = "hosted"
-    params = { household_name: "The Bakers", organizer_name: "Baker", email: "baker@example.com", pin: "4826" }
+    params = { household_name: "The Bakers", organizer_name: "Baker", email: "baker@example.com", pin: "4826", **terms_assent_params }
 
     5.times do
       post signup_path, params: params
@@ -135,7 +138,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
   test "hosted signup stops accepting verification guesses" do
     FamilyPlates.config.mode = "hosted"
     post signup_path, params: {
-      household_name: "The Hosted Family", organizer_name: "Alice", email: "alice@example.com", pin: "4826"
+      household_name: "The Hosted Family", organizer_name: "Alice", email: "alice@example.com", pin: "4826", **terms_assent_params
     }
     code = MagicCode.find_by!(email: "alice@example.com").code
 
@@ -150,7 +153,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to verify_signup_path
     assert_equal "Too many signup attempts. Please wait a few minutes and try again.", flash[:alert]
-    assert MagicCode.exists?(email: "alice@example.com")
+    # Five wrong guesses already destroyed the code, so the right one is useless too.
+    assert_not MagicCode.exists?(email: "alice@example.com")
   end
 
   test "hosted signup rejects an oversized household name before sending a code" do
@@ -162,7 +166,8 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
           household_name: "A" * 500,
           organizer_name: "Baker",
           email: "baker@example.com",
-          pin: "4826"
+          pin: "4826",
+          **terms_assent_params
         }
       end
     end
@@ -183,5 +188,88 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to onboarding_recipes_path
     assert cookies[:session_token].present?
     assert cookies[:active_family_member_id].present?
+  end
+
+  test "appliance signup does not ask for terms acceptance" do
+    get new_signup_path
+
+    assert_select "input[name=accept_terms]", false
+  end
+
+  test "hosted signup form asks for terms acceptance and links the legal pages" do
+    FamilyPlates.config.mode = "hosted"
+    get new_signup_path
+
+    assert_select "input[type=checkbox][name=accept_terms][required]"
+    assert_select "form a[href=?]", terms_path
+    assert_select "form a[href=?]", privacy_path
+  end
+
+  test "hosted signup without terms acceptance sends no code" do
+    FamilyPlates.config.mode = "hosted"
+
+    assert_no_difference -> { MagicCode.count } do
+      assert_no_enqueued_emails do
+        post signup_path, params: {
+          household_name: "The Bakers", organizer_name: "Baker", email: "baker@example.com", pin: "4826"
+        }
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal TermsAssent::ALERT, flash[:alert]
+  end
+
+  test "hosted signup records the accepted terms version on the user" do
+    FamilyPlates.config.mode = "hosted"
+    post signup_path, params: {
+      household_name: "The Hosted Family", organizer_name: "Alice", email: "alice@example.com", pin: "4826", **terms_assent_params
+    }
+
+    freeze_time do
+      post verify_signup_path, params: { code: MagicCode.find_by!(email: "alice@example.com").code }
+
+      user = User.find_by!(email: "alice@example.com")
+      assert_equal Legal::TERMS_VERSION, user.terms_version
+      assert_equal Time.current, user.terms_accepted_at
+    end
+  end
+
+  test "the verified hosted creator becomes the household's billing owner" do
+    FamilyPlates.config.mode = "hosted"
+    post signup_path, params: {
+      household_name: "The Hosted Family", organizer_name: "Alice", email: "alice@example.com", pin: "4826", **terms_assent_params
+    }
+    assert_no_difference -> { Household.where.not(billing_owner_user_id: nil).count },
+      "an unverified signup must not create an owned household" do
+      post verify_signup_path, params: { code: "WRONG1" }
+    end
+
+    post verify_signup_path, params: { code: MagicCode.find_by!(email: "alice@example.com").code }
+
+    user = User.find_by!(email: "alice@example.com")
+    household = Household.find_by!(name: "The Hosted Family")
+    assert_equal user, household.billing_owner
+  end
+
+  test "a signed-in user who opens a hosted household becomes its billing owner" do
+    FamilyPlates.config.mode = "hosted"
+    user = User.create!(email: "returning@example.com")
+    sign_in_user(user)
+
+    post signup_path, params: {
+      household_name: "Second Kitchen", organizer_name: "Ret", email: "returning@example.com", pin: "4826", **terms_assent_params
+    }
+
+    assert_redirected_to onboarding_recipes_path
+    assert_equal user, Household.find_by!(name: "Second Kitchen").billing_owner
+  end
+
+  test "an appliance household has no billing owner" do
+    post signup_path, params: {
+      household_name: "Appliance Family", organizer_name: "Chef Head", email: "chefhead@example.com", pin: "4826"
+    }
+
+    assert_nil Household.find_by!(name: "Appliance Family").billing_owner_user_id
   end
 end

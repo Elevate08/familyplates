@@ -53,9 +53,11 @@ class SafeHttpFetcher
   private
 
   # Connect to the pinned address. Keep the hostname for SNI and Host so DNS is not resolved again.
+  # The proxy address is nil, not the default :ENV, so http_proxy/https_proxy cannot
+  # reroute the request through a host the address policy never checked.
   def perform_request(target)
     uri = target.uri
-    http = Net::HTTP.new(uri.host, uri.port)
+    http = Net::HTTP.new(uri.host, uri.port, nil)
     http.ipaddr = target.address
     http.use_ssl = uri.scheme == "https"
     http.open_timeout = OPEN_TIMEOUT
