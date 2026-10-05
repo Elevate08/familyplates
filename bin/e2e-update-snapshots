@@ -19,4 +19,4 @@ if [ "${E2E_BROWSER:-container}" = "local" ]; then
   exit 1
 fi
 
-exec bin/e2e --update-snapshots "$@"
+exec bin/e2e --update-snapshots=changed "$@"

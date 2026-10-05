@@ -5,6 +5,8 @@ class SessionsController < ApplicationController
   # A suspended household must still be able to leave: otherwise "Sign out"
   # bounces to /suspended and the device stays signed in.
   allow_suspended_access only: %i[destroy signed_out]
+  # Signing in comes before accepting the hosted Terms.
+  allow_without_current_terms
   throttle_login_attempts only: %i[create submit_verify]
 
   after_action :ensure_development_magic_link_not_leaked, only: %i[create]
@@ -36,11 +38,10 @@ class SessionsController < ApplicationController
   def submit_verify
     email = (params[:email].presence || session[:pending_auth_email]).to_s.strip.downcase
     code = params[:code].to_s.strip.upcase
-    magic_code = MagicCode.active.find_by(email: email, code: code)
+    magic_code = MagicCode.redeem(email: email, code: code)
 
     if magic_code
       user = magic_code.user || User.find_by(email: email)
-      magic_code.destroy
       session.delete(:pending_auth_email)
 
       if user

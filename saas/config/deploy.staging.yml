@@ -1,0 +1,65 @@
+# bin/kamal <command> -d staging. Merged over saas/config/deploy.yml.
+#
+# dev.familyplates.org: Stripe test mode, its own SMTP account, mail held to
+# an allowlist and a sink, and the whole app behind a sign-in except the
+# Stripe webhook and the health check (FamilyPlatesSaas::StagingAccessGate).
+# Every deployer variable read here or in saas/.kamal/secrets.staging is named
+# FAMILYPLATES_STAGING_*, so production's settings cannot leak in.
+
+service: familyplates-staging
+image: familyplates-staging
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("FAMILYPLATES_STAGING_SERVER") %>
+    # Kept small so staging cannot starve production if both share a server.
+    options:
+      memory: 768m
+      cpus: 0.5
+      pids-limit: 256
+
+ssh:
+  user: <%= ENV.fetch("FAMILYPLATES_STAGING_SSH_USER", "root") %>
+
+# kamal-proxy terminates TLS with a Let's Encrypt certificate.
+proxy:
+  ssl: true
+  host: dev.familyplates.org
+  healthcheck:
+    path: /up
+
+env:
+  clear:
+    FAMILYPLATES_DEPLOY_TARGET: staging
+    RAILS_ENV: production
+    APP_HOST: dev.familyplates.org
+    # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
+    ASSUME_SSL: true
+    SOLID_QUEUE_IN_PUMA: true
+    SMTP_ADDRESS: <%= ENV.fetch("FAMILYPLATES_STAGING_SMTP_ADDRESS") %>
+    SMTP_PORT: <%= ENV.fetch("FAMILYPLATES_STAGING_SMTP_PORT", "587") %>
+    MAILER_DEFAULT_FROM: <%= ENV.fetch("FAMILYPLATES_STAGING_MAILER_DEFAULT_FROM", "FamilyPlates Staging <no-reply@dev.familyplates.org>") %>
+    # Test-mode prices from the Stripe sandbox.
+    STRIPE_MONTHLY_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_STAGING_STRIPE_MONTHLY_PRICE_ID") %>
+    STRIPE_ANNUAL_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_STAGING_STRIPE_ANNUAL_PRICE_ID") %>
+    # Stripe marks every sandbox event livemode:false. The app refuses to boot
+    # as staging unless this is true.
+    STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS: "true"
+    # Where mail may go. Everything else is sent to the sink instead.
+    STAGING_MAIL_SINK: "<%= ENV.fetch("FAMILYPLATES_STAGING_MAIL_SINK") %>"
+    STAGING_MAIL_ALLOWLIST: "<%= ENV.fetch("FAMILYPLATES_STAGING_MAIL_ALLOWLIST", "") %>"
+  secret:
+    - SECRET_KEY_BASE
+    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - STRIPE_PRIVATE_KEY
+    - STRIPE_SIGNING_SECRET
+    - STAGING_ACCESS_USERNAME
+    - STAGING_ACCESS_PASSWORD
+
+# The SQLite databases and uploaded images. Nothing else is mounted.
+volumes:
+  - "familyplates_staging_storage:/rails/storage"

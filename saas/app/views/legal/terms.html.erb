@@ -1,0 +1,126 @@
+<%# DRAFT pending legal review. Replace every [BRACKETED] placeholder before
+    launch, and bump Legal::TERMS_VERSION when this text changes materially. %>
+<% content_for :title, "Terms of Service | FamilyPlates" %>
+
+<%= render layout: "legal/document", locals: { title: "Terms of Service" } do %>
+  <p>
+    Draft. Not in effect. Stasis State LLC is a proposed name and has not been formed. This
+    page is not a contract with that company. Do not pay, and do not treat signup as acceptance
+    of a contract with that company, until this draft notice is removed and the operator is
+    named without this notice.
+  </p>
+
+  <p>
+    These Terms of Service ("Terms") govern your use of the hosted FamilyPlates service
+    (the "Service"), operated by [DRAFT TARGET, NOT FORMED: Stasis State LLC] ("we", "us"). By creating an account
+    or using the Service, you agree to these Terms and to our
+    <%= link_to "Privacy Policy", privacy_path %>.
+  </p>
+
+  <h2>1. Who may use the Service</h2>
+  <p>
+    The Service is offered only to residents of the United States. To create a household
+    you must be at least 18 years old, live in the United States, and pay with a payment
+    method issued in the United States. We may refuse or close accounts that do not meet
+    these requirements.
+  </p>
+  <p>
+    The person who creates a household (the "Organizer") is responsible for it. The
+    Organizer may add profiles for other household members, including children, and is
+    responsible for their use of the Service and for having the right to share any
+    information about them.
+  </p>
+
+  <h2>2. Your account</h2>
+  <p>
+    You sign in with codes sent to your email address, passkeys, or paired devices. Keep your
+    email account, devices, and profile PINs secure. You are responsible for activity under
+    your account. Tell us promptly through in-app support if you think your account has been
+    compromised.
+  </p>
+
+  <h2>3. Free trial, subscriptions and billing</h2>
+  <ul>
+    <li>New households get a free trial of <%= Household::Billing::FREE_TRIAL_DAYS %> days. No payment method is needed for the trial.</li>
+    <li>After the trial, continued access requires a paid subscription, billed monthly or annually at the price shown when you subscribe.</li>
+    <li><strong>Subscriptions renew automatically</strong> at the end of each billing period, at the then-current price, until you cancel. We will tell you in advance of any price change.</li>
+    <li>You can cancel at any time from the Subscription page. Cancellation takes effect at the end of the current billing period, and you keep access until then.</li>
+    <li>[REFUND POLICY: for example, "Payments are non-refundable, except where required by law."]</li>
+    <li>Payments are processed by Stripe. We do not store your full card number.</li>
+    <li>If a payment fails, we may limit access to your household until it is resolved.</li>
+  </ul>
+
+  <h2>4. Your content</h2>
+  <p>
+    Recipes, meal plans, grocery lists, notes, and other material you add ("Your Content")
+    remain yours. You give us a limited license to host, store, copy, and display Your Content
+    only as needed to run the Service for you.
+  </p>
+  <p>
+    The recipe importer copies content from web pages you choose. You are responsible for
+    making sure you have the right to import and use that content. If you believe content in
+    the Service infringes your copyright, contact us at [CONTACT EMAIL].
+  </p>
+  <p>
+    You can export your household's data at any time from the account data page. You can also
+    ask us to delete your household. When a deletion is completed, your subscription is canceled
+    immediately, with no further charges and no refund for the rest of the current billing period.
+  </p>
+
+  <h2>5. Calendar feeds and shared links</h2>
+  <p>
+    Calendar subscription links contain a secret token. Anyone who has the link can see your
+    household's meal plan. Share it only with people you trust. If it leaks, an Organizer can
+    regenerate it from the calendar settings, which revokes the old link.
+  </p>
+
+  <h2>6. Acceptable use</h2>
+  <p>You agree not to:</p>
+  <ul>
+    <li>break the law or infringe anyone's rights through the Service;</li>
+    <li>try to access another household's data, or probe, scan, or overload the Service;</li>
+    <li>use the recipe importer or other features to scrape or attack third-party websites;</li>
+    <li>resell or give the Service to people outside your household without our permission.</li>
+  </ul>
+
+  <h2>7. Suspension and termination</h2>
+  <p>
+    We may suspend or close a household that breaks these Terms, fails to pay, or puts the
+    Service or other users at risk. Where practical, we will tell you why and give you a chance
+    to export your data. You may stop using the Service at any time.
+  </p>
+
+  <h2>8. Changes to the Service and these Terms</h2>
+  <p>
+    We may change the Service over time. If we make material changes to these Terms, we will
+    notify you before they take effect. If you keep using the Service after that, you accept
+    the new Terms.
+  </p>
+
+  <h2>9. Disclaimers</h2>
+  <p>
+    The Service is provided "as is" and "as available". Recipes, nutrition, and ingredient
+    information may be incomplete or wrong. <strong>Always check ingredients yourself for
+    allergies and dietary needs.</strong> To the fullest extent the law allows, we disclaim all
+    warranties, express or implied.
+  </p>
+
+  <h2>10. Limitation of liability</h2>
+  <p>
+    To the fullest extent the law allows, we are not liable for indirect, incidental, special,
+    consequential, or punitive damages. Our total liability for any claim is limited to the
+    amount you paid us in the 12 months before the claim arose.
+  </p>
+
+  <h2>11. Governing law</h2>
+  <p>
+    These Terms are governed by the laws of the State of [STATE], without regard to its
+    conflict-of-laws rules. [DISPUTE RESOLUTION: courts of [COUNTY, STATE], or arbitration
+    with a small-claims carve-out, as counsel advises.]
+  </p>
+
+  <h2>12. Contact</h2>
+  <p>
+    Questions about these Terms? Use in-app support or email [CONTACT EMAIL].
+  </p>
+<% end %>

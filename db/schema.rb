@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -70,6 +70,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.index ["target_type", "target_id"], name: "index_activity_events_on_target_type_and_target_id"
   end
 
+  create_table "billing_consents", id: :string, force: :cascade do |t|
+    t.datetime "accepted_at", null: false
+    t.integer "acknowledgment_attempts", default: 0, null: false
+    t.datetime "acknowledgment_claimed_at"
+    t.datetime "acknowledgment_failed_at"
+    t.string "acknowledgment_last_error"
+    t.datetime "acknowledgment_next_attempt_at"
+    t.datetime "acknowledgment_sent_at"
+    t.datetime "acknowledgment_uncertain_at"
+    t.integer "amount_minor_units", null: false
+    t.string "checkout_error"
+    t.string "checkout_session_id"
+    t.string "checkout_state", default: "reserved", null: false
+    t.datetime "confirmed_at"
+    t.datetime "created_at", null: false
+    t.string "currency", null: false
+    t.text "disclosure", null: false
+    t.string "disclosure_digest", null: false
+    t.string "household_id", null: false
+    t.string "interval", null: false
+    t.datetime "next_renewal_at"
+    t.integer "paid_amount_minor_units"
+    t.datetime "paid_at"
+    t.string "paid_currency"
+    t.integer "paid_discount_minor_units"
+    t.datetime "paid_period_end"
+    t.datetime "paid_period_start"
+    t.bigint "pay_subscription_id"
+    t.string "plan_key", null: false
+    t.string "provider_invoice_id"
+    t.string "stripe_price_id"
+    t.string "subscription_processor_id"
+    t.string "terms_version", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["acknowledgment_next_attempt_at"], name: "index_billing_consents_on_acknowledgment_next_attempt_at"
+    t.index ["checkout_session_id"], name: "index_billing_consents_on_checkout_session_id", unique: true
+    t.index ["household_id"], name: "index_billing_consents_on_household_id"
+    t.index ["household_id"], name: "index_billing_consents_on_household_id_open_checkout", unique: true, where: "checkout_state IN ('reserved', 'open', 'unknown') AND confirmed_at IS NULL"
+    t.index ["pay_subscription_id"], name: "index_billing_consents_on_pay_subscription_id", unique: true
+    t.index ["user_id"], name: "index_billing_consents_on_user_id"
+  end
+
   create_table "device_grants", id: :string, force: :cascade do |t|
     t.datetime "approved_at"
     t.string "client_name"
@@ -109,6 +152,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
   end
 
   create_table "households", id: :string, force: :cascade do |t|
+    t.string "billing_owner_user_id"
     t.string "breakfast_time", default: "08:00", null: false
     t.string "calendar_feed_token"
     t.datetime "created_at", null: false
@@ -124,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.string "time_zone"
     t.datetime "trial_extended_until"
     t.datetime "updated_at", null: false
+    t.index ["billing_owner_user_id"], name: "index_households_on_billing_owner_user_id"
     t.index ["calendar_feed_token"], name: "index_households_on_calendar_feed_token", unique: true
     t.index ["join_code"], name: "index_households_on_join_code", unique: true
     t.index ["promotion_code"], name: "index_households_on_promotion_code"
@@ -194,6 +239,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.index ["household_id", "number"], name: "index_meal_plans_on_household_id_and_number", unique: true
     t.index ["household_id", "week_start_date"], name: "index_meal_plans_on_household_id_and_week_start_date", unique: true
     t.index ["household_id"], name: "index_meal_plans_on_household_id"
+  end
+
+  create_table "notice_deliveries", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "event_at", null: false
+    t.string "household_id", null: false
+    t.string "kind", null: false
+    t.datetime "sent_at"
+    t.string "threshold", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "kind", "event_at", "threshold"], name: "index_notice_deliveries_once_per_event", unique: true
   end
 
   create_table "pantry_items", force: :cascade do |t|
@@ -340,7 +396,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "last_signed_in_at"
-    t.string "otp_secret", null: false
+    t.text "otp_secret", null: false
     t.string "password_digest", null: false
     t.string "role", default: "owner", null: false
     t.datetime "updated_at", null: false
@@ -468,10 +524,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.index ["household_id", "status"], name: "index_support_threads_on_household_id_and_status"
   end
 
+  create_table "terms_acceptances", id: :string, force: :cascade do |t|
+    t.datetime "accepted_at", null: false
+    t.string "context", null: false
+    t.datetime "created_at", null: false
+    t.string "household_id"
+    t.string "terms_version", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["user_id", "accepted_at"], name: "index_terms_acceptances_on_user_id_and_accepted_at"
+  end
+
+  create_table "terms_notices", id: :string, force: :cascade do |t|
+    t.integer "attempts", default: 0, null: false
+    t.datetime "claimed_at"
+    t.datetime "created_at", null: false
+    t.string "last_error"
+    t.string "previous_terms_version"
+    t.string "state", default: "queued", null: false
+    t.datetime "stated_enforcement_at"
+    t.datetime "submitted_at"
+    t.string "terms_version", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id", null: false
+    t.index ["state"], name: "index_terms_notices_on_state"
+    t.index ["user_id", "terms_version"], name: "index_terms_notices_on_user_id_and_terms_version", unique: true
+  end
+
   create_table "users", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false, collation: "NOCASE"
     t.string "password_digest"
+    t.datetime "terms_accepted_at"
+    t.string "terms_version"
     t.datetime "updated_at", null: false
     t.datetime "verified_at"
     t.index ["email"], name: "index_users_on_email", unique: true
@@ -489,6 +574,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
   add_foreign_key "device_grants", "users", on_delete: :cascade
   add_foreign_key "family_members", "households"
   add_foreign_key "family_members", "users", on_delete: :nullify
+  add_foreign_key "households", "users", column: "billing_owner_user_id", on_delete: :nullify
   add_foreign_key "identities", "users", on_delete: :cascade
   add_foreign_key "ingredient_aisle_mappings", "households"
   add_foreign_key "magic_codes", "users", on_delete: :cascade

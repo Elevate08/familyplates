@@ -2,8 +2,8 @@
   <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-xs font-bold"
-           style="background-color: <%= @family_member.avatar_color %>">
-        <%= icon_tag(@family_member.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
+           style="background-color: <%= @family_member.safe_avatar_color %>">
+        <%= icon_tag(@family_member.safe_avatar_icon, css_class: "w-5 h-5") %>
       </div>
       <div>
         <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Edit <%= @family_member.name %>'s Profile</h1>

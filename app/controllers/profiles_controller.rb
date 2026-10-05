@@ -2,6 +2,8 @@ class ProfilesController < ApplicationController
   include PinThrottling
 
   allow_unauthenticated_access only: %i[select set]
+  # Choosing who is in the kitchen comes before the hosted Terms gate.
+  allow_without_current_terms only: %i[select set]
   throttle_pin_attempts only: :set
 
   def select

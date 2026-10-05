@@ -1,6 +1,9 @@
 class SupportMessagesController < ApplicationController
   allow_suspended_access
 
+  # Support is a customer-account conversation, not something a shared kitchen display does.
+  before_action :forbid_kiosk_support_access
+
   def create
     thread = current_household.support_threads.find(params[:support_thread_id])
     created = current_user && thread.messages.create(user: current_user, body: message_params[:body]).persisted?
