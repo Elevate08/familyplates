@@ -1,7 +1,7 @@
 <%# Draft wording: not reviewed by an attorney. Only annual plans get this email. %>
 Your upcoming <%= Pay.application_name %> renewal
 
-Your <%= Pay.application_name %> annual subscription renews automatically on <%= params[:date].to_date.strftime("%B %-d, %Y") %>. The annual plan is <%= BillingOffer.for(:annual).price %> per year.
+Your <%= Pay.application_name %> annual subscription renews automatically on <%= params[:date].to_date.strftime("%B %-d, %Y") %>. <% if params[:amount_due] %>The amount is <%= BillingOffer.format_money(params[:amount_due], params[:currency]) %>.<% else %>It renews at your plan's current price.<% end %>
 
 To cancel, open your Subscription & Billing page: <%= subscription_url %>
 Canceling stops the next renewal, and you keep access until the end of the period you have paid for.

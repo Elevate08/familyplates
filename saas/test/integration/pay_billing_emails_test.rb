@@ -156,12 +156,31 @@ class PayBillingEmailsTest < ActiveSupport::TestCase
 
     bodies(sole_mail).each do |body|
       assert_includes body, "November 5, 2026"
-      assert_includes body, "$50"
+      assert_includes body, "$50 USD"
       assert_includes body, "http://example.com/subscription"
       assert_match(/cancel/i, body)
       assert_match(/until the end of the period you have paid for/, body)
       assert_includes body, BillingOffer::SUPPORT_EMAIL
       assert_no_match(/hit reply/i, body)
+    end
+  end
+
+  test "a discounted renewal states the amount the invoice will charge" do
+    deliver_renewal_event("year", amount_due: 2500)
+
+    bodies(sole_mail).each do |body|
+      assert_includes body, "$25 USD"
+      assert_no_match(/\$50/, body)
+    end
+  end
+
+  test "without an amount the renewal names no figure" do
+    Pay.mailer.with(pay_customer: @household.payment_processor, pay_subscription: @subscription, date: Time.utc(2026, 11, 5))
+      .subscription_renewing.deliver_now
+
+    bodies(sole_mail).each do |body|
+      assert_includes body, "at your plan's current price"
+      assert_no_match(/\$\d/, body)
     end
   end
 
@@ -201,9 +220,9 @@ class PayBillingEmailsTest < ActiveSupport::TestCase
     end
   end
 
-  def invoice
+  def invoice(amount_due: 5000)
     Stripe::Invoice.construct_from(
-      id: "in_pay_mail", object: "invoice", customer: "cus_pay_mail",
+      id: "in_pay_mail", object: "invoice", customer: "cus_pay_mail", amount_due: amount_due, currency: "usd",
       parent: { subscription_details: { subscription: "sub_pay_mail" } },
       next_payment_attempt: Time.utc(2026, 11, 5, 12).to_i,
       lines: { object: "list", has_more: false, url: "/v1/lines", data: [ { pricing: { price_details: { price: "price_annual" } } } ] }
@@ -221,10 +240,10 @@ class PayBillingEmailsTest < ActiveSupport::TestCase
     end
   end
 
-  def deliver_renewal_event(interval)
+  def deliver_renewal_event(interval, amount_due: 5000)
     price = Stripe::Price.construct_from(id: "price_annual", type: "recurring", recurring: { interval: interval })
     stubbing(Stripe::Price, :retrieve, price) do
-      perform_enqueued_jobs { Pay::Stripe::Webhooks::SubscriptionRenewing.new.call(event("invoice.upcoming", invoice)) }
+      perform_enqueued_jobs { Pay::Stripe::Webhooks::SubscriptionRenewing.new.call(event("invoice.upcoming", invoice(amount_due: amount_due))) }
     end
   end
 
