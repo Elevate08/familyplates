@@ -1,0 +1,12 @@
+<%# Draft wording: not reviewed by an attorney. Only annual plans get this email. %>
+<h3>Your upcoming <%= Pay.application_name %> renewal</h3>
+<p>
+  Your <%= link_to Pay.application_name, root_url %> annual subscription renews automatically on
+  <strong><%= params[:date].to_date.strftime("%B %-d, %Y") %></strong>. The annual plan is <%= BillingOffer.for(:annual).price %> per year.
+</p>
+<p>
+  To cancel, open your <%= link_to "Subscription & Billing page", subscription_url %>. Canceling stops the next
+  renewal, and you keep access until the end of the period you have paid for.
+</p>
+<p>Questions? Write to <%= mail_to BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.</p>
+<p>The <%= Pay.application_name %> team</p>

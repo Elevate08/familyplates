@@ -1,0 +1,12 @@
+<%# Draft wording: not reviewed by an attorney. %>
+We have processed a refund for your <%= Pay.application_name %> subscription.
+
+How long it takes to appear depends on your card issuer or bank.
+
+Questions? Write to <%= BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.
+
+Receipt - refund
+Amount refunded: <%= params[:pay_charge].amount_refunded_with_currency %>
+Refunded to: <%= params[:pay_charge].charged_to %>
+Transaction ID: <%= params[:pay_charge].id %>
+Date of the original charge: <%= l params[:pay_charge].created_at %>

@@ -43,8 +43,6 @@ module Household::Billing
     before_destroy :cleanup_pay_customers, prepend: true
 
     delegate :subscribed?, :on_trial?, :on_trial_or_subscribed?, to: :payment_processor, allow_nil: true
-
-    alias_method :pay_customer_email, :email
   end
 
   SubscriptionCancellationFailure = Data.define(:subscription, :error)
@@ -75,6 +73,13 @@ module Household::Billing
 
   def pay_customer_name
     name
+  end
+
+  # Who Pay's billing email goes to: the billing owner, else the household's
+  # first organizer. Pay's own Pay::Customer#email (what it sends Stripe) is
+  # still Household#email.
+  def pay_customer_email
+    billing_owner&.email || email
   end
 
   def billing_owner?(user)
