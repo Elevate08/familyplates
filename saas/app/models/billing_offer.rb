@@ -54,10 +54,11 @@ class BillingOffer
     money(amount_minor_units)
   end
 
-  # What one month costs on this plan, rounded down to the cent: "$2.91".
+  # What one month costs on this plan, rounded to the nearest cent as
+  # Stripe's Checkout shows it: $50 a year is "$4.17".
   def monthly_equivalent
     months = interval == "year" ? 12 : 1
-    ActiveSupport::NumberHelper.number_to_currency((amount_minor_units / months) / 100.0)
+    ActiveSupport::NumberHelper.number_to_currency((amount_minor_units.to_r / months).round / 100.0)
   end
 
   # Whole percent saved against paying for twelve months of the other offer.
