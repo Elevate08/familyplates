@@ -38,6 +38,8 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       }
     });
 
+    // Subscribing needs the automatic-renewal terms agreed to, beside the button.
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeButton = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeButton.click();
 
@@ -89,6 +91,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     await page.goto("/subscription");
 
     // Click subscribe to launch real Stripe checkout session
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeAnnual = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeAnnual.click();
 
@@ -106,7 +109,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     if (await chooseCurrency.isVisible()) {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
-    await expect(page.locator("body")).toContainText("$35.00");
+    await expect(page.locator("body")).toContainText("$50.00");
 
     // Checkout lists its payment methods closed. The Card radio sits under a
     // zero-size accordion button whose cover takes the pointer, so it is
@@ -216,6 +219,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
+    await page.locator("#accept_renewal_terms_annual").check();
     await page.locator('input[value*="Annual"], button:has-text("Annual")').first().click();
     await page.waitForURL((url) => url.hostname.includes("stripe.com"), { timeout: 15_000 });
 

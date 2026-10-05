@@ -59,6 +59,12 @@ class TestSupportController < ActionController::Base
     if defined?(TermsAssent) && FamilyPlates.config.hosted? && !TermsAssent.current?(user)
       user.update!(terms_version: TermsAssent.current_version, terms_accepted_at: Time.current)
     end
+    # Signup makes the household's creator its billing owner; an organizer
+    # signed in here stands in for that creator when nobody owns billing yet.
+    household = member.household
+    if FamilyPlates.config.hosted? && member.admin? && household.respond_to?(:billing_owner_user_id) && household.billing_owner_user_id.nil?
+      household.update_columns(billing_owner_user_id: user.id)
+    end
 
     session_record = user.sessions.create!(
       token: SecureRandom.hex(32),
