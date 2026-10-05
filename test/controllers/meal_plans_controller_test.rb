@@ -165,10 +165,27 @@ class MealPlansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "month view falls back to the week's month for an invalid month" do
-    get meal_plan_url(@meal_plan, view: "month", month: "not-a-date")
+    # Jun 15 - 21, 2026: the whole week sits inside June.
+    plan = @household.meal_plans.find_or_create_by!(week_start_date: Date.new(2026, 6, 15))
+    plan.meal_plan_slots.create!(date: Date.new(2026, 6, 17), meal_type: "dinner", custom_title: "Wednesday Lemon Chicken")
+
+    get meal_plan_url(plan, view: "month", month: "not-a-date")
 
     assert_response :success
-    assert_includes response.body, @meal_plan.week_start_date.strftime("%B %Y")
+    assert_includes response.body, "June 2026"
+    assert_includes response.body, "Wednesday Lemon Chicken"
+  end
+
+  test "month view falls back to the week's majority month for an invalid month" do
+    # Aug 31 - Sep 6, 2026: the fallback is September, not the week-start month.
+    plan = boundary_meal_plan
+    plan.meal_plan_slots.create!(date: Date.new(2026, 9, 4), meal_type: "dinner", custom_title: "Friday Fish Tacos")
+
+    get meal_plan_url(plan, view: "month", month: "not-a-date")
+
+    assert_response :success
+    assert_includes response.body, "September 2026"
+    assert_includes response.body, "Friday Fish Tacos"
   end
 
   test "print month view uses the same default month as the planner" do

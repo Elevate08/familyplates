@@ -1,5 +1,7 @@
 class JoinsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
+  # Joining asks for the person's own Terms acceptance in its form.
+  allow_without_current_terms only: %i[new create]
 
   def new
   end
@@ -24,13 +26,23 @@ class JoinsController < ApplicationController
       start_new_session_for(existing_member)
       redirect_to root_path, notice: "You are already part of #{@household.name}!"
     else
+      # Hosted: the owner's acceptance does not cover someone with their own
+      # sign-in, so they accept the current Terms themselves before joining.
+      if (problem = terms_assent_problem)
+        flash.now[:alert] = problem
+        render :new, status: terms_assent_problem_status(problem) and return
+      end
+
       name = params[:name].presence || current_user.email.split("@").first.capitalize
-      member = @household.family_members.create!(
-        name: name,
-        user: current_user,
-        avatar_color: FamilyMember::AVATAR_COLORS.sample,
-        avatar_icon: FamilyMember::AVATAR_ICONS.sample
-      )
+      member = FamilyMember.transaction do
+        record_terms_assent!(context: "join", household: @household)
+        @household.family_members.create!(
+          name: name,
+          user: current_user,
+          avatar_color: FamilyMember::AVATAR_COLORS.sample,
+          avatar_icon: FamilyMember::AVATAR_ICONS.sample
+        )
+      end
       start_new_session_for(member)
       redirect_to root_path, notice: "Welcome to #{@household.name}!"
     end

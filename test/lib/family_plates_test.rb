@@ -77,7 +77,8 @@ class FamilyPlatesTest < ActiveSupport::TestCase
   # @card-20.1
   test "external identity providers and forward auth are disabled by default" do
     assert_equal false, FamilyPlates.config.google_auth_enabled?
-    assert_equal false, FamilyPlates.config.apple_auth_enabled?
+    assert_not_includes ExternalAuth.enabled_providers, "apple"
+    assert_not FamilyPlates.config.respond_to?(:apple_auth_enabled?)
     assert_equal false, FamilyPlates.config.oidc_enabled?
     assert_equal false, FamilyPlates.config.forward_auth_enabled?
     assert_equal false, FamilyPlates.config.any_oauth_enabled?

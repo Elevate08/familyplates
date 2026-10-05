@@ -1,0 +1,17 @@
+<%# A signed-in person's own acceptance of the hosted Terms, on forms that
+    bring them into a household (joining, claiming a profile). Unticked; the
+    server checks it and the version. Hosted only, and only for someone who
+    has not accepted the current version. %>
+<% if FamilyPlates.config.hosted? && current_user && !TermsAssent.current?(current_user) %>
+  <%= hidden_field_tag :terms_version, TermsAssent.current_version, id: nil %>
+  <label class="flex items-start gap-2.5 text-left text-xs leading-5 text-slate-600 dark:text-slate-400 cursor-pointer">
+    <%= check_box_tag :accept_terms, "1", false, required: true,
+          class: "mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 dark:border-slate-600 accent-primary-600" %>
+    <span>
+      I am 18 or older, live in the United States, and agree to the
+      <%= link_to "Terms of Service", terms_path, target: "_blank", class: "font-semibold text-primary-600 dark:text-primary-400 hover:underline" %>
+      for myself. I have read the
+      <%= link_to "Privacy Policy", privacy_path, target: "_blank", class: "font-semibold text-primary-600 dark:text-primary-400 hover:underline" %>.
+    </span>
+  </label>
+<% end %>

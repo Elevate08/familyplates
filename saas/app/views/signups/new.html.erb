@@ -66,6 +66,21 @@
         </div>
       <% end %>
 
+      <% if FamilyPlates.config.hosted? %>
+        <%# The version this form shows; the server refuses it once it is no longer current. %>
+        <%= hidden_field_tag :terms_version, TermsAssent.current_version, id: nil %>
+        <label class="flex items-start gap-2.5 text-xs leading-5 text-slate-600 dark:text-slate-400 cursor-pointer">
+          <%= check_box_tag :accept_terms, "1", keep_terms_ticked?, required: true,
+                class: "mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 dark:border-slate-600 accent-primary-600" %>
+          <span>
+            I am 18 or older, live in the United States, and agree to the
+            <%= link_to "Terms of Service", terms_path, target: "_blank", class: "font-semibold text-primary-600 dark:text-primary-400 hover:underline" %>.
+            I have read the
+            <%= link_to "Privacy Policy", privacy_path, target: "_blank", class: "font-semibold text-primary-600 dark:text-primary-400 hover:underline" %>.
+          </span>
+        </label>
+      <% end %>
+
       <div class="pt-2">
         <%= f.submit FamilyPlates.config.hosted? ? (current_user&.email.present? ? "Create Family Kitchen →" : "Verify Email & Continue →") : "Create Kitchen →",
               class: "w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer" %>

@@ -25,6 +25,7 @@ Bundler.require(*Rails.groups)
 # Required here rather than autoloaded, because initializers such as
 # deployment_guard.rb use it and run before the autoloader is set up.
 require_relative "../lib/family_plates"
+require_relative "../lib/log_path_filter"
 
 # FAMILYPLATES_MODE=hosted on a bundle without the saas/ engine (an appliance
 # image, or BUNDLE_GEMFILE forced to Gemfile) would serve hosted pages with no
@@ -40,7 +41,16 @@ module HomeMealPlanner
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks family_plates.rb])
+    config.autoload_lib(ignore: %w[assets tasks family_plates.rb log_path_filter.rb])
+
+    # Keep bearer tokens in /calendars/feed/:token and /transfer/:token out of the Rails log.
+    config.middleware.insert_before Rails::Rack::Logger, LogPathFilter::Mask
+    config.middleware.insert_after Rails::Rack::Logger, LogPathFilter::Restore
+
+    # Born redacted: wrap the formatter as soon as the logger exists.
+    initializer "log_path_filter.formatter", after: :initialize_logger do
+      LogPathFilter.install(Rails.logger)
+    end
 
     # Configuration for the application, engines, and railties goes here.
     #

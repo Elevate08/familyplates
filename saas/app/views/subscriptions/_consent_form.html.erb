@@ -1,0 +1,21 @@
+<%# The renewal terms sit beside the box that agrees to them and the button
+    that starts Checkout. The box starts unticked; the server checks it and
+    the signed offer again, so a page cannot subscribe without it. %>
+<%= form_with url: subscription_path, method: :post, data: { turbo: false }, class: "space-y-3" do |form| %>
+  <%= hidden_field_tag :plan, offer.plan_key, id: nil %>
+  <%= hidden_field_tag :offer_token, offer.token_for(household: @household, user: current_user), id: nil %>
+
+  <div id="billing-disclosure-<%= offer.plan_key %>" class="space-y-1 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300" data-testid="billing-disclosure-<%= offer.plan_key %>">
+    <% offer.disclosure_sentences.each do |sentence| %>
+      <p><%= sentence %></p>
+    <% end %>
+  </div>
+
+  <label class="flex items-start gap-2 text-[11px] text-slate-700 dark:text-slate-300">
+    <%= check_box_tag :accept_renewal_terms, "1", false, id: "accept_renewal_terms_#{offer.plan_key}", required: true,
+          class: "mt-0.5 shrink-0", aria: { describedby: "billing-disclosure-#{offer.plan_key}" } %>
+    <span>I agree to these automatic-renewal terms and the <%= link_to "Terms of Service", terms_path, target: "_blank", rel: "noopener", class: "font-semibold underline" %>, and I authorize FamilyPlates to charge my payment method today and every <%= offer.interval %> until I cancel.</span>
+  </label>
+
+  <%= form.button "Subscribe #{offer.name} (#{offer.price}/#{offer.interval == "year" ? "yr" : "mo"})", type: :submit, class: button_class %>
+<% end %>

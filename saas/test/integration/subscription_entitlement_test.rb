@@ -3,14 +3,17 @@
 require "test_helper"
 
 class SubscriptionEntitlementTest < ActionDispatch::IntegrationTest
+  include BillingConsentTestHelper
+
   setup do
     FamilyPlates.config.reset!
     @household = households(:one)
-    @user = User.create!(email: "admin_organizer@household.test")
+    @user = User.create!(email: "admin_organizer@household.test", **accepted_terms)
     @admin = family_members(:one)
     @admin.update!(user: @user)
+    @household.update!(billing_owner: @user)
 
-    @member_user = User.create!(email: "kid@household.test")
+    @member_user = User.create!(email: "kid@household.test", **accepted_terms)
     @member = family_members(:two)
     @member.update!(user: @member_user)
   end
@@ -31,15 +34,16 @@ class SubscriptionEntitlementTest < ActionDispatch::IntegrationTest
 
     get recipes_path
     assert_redirected_to subscription_path
-    assert_equal "Your trial has expired. Please select a subscription to continue using your kitchen.", flash[:alert]
+    assert_equal HostedAccess::TRIAL_ENDED_OWNER_ALERT, flash[:alert]
 
-    # 2. Non-admin member accessing meal plans is redirected to profile selection
+    # 2. A member without billing authority goes to the same page, which has
+    # no Subscribe control for them, and is asked to go to the owner.
     sign_in_user(@member_user)
     sign_in_as(@member)
 
     get recipes_path
-    assert_redirected_to select_profile_path
-    assert_equal "Your family's subscription is inactive. Please ask a household organizer to reactivate.", flash[:alert]
+    assert_redirected_to subscription_path
+    assert_equal HostedAccess::TRIAL_ENDED_MEMBER_ALERT, flash[:alert]
 
     # 3. Admin visits subscription page and subscribes
     sign_in_user(@user)
@@ -48,7 +52,7 @@ class SubscriptionEntitlementTest < ActionDispatch::IntegrationTest
     get subscription_path
     assert_response :success
 
-    post subscription_path, params: { plan: "monthly" }
+    post subscription_path, params: consent_params(:monthly, household: @household, user: @user)
     assert_redirected_to subscription_path
     assert @household.reload.active_subscription?
 

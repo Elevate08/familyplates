@@ -16,11 +16,11 @@
       <div class="group relative flex flex-col items-center w-full max-w-[160px]">
         <% if member.requires_pin? %>
           <button type="button" 
-                  data-controller="pin-launcher" data-pin-launcher-modal-value="select" data-pin-launcher-member-id-value="<%= member.id %>" data-pin-launcher-member-name-value="<%= member.name %>" data-pin-launcher-member-color-value="<%= member.avatar_color %>" data-pin-launcher-member-initial-value="<%= member.initial %>" data-action="click->pin-launcher#open"
+                  data-controller="pin-launcher" data-pin-launcher-modal-value="select" data-pin-launcher-member-id-value="<%= member.id %>" data-pin-launcher-member-name-value="<%= member.name %>" data-pin-launcher-member-color-value="<%= member.safe_avatar_color %>" data-pin-launcher-member-initial-value="<%= member.initial %>" data-action="click->pin-launcher#open"
                   class="w-full flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer">
             <div class="relative w-20 h-20 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl text-white"
-                 style="background-color: <%= member.avatar_color %>">
-              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-10 h-10 sm:w-14 sm:h-14 drop-shadow-sm") %>
+                 style="background-color: <%= member.safe_avatar_color %>">
+              <%= icon_tag(member.safe_avatar_icon, css_class: "w-10 h-10 sm:w-14 sm:h-14 drop-shadow-sm") %>
               <span class="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs shadow-md border-2 border-white dark:border-slate-900">
                 🔒
               </span>
@@ -34,8 +34,8 @@
           <%= button_to set_profile_path(member), method: :post,
                 class: "w-full flex flex-col items-center p-3 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer" do %>
             <div class="relative w-20 h-20 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 group-hover:shadow-xl text-white"
-                 style="background-color: <%= member.avatar_color %>">
-              <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-10 h-10 sm:w-14 sm:h-14 drop-shadow-sm") %>
+                 style="background-color: <%= member.safe_avatar_color %>">
+              <%= icon_tag(member.safe_avatar_icon, css_class: "w-10 h-10 sm:w-14 sm:h-14 drop-shadow-sm") %>
               <% if member.admin? %>
                 <span class="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs shadow-md border-2 border-white dark:border-slate-900" title="Admin">
                   ⭐
@@ -59,11 +59,11 @@
         <% @other_user_members.each do |m| %>
           <% if m.requires_pin? %>
             <button type="button"
-                    data-controller="pin-launcher" data-pin-launcher-modal-value="select" data-pin-launcher-member-id-value="<%= m.id %>" data-pin-launcher-member-name-value="<%= m.name %> (<%= m.household.name %>)" data-pin-launcher-member-color-value="<%= m.avatar_color %>" data-pin-launcher-member-initial-value="<%= m.initial %>" data-action="click->pin-launcher#open"
+                    data-controller="pin-launcher" data-pin-launcher-modal-value="select" data-pin-launcher-member-id-value="<%= m.id %>" data-pin-launcher-member-name-value="<%= m.name %> (<%= m.household.name %>)" data-pin-launcher-member-color-value="<%= m.safe_avatar_color %>" data-pin-launcher-member-initial-value="<%= m.initial %>" data-action="click->pin-launcher#open"
                     class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 shadow-2xs transition-all cursor-pointer text-left">
               <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
-                    style="background-color: <%= m.avatar_color %>">
-                <%= icon_tag(m.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
+                    style="background-color: <%= m.safe_avatar_color %>">
+                <%= icon_tag(m.safe_avatar_icon, css_class: "w-5 h-5") %>
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-bold text-slate-900 dark:text-white truncate"><%= m.household.name %></p>
@@ -74,8 +74,8 @@
             <%= button_to set_profile_path(m), method: :post,
                   class: "w-full flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 shadow-2xs transition-all cursor-pointer text-left" do %>
               <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
-                    style="background-color: <%= m.avatar_color %>">
-                <%= icon_tag(m.avatar_icon.presence || "chef-hat", css_class: "w-5 h-5") %>
+                    style="background-color: <%= m.safe_avatar_color %>">
+                <%= icon_tag(m.safe_avatar_icon, css_class: "w-5 h-5") %>
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-bold text-slate-900 dark:text-white truncate"><%= m.household.name %></p>
@@ -181,7 +181,7 @@
 
   <% if params[:pin_member_id].present? && (pin_member = @family_members.find_by(id: params[:pin_member_id])) %>
     document.addEventListener("DOMContentLoaded", function() {
-      openPinModal('<%= pin_member.id %>', '<%= j pin_member.name %>', '<%= pin_member.avatar_color %>', '<%= pin_member.initial %>');
+      openPinModal('<%= j pin_member.id.to_s %>', '<%= j pin_member.name %>', '<%= j pin_member.safe_avatar_color %>', '<%= j pin_member.initial %>');
     });
   <% end %>
 </script>

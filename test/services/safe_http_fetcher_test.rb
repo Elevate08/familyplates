@@ -114,4 +114,36 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
 
     assert_equal "<html>recipe</html>", fetcher.send(:read_capped, small)
   end
+
+  test "environment proxies are not used for the pinned connection" do
+    received = nil
+    fake_class = Class.new(RuntimeError)
+    original = Net::HTTP.method(:new)
+    Net::HTTP.define_singleton_method(:new) do |*args, **kwargs|
+      received = args
+      raise fake_class, "stop before any network use"
+    end
+
+    begin
+      with_env("http_proxy" => "http://127.0.0.1:9", "https_proxy" => "http://127.0.0.1:9",
+               "HTTP_PROXY" => "http://127.0.0.1:9", "HTTPS_PROXY" => "http://127.0.0.1:9") do
+        assert_raises(fake_class) { SafeHttpFetcher.new("http://93.184.216.34/").get }
+      end
+    ensure
+      Net::HTTP.define_singleton_method(:new, original)
+    end
+
+    assert_equal 3, received.size, "the proxy address argument must be passed explicitly"
+    assert_nil received[2], "a nil proxy address disables env proxies"
+  end
+
+  private
+
+  def with_env(vars)
+    old = vars.keys.index_with { |k| ENV[k] }
+    vars.each { |k, v| ENV[k] = v }
+    yield
+  ensure
+    old.each { |k, v| v ? ENV[k] = v : ENV.delete(k) }
+  end
 end

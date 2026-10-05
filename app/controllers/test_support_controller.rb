@@ -36,6 +36,10 @@ class TestSupportController < ActionController::Base
     # Children first: a charge points at its subscription and customer, so
     # clearing subscriptions ahead of charges fails the foreign key the first
     # time a test really pays.
+    # A Checkout a previous test left open would hold the household and
+    # refuse the next test's Subscribe.
+    BillingConsent.delete_all if defined?(BillingConsent)
+
     if defined?(Pay::Customer)
       Pay::Charge.delete_all
       Pay::PaymentMethod.delete_all
@@ -55,6 +59,16 @@ class TestSupportController < ActionController::Base
     member = FamilyMember.find_by(name: params[:name]) || FamilyMember.where(role: "admin").first
     user = member.user || User.find_or_create_by!(email: "#{member.name.downcase.gsub(/[^a-z0-9]/, '')}@household.test")
     member.update!(user: user) unless member.user_id == user.id
+    # Stands in for someone who signed up, so accepted the hosted Terms then.
+    if defined?(TermsAssent) && FamilyPlates.config.hosted? && !TermsAssent.current?(user)
+      user.update!(terms_version: TermsAssent.current_version, terms_accepted_at: Time.current)
+    end
+    # Signup makes the household's creator its billing owner; an organizer
+    # signed in here stands in for that creator when nobody owns billing yet.
+    household = member.household
+    if FamilyPlates.config.hosted? && member.admin? && household.respond_to?(:billing_owner_user_id) && household.billing_owner_user_id.nil?
+      household.update_columns(billing_owner_user_id: user.id)
+    end
 
     session_record = user.sessions.create!(
       token: SecureRandom.hex(32),

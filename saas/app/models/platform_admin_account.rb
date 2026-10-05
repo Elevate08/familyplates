@@ -8,6 +8,10 @@ class PlatformAdminAccount < ApplicationRecord
   has_many :support_messages, foreign_key: :platform_admin_id, dependent: :nullify
   has_many :platform_audit_events, foreign_key: :platform_admin_id, dependent: :nullify
 
+  # Encrypted at rest; support_unencrypted_data keeps plaintext rows readable
+  # until the migration (or the next save) rewrites them.
+  encrypts :otp_secret
+
   normalizes :email, with: ->(email) { email.strip.downcase }
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }

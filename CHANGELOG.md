@@ -7,6 +7,8 @@ All notable changes to FamilyPlates are documented in this file.
 FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
 
 ### ⚠️ Upgrading from v1.2.0
+* **Sign in with Apple is removed.** Leftover `AUTH_APPLE_ENABLED` / `APPLE_*` settings are ignored, and existing Apple identity rows are kept untouched. Google sign-in, and OIDC on the hosted service, now require the provider to report the email as verified; an appliance's own OIDC provider may leave that claim out, but not set it to false.
+* **OIDC needs `OIDC_ISSUER`.** Every ID token's signature, issuer and nonce are now checked, so the issuer is required even when `OIDC_AUTH_URL` and `OIDC_TOKEN_URL` are set by hand. A provider without a discovery document also needs `OIDC_JWKS_URL`.
 * **Back up the database first.** Household and family-member IDs move from integers to UUIDs, along with the seven foreign keys that point at them. The migration keeps every relationship and has a tested rollback, but it rewrites core tables.
 * **Existing sessions keep working.** Session tokens are hashed in place, so nobody is signed out. Rolling back that migration clears sessions, because the hashes can't be reversed.
 * **Google Calendar direct sync is gone.** Use the calendar subscription feeds instead. The migration drops the stored service-account settings.
@@ -31,7 +33,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 ### 👥 Accounts, sign-in & devices
 * Accounts are separate from household profiles, so one person can belong to several households and switch between them from the profile menu.
 * Appliances sign in with a password; hosted sign-in uses single-use 6-character email codes. Both give the same response for known and unknown emails, and both are rate-limited.
-* Passkeys (WebAuthn), plus sign-in with Google, Apple, generic OIDC, or a trusted forward-auth proxy.
+* Passkeys (WebAuthn), plus sign-in with Google, generic OIDC, or a trusted forward-auth proxy.
 * Kiosk device pairing (RFC 8628) with restricted kiosk sessions, a connected-devices list, and revoking one device or all of them.
 * Browser sessions slide: 30 days idle, 90 days at most. Join codes can be reset, and profiles can be handed to another device through a 4-hour signed link with a QR code.
 * Changing an admin's preferences asks for their PIN.

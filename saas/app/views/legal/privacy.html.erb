@@ -1,0 +1,118 @@
+<%# DRAFT pending legal review. Replace every [BRACKETED] placeholder before
+    launch. Keep the processor and cookie lists in step with the code. %>
+<% content_for :title, "Privacy Policy | FamilyPlates" %>
+
+<%= render layout: "legal/document", locals: { title: "Privacy Policy" } do %>
+  <p>
+    Draft. Not in effect. Stasis State LLC is a proposed name and has not been formed. This
+    page is not a contract with that company. Do not pay, and do not treat signup as acceptance
+    of a contract with that company, until this draft notice is removed and the operator is
+    named without this notice.
+  </p>
+
+  <p>
+    This policy explains what the hosted FamilyPlates service (the "Service"), operated by
+    [DRAFT TARGET, NOT FORMED: Stasis State LLC] ("we", "us"), collects, why, and the choices you have. The Service
+    is offered only in the United States.
+  </p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account information:</strong> your email address, and the household and profile names you enter.</li>
+    <li><strong>Household content:</strong> recipes, meal plans, grocery lists, pantry items, notes, cook assignments, profile colors and icons, and your household's time zone.</li>
+    <li><strong>Security data:</strong> hashed profile PINs, passkey public keys, and records of signed-in sessions and paired devices.</li>
+    <li><strong>Billing information:</strong> your plan, subscription status, and payment history. Stripe collects your card details. We never see or store your full card number.</li>
+    <li><strong>Support messages</strong> you send us.</li>
+    <li><strong>Technical data:</strong> IP address and request logs, used for security, abuse prevention, and troubleshooting.</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>
+    An adult Organizer may add profiles for children in the household. A profile holds only
+    what the Organizer enters, such as a first name, an avatar, and meal assignments. We do not
+    knowingly collect personal information directly from children under 13. Children's profiles
+    have no email address or account of their own. If you believe a child has given us personal
+    information, contact us and we will delete it.
+  </p>
+
+  <h2>How we use it</h2>
+  <ul>
+    <li>to provide the Service: planning, grocery lists, calendar feeds, printouts, and sync across your devices;</li>
+    <li>to sign you in and keep your account secure;</li>
+    <li>to bill your subscription;</li>
+    <li>to answer support requests and send service emails, such as sign-in codes;</li>
+    <li>to comply with the law and enforce our <%= link_to "Terms of Service", terms_path %>.</li>
+  </ul>
+  <p>
+    <strong>We do not sell or share your personal information</strong> for cross-context
+    behavioral advertising. We do not use third-party advertising or analytics trackers.
+  </p>
+
+  <h2>Who we share it with</h2>
+  <p>We share data only with service providers who process it on our behalf:</p>
+  <ul>
+    <li><strong>Stripe</strong>, for payments and subscription management;</li>
+    <li><strong>[EMAIL PROVIDER]</strong>, to deliver sign-in codes and service email;</li>
+    <li><strong>[HOSTING PROVIDER]</strong>, which hosts our servers and backups.</li>
+  </ul>
+  <p>
+    We may also disclose information if the law requires it, or to protect the safety of
+    users or the Service. Our operators may view household information when needed for
+    support, billing, or security, and that access is logged.
+  </p>
+
+  <h2>Third-party content</h2>
+  <p>
+    Recipe images can come from other websites, such as the page a recipe was imported from.
+    Your browser loads those images directly from those sites, which can see your IP address.
+    When you import a recipe, our servers fetch the page, not your browser.
+  </p>
+
+  <h2>Cookies and local storage</h2>
+  <p>We use only what the Service needs to work. There are no advertising or analytics cookies.</p>
+  <ul>
+    <li><strong>Session cookies</strong> keep you signed in, remember the active household profile, and protect forms against cross-site request forgery.</li>
+    <li><strong>Browser local storage</strong> remembers your light or dark theme, grocery checklist ticks, and your place in Cook Mode, on that device only.</li>
+  </ul>
+  <p>
+    Stripe sets its own cookies on its checkout and billing pages, under
+    <a href="https://stripe.com/privacy" rel="noopener" target="_blank">Stripe's privacy policy</a>.
+  </p>
+
+  <h2>How long we keep it</h2>
+  <p>
+    We keep household data while your account is active. When a deletion request is completed,
+    we delete your household's data from our live systems. Copies in backups are removed as the
+    backups expire, within [BACKUP RETENTION PERIOD]. We keep billing records as long as tax and
+    accounting law requires.
+  </p>
+
+  <h2>Your choices and rights</h2>
+  <ul>
+    <li><strong>Access and export:</strong> download your household's data at any time from the account data page.</li>
+    <li><strong>Correction:</strong> edit your information in the app, or ask us.</li>
+    <li><strong>Deletion:</strong> request deletion of your household from the account data page, or by contacting us.</li>
+  </ul>
+  <p>
+    Depending on your state (for example, California), you may have more rights, including the
+    right to know what we collect and the right not to be discriminated against for using your
+    rights. To make a request, use in-app support or email [CONTACT EMAIL]. We may need to
+    verify your identity first.
+  </p>
+
+  <h2>Security</h2>
+  <p>
+    Data is encrypted in transit with TLS. Session tokens, PINs, and passwords are stored
+    hashed. No system is perfectly secure. If a breach affects your
+    information, we will notify you as the law requires.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    If we change this policy materially, we will notify you before the change takes effect.
+    The effective date above shows when it last changed.
+  </p>
+
+  <h2>Contact</h2>
+  <p>[DRAFT TARGET, NOT FORMED: Stasis State LLC], [MAILING ADDRESS], [CONTACT EMAIL].</p>
+<% end %>

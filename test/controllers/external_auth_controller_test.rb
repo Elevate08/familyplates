@@ -39,7 +39,8 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     get auth_callback_path(provider: :google), params: { error: "access_denied", error_description: "The user denied access" }
 
     assert_redirected_to new_session_path
-    assert_includes flash[:alert], "The user denied access"
+    assert flash[:alert].present?
+    assert_not_includes flash[:alert], "denied"
   end
 
   # @card-20.4
@@ -63,6 +64,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
       provider: "google",
       uid: "google-sub-456",
       email: "chef@example.com",
+      email_verified: true,
       name: "Chef Jane"
     }
 
@@ -86,6 +88,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.oidc_auth_enabled = true
     FamilyPlates.config.oidc_client_id = "sso-client"
     FamilyPlates.config.oidc_client_secret = "sso-secret"
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com"
     FamilyPlates.config.oidc_auth_url = "https://auth.example.com/oauth2/authorize"
     FamilyPlates.config.oidc_token_url = "https://auth.example.com/oauth2/token"
 
@@ -96,6 +99,7 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
       provider: "oidc",
       uid: "authentik-sub-789",
       email: "brandnew@example.com",
+      email_verified: true,
       name: "Brand New User"
     }
 
@@ -110,29 +114,122 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  # @card-20.8
-  test "Apple POST form_post callback authenticates without CSRF authenticity token" do
-    FamilyPlates.config.apple_auth_enabled = true
-    FamilyPlates.config.apple_client_id = "com.familyplates.app"
-    FamilyPlates.config.apple_client_secret = "apple-secret"
+  test "Apple start and callback are refused even with leftover Apple env" do
+    old = ENV.to_h.slice("AUTH_APPLE_ENABLED", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET")
+    ENV["AUTH_APPLE_ENABLED"] = "true"
+    ENV["APPLE_CLIENT_ID"] = "com.example.app"
+    ENV["APPLE_CLIENT_SECRET"] = "stale-secret"
+    FamilyPlates.config.reset!
 
-    post auth_request_path(provider: :apple)
-    valid_state = session[:oauth_state]
+    assert_no_difference [ "Session.count", "Identity.count", "User.count" ] do
+      post auth_request_path(provider: :apple)
+      assert_nil session[:oauth_state]
+      assert_not_includes response.location.to_s, "appleid.apple.com"
+      assert_not_includes flash[:alert].to_s, "stale-secret"
+      assert_not_includes response.body, "stale-secret"
 
-    fake_auth = {
-      provider: "apple",
-      uid: "apple-sub-abc",
-      email: "appleuser@example.com",
-      name: "Apple User"
-    }
-
-    with_stub(ExternalAuth::Apple, :verify_and_exchange, fake_auth) do
-      post auth_callback_path(provider: :apple), params: { code: "apple-code", state: valid_state, id_token: "dummy-token" }
-
-      assert_redirected_to root_url
-      assert cookies[:session_token].present?
-      assert_equal "Signed in successfully with Apple.", flash[:notice]
+      [ -> { get auth_callback_path(provider: :apple), params: { code: "c", state: "s", id_token: "t" } },
+        -> { post auth_callback_path(provider: :apple), params: { code: "c", state: "s", id_token: "t", user: "{}" } } ].each do |call|
+        call.call
+        assert_redirected_to new_session_path
+        assert_nil cookies[:session_token].presence
+        assert_nil session[:oauth_state]
+        assert_not_includes response.location.to_s, "appleid.apple.com"
+        assert_not_includes flash[:alert].to_s, "stale-secret"
+        assert_not_includes response.body, "stale-secret"
+      end
     end
+  ensure
+    %w[AUTH_APPLE_ENABLED APPLE_CLIENT_ID APPLE_CLIENT_SECRET].each { |k| old&.key?(k) ? ENV[k] = old[k] : ENV.delete(k) }
+    FamilyPlates.config.reset!
+  end
+
+  test "Apple callback is refused even with leftover session state" do
+    assert_no_difference [ "Session.count", "Identity.count", "User.count" ] do
+      get auth_callback_path(provider: :apple), params: { code: "c", state: "s" }
+    end
+    assert_redirected_to new_session_path
+  end
+
+  test "unverified or missing email_verified from Google does not sign in or link" do
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.google_client_id = "test-client-id"
+    FamilyPlates.config.google_client_secret = "test-secret"
+
+    [ { email_verified: false }, {} ].each do |extra|
+      post auth_request_path(provider: :google)
+      fake = { provider: "google", uid: "g-unverified", email: "chef@example.com", name: "X" }.merge(extra)
+      with_stub(ExternalAuth::Google, :verify_and_exchange, fake) do
+        assert_no_difference [ "Session.count", "Identity.count", "User.count" ] do
+          get auth_callback_path(provider: :google), params: { code: "c", state: session[:oauth_state] }
+        end
+      end
+      assert_redirected_to new_session_path
+      assert flash[:alert].present?
+      assert_nil cookies[:session_token].presence
+      assert_nil Identity.find_by(provider: "google", uid: "g-unverified")
+    end
+  end
+
+  test "unverified or missing email_verified from OIDC does not sign in or link an existing user" do
+    FamilyPlates.config.oidc_auth_enabled = true
+    FamilyPlates.config.oidc_client_id = "sso-client"
+    FamilyPlates.config.oidc_client_secret = "sso-secret"
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com"
+    FamilyPlates.config.oidc_auth_url = "https://auth.example.com/oauth2/authorize"
+    FamilyPlates.config.oidc_token_url = "https://auth.example.com/oauth2/token"
+
+    [ { email_verified: false }, {} ].each do |extra|
+      post auth_request_path(provider: :oidc)
+      fake = { provider: "oidc", uid: "o-unverified", email: "chef@example.com", name: "X" }.merge(extra)
+      with_stub(ExternalAuth::Oidc, :verify_and_exchange, fake) do
+        assert_no_difference [ "Session.count", "Identity.count", "User.count" ] do
+          get auth_callback_path(provider: :oidc), params: { code: "c", state: session[:oauth_state] }
+        end
+      end
+      assert_redirected_to new_session_path
+      assert_nil cookies[:session_token].presence
+      assert_nil Identity.find_by(provider: "oidc", uid: "o-unverified")
+    end
+  end
+
+  test "provider exceptions do not leak their message into the flash or page" do
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.google_client_id = "test-client-id"
+    FamilyPlates.config.google_client_secret = "test-secret"
+    post auth_request_path(provider: :google)
+    state = session[:oauth_state]
+
+    singleton = ExternalAuth::Google.singleton_class
+    original = singleton.instance_method(:verify_and_exchange)
+    singleton.define_method(:verify_and_exchange) { |**_| raise "token endpoint said SECRET-BODY-123" }
+    begin
+      get auth_callback_path(provider: :google), params: { code: "c", state: state }
+    rescue StandardError => e
+      flunk "the exception escaped the controller: #{e.class}"
+    ensure
+      singleton.define_method(:verify_and_exchange, original)
+    end
+
+    assert_redirected_to new_session_path
+    assert_not_includes flash[:alert].to_s, "SECRET-BODY-123"
+    follow_redirect!
+    assert_not_includes response.body, "SECRET-BODY-123"
+  end
+
+  test "Google callback passes the session nonce and no client-supplied id_token" do
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.google_client_id = "test-client-id"
+    FamilyPlates.config.google_client_secret = "test-secret"
+    post auth_request_path(provider: :google)
+    nonce = session[:oauth_nonce]
+    received = nil
+    fake = { provider: "google", uid: "g-n", email: "chef@example.com", email_verified: true, name: "C" }
+    with_stub(ExternalAuth::Google, :verify_and_exchange, fake, capture: ->(kw) { received = kw }) do
+      get auth_callback_path(provider: :google), params: { code: "c", state: session[:oauth_state], id_token: "forged" }
+    end
+    assert_equal nonce, received[:nonce]
+    assert_not received.key?(:id_token)
   end
 
   # @card-20.5
@@ -212,10 +309,10 @@ class ExternalAuthControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_url
   end
 
-  def with_stub(klass, method_name, return_value)
+  def with_stub(klass, method_name, return_value, capture: nil)
     singleton = klass.singleton_class
     original_method = singleton.instance_method(method_name)
-    singleton.define_method(method_name) { |*args, **kwargs| return_value }
+    singleton.define_method(method_name) { |*args, **kwargs| capture&.call(kwargs); return_value }
     yield
   ensure
     singleton.define_method(method_name, original_method)

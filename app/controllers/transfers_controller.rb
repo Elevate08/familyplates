@@ -1,5 +1,7 @@
 class TransfersController < ApplicationController
   allow_unauthenticated_access only: %i[show claim]
+  # Claiming asks for the claimant's own Terms acceptance in its form.
+  allow_without_current_terms only: %i[show claim]
   before_action :set_member
 
   def show
@@ -15,7 +17,20 @@ class TransfersController < ApplicationController
       redirect_to root_path, alert: "You already have an active profile in this household." and return
     end
 
-    unless @member.transfer_to!(current_user)
+    # Hosted: the claimant accepts the current Terms themselves. Claiming a
+    # profile, even the owner's, never carries the owner's acceptance or
+    # payment authority with it.
+    if (problem = terms_assent_problem)
+      flash.now[:alert] = problem
+      render :show, status: terms_assent_problem_status(problem) and return
+    end
+
+    transferred = FamilyMember.transaction do
+      @member.transfer_to!(current_user).tap do |ok|
+        record_terms_assent!(context: "claim", household: @member.household) if ok
+      end
+    end
+    unless transferred
       redirect_to select_profile_path, alert: "This transfer link is invalid or has expired." and return
     end
     start_new_session_for(@member)

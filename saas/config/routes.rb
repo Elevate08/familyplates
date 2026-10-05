@@ -10,6 +10,13 @@ Rails.application.routes.draw do
   end
   get "signup" => "signups#new"
 
+  # Terms of Service and Privacy Policy
+  get "terms", to: "legal#terms", as: :terms
+  get "privacy", to: "legal#privacy", as: :privacy
+  # Accepting the current Terms: first use after a sign-in that did not, and
+  # changed versions
+  resource :terms_acceptance, only: %i[show create]
+
   # Asking the operator to delete a household
   post "account_data/request_deletion", to: "account_deletion_requests#create", as: :request_deletion_account_data
 
