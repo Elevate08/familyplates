@@ -24,6 +24,11 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   IGNORED_CONSOLE = [
     /preloaded using link preload but not used/,      # Propshaft emits these in dev and test
     /favicon\.ico/,
+    # Chrome fetches the site icon for the blank page it resets to between
+    # tests and its private-network check can refuse that fetch; the error
+    # then lands in the next test's log. A browser fetch, not the app's.
+    %r{/icon\.(svg|png) - Failed to load resource},
+    %r{\Aabout:blank - Access to resource at '[^']*/icon\.(svg|png)' from origin 'null' has been blocked by CORS policy},
     /Autofocus processing was blocked/
   ].freeze
 
