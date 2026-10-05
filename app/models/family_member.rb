@@ -69,12 +69,37 @@ class FamilyMember < ApplicationRecord
   end
 
   validates :name, presence: true
+  # The colour lands in style attributes, a layout <style> variable and a script
+  # string, so only the swatches the app offers are accepted. Icons are checked
+  # too; a blank icon is tolerated because older rows have none and render the default.
+  validates :avatar_color, inclusion: { in: AVATAR_COLORS }
+  validates :avatar_icon, inclusion: { in: AVATAR_ICONS }, allow_blank: true
+  # A stored value that is not on the list (a legacy row) is rewritten to the
+  # default the next time the member is saved, unless this save is changing it.
+  before_validation :reset_invalid_legacy_avatar, on: :update
   validates :user_id, uniqueness: { scope: :household_id }, allow_nil: true
   # allow_blank: a loaded record's pin is nil, and an unchanged form submits blank.
   # Presence is checked on the digest, which survives a reload.
   validates :pin, format: { with: /\A\d{4}\z/, message: "must be exactly 4 digits" }, allow_blank: true, if: :admin?
   validate :admin_requires_a_pin
   before_validation :clear_pin_unless_admin
+
+  def self.safe_color(value)
+    AVATAR_COLORS.include?(value) ? value : DEFAULT_COLOR
+  end
+
+  def self.safe_icon(value)
+    AVATAR_ICONS.include?(value) ? value : DEFAULT_ICON
+  end
+
+  # Readers for every style attribute, data attribute and script: never the raw column.
+  def safe_avatar_color
+    self.class.safe_color(avatar_color)
+  end
+
+  def safe_avatar_icon
+    self.class.safe_icon(avatar_icon)
+  end
 
   def initial
     name.to_s.strip[0]&.upcase || "?"
@@ -98,6 +123,11 @@ class FamilyMember < ApplicationRecord
   end
 
   private
+
+  def reset_invalid_legacy_avatar
+    self.avatar_color = DEFAULT_COLOR if !will_save_change_to_avatar_color? && AVATAR_COLORS.exclude?(avatar_color)
+    self.avatar_icon = DEFAULT_ICON if !will_save_change_to_avatar_icon? && avatar_icon.present? && AVATAR_ICONS.exclude?(avatar_icon)
+  end
 
   def admin_requires_a_pin
     return unless admin?

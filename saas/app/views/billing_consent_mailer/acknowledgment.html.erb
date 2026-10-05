@@ -1,0 +1,25 @@
+<p>Hello,</p>
+<p>Thank you for subscribing to FamilyPlates. Keep this email: it confirms the subscription terms you agreed to and the payment Stripe took.</p>
+<p>
+  <strong>Plan:</strong> FamilyPlates <%= @consent.plan_name %>, <%= @consent.price_label %>, renewing automatically until you cancel.<br>
+  <strong>Agreed on:</strong> <%= @consent.accepted_at.utc.to_formatted_s(:long) %> UTC<br>
+  <strong>Terms of Service version:</strong> <%= link_to @consent.terms_version, @terms_url %>
+</p>
+<p><strong>Your payment:</strong></p>
+<p>
+  <strong>Amount paid:</strong> <%= @consent.paid_label %> on <%= @consent.paid_at.utc.to_date.to_formatted_s(:long) %><% if @consent.paid_discount_label %>, after a discount of <%= @consent.paid_discount_label %><% end %><br>
+  <strong>Paid period:</strong> <%= @consent.paid_period_start.utc.to_date.to_formatted_s(:long) %> to <%= @consent.paid_period_end.utc.to_date.to_formatted_s(:long) %><br>
+  <% if @consent.next_renewal_at %>
+    <strong>Next renewal:</strong> <%= @consent.next_renewal_at.utc.to_date.to_formatted_s(:long) %>, unless you cancel before then
+  <% else %>
+    <strong>Next renewal:</strong> none, your subscription is set to end
+  <% end %>
+</p>
+<p><strong>What you agreed to:</strong></p>
+<p><%= @consent.disclosure %></p>
+<p><strong>Refunds:</strong></p>
+<%# The approved wording, word for word, with the support address linked. %>
+<% before_email, after_email = BillingOffer::REFUND_REQUEST.split(@support_email, 2) %>
+<p><%= safe_join([ before_email, mail_to(@support_email), after_email ]) %></p>
+<p><strong>How to cancel:</strong></p>
+<p>Sign in to FamilyPlates, open <%= link_to "Subscription &amp; Billing".html_safe, @subscription_url %> and choose Cancel Subscription. Only the household's billing owner can cancel. Canceling stops the next renewal, and you keep access until the end of the period you have paid for.</p>

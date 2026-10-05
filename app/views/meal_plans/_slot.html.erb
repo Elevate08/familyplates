@@ -90,8 +90,8 @@
             <% if slot.family_member %>
               <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-white shadow-2xs"
-                      style="background-color: <%= slot.family_member.avatar_color %>">
-                  <%= icon_tag(slot.family_member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
+                      style="background-color: <%= slot.family_member.safe_avatar_color %>">
+                  <%= icon_tag(slot.family_member.safe_avatar_icon, css_class: "w-3 h-3") %>
                 </span>
                 <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[85px]"><%= slot.family_member.name %></span>
               </div>
@@ -424,8 +424,8 @@
           <% if slot.family_member %>
             <div class="flex items-center gap-1.5" title="Assigned Cook: <%= slot.family_member.name %>">
               <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-white shadow-2xs"
-                    style="background-color: <%= slot.family_member.avatar_color %>">
-                <%= icon_tag(slot.family_member.avatar_icon.presence || "chef-hat", css_class: "w-3 h-3") %>
+                    style="background-color: <%= slot.family_member.safe_avatar_color %>">
+                <%= icon_tag(slot.family_member.safe_avatar_icon, css_class: "w-3 h-3") %>
               </span>
               <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[85px]"><%= slot.family_member.name %></span>
             </div>
