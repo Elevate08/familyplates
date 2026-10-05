@@ -377,6 +377,16 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button, input[type=submit]", text: /Cancel Subscription/i, count: 0
   end
 
+  # Every claim on the pricing page has to be one the service can stand behind.
+  test "the pricing page makes no unsupported claims" do
+    FamilyPlates.config.mode = "hosted"
+    get subscription_path
+
+    assert_response :success
+    assert_no_match(/hidden fees|user limits/i, response.body)
+    assert_includes response.body, "$4.17"
+  end
+
   test "an ordinary member still reads the subscription page" do
     FamilyPlates.config.mode = "hosted"
     subscribe!(@admin.household)
