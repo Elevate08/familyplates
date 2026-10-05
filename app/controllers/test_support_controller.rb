@@ -36,6 +36,10 @@ class TestSupportController < ActionController::Base
     # Children first: a charge points at its subscription and customer, so
     # clearing subscriptions ahead of charges fails the foreign key the first
     # time a test really pays.
+    # A Checkout a previous test left open would hold the household and
+    # refuse the next test's Subscribe.
+    BillingConsent.delete_all if defined?(BillingConsent)
+
     if defined?(Pay::Customer)
       Pay::Charge.delete_all
       Pay::PaymentMethod.delete_all
