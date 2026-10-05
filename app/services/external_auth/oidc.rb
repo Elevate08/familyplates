@@ -25,10 +25,10 @@ module ExternalAuth
       "#{auth_endpoint}?#{query.to_query}"
     end
 
-    def self.verify_and_exchange(code: nil, redirect_uri: nil, **_options)
+    def self.verify_and_exchange(code: nil, redirect_uri: nil, nonce: nil, **_options)
       raise ArgumentError, "Missing authorization code" if code.blank?
 
-      token_endpoint = FamilyPlates.config.oidc_token_endpoint || discovery_endpoint("token_endpoint")
+      token_endpoint = FamilyPlates.config.oidc_token_url || discovery_endpoint("token_endpoint")
       raise "OIDC token endpoint is not configured" if token_endpoint.blank?
 
       uri = URI(token_endpoint)
@@ -43,37 +43,79 @@ module ExternalAuth
       req.basic_auth(FamilyPlates.config.oidc_client_id, FamilyPlates.config.oidc_client_secret)
 
       res = http_request(uri, req)
-      raise "OIDC token exchange failed: #{res.code} #{res.body}" unless res.is_a?(Net::HTTPSuccess)
+      raise "OIDC token exchange failed: #{res.code}" unless res.is_a?(Net::HTTPSuccess)
 
       token_data = JSON.parse(res.body)
       access_token = token_data["access_token"]
       id_token = token_data["id_token"]
 
-      userinfo = fetch_userinfo(access_token, id_token)
+      userinfo = fetch_userinfo(access_token, id_token, nonce: nonce)
       {
         provider: "oidc",
         uid: userinfo["sub"] || userinfo["id"] || userinfo["preferred_username"],
         email: userinfo["email"],
+        email_verified: email_verified_claim(userinfo),
         name: userinfo["name"] || userinfo["preferred_username"]
       }
     end
 
-    def self.fetch_userinfo(access_token, id_token = nil)
-      userinfo_endpoint = FamilyPlates.config.oidc_userinfo_endpoint || discovery_endpoint("userinfo_endpoint")
-      if userinfo_endpoint.present? && access_token.present?
-        uri = URI(userinfo_endpoint)
-        req = Net::HTTP::Get.new(uri)
-        req["Authorization"] = "Bearer #{access_token}"
-        res = http_request(uri, req)
-        return JSON.parse(res.body) if res.is_a?(Net::HTTPSuccess)
-      end
+    # The id_token is always verified (signature, issuer, audience, expiry,
+    # nonce); userinfo only adds to it. See Provider.merge_userinfo.
+    def self.fetch_userinfo(access_token, id_token = nil, nonce: nil)
+      raise "OIDC provider returned no id_token" if id_token.blank?
 
-      if id_token.present?
-        payload, _ = JWT.decode(id_token, nil, false)
-        return payload
-      end
+      claims = verify_id_token(
+        id_token,
+        jwks: jwks_loader,
+        issuer: expected_issuers,
+        audience: FamilyPlates.config.oidc_client_id,
+        nonce: nonce
+      )
+      merge_userinfo(claims, (request_userinfo(access_token) if access_token.present?))
+    end
 
-      raise "Could not fetch OIDC user information"
+    # Some self-hosted identity providers leave email_verified out. An
+    # appliance's provider is configured by its owner, so a missing claim is
+    # trusted there; an explicit false never is, and the hosted service
+    # requires the claim.
+    def self.email_verified_claim(info)
+      if info.key?("email_verified")
+        value = info["email_verified"]
+        value == true || value.to_s == "true"
+      elsif !FamilyPlates.config.hosted?
+        true
+      end
+    end
+
+    def self.request_userinfo(access_token)
+      userinfo_endpoint = FamilyPlates.config.oidc_userinfo_url || discovery_endpoint("userinfo_endpoint")
+      return if userinfo_endpoint.blank?
+
+      uri = URI(userinfo_endpoint)
+      req = Net::HTTP::Get.new(uri)
+      req["Authorization"] = "Bearer #{access_token}"
+      res = http_request(uri, req)
+      JSON.parse(res.body) if res.is_a?(Net::HTTPSuccess)
+    end
+    private_class_method :request_userinfo
+
+    # The issuer the provider publishes in its discovery document, and the one
+    # configured, each with and without a trailing slash: Authentik, for one,
+    # publishes a trailing slash that operators often leave off.
+    def self.expected_issuers
+      [ discovery_endpoint("issuer"), FamilyPlates.config.oidc_issuer ].compact_blank
+        .flat_map { |issuer| [ issuer.chomp("/"), "#{issuer.chomp('/')}/" ] }.uniq
+    end
+
+    def self.jwks
+      jwks_uri = FamilyPlates.config.oidc_jwks_url.presence || discovery_endpoint("jwks_uri")
+      raise "OIDC JWKS endpoint is not available" if jwks_uri.blank?
+
+      uri = URI(jwks_uri)
+      res = http_request(uri, Net::HTTP::Get.new(uri))
+      raise "OIDC JWKS fetch failed: #{res.code}" unless res.is_a?(Net::HTTPSuccess)
+
+      JSON.parse(res.body)
     end
 
     def self.discovery_endpoint(key)
@@ -96,7 +138,7 @@ module ExternalAuth
         {}
       end
     rescue StandardError => e
-      Rails.logger.warn("OIDC discovery failed for #{issuer}: #{e.message}")
+      Rails.logger.warn("OIDC discovery failed (#{e.class})")
       {}
     end
 

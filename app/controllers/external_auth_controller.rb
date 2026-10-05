@@ -2,10 +2,18 @@
 
 class ExternalAuthController < ApplicationController
   allow_unauthenticated_access only: %i[passthru callback]
+  # Signing in with a provider is not accepting the hosted Terms; the gate
+  # asks for that afterwards, before any household page.
+  allow_without_current_terms only: %i[passthru callback]
   skip_before_action :verify_authenticity_token, only: :callback
+
+  GENERIC_ALERT = "Sign-in could not be completed. Please try again or use another sign-in method."
+  UNSUPPORTED_PROVIDERS = %w[apple].freeze
 
   def passthru
     provider_name = params[:provider].to_s.downcase
+    return refuse_unsupported_provider if UNSUPPORTED_PROVIDERS.include?(provider_name)
+
     provider = ExternalAuth.provider_for(provider_name)
 
     unless provider&.enabled?
@@ -29,15 +37,23 @@ class ExternalAuthController < ApplicationController
 
   def callback
     provider_name = params[:provider].to_s.downcase
+    if UNSUPPORTED_PROVIDERS.include?(provider_name)
+      session.delete(:oauth_provider)
+      session.delete(:oauth_state)
+      session.delete(:oauth_nonce)
+      session.delete(:oauth_connecting)
+      return refuse_unsupported_provider
+    end
+
     stored_provider = session.delete(:oauth_provider)
     stored_state = session.delete(:oauth_state)
-    _stored_nonce = session.delete(:oauth_nonce)
+    stored_nonce = session.delete(:oauth_nonce)
     connecting = session.delete(:oauth_connecting)
 
     target_fallback = (connecting && current_user) ? edit_preferences_path : new_session_path
 
     if params[:error].present?
-      redirect_to target_fallback, alert: "Authentication failed: #{params[:error_description] || params[:error]}." and return
+      redirect_to target_fallback, alert: GENERIC_ALERT and return
     end
 
     if stored_state.blank? || params[:state] != stored_state || provider_name != stored_provider
@@ -52,9 +68,8 @@ class ExternalAuthController < ApplicationController
     callback_url = auth_callback_url(provider: provider_name)
     auth_data = provider.verify_and_exchange(
       code: params[:code],
-      id_token: params[:id_token],
-      user_param: params[:user],
-      redirect_uri: callback_url
+      redirect_uri: callback_url,
+      nonce: stored_nonce
     )
 
     uid = auth_data[:uid]
@@ -82,6 +97,7 @@ class ExternalAuthController < ApplicationController
         provider: provider_name,
         uid: uid,
         email: email,
+        email_verified: auth_data[:email_verified],
         name: auth_data[:name]
       )
 
@@ -89,9 +105,9 @@ class ExternalAuthController < ApplicationController
       redirect_to after_authentication_url, notice: "Signed in successfully with #{provider_name.titleize}."
     end
   rescue StandardError => e
-    Rails.logger.error("External authentication error (#{provider_name}): #{e.message}")
+    Rails.logger.error("External authentication error (#{provider_name.to_s.first(32)}): #{e.class}")
     target = (connecting && current_user) ? edit_preferences_path : new_session_path
-    redirect_to target, alert: "Authentication error: #{e.message}"
+    redirect_to target, alert: GENERIC_ALERT
   end
 
   def destroy_identity
@@ -104,5 +120,11 @@ class ExternalAuthController < ApplicationController
     else
       redirect_to edit_preferences_path, alert: "Cannot disconnect this sign-in method. You must keep at least one way to sign in (password, passkey, or another connected account)."
     end
+  end
+
+  private
+
+  def refuse_unsupported_provider
+    redirect_to (current_user ? edit_preferences_path : new_session_path), alert: GENERIC_ALERT
   end
 end

@@ -89,16 +89,22 @@ jobs:
       - name: Check every acceptance criterion has a test
         run: bin/coverage-criteria --verbose
 
-      # Placeholder values: this only checks saas/config/deploy.yml still
-      # resolves. Nothing here connects to a server.
+      # Placeholder values: this only checks both hosted destinations still
+      # resolve. Nothing here connects to a server.
       - name: The hosted deploy config resolves
         env:
-          HOSTED_SERVER: 203.0.113.10
-          APP_HOST: plates.example.com
-          SMTP_ADDRESS: smtp.example.com
-          STRIPE_MONTHLY_PRICE_ID: price_monthly
-          STRIPE_ANNUAL_PRICE_ID: price_annual
-        run: bin/kamal config > /dev/null
+          FAMILYPLATES_PRODUCTION_SERVER: 203.0.113.10
+          FAMILYPLATES_PRODUCTION_SMTP_ADDRESS: smtp.example.com
+          FAMILYPLATES_PRODUCTION_STRIPE_MONTHLY_PRICE_ID: price_monthly
+          FAMILYPLATES_PRODUCTION_STRIPE_ANNUAL_PRICE_ID: price_annual
+          FAMILYPLATES_STAGING_SERVER: 203.0.113.11
+          FAMILYPLATES_STAGING_SMTP_ADDRESS: smtp.example.net
+          FAMILYPLATES_STAGING_STRIPE_MONTHLY_PRICE_ID: price_test_monthly
+          FAMILYPLATES_STAGING_STRIPE_ANNUAL_PRICE_ID: price_test_annual
+          FAMILYPLATES_STAGING_MAIL_SINK: sink@example.net
+        run: |
+          bin/kamal config -d production > /dev/null
+          bin/kamal config -d staging > /dev/null
 
   # Each edition runs its own suite: the appliance on the core Gemfile, the
   # hosted service on Gemfile.saas, which adds the saas/ engine and its tests.
@@ -228,10 +234,19 @@ jobs:
           docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted' | grep -x booted
           ! docker run --rm -e FAMILYPLATES_MODE=hosted -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted'
 
+      # Placeholder staging settings: a hosted deploy names its target, its
+      # encryption keys and a Stripe mode that matches it, or refuses to boot.
       - name: The hosted image boots with its deployment settings
         if: matrix.edition == 'hosted'
         run: |
-          docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" -e APP_HOST=plates.example.com -e SMTP_ADDRESS=smtp.example.com \
+          docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" \
+            -e FAMILYPLATES_DEPLOY_TARGET=staging -e APP_HOST=dev.familyplates.org -e SMTP_ADDRESS=smtp.example.com \
+            -e ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY="$(openssl rand -hex 32)" \
+            -e ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT="$(openssl rand -hex 32)" \
+            -e STRIPE_PRIVATE_KEY=sk_test_boot_placeholder -e STRIPE_PUBLISHABLE_KEY=pk_test_boot_placeholder \
+            -e STRIPE_SIGNING_SECRET=whsec_boot_placeholder -e STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS=true \
+            -e STRIPE_MONTHLY_PRICE_ID=price_test_monthly -e STRIPE_ANNUAL_PRICE_ID=price_test_annual \
+            -e STAGING_ACCESS_USERNAME=tester -e STAGING_ACCESS_PASSWORD=boot-placeholder -e STAGING_MAIL_SINK=sink@example.net \
             familyplates:hosted ./bin/rails runner 'puts [FamilyPlates.saas?, FamilyPlates.config.mode].inspect' | grep -Fx '[true, "hosted"]'
 
   # Playwright drives the app the way a person does, on desktop and phone

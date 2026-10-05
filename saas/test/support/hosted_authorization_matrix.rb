@@ -11,7 +11,17 @@ module HostedAuthorizationMatrix
       "POST /signup" => [ :open ],
       "GET /signup/verify" => [ :open ],
       "POST /signup/verify" => [ :open ],
-      # Billing. Viewing is for the household; changing it is for the organizer.
+      # Terms of Service and Privacy Policy. Open: sign-up links to them.
+      "GET /terms" => [ :open ],
+      "GET /privacy" => [ :open ],
+      # Accepting the current Terms. The matrix runs as an appliance, where
+      # these send everyone home: an appliance has no Terms. Hosted
+      # behaviour, signed in or not: hosted_terms_assent_test.
+      "GET /terms_acceptance" => [ :open ],
+      "POST /terms_acceptance" => [ :open ],
+      # Billing. Viewing is for the household; changing it is for the billing
+      # owner, which the matrix's organizer is (hosted_records). Owners who
+      # are not the organizer: subscriptions_controller_test.
       "GET /subscription" => [ :household ],
       "POST /subscription" => [ :organizer ],
       "DELETE /subscription" => [ :organizer ],
@@ -91,6 +101,7 @@ module HostedAuthorizationMatrix
     end
 
     def hosted_records(household)
+      household.update!(billing_owner: dad_user)
       {
         support_thread: household.support_threads.create!(subject: "Matrix thread").id,
         deletion_request: household.account_deletion_requests.create!(requested_at: Time.current).id,

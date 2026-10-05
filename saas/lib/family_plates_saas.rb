@@ -3,6 +3,9 @@
 require "pay"
 require "stripe"
 require "family_plates_saas/stripe_sandbox"
+require "family_plates_saas/deploy_target"
+require "family_plates_saas/staging_access_gate"
+require "family_plates_saas/staging_mail_routing"
 require "family_plates_saas/engine"
 
 # The hosted edition of FamilyPlates. Loaded only by Gemfile.saas; an
