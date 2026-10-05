@@ -7,7 +7,8 @@ All notable changes to FamilyPlates are documented in this file.
 FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
 
 ### ⚠️ Upgrading from v1.2.0
-* **Sign in with Apple is removed.** Leftover `AUTH_APPLE_ENABLED` / `APPLE_*` settings are ignored, and existing Apple identity rows are kept untouched. Google and OIDC sign-in now require the provider to report the email as verified.
+* **Sign in with Apple is removed.** Leftover `AUTH_APPLE_ENABLED` / `APPLE_*` settings are ignored, and existing Apple identity rows are kept untouched. Google sign-in, and OIDC on the hosted service, now require the provider to report the email as verified; an appliance's own OIDC provider may leave that claim out, but not set it to false.
+* **OIDC needs `OIDC_ISSUER`.** Every ID token's signature, issuer and nonce are now checked, so the issuer is required even when `OIDC_AUTH_URL` and `OIDC_TOKEN_URL` are set by hand. A provider without a discovery document also needs `OIDC_JWKS_URL`.
 * **Back up the database first.** Household and family-member IDs move from integers to UUIDs, along with the seven foreign keys that point at them. The migration keeps every relationship and has a tested rollback, but it rewrites core tables.
 * **Existing sessions keep working.** Session tokens are hashed in place, so nobody is signed out. Rolling back that migration clears sessions, because the hashes can't be reversed.
 * **Google Calendar direct sync is gone.** Use the calendar subscription feeds instead. The migration drops the stored service-account settings.

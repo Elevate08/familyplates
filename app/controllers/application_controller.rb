@@ -32,14 +32,19 @@ class ApplicationController < ActionController::Base
   end
 
   def require_admin
-    if Current.session&.kiosk?
-      deny_access("Kiosk devices cannot access household settings or admin tools.")
-      return
-    end
+    return if deny_kiosk_access
 
     return if current_family_member&.admin?
 
     deny_access("Access restricted to household organizers / admins.")
+  end
+
+  # Refuses a shared kitchen display, and says whether it did.
+  def deny_kiosk_access
+    return false unless Current.session&.kiosk?
+
+    deny_access("Kiosk devices cannot access household settings or admin tools.")
+    true
   end
 
   def deny_access(message)

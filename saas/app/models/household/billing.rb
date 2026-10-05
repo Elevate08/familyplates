@@ -278,8 +278,10 @@ module Household::Billing
 
   # A cancel that failed because Stripe already ended the subscription (a
   # missed webhook left it stored as billable) is not a failure: Stripe's own
-  # answer, a terminal status or no such subscription, is recorded locally.
-  # Anything else, including Stripe not answering, keeps blocking.
+  # terminal status is recorded locally. "No such subscription" is not proof:
+  # Stripe says the same to a key for the wrong mode or account, while the
+  # real subscription keeps charging. That, and Stripe not answering, keep
+  # blocking for an operator to resolve.
   def ended_at_stripe!(sub)
     return false unless sub.is_a?(Pay::Stripe::Subscription)
 
@@ -288,11 +290,6 @@ module Household::Billing
 
     ended_at = remote.respond_to?(:ended_at) && remote.ended_at ? Time.at(remote.ended_at) : Time.current
     sub.update!(status: remote.status, ends_at: sub.ends_at || ended_at)
-    true
-  rescue ::Stripe::InvalidRequestError => e
-    return false unless e.http_status == 404
-
-    sub.update!(status: "canceled", ends_at: sub.ends_at || Time.current)
     true
   rescue StandardError
     false

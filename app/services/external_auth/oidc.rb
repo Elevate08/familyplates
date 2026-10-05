@@ -66,8 +66,8 @@ module ExternalAuth
 
       claims = verify_id_token(
         id_token,
-        jwks: jwks,
-        issuer: FamilyPlates.config.oidc_issuer,
+        jwks: jwks_loader,
+        issuer: expected_issuers,
         audience: FamilyPlates.config.oidc_client_id,
         nonce: nonce
       )
@@ -99,8 +99,16 @@ module ExternalAuth
     end
     private_class_method :request_userinfo
 
+    # The issuer the provider publishes in its discovery document, and the one
+    # configured, each with and without a trailing slash: Authentik, for one,
+    # publishes a trailing slash that operators often leave off.
+    def self.expected_issuers
+      [ discovery_endpoint("issuer"), FamilyPlates.config.oidc_issuer ].compact_blank
+        .flat_map { |issuer| [ issuer.chomp("/"), "#{issuer.chomp('/')}/" ] }.uniq
+    end
+
     def self.jwks
-      jwks_uri = discovery_endpoint("jwks_uri")
+      jwks_uri = FamilyPlates.config.oidc_jwks_url.presence || discovery_endpoint("jwks_uri")
       raise "OIDC JWKS endpoint is not available" if jwks_uri.blank?
 
       uri = URI(jwks_uri)

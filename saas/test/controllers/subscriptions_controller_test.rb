@@ -351,6 +351,32 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil subscription.reload.ends_at
   end
 
+  # Stripe keeps retrying the card on a past-due or unpaid subscription, so
+  # cancelling must stop it now; there is no paid term left to keep.
+  %w[past_due unpaid].each do |status|
+    test "a #{status} subscription can be cancelled, and stops at once" do
+      FamilyPlates.config.mode = "hosted"
+      household = @admin.household
+      subscription = subscribe!(household)
+      subscription.update!(status: status)
+
+      get subscription_path
+      assert_select "button, input[type=submit]", text: /Cancel Subscription/i, count: 1
+
+      delete subscription_path
+      assert_match(/will not be charged again/i, flash[:notice])
+      assert_equal "canceled", subscription.reload.status
+    end
+  end
+
+  test "an ended subscription offers no cancel button" do
+    FamilyPlates.config.mode = "hosted"
+    subscribe!(@admin.household).update!(status: "incomplete_expired")
+
+    get subscription_path
+    assert_select "button, input[type=submit]", text: /Cancel Subscription/i, count: 0
+  end
+
   test "an ordinary member still reads the subscription page" do
     FamilyPlates.config.mode = "hosted"
     subscribe!(@admin.household)

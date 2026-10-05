@@ -50,7 +50,7 @@ module FamilyPlates
     end
 
     attr_accessor :google_client_id, :google_client_secret
-    attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_display_name, :oidc_scope
+    attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_jwks_url, :oidc_display_name, :oidc_scope
     attr_accessor :forward_auth_trusted_proxies, :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
     attr_writer :google_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
 
@@ -61,7 +61,8 @@ module FamilyPlates
 
     def oidc_enabled?
       enabled = @oidc_auth_enabled.nil? ? (ENV["AUTH_OIDC_ENABLED"] == "true") : @oidc_auth_enabled
-      enabled && oidc_client_id.present? && oidc_client_secret.present? && (oidc_issuer.present? || (oidc_auth_url.present? && oidc_token_url.present?))
+      # The issuer is required: every id_token is checked against it.
+      enabled && oidc_client_id.present? && oidc_client_secret.present? && oidc_issuer.present?
     end
 
     def forward_auth_enabled?
@@ -108,6 +109,11 @@ module FamilyPlates
       @oidc_userinfo_url || ENV["OIDC_USERINFO_URL"]
     end
 
+    # Only for a provider without discovery; otherwise read from discovery.
+    def oidc_jwks_url
+      @oidc_jwks_url || ENV["OIDC_JWKS_URL"]
+    end
+
     def oidc_display_name
       @oidc_display_name || ENV["OIDC_DISPLAY_NAME"].presence || "Single Sign-On"
     end
@@ -149,6 +155,7 @@ module FamilyPlates
       @oidc_auth_url = nil
       @oidc_token_url = nil
       @oidc_userinfo_url = nil
+      @oidc_jwks_url = nil
       @oidc_display_name = nil
       @oidc_scope = nil
       @forward_auth_enabled = nil

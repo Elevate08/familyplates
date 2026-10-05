@@ -574,6 +574,33 @@ class BillingConsentCheckoutTest < ActionDispatch::IntegrationTest
     originals&.each { |name, method| Stripe::Checkout::Session.define_singleton_method(name, method) }
   end
 
+  # Support moved billing to a new owner while the old owner was paying. The
+  # new owner must not expire that payment mid-way; they wait for it.
+  test "a held Checkout someone else started is not expired by a new owner's Subscribe" do
+    checkout(:monthly)
+    first = BillingConsent.sole
+    new_owner = User.create!(email: "new-owner@checkout.test", **accepted_terms)
+    @household.update!(billing_owner: new_owner)
+    @admin.update!(user: new_owner)
+    sign_in_user(new_owner)
+    sign_in_as(@admin)
+
+    expired = []
+    original = Stripe::Checkout::Session.method(:expire)
+    Stripe::Checkout::Session.define_singleton_method(:expire) { |id, *| expired << id }
+    still_open = { id: "cs_test_stub", object: "checkout.session", status: "open", customer: "cus_checkout",
+                   metadata: { billing_consent_id: first.id } }
+    with_checkout_session_retrieve(still_open) do
+      post subscription_path, params: consent_params(:annual, household: @household, user: new_owner)
+    end
+
+    assert_empty expired
+    assert_equal SubscriptionsController::CHECKOUT_IN_PROGRESS, flash[:alert]
+    assert_equal "open", first.reload.checkout_state
+  ensure
+    Stripe::Checkout::Session.define_singleton_method(:expire, original)
+  end
+
   test "the simulated checkout records, confirms and acknowledges consent the same way" do
     assert_enqueued_jobs 1, only: BillingConsentAcknowledgmentJob do
       post subscription_path, params: consent_params(:annual, household: @household, user: @user)

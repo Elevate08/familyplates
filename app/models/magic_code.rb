@@ -38,30 +38,37 @@ class MagicCode < ApplicationRecord
   end
 
   # Redeems a code for an address. Returns the (now consumed) record, or nil.
-  # Wrong guesses count against the live code they were aimed at, not the
-  # address: after MAX_FAILED_ATTEMPTS that code is destroyed. A code issued
-  # afterwards starts with no failures, so guessing at someone's address
-  # cannot keep them from signing in, only cost them the code being guessed.
+  # Attempts count against the live code they were aimed at, not the
+  # address, and each is counted before it is compared, so a burst of
+  # parallel guesses gets no more than MAX_FAILED_ATTEMPTS comparisons. The
+  # code is destroyed once its attempts are spent. A code issued afterwards
+  # starts with none spent, so guessing at someone's address cannot keep
+  # them from signing in, only cost them the code being guessed.
   def self.redeem(email:, code:)
     email = email.to_s.strip.downcase
     return nil if email.blank?
 
-    record = active.find_by(email: email, code: code.to_s.strip.upcase)
-    if record
-      # Atomic claim: only the caller whose DELETE removes the row wins.
-      return nil unless where(id: record.id).delete_all == 1
+    # Only the newest code for an address is ever live (retire_prior_codes).
+    live = active.find_by(email: email)
+    return nil unless live
 
-      where(email: email).delete_all
-      attempt_store.delete(failure_key(record.id))
-      record
-    else
-      live = active.where(email: email).order(created_at: :desc).first
-      return nil unless live
-
-      failures = attempt_store.increment(failure_key(live.id), 1, expires_in: EXPIRATION_TIME).to_i
-      where(id: live.id).delete_all if failures >= MAX_FAILED_ATTEMPTS
-      nil
+    attempts = attempt_store.increment(failure_key(live.id), 1, expires_in: EXPIRATION_TIME).to_i
+    if attempts > MAX_FAILED_ATTEMPTS
+      where(id: live.id).delete_all
+      return nil
     end
+
+    unless ActiveSupport::SecurityUtils.secure_compare(live.code, code.to_s.strip.upcase)
+      where(id: live.id).delete_all if attempts >= MAX_FAILED_ATTEMPTS
+      return nil
+    end
+
+    # Atomic claim: only the caller whose DELETE removes the row wins.
+    return nil unless where(id: live.id).delete_all == 1
+
+    where(email: email).delete_all
+    attempt_store.delete(failure_key(live.id))
+    live
   end
 
   def self.attempt_store

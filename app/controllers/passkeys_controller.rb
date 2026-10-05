@@ -12,10 +12,11 @@ class PasskeysController < ApplicationController
     "https://www.example.com"
   ].freeze
 
-  # Production with APP_HOST trusts only that public origin, never the
-  # request's Origin or Host header, which a client controls. It is https
-  # when the app forces SSL or sits behind a TLS-terminating proxy
-  # (ASSUME_SSL). An appliance without APP_HOST (a LAN install) uses the host
+  # Production with APP_HOST trusts only that public host, never the
+  # request's Origin or Host header, which a client controls. Only https when
+  # the app is hosted, forces SSL or is told it sits behind TLS (ASSUME_SSL);
+  # otherwise an appliance's proxy may terminate TLS without saying so, so
+  # both schemes are allowed for that one host. An appliance without APP_HOST (a LAN install) uses the host
   # it was reached by, never the Origin header: the browser binds a passkey
   # to the page's real domain, so a forged Host cannot help a phishing page.
   # Hosted mode always has APP_HOST; without it there is no relying party.
@@ -25,8 +26,8 @@ class PasskeysController < ApplicationController
       host = FamilyPlates.public_host
       if host.present?
         config = Rails.application.config
-        scheme = (FamilyPlates.config.hosted? || config.force_ssl || config.assume_ssl) ? "https" : "http"
-        [ host.split(":").first, [ "#{scheme}://#{host}" ] ]
+        https_only = FamilyPlates.config.hosted? || config.force_ssl || config.assume_ssl
+        [ host.split(":").first, https_only ? [ "https://#{host}" ] : [ "https://#{host}", "http://#{host}" ] ]
       elsif request && !FamilyPlates.config.hosted?
         [ request.host, [ "http://#{request.host_with_port}", "https://#{request.host_with_port}" ] ]
       else

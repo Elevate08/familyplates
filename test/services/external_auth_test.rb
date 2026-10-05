@@ -4,11 +4,13 @@ class ExternalAuthTest < ActiveSupport::TestCase
   setup do
     FamilyPlates.config.reset!
     ExternalAuth::Oidc.reset_discovery!
+    [ ExternalAuth::Google, ExternalAuth::Oidc ].each(&:reset_jwks_cache!)
   end
 
   teardown do
     FamilyPlates.config.reset!
     ExternalAuth::Oidc.reset_discovery!
+    [ ExternalAuth::Google, ExternalAuth::Oidc ].each(&:reset_jwks_cache!)
   end
 
   # @card-20.1
@@ -52,6 +54,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
     FamilyPlates.config.oidc_auth_enabled = true
     FamilyPlates.config.oidc_client_id = "familyplates-sso"
     FamilyPlates.config.oidc_client_secret = "sso-secret"
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com"
     FamilyPlates.config.oidc_auth_url = "https://auth.example.com/application/o/authorize/"
     FamilyPlates.config.oidc_token_url = "https://auth.example.com/application/o/token/"
 
@@ -103,9 +106,11 @@ class ExternalAuthTest < ActiveSupport::TestCase
     original = singleton.instance_method(:jwks)
     jwks = @jwks
     singleton.define_method(:jwks) { jwks }
+    klass.reset_jwks_cache!
     yield
   ensure
     singleton.define_method(:jwks, original)
+    klass.reset_jwks_cache!
   end
 
   test "Google id_token fallback verifies signature, iss, aud, exp and nonce" do
@@ -137,7 +142,8 @@ class ExternalAuthTest < ActiveSupport::TestCase
     FamilyPlates.config.oidc_issuer = "https://auth.example.com"
     FamilyPlates.config.oidc_client_id = "google-client"
     FamilyPlates.config.oidc_userinfo_url = nil
-    ExternalAuth::Oidc.singleton_class.send(:define_method, :discovery_endpoint) { |_k| nil }
+    original_discovery = ExternalAuth::Oidc.method(:discovery_endpoint)
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint) { |_k| nil }
     with_jwks(ExternalAuth::Oidc) do
       info = ExternalAuth::Oidc.fetch_userinfo(nil, id_token(iss: "https://auth.example.com"), nonce: "n-1")
       assert_equal "g-1", info["sub"]
@@ -149,7 +155,7 @@ class ExternalAuthTest < ActiveSupport::TestCase
       assert_raises(JWT::DecodeError) { ExternalAuth::Oidc.fetch_userinfo(nil, id_token(key: OpenSSL::PKey::RSA.generate(2048), iss: "https://auth.example.com"), nonce: "n-1") }
     end
   ensure
-    ExternalAuth::Oidc.singleton_class.send(:remove_method, :discovery_endpoint)
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint, original_discovery) if original_discovery
   end
 
   # Answers every HTTP request (the userinfo endpoint here) with `json`.
@@ -204,6 +210,87 @@ class ExternalAuthTest < ActiveSupport::TestCase
     end
   ensure
     FamilyPlates.config.reset!
+  end
+
+  test "Google id_tokens are accepted with either issuer form Google documents" do
+    build_key
+    FamilyPlates.config.google_client_id = "google-client"
+    with_jwks(ExternalAuth::Google) do
+      assert_equal "g-1", ExternalAuth::Google.fetch_userinfo(nil, id_token(iss: "accounts.google.com"), nonce: "n-1")["sub"]
+      assert_equal "g-1", ExternalAuth::Google.fetch_userinfo(nil, id_token(iss: "https://accounts.google.com"), nonce: "n-1")["sub"]
+      assert_raises(JWT::DecodeError) { ExternalAuth::Google.fetch_userinfo(nil, id_token(iss: "https://evil.example.com"), nonce: "n-1") }
+    end
+  end
+
+  # Authentik publishes its issuer with a trailing slash; operators often
+  # leave it off. The issuer the provider itself publishes is the one used.
+  test "OIDC accepts the issuer the provider publishes, with or without a trailing slash" do
+    build_key
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com/application/o/familyplates"
+    FamilyPlates.config.oidc_client_id = "google-client"
+    published = "https://auth.example.com/application/o/familyplates/"
+    original_discovery = ExternalAuth::Oidc.method(:discovery_endpoint)
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint) { |key| key == "issuer" ? published : nil }
+    with_jwks(ExternalAuth::Oidc) do
+      assert_equal "g-1", ExternalAuth::Oidc.fetch_userinfo(nil, id_token(iss: published), nonce: "n-1")["sub"]
+      assert_equal "g-1", ExternalAuth::Oidc.fetch_userinfo(nil, id_token(iss: published.chomp("/")), nonce: "n-1")["sub"]
+      assert_raises(JWT::DecodeError) { ExternalAuth::Oidc.fetch_userinfo(nil, id_token(iss: "https://auth.example.com/other"), nonce: "n-1") }
+    end
+  ensure
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint, original_discovery) if original_discovery
+  end
+
+  test "OIDC needs an issuer to be enabled, and takes its signing keys from OIDC_JWKS_URL when there is no discovery" do
+    config = FamilyPlates.config
+    config.oidc_auth_enabled = true
+    config.oidc_client_id = "c"
+    config.oidc_client_secret = "s"
+    config.oidc_auth_url = "https://auth.example.com/authorize"
+    config.oidc_token_url = "https://auth.example.com/token"
+    assert_not config.oidc_enabled?, "without an issuer no id_token can be checked"
+
+    config.oidc_issuer = "https://auth.example.com"
+    assert config.oidc_enabled?
+
+    ENV["OIDC_JWKS_URL"] = "https://auth.example.com/keys"
+    original_discovery = ExternalAuth::Oidc.method(:discovery_endpoint)
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint) { |_key| nil }
+    requested = nil
+    with_http_answer("keys" => []) do
+      original = Net::HTTP::Get.method(:new)
+      Net::HTTP::Get.define_singleton_method(:new) { |uri, *rest| requested = uri.to_s; original.call(uri, *rest) }
+      ExternalAuth::Oidc.jwks
+    ensure
+      Net::HTTP::Get.define_singleton_method(:new, original)
+    end
+    assert_equal "https://auth.example.com/keys", requested
+  ensure
+    ENV.delete("OIDC_JWKS_URL")
+    ExternalAuth::Oidc.define_singleton_method(:discovery_endpoint, original_discovery) if original_discovery
+  end
+
+  test "signing keys are fetched once and refetched only for an unknown key" do
+    build_key
+    FamilyPlates.config.google_client_id = "google-client"
+    fetches = 0
+    jwks = @jwks
+    singleton = ExternalAuth::Google.singleton_class
+    original = singleton.instance_method(:jwks)
+    singleton.define_method(:jwks) { fetches += 1; jwks }
+    ExternalAuth::Google.reset_jwks_cache!
+
+    2.times { ExternalAuth::Google.fetch_userinfo(nil, id_token, nonce: "n-1") }
+    assert_equal 1, fetches
+
+    rotated = OpenSSL::PKey::RSA.generate(2048)
+    jwks = { "keys" => [ JWT::JWK.new(rotated, kid: "new-kid").export.transform_keys(&:to_s) ] }
+    token = JWT.encode({ "iss" => GOOGLE_ISS, "aud" => "google-client", "sub" => "g-1", "nonce" => "n-1", "exp" => 1.hour.from_now.to_i },
+      rotated, "RS256", { kid: "new-kid" })
+    assert_equal "g-1", ExternalAuth::Google.fetch_userinfo(nil, token, nonce: "n-1")["sub"]
+    assert_equal 2, fetches
+  ensure
+    singleton.define_method(:jwks, original)
+    ExternalAuth::Google.reset_jwks_cache!
   end
 
   test "token endpoint failures raise with the status code only" do

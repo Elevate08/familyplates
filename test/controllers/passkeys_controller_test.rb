@@ -75,8 +75,7 @@ class PasskeysControllerTest < ActionDispatch::IntegrationTest
     rp_id, origins = PasskeysController.relying_party_settings(forged, environment: ActiveSupport::StringInquirer.new("production"))
 
     assert_equal "plates.example.org", rp_id
-    assert_equal [ "https://plates.example.org" ], origins.map { |o| o.sub("http://", "https://") }
-    assert_equal 1, origins.size
+    assert_equal [ "https://plates.example.org" ], origins.map { |o| o.sub("http://", "https://") }.uniq
     assert_not_includes origins.join, "evil.example.net"
     assert_not_includes origins.join, "localhost"
     assert_not_includes origins.join, "example.com"
@@ -112,8 +111,25 @@ class PasskeysControllerTest < ActionDispatch::IntegrationTest
     ENV["APP_HOST"] = old if old
   end
 
-  # Behind a TLS-terminating proxy the app sees http, sets ASSUME_SSL and
-  # leaves FORCE_SSL unset; the browser's origin is still https.
+  # A proxy that terminates TLS often leaves ASSUME_SSL unset; the browser's
+  # origin is still https. Both schemes are allowed for the configured host
+  # only, so a forged host still gains nothing.
+  test "an appliance with APP_HOST and no SSL setting accepts either scheme for that host only" do
+    old = ENV["APP_HOST"]
+    ENV["APP_HOST"] = "plates.example.org"
+    assume, force = Rails.application.config.assume_ssl, Rails.application.config.force_ssl
+    Rails.application.config.assume_ssl = false
+    Rails.application.config.force_ssl = false
+
+    _rp, origins = PasskeysController.relying_party_settings(nil, environment: ActiveSupport::StringInquirer.new("production"))
+    assert_equal [ "http://plates.example.org", "https://plates.example.org" ], origins.sort
+  ensure
+    Rails.application.config.assume_ssl = assume
+    Rails.application.config.force_ssl = force
+    old ? ENV["APP_HOST"] = old : ENV.delete("APP_HOST")
+  end
+
+  # With ASSUME_SSL or FORCE_SSL the app knows it is served over https.
   test "an appliance behind an HTTPS proxy expects an https origin" do
     old = ENV["APP_HOST"]
     ENV["APP_HOST"] = "plates.example.org"

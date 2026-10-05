@@ -183,7 +183,10 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
     assert_not Household.exists?(@household.id)
   end
 
-  test "a subscription Stripe has no record of does not block deletion" do
+  # Stripe answers "no such subscription" both when it is gone and when the
+  # key is for the wrong mode or account, where the real subscription is still
+  # charging. Only an explicit ended status settles it; this stays blocked.
+  test "a subscription Stripe says it cannot find keeps blocking deletion" do
     create_subscription("sub_gone", status: "past_due")
     missing = Stripe::InvalidRequestError.new("No such subscription: 'sub_gone'", "id", http_status: 404)
 
@@ -193,8 +196,9 @@ class PlatformAdmin::DeletionRequestsControllerTest < ActionDispatch::Integratio
       end
     end
 
-    assert_equal "Household permanently deleted.", flash[:notice]
-    assert_not Household.exists?(@household.id)
+    assert_match "Household not deleted", flash[:alert]
+    assert Household.exists?(@household.id)
+    assert_equal "past_due", Pay::Subscription.find_by!(processor_id: "sub_gone").status
   end
 
   test "a subscription Stripe is still billing keeps blocking deletion" do

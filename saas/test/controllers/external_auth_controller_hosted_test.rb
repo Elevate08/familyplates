@@ -116,6 +116,7 @@ class ExternalAuthControllerHostedTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.oidc_auth_enabled = true
     FamilyPlates.config.oidc_client_id = "sso-client"
     FamilyPlates.config.oidc_client_secret = "sso-secret"
+    FamilyPlates.config.oidc_issuer = "https://auth.example.com"
     FamilyPlates.config.oidc_auth_url = "https://auth.example.com/oauth2/authorize"
     FamilyPlates.config.oidc_token_url = "https://auth.example.com/oauth2/token"
 

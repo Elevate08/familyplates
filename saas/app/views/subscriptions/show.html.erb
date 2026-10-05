@@ -69,7 +69,7 @@
           <%= link_to "Update Payment Method & View Invoices →", portal_subscription_path, data: { turbo: false }, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
         <% end %>
 
-        <% if household_cancellation_session? && !@subscription.canceled? %>
+        <% if household_cancellation_session? && cancellable?(@subscription) %>
           <%= button_to "Cancel Subscription", subscription_path, method: :delete,
                 data: { turbo_confirm: "Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle." },
                 class: "text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer" %>

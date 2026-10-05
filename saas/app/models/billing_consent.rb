@@ -146,13 +146,20 @@ class BillingConsent < ApplicationRecord
   # The checkout.session.completed and .expired webhooks, and the return from
   # Checkout, carry the session this consent's metadata names. That settles
   # an attempt whose request never learned the session id.
+  # The Stripe customer id a Checkout session names, whether Stripe sent the
+  # id or an expanded customer object.
+  def self.session_customer_id(session)
+    customer = session[:customer]
+    customer = customer[:id] if customer.respond_to?(:[]) && !customer.is_a?(String)
+    customer.to_s.presence
+  end
+
   def self.resolve_checkout_session(session)
     consent_id = session[:metadata] && session[:metadata][:billing_consent_id]
     consent = consent_id.present? && find_by(id: consent_id)
     return unless consent
 
-    customer = session[:customer]
-    customer = customer[:id] if customer.respond_to?(:[]) && !customer.is_a?(String)
+    customer = session_customer_id(session)
     return if customer.blank? || customer != consent.stripe_customer_id
 
     consent.record_checkout_session!(session[:id])
@@ -481,9 +488,7 @@ class BillingConsent < ApplicationRecord
   end
 
   def names_this_consent?(session, customer_id)
-    customer = session[:customer]
-    customer = customer[:id] if customer.respond_to?(:[]) && !customer.is_a?(String)
-    session[:metadata] && session[:metadata][:billing_consent_id] == id && customer == customer_id
+    session[:metadata] && session[:metadata][:billing_consent_id] == id && self.class.session_customer_id(session) == customer_id
   end
 
   # Syncs the subscription a complete session started. Active, it confirms

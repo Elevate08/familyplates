@@ -67,6 +67,18 @@ class MagicCodeTest < ActiveSupport::TestCase
     assert MagicCode.redeem(email: "guess@example.com", code: "LATER2")
   end
 
+  # Every attempt is counted before it is compared, so a burst of parallel
+  # guesses cannot all be checked against the live code before any of them
+  # is counted. Here the store reports that five attempts are already in.
+  test "an attempt beyond the limit is refused even when it is the right code" do
+    MagicCode.create!(email: "burst@example.com", code: "REAL22")
+    live = MagicCode.find_by!(email: "burst@example.com")
+    MagicCode.attempt_store.write(MagicCode.failure_key(live.id), MagicCode::MAX_FAILED_ATTEMPTS, expires_in: 15.minutes)
+
+    assert_nil MagicCode.redeem(email: "burst@example.com", code: "REAL22")
+    assert_not MagicCode.exists?(live.id)
+  end
+
   test "four wrong guesses do not stop the right code" do
     MagicCode.create!(email: "guess@example.com", code: "REAL22")
     4.times { MagicCode.redeem(email: "guess@example.com", code: "WRONG2") }

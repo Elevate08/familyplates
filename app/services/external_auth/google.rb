@@ -10,7 +10,8 @@ module ExternalAuth
     TOKEN_URL = "https://oauth2.googleapis.com/token"
     USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
     JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
-    ISSUER = "https://accounts.google.com"
+    # Google documents both forms of its issuer in id_tokens.
+    ISSUERS = [ "https://accounts.google.com", "accounts.google.com" ].freeze
 
     def self.enabled?
       FamilyPlates.config.google_auth_enabled?
@@ -62,7 +63,7 @@ module ExternalAuth
     def self.fetch_userinfo(access_token, id_token = nil, nonce: nil)
       raise "Google returned no id_token" if id_token.blank?
 
-      claims = verify_id_token(id_token, jwks: jwks, issuer: ISSUER, audience: FamilyPlates.config.google_client_id, nonce: nonce)
+      claims = verify_id_token(id_token, jwks: jwks_loader, issuer: ISSUERS, audience: FamilyPlates.config.google_client_id, nonce: nonce)
       merge_userinfo(claims, (request_userinfo(access_token) if access_token.present?))
     end
 

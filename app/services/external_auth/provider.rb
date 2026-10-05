@@ -14,8 +14,11 @@ module ExternalAuth
       raise NotImplementedError
     end
 
+    JWKS_TTL = 1.hour
+
     # Verifies an id_token received from the provider's token endpoint: RS256
-    # signature against the provider JWKS, issuer, audience, expiry and nonce.
+    # signature against the provider JWKS, issuer (one or a list), audience,
+    # expiry and nonce. jwks is the key set, or a loader such as jwks_loader.
     def self.verify_id_token(token, jwks:, issuer:, audience:, nonce:)
       raise JWT::DecodeError, "Missing nonce" if nonce.blank? || audience.blank?
 
@@ -24,7 +27,7 @@ module ExternalAuth
         nil,
         true,
         algorithms: [ "RS256" ],
-        jwks: ->(_options) { jwks },
+        jwks: jwks.respond_to?(:call) ? jwks : ->(_options) { jwks },
         iss: issuer,
         verify_iss: true,
         aud: audience,
@@ -37,6 +40,23 @@ module ExternalAuth
       end
 
       payload
+    end
+
+    # The provider's signing keys, kept for JWKS_TTL so sign-in does not wait
+    # on a fetch every time, and fetched again at once when a token names a
+    # key the cache lacks (the provider rotated its keys). Per provider class.
+    def self.jwks_loader
+      lambda do |options|
+        if @jwks_cache.nil? || options[:kid_not_found] || @jwks_fetched_at < JWKS_TTL.ago
+          @jwks_cache = jwks
+          @jwks_fetched_at = Time.current
+        end
+        @jwks_cache
+      end
+    end
+
+    def self.reset_jwks_cache!
+      @jwks_cache = @jwks_fetched_at = nil
     end
 
     # The verified id_token is the identity. Userinfo, when the provider

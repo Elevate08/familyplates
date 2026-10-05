@@ -14,7 +14,7 @@ class SubscriptionsController < ApplicationController
   # Seeing and canceling a subscription stay open to someone who has yet to
   # accept changed Terms. Starting one does not: its consent cites the Terms.
   allow_without_current_terms only: %i[show destroy portal]
-  helper_method :billing_owner_hint
+  helper_method :billing_owner_hint, :cancellable?
 
   def show
     unless FamilyPlates.config.hosted?
@@ -70,6 +70,11 @@ class SubscriptionsController < ApplicationController
     if subscription&.active?
       subscription.cancel
       redirect_to subscription_path, notice: "Your subscription has been canceled. You will retain access until #{subscription.ends_at.to_date.to_formatted_s(:long)}."
+    elsif cancellable?(subscription)
+      # Past due, unpaid, paused or incomplete: Stripe may still be retrying a
+      # payment and there is no paid term left to keep, so it stops now.
+      subscription.cancel_now!
+      redirect_to subscription_path, notice: "Your subscription has been canceled. You will not be charged again."
     else
       redirect_to subscription_path, alert: "No active subscription found to cancel."
     end
@@ -105,13 +110,15 @@ class SubscriptionsController < ApplicationController
 
   def require_billing_authority
     return require_admin unless FamilyPlates.config.hosted?
-
-    if Current.session&.kiosk?
-      deny_access("Kiosk devices cannot access household settings or admin tools.")
-      return
-    end
+    return if deny_kiosk_access
 
     deny_access(BILLING_OWNER_DENIAL) unless yield
+  end
+
+  # A subscription Stripe could still bill and nobody has cancelled yet.
+  def cancellable?(subscription)
+    subscription.present? && !subscription.canceled? &&
+      Household::Billing::TERMINAL_SUBSCRIPTION_STATUSES.exclude?(subscription.status)
   end
 
   def billing_owner_hint
@@ -150,7 +157,7 @@ class SubscriptionsController < ApplicationController
     return if customer_id.blank?
 
     session = ::Stripe::Checkout::Session.retrieve(session_id)
-    session if checkout_customer_id(session) == customer_id
+    session if BillingConsent.session_customer_id(session) == customer_id
   rescue ::Stripe::StripeError => e
     Rails.logger.warn("Rejected checkout session #{session_id} for household #{@household.id}: #{e.class}: #{e.message}")
     nil
@@ -184,23 +191,25 @@ class SubscriptionsController < ApplicationController
   # bill (active, trialing, past due, unpaid, paused, or incomplete while its
   # first payment is pending) or another attempt can still complete. A held
   # attempt is checked with Stripe first, which frees the household once
-  # Stripe confirms its session expired or never existed, or once the owner's
-  # own still-open session is expired there because they chose again. A
-  # session Stripe reports complete is synced instead, and the second
-  # reservation, which checks for a billable subscription again under the
-  # household lock, refuses because of the subscription that sync recorded.
+  # Stripe confirms its session expired or never existed, or once the
+  # person's own still-open session is expired there because they chose
+  # again. A session Stripe reports complete is synced instead, and the
+  # second reservation, which checks for a billable subscription again under
+  # the household lock, refuses because of the subscription that sync
+  # recorded.
   def reserve_checkout(offer)
     household = current_household
     return if household.active_subscription?
     return if BillingConsent.billable_subscription?(household)
 
     reserve = -> { BillingConsent.reserve(offer, household: household, user: current_user) }
-    reserve.call || (BillingConsent.held_checkout(household.id)&.reconcile_checkout!(supersede: true) && reserve.call)
-  end
+    reserved = reserve.call
+    return reserved if reserved
 
-  def checkout_customer_id(session)
-    customer = session.customer
-    customer.respond_to?(:id) && !customer.is_a?(String) ? customer.id : customer.to_s
+    # Only a Checkout this person started is theirs to retire; one started by
+    # a previous billing owner is left to finish or expire on its own.
+    held = BillingConsent.held_checkout(household.id)
+    held&.reconcile_checkout!(supersede: held.user_id == current_user.id) && reserve.call
   end
 
   def stripe_secret_key
