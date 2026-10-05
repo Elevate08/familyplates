@@ -16,7 +16,11 @@ class MagicCode < ApplicationRecord
 
   scope :active, -> { where("expires_at > ?", Time.current) }
 
+  MAX_FAILED_ATTEMPTS = 5
+
   before_validation :set_defaults, on: :create
+  # Only the newest code for an address is ever live.
+  before_create :retire_prior_codes
 
   BASE32_ALPHABET = %w[2 3 4 5 6 7 A B C D E F G H J K L M N P Q R S T U V W X Y Z].freeze
 
@@ -33,11 +37,50 @@ class MagicCode < ApplicationRecord
     )
   end
 
+  # Redeems a code for an address. Returns the (now consumed) record, or nil.
+  # Wrong guesses count against the live code they were aimed at, not the
+  # address: after MAX_FAILED_ATTEMPTS that code is destroyed. A code issued
+  # afterwards starts with no failures, so guessing at someone's address
+  # cannot keep them from signing in, only cost them the code being guessed.
+  def self.redeem(email:, code:)
+    email = email.to_s.strip.downcase
+    return nil if email.blank?
+
+    record = active.find_by(email: email, code: code.to_s.strip.upcase)
+    if record
+      # Atomic claim: only the caller whose DELETE removes the row wins.
+      return nil unless where(id: record.id).delete_all == 1
+
+      where(email: email).delete_all
+      attempt_store.delete(failure_key(record.id))
+      record
+    else
+      live = active.where(email: email).order(created_at: :desc).first
+      return nil unless live
+
+      failures = attempt_store.increment(failure_key(live.id), 1, expires_in: EXPIRATION_TIME).to_i
+      where(id: live.id).delete_all if failures >= MAX_FAILED_ATTEMPTS
+      nil
+    end
+  end
+
+  def self.attempt_store
+    Rails.application.config.pin_attempt_store
+  end
+
+  def self.failure_key(code_id)
+    "magic_code_failures:#{code_id}"
+  end
+
   def expired?
     expires_at <= Time.current
   end
 
   private
+
+  def retire_prior_codes
+    self.class.where(email: email).delete_all
+  end
 
   def set_defaults
     self.code ||= self.class.generate_code

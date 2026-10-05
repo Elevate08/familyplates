@@ -17,9 +17,9 @@ module LoginThrottling
 
       rate_limit to: MAX_ATTEMPTS, within: WINDOW, name: "login_by_email", scope: SCOPE,
                  store: LoginThrottling.store,
-                 by: -> { "email:#{params[:email].to_s.strip.downcase}" },
+                 by: -> { "email:#{throttled_email}" },
                  with: -> { login_attempts_throttled!(:email) },
-                 only: only, if: -> { params[:email].present? }
+                 only: only, if: -> { throttled_email.present? }
     end
   end
 
@@ -28,6 +28,11 @@ module LoginThrottling
   end
 
   private
+
+  # submit_verify carries no email param; its address lives in the session.
+  def throttled_email
+    (params[:email].presence || session[:pending_auth_email]).to_s.strip.downcase
+  end
 
   def login_attempts_throttled!(limit)
     Rails.logger.warn("[auth] login_throttled limit=#{limit} ip=#{request.remote_ip} path=#{request.path}")

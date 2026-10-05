@@ -27,7 +27,8 @@ class ExternalAuthControllerHostedTest < ActionDispatch::IntegrationTest
           household_name: "The Verifieds",
           organizer_name: "Vee",
           email: "verified@example.com",
-          pin: "4826"
+          pin: "4826",
+          **terms_assent_params
         }
       end
     end
@@ -49,6 +50,7 @@ class ExternalAuthControllerHostedTest < ActionDispatch::IntegrationTest
       provider: "google",
       uid: "google-fresh-user-1",
       email: "fresh@example.com",
+      email_verified: true,
       name: "Fresh Google User"
     }
 
@@ -70,7 +72,96 @@ class ExternalAuthControllerHostedTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "hosted mode OAuth callback with email_verified false does not sign in" do
+    assert_hosted_oauth_rejected(email_verified: false)
+  end
+
+  test "hosted mode OAuth callback without email_verified is rejected" do
+    assert_hosted_oauth_rejected
+  end
+
+  test "hosted mode OAuth callback does not link an existing user when email is unverified" do
+    User.create!(email: "victim-oauth@example.com", password: "password123")
+    FamilyPlates.config.mode = "hosted"
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.google_client_id = "test-client-id"
+    FamilyPlates.config.google_client_secret = "test-secret"
+
+    post auth_request_path(provider: :google)
+    valid_state = session[:oauth_state]
+
+    fake_auth = {
+      provider: "google",
+      uid: "google-unverified-existing",
+      email: "victim-oauth@example.com",
+      email_verified: false,
+      name: "Victim"
+    }
+
+    with_stub(ExternalAuth::Google, :verify_and_exchange, fake_auth) do
+      assert_no_difference [ -> { Identity.count }, -> { Session.count }, -> { User.count } ] do
+        get auth_callback_path(provider: :google), params: { code: "oauth-code-123", state: valid_state }
+      end
+
+      assert_redirected_to new_session_path
+      assert_not cookies[:session_token].present?
+      assert_nil Identity.find_by(provider: "google", uid: "google-unverified-existing")
+      assert User.find_by(email: "victim-oauth@example.com").authenticate("password123")
+    end
+  end
+
+  test "hosted mode OIDC callback does not sign in or link an existing user when email is unverified" do
+    User.create!(email: "victim-oidc@example.com", password: "password123")
+    FamilyPlates.config.mode = "hosted"
+    FamilyPlates.config.oidc_auth_enabled = true
+    FamilyPlates.config.oidc_client_id = "sso-client"
+    FamilyPlates.config.oidc_client_secret = "sso-secret"
+    FamilyPlates.config.oidc_auth_url = "https://auth.example.com/oauth2/authorize"
+    FamilyPlates.config.oidc_token_url = "https://auth.example.com/oauth2/token"
+
+    [ { email_verified: false }, {} ].each do |extra|
+      post auth_request_path(provider: :oidc)
+      fake = { provider: "oidc", uid: "oidc-unverified-existing", email: "victim-oidc@example.com", name: "V" }.merge(extra)
+      with_stub(ExternalAuth::Oidc, :verify_and_exchange, fake) do
+        assert_no_difference [ "Session.count", "Identity.count", "User.count" ] do
+          get auth_callback_path(provider: :oidc), params: { code: "c", state: session[:oauth_state] }
+        end
+      end
+      assert_redirected_to new_session_path
+      assert_nil cookies[:session_token].presence
+      assert_nil Identity.find_by(provider: "oidc", uid: "oidc-unverified-existing")
+    end
+  end
+
   private
+
+  def assert_hosted_oauth_rejected(**extra)
+    FamilyPlates.config.mode = "hosted"
+    FamilyPlates.config.google_auth_enabled = true
+    FamilyPlates.config.google_client_id = "test-client-id"
+    FamilyPlates.config.google_client_secret = "test-secret"
+
+    post auth_request_path(provider: :google)
+    valid_state = session[:oauth_state]
+
+    fake_auth = {
+      provider: "google",
+      uid: "google-unverified-1",
+      email: "unverified@example.com",
+      name: "Unverified User"
+    }.merge(extra)
+
+    with_stub(ExternalAuth::Google, :verify_and_exchange, fake_auth) do
+      assert_no_difference [ "User.count", "Identity.count" ] do
+        get auth_callback_path(provider: :google), params: { code: "oauth-code-123", state: valid_state }
+      end
+
+      assert_redirected_to new_session_path
+      assert_not cookies[:session_token].present?
+      assert_nil Identity.find_by(provider: "google", uid: "google-unverified-1")
+      assert_nil User.find_by(email: "unverified@example.com")
+    end
+  end
 
   def sign_in_user
     post session_path, params: { email: @user.email, password: "password123" }

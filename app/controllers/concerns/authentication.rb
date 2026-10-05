@@ -10,6 +10,7 @@ module Authentication
     before_action :handle_suspended_household
     before_action :require_active_family_member
     before_action :ensure_household_entitled!
+    before_action :require_current_terms
     helper_method :authenticated?, :current_household, :current_family_member, :current_user
   end
 
@@ -27,10 +28,20 @@ module Authentication
       skip_before_action :require_installation, **options
     end
 
+    # Also reachable by someone who has yet to accept changed hosted Terms:
+    # the same pages a suspended household keeps (signing out, the legal
+    # documents, support, account data) are the ones they must keep.
     def allow_suspended_access(**options)
       skip_before_action :handle_suspended_household, **options
       skip_before_action :require_active_family_member, **options
       skip_before_action :ensure_household_entitled!, **options, raise: false
+      skip_before_action :require_current_terms, **options, raise: false
+    end
+
+    # Pages a signed-in user can reach before accepting the hosted Terms:
+    # signing in, and the flows that ask for acceptance themselves.
+    def allow_without_current_terms(**options)
+      skip_before_action :require_current_terms, **options, raise: false
     end
   end
 
@@ -167,6 +178,30 @@ module Authentication
   def ensure_household_entitled!
   end
 
+  # Whether a household found some other way than the signed-in profile
+  # (a calendar feed token) may have its content served. Always, here.
+  def household_content_available?(_household)
+    true
+  end
+
+  # Hosted Terms of Service acceptance, filled in by HostedAccess. An
+  # appliance has no Terms: nothing is required, checked or recorded.
+  def require_current_terms
+  end
+
+  # Why the submitted Terms acceptance cannot be used, or nil when none is
+  # needed or it is valid. For joining a household and claiming a profile.
+  def terms_assent_problem
+  end
+
+  # The response status for a terms_assent_problem.
+  def terms_assent_problem_status(_problem)
+    :unprocessable_entity
+  end
+
+  def record_terms_assent!(context:, household:)
+  end
+
   def after_authentication_url
     session.delete(:return_to_after_authenticating) || root_url
   end
@@ -244,6 +279,9 @@ module Authentication
       provider: "forward_auth",
       uid: uid,
       email: email,
+      # Identity headers are only read after forward_auth_active? confirmed the
+      # trusted proxy sent them; the proxy has already authenticated the user.
+      email_verified: true,
       name: name
     )
     start_new_session_for_user(user)

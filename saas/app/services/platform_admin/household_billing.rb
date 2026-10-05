@@ -31,14 +31,19 @@ module PlatformAdmin
     # amount_cents nil refunds whatever has not been refunded yet.
     def refund_charge!(charge_id, amount_cents: nil)
       charge = @household.pay_charges.find(charge_id)
-      refundable = charge.amount - charge.amount_refunded.to_i
-      amount = amount_cents || refundable
-      unless amount.positive? && amount <= refundable
-        raise Error, "A refund must be between $0.01 and #{format_cents(refundable)}."
-      end
+      # Re-read under the charge's lock, so a refund another operator recorded
+      # since this one was read counts against what is left. The lock is held
+      # through the Stripe call; refunds are rare enough for that to be fine.
+      charge.with_lock do
+        refundable = charge.amount - charge.amount_refunded.to_i
+        amount = amount_cents || refundable
+        unless amount.positive? && amount <= refundable
+          raise Error, "A refund must be between $0.01 and #{format_cents(refundable)}."
+        end
 
-      charge.refund!(amount)
-      amount
+        charge.refund!(amount)
+        amount
+      end
     rescue Pay::Error => e
       raise Error, "Stripe refused the refund: #{e.message}"
     end

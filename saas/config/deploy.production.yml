@@ -1,0 +1,56 @@
+# bin/kamal <command> -d production. Merged over saas/config/deploy.yml.
+#
+# familyplates.org: Stripe live mode, the production SMTP account, real mail.
+# Every deployer variable read here or in saas/.kamal/secrets.production is
+# named FAMILYPLATES_PRODUCTION_*, so staging's settings cannot leak in.
+
+service: familyplates-production
+image: familyplates-production
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SERVER") %>
+    # Caps so a runaway process cannot starve staging if both share a server.
+    options:
+      memory: 1536m
+      cpus: 1.5
+      pids-limit: 512
+
+ssh:
+  user: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SSH_USER", "root") %>
+
+# kamal-proxy terminates TLS with a Let's Encrypt certificate.
+proxy:
+  ssl: true
+  host: familyplates.org
+  healthcheck:
+    path: /up
+
+env:
+  clear:
+    FAMILYPLATES_DEPLOY_TARGET: production
+    RAILS_ENV: production
+    APP_HOST: familyplates.org
+    # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
+    ASSUME_SSL: true
+    SOLID_QUEUE_IN_PUMA: true
+    SMTP_ADDRESS: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_ADDRESS") %>
+    SMTP_PORT: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_PORT", "587") %>
+    MAILER_DEFAULT_FROM: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_MAILER_DEFAULT_FROM", "FamilyPlates <no-reply@familyplates.org>") %>
+    STRIPE_MONTHLY_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_STRIPE_MONTHLY_PRICE_ID") %>
+    STRIPE_ANNUAL_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_STRIPE_ANNUAL_PRICE_ID") %>
+    # Live webhooks only. The app refuses to boot as production otherwise.
+    STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS: "false"
+  secret:
+    - SECRET_KEY_BASE
+    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - STRIPE_PRIVATE_KEY
+    - STRIPE_SIGNING_SECRET
+
+# The SQLite databases and uploaded images. Nothing else is mounted.
+volumes:
+  - "familyplates_production_storage:/rails/storage"

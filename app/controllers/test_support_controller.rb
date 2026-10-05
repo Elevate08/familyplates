@@ -55,6 +55,10 @@ class TestSupportController < ActionController::Base
     member = FamilyMember.find_by(name: params[:name]) || FamilyMember.where(role: "admin").first
     user = member.user || User.find_or_create_by!(email: "#{member.name.downcase.gsub(/[^a-z0-9]/, '')}@household.test")
     member.update!(user: user) unless member.user_id == user.id
+    # Stands in for someone who signed up, so accepted the hosted Terms then.
+    if defined?(TermsAssent) && FamilyPlates.config.hosted? && !TermsAssent.current?(user)
+      user.update!(terms_version: TermsAssent.current_version, terms_accepted_at: Time.current)
+    end
 
     session_record = user.sessions.create!(
       token: SecureRandom.hex(32),

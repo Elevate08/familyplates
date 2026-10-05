@@ -65,11 +65,11 @@
       </div>
 
       <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        <% if @household.payment_processor&.processor_id.present? %>
+        <% if household_billing_owner_session? && @household.payment_processor&.processor_id.present? %>
           <%= link_to "Update Payment Method & View Invoices →", portal_subscription_path, data: { turbo: false }, class: "text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline" %>
         <% end %>
 
-        <% if current_family_member&.admin? && !@subscription.canceled? %>
+        <% if household_cancellation_session? && !@subscription.canceled? %>
           <%= button_to "Cancel Subscription", subscription_path, method: :delete,
                 data: { turbo_confirm: "Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle." },
                 class: "text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer" %>
@@ -92,7 +92,7 @@
             <span class="text-lg">🗓️</span>
           </div>
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black text-slate-900 dark:text-white">$4</span>
+            <span class="text-4xl font-black text-slate-900 dark:text-white"><%= @offers[:monthly].price %></span>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ month</span>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Full family kitchen access with flexible month-to-month billing.</p>
@@ -122,19 +122,18 @@
             <button disabled class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs cursor-not-allowed">
               Current Plan
             </button>
-          <% elsif current_family_member&.admin? %>
-            <%= button_to "Subscribe Monthly ($4/mo)", subscription_path(plan: :monthly), method: :post,
-                  data: { turbo: false },
-                  class: "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] cursor-pointer text-center" %>
+          <% elsif household_billing_owner_session? %>
+            <%= render "subscriptions/consent_form", offer: @offers[:monthly],
+                  button_class: "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>
-            <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
+            <p class="text-center text-xs text-slate-400 font-medium"><%= billing_owner_hint %></p>
           <% end %>
         </div>
       </div>
 
       <div class="bg-white dark:bg-slate-900 rounded-3xl border-2 <%= @household.subscription_plan_key == :annual ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-primary-500 dark:border-primary-600' %> p-6 sm:p-8 flex flex-col justify-between shadow-md relative">
         <div class="absolute -top-3 right-6 bg-primary-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm">
-          Save 27%
+          Save <%= @offers[:annual].savings_percent_against(@offers[:monthly]) %>%
         </div>
 
         <div>
@@ -143,10 +142,10 @@
             <span class="text-lg">⭐</span>
           </div>
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black text-slate-900 dark:text-white">$35</span>
-            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year ($2.91/mo)</span>
+            <span class="text-4xl font-black text-slate-900 dark:text-white"><%= @offers[:annual].price %></span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year (<%= @offers[:annual].monthly_equivalent %>/mo)</span>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Best value for households. One annual payment, full uninterrupted peace of mind.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Best value for households. Billed once a year and renews yearly until you cancel.</p>
 
           <ul class="mt-6 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
             <li class="flex items-center gap-2">
@@ -155,15 +154,11 @@
             </li>
             <li class="flex items-center gap-2">
               <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
-              <span>27% discount compared to monthly billing</span>
+              <span><%= @offers[:annual].savings_percent_against(@offers[:monthly]) %>% discount compared to monthly billing</span>
             </li>
             <li class="flex items-center gap-2">
               <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
               <span>Single annual receipt for household accounting</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
-              <span>Priority feature requests & community access</span>
             </li>
           </ul>
         </div>
@@ -173,12 +168,11 @@
             <button disabled class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs cursor-not-allowed">
               Current Plan
             </button>
-          <% elsif current_family_member&.admin? %>
-            <%= button_to "Subscribe Annually ($35/yr)", subscription_path(plan: :annual), method: :post,
-                  data: { turbo: false },
-                  class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
+          <% elsif household_billing_owner_session? %>
+            <%= render "subscriptions/consent_form", offer: @offers[:annual],
+                  button_class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>
-            <p class="text-center text-xs text-slate-400 font-medium">Ask a household organizer to subscribe.</p>
+            <p class="text-center text-xs text-slate-400 font-medium"><%= billing_owner_hint %></p>
           <% end %>
         </div>
       </div>

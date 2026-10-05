@@ -3,14 +3,18 @@
 require "test_helper"
 
 class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
+  include BillingConsentTestHelper
+
   setup do
     FamilyPlates.config.reset!
     @admin = family_members(:one)
     @member = family_members(:two)
-    @user = User.create!(email: "admin@household.test")
+    @user = User.create!(email: "admin@household.test", **accepted_terms)
     @admin.update!(user: @user)
-    @member_user = User.create!(email: "member@household.test")
+    @member_user = User.create!(email: "member@household.test", **accepted_terms)
     @member.update!(user: @member_user)
+    # As signup leaves it: the user who created the household owns its billing.
+    @admin.household.update!(billing_owner: @user)
 
     sign_in_user(@user)
     sign_in_as(@admin)
@@ -134,7 +138,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.mode = "hosted"
     household = @admin.household
 
-    post subscription_path, params: { plan: "annual" }
+    post subscription_path, params: consent_params(:annual, household: household, user: @user)
     assert_redirected_to subscription_path
     assert_equal "Successfully subscribed to the Annual plan! 🎉", flash[:notice]
 
@@ -150,7 +154,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
 
     post subscription_path, params: { plan: "monthly" }
     assert_redirected_to root_path
-    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
   end
 
   # @card-23.5
@@ -158,7 +162,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     FamilyPlates.config.mode = "hosted"
     household = @admin.household
 
-    post subscription_path, params: { plan: "monthly" }
+    post subscription_path, params: consent_params(:monthly, household: household, user: @user)
     assert household.reload.active_subscription?
 
     delete subscription_path
@@ -206,7 +210,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     get portal_subscription_path
 
     assert_redirected_to root_path
-    assert_equal "Access restricted to household organizers / admins.", flash[:alert]
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
   end
 
   test "the billing portal is not offered in appliance mode" do
@@ -217,6 +221,162 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "an organizer who is not the billing owner cannot subscribe, cancel or open the portal" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    co_user = User.create!(email: "co-organizer@household.test", **accepted_terms)
+    co_organizer = household.family_members.create!(name: "Co", role: "admin", user: co_user, pin: "1234")
+    sign_in_user(co_user)
+    sign_in_as(co_organizer)
+
+    assert_billing_denied(household, subscription)
+  end
+
+  test "selecting the billing owner's organizer profile does not carry billing authority" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    sign_in_user(@member_user)
+    sign_in_as(@admin)
+
+    assert_billing_denied(household, subscription)
+  end
+
+  test "the billing owner cannot change billing from someone else's profile" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    sign_in_as(@member)
+
+    assert_billing_denied(household, subscription)
+  end
+
+  test "a kiosk session cannot change billing, even the billing owner's" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    @user.sessions.update_all(kind: "kiosk")
+
+    assert_billing_denied(household, subscription, message: /Kiosk devices cannot/)
+  end
+
+  # @card-21.4
+  test "owning another household's billing gives no authority over this one" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    other_owner = User.create!(email: "miller-owner@household.test", **accepted_terms)
+    households(:two).update!(billing_owner: other_owner)
+    organizer_here = household.family_members.create!(name: "Visitor", role: "admin", user: other_owner, pin: "1234")
+    sign_in_user(other_owner)
+    sign_in_as(organizer_here)
+
+    assert_billing_denied(household, subscription)
+    assert_not households(:two).reload.active_subscription?
+  end
+
+  test "claiming the organizer's profile does not move billing ownership" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    token = @admin.transfer_id
+    claimant = User.create!(email: "claimant@household.test")
+    sign_in_user(claimant)
+
+    post claim_transfer_path(token), params: terms_assent_params
+
+    assert_equal claimant, @admin.reload.user
+    assert_equal @user, household.reload.billing_owner
+    assert_equal TermsAssent.current_version, claimant.reload.terms_version, "the claimant accepted the Terms for themselves"
+    assert_equal [ "claim" ], TermsAcceptance.where(user_id: claimant.id).pluck(:context),
+      "the owner's acceptance is theirs alone and is not copied to the claimant"
+    post subscription_path, params: { plan: "monthly" }
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
+    assert_not household.reload.active_subscription?
+  end
+
+  test "a household with no billing owner can read its plans but nobody can subscribe" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    household.update!(billing_owner: nil)
+
+    get subscription_path
+    assert_response :success
+    assert_select "button, input[type=submit]", text: /Subscribe/i, count: 0
+    assert_match "no billing owner yet", response.body
+
+    post subscription_path, params: { plan: "monthly" }
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
+    assert_not household.reload.active_subscription?
+  end
+
+  # A household from before billing owners were recorded has none until
+  # support recovers one. Cancelling must not wait for that: an organizer on
+  # their own profile can still cancel. Subscribing and the portal wait.
+  test "with no billing owner, an organizer on their own profile can still cancel, but not open the portal" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    household.update!(billing_owner: nil)
+
+    get subscription_path
+    assert_select "button, input[type=submit]", text: /Cancel Subscription/i, count: 1
+    assert_select "a[href=?]", portal_subscription_path, count: 0
+
+    get portal_subscription_path
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
+
+    delete subscription_path
+    assert_match(/has been canceled/i, flash[:notice])
+    assert subscription.reload.ends_at.present?
+  end
+
+  test "with no billing owner, a member or a kiosk still cannot cancel" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscription = subscribe!(household)
+    household.update!(billing_owner: nil)
+
+    sign_in_user(@member_user)
+    sign_in_as(@member)
+    delete subscription_path
+    assert_equal SubscriptionsController::BILLING_OWNER_DENIAL, flash[:alert]
+
+    sign_in_user(@user)
+    sign_in_as(@admin)
+    @user.sessions.update_all(kind: "kiosk")
+    delete subscription_path
+    assert_match(/Kiosk devices cannot/, flash[:alert])
+
+    assert_nil subscription.reload.ends_at
+  end
+
+  test "an ordinary member still reads the subscription page" do
+    FamilyPlates.config.mode = "hosted"
+    subscribe!(@admin.household)
+    sign_in_user(@member_user)
+    sign_in_as(@member)
+
+    get subscription_path
+
+    assert_response :success
+    assert_select "h1", text: /Subscription & Billing/i
+    assert_select "button, input[type=submit]", text: /Cancel Subscription|Subscribe/i, count: 0
+  end
+
+  test "the billing owner can still cancel after their profile stops being an organizer" do
+    FamilyPlates.config.mode = "hosted"
+    household = @admin.household
+    subscribe!(household)
+    @admin.update!(role: "member")
+
+    delete subscription_path
+
+    assert_redirected_to subscription_path
+    assert_match(/Your subscription has been canceled/i, flash[:notice])
+    assert household.payment_processor.subscription.reload.ends_at.present?
+  end
+
   test "Checkout applies the Stripe promotion an operator assigned to the household" do
     household = @admin.household
     PromotionProgram.create!(name: "Founders", code: "FOUNDERS", discount_percent: 50, provider_promotion_code_id: "promo_founders")
@@ -225,7 +385,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     args = checkout_with_real_stripe(household)
 
     assert_equal [ { promotion_code: "promo_founders" } ], args[:discounts]
-    assert_equal({ metadata: { promotion_code: "FOUNDERS" } }, args[:subscription_data])
+    assert_equal "FOUNDERS", args.dig(:subscription_data, :metadata, :promotion_code)
     assert_not args.key?(:allow_promotion_codes), "Stripe rejects discounts and allow_promotion_codes together"
   end
 
@@ -247,28 +407,58 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
 
       assert args[:allow_promotion_codes], code
       assert_not args.key?(:discounts), code
+      # Treat the stubbed checkout as completed so the next loop iteration
+      # tests promotions, not the in-flight Checkout guard.
+      BillingConsent.where(household_id: household.id).update_all(confirmed_at: Time.current)
     end
   end
 
   private
+
+  def subscribe!(household)
+    household.set_payment_processor :fake_processor, allow_fake: true
+    household.payment_processor.subscriptions.create!(
+      name: "default", processor_id: "sub_owned", processor_plan: "monthly", status: "active",
+      current_period_start: Time.current, current_period_end: 1.month.from_now
+    )
+  end
+
+  # Subscribe, cancel and the portal all turn the signed-in visitor away and
+  # leave the household's subscription as it was.
+  def assert_billing_denied(household, subscription, message: SubscriptionsController::BILLING_OWNER_DENIAL)
+    assert_no_difference -> { Pay::Subscription.count } do
+      post subscription_path, params: { plan: "annual" }
+    end
+    assert_match message, flash[:alert]
+
+    delete subscription_path
+    assert_match message, flash[:alert]
+    assert_nil subscription.reload.ends_at
+
+    get portal_subscription_path
+    assert_match message, flash[:alert]
+    assert_equal "monthly", household.reload.payment_processor.subscription.processor_plan
+  end
 
   # Subscribes through the Stripe path, not the simulated one, and returns
   # what the app asked Stripe Checkout for.
   def checkout_with_real_stripe(household)
     FamilyPlates.config.mode = "hosted"
     household.set_payment_processor :stripe, allow_fake: true, processor_id: "cus_checkout"
+    @checkout_sequence = @checkout_sequence.to_i + 1
+    session_id = "cs_test_stub_#{@checkout_sequence}"
     created = nil
     original = Stripe::Checkout::Session.method(:create)
     Stripe::Checkout::Session.define_singleton_method(:create) do |params, *|
       created = params
-      Stripe::Checkout::Session.construct_from(url: "https://checkout.stripe.com/c/pay/cs_test_stub")
+      Stripe::Checkout::Session.construct_from(id: session_id, url: "https://checkout.stripe.com/c/pay/#{session_id}")
     end
 
     previous = ENV["ENABLE_REAL_STRIPE_TESTS"]
     ENV["ENABLE_REAL_STRIPE_TESTS"] = "true"
-    with_stripe_secret_key { post subscription_path, params: { plan: "annual" } }
+    with_stripe_secret_key { post subscription_path, params: consent_params(:annual, household: household, user: @user) }
 
-    assert_redirected_to "https://checkout.stripe.com/c/pay/cs_test_stub"
+    assert_redirected_to "https://checkout.stripe.com/c/pay/#{session_id}"
     created
   ensure
     previous ? ENV["ENABLE_REAL_STRIPE_TESTS"] = previous : ENV.delete("ENABLE_REAL_STRIPE_TESTS")

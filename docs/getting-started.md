@@ -108,16 +108,13 @@ The published image is the **appliance** edition. It doesn't include the hosted 
 
 ### External Authentication & Single Sign-On (Optional)
 
-All external identity providers are disabled by default. Configure these variables to enable Google, Apple, generic OpenID Connect, or trusted reverse proxy headers:
+All external identity providers are disabled by default. Configure these variables to enable Google, generic OpenID Connect, or trusted reverse proxy headers:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `AUTH_GOOGLE_ENABLED` | `false` | Enable Google OAuth sign-in (`true` / `false`). |
 | `GOOGLE_CLIENT_ID` | *(None)* | Google OAuth 2.0 Client ID. |
 | `GOOGLE_CLIENT_SECRET` | *(None)* | Google OAuth 2.0 Client Secret. |
-| `AUTH_APPLE_ENABLED` | `false` | Enable Sign in with Apple (`true` / `false`). |
-| `APPLE_CLIENT_ID` | *(None)* | Apple Services ID (e.g. `com.example.familyplates.auth`). |
-| `APPLE_CLIENT_SECRET` | *(None)* | Apple generated secret, or set `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY`. |
 | `AUTH_OIDC_ENABLED` | `false` | Enable generic OpenID Connect / SSO (`true` / `false`). |
 | `OIDC_ISSUER` | *(None)* | OIDC Issuer URL for discovery (e.g. `https://auth.example.com`). |
 | `OIDC_CLIENT_ID` | *(None)* | OIDC Client ID. |

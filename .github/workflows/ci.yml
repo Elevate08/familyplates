@@ -89,16 +89,22 @@ jobs:
       - name: Check every acceptance criterion has a test
         run: bin/coverage-criteria --verbose
 
-      # Placeholder values: this only checks saas/config/deploy.yml still
-      # resolves. Nothing here connects to a server.
+      # Placeholder values: this only checks both hosted destinations still
+      # resolve. Nothing here connects to a server.
       - name: The hosted deploy config resolves
         env:
-          HOSTED_SERVER: 203.0.113.10
-          APP_HOST: plates.example.com
-          SMTP_ADDRESS: smtp.example.com
-          STRIPE_MONTHLY_PRICE_ID: price_monthly
-          STRIPE_ANNUAL_PRICE_ID: price_annual
-        run: bin/kamal config > /dev/null
+          FAMILYPLATES_PRODUCTION_SERVER: 203.0.113.10
+          FAMILYPLATES_PRODUCTION_SMTP_ADDRESS: smtp.example.com
+          FAMILYPLATES_PRODUCTION_STRIPE_MONTHLY_PRICE_ID: price_monthly
+          FAMILYPLATES_PRODUCTION_STRIPE_ANNUAL_PRICE_ID: price_annual
+          FAMILYPLATES_STAGING_SERVER: 203.0.113.11
+          FAMILYPLATES_STAGING_SMTP_ADDRESS: smtp.example.net
+          FAMILYPLATES_STAGING_STRIPE_MONTHLY_PRICE_ID: price_test_monthly
+          FAMILYPLATES_STAGING_STRIPE_ANNUAL_PRICE_ID: price_test_annual
+          FAMILYPLATES_STAGING_MAIL_SINK: sink@example.net
+        run: |
+          bin/kamal config -d production > /dev/null
+          bin/kamal config -d staging > /dev/null
 
   # Each edition runs its own suite: the appliance on the core Gemfile, the
   # hosted service on Gemfile.saas, which adds the saas/ engine and its tests.

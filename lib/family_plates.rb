@@ -50,19 +50,13 @@ module FamilyPlates
     end
 
     attr_accessor :google_client_id, :google_client_secret
-    attr_accessor :apple_client_id, :apple_team_id, :apple_key_id, :apple_private_key, :apple_client_secret
     attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_display_name, :oidc_scope
     attr_accessor :forward_auth_trusted_proxies, :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
-    attr_writer :google_auth_enabled, :apple_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
+    attr_writer :google_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
 
     def google_auth_enabled?
       enabled = @google_auth_enabled.nil? ? (ENV["AUTH_GOOGLE_ENABLED"] == "true") : @google_auth_enabled
       enabled && google_client_id.present? && google_client_secret.present?
-    end
-
-    def apple_auth_enabled?
-      enabled = @apple_auth_enabled.nil? ? (ENV["AUTH_APPLE_ENABLED"] == "true") : @apple_auth_enabled
-      enabled && apple_client_id.present? && (apple_client_secret.present? || (apple_private_key.present? && apple_key_id.present? && apple_team_id.present?))
     end
 
     def oidc_enabled?
@@ -79,7 +73,7 @@ module FamilyPlates
     end
 
     def any_oauth_enabled?
-      google_auth_enabled? || apple_auth_enabled? || oidc_enabled?
+      google_auth_enabled? || oidc_enabled?
     end
 
     def google_client_id
@@ -88,26 +82,6 @@ module FamilyPlates
 
     def google_client_secret
       @google_client_secret || ENV["GOOGLE_CLIENT_SECRET"]
-    end
-
-    def apple_client_id
-      @apple_client_id || ENV["APPLE_CLIENT_ID"]
-    end
-
-    def apple_team_id
-      @apple_team_id || ENV["APPLE_TEAM_ID"]
-    end
-
-    def apple_key_id
-      @apple_key_id || ENV["APPLE_KEY_ID"]
-    end
-
-    def apple_private_key
-      @apple_private_key || ENV["APPLE_PRIVATE_KEY"]
-    end
-
-    def apple_client_secret
-      @apple_client_secret || ENV["APPLE_CLIENT_SECRET"]
     end
 
     def oidc_issuer
@@ -168,12 +142,6 @@ module FamilyPlates
       @google_auth_enabled = nil
       @google_client_id = nil
       @google_client_secret = nil
-      @apple_auth_enabled = nil
-      @apple_client_id = nil
-      @apple_team_id = nil
-      @apple_key_id = nil
-      @apple_private_key = nil
-      @apple_client_secret = nil
       @oidc_auth_enabled = nil
       @oidc_issuer = nil
       @oidc_client_id = nil

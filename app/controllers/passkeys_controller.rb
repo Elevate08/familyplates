@@ -3,7 +3,51 @@
 require "webauthn"
 
 class PasskeysController < ApplicationController
+  class NotConfigured < StandardError; end
+
+  LOCAL_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://www.example.com",
+    "https://www.example.com"
+  ].freeze
+
+  # Production with APP_HOST trusts only that public origin, never the
+  # request's Origin or Host header, which a client controls. It is https
+  # when the app forces SSL or sits behind a TLS-terminating proxy
+  # (ASSUME_SSL). An appliance without APP_HOST (a LAN install) uses the host
+  # it was reached by, never the Origin header: the browser binds a passkey
+  # to the page's real domain, so a forged Host cannot help a phishing page.
+  # Hosted mode always has APP_HOST; without it there is no relying party.
+  # Elsewhere the request host and local development origins are accepted.
+  def self.relying_party_settings(request = nil, environment: Rails.env)
+    if environment.production?
+      host = FamilyPlates.public_host
+      if host.present?
+        config = Rails.application.config
+        scheme = (FamilyPlates.config.hosted? || config.force_ssl || config.assume_ssl) ? "https" : "http"
+        [ host.split(":").first, [ "#{scheme}://#{host}" ] ]
+      elsif request && !FamilyPlates.config.hosted?
+        [ request.host, [ "http://#{request.host_with_port}", "https://#{request.host_with_port}" ] ]
+      else
+        [ nil, [] ]
+      end
+    else
+      origins = LOCAL_ORIGINS.dup
+      if request
+        origins.concat([ request.origin, "http://#{request.host_with_port}", "https://#{request.host_with_port}",
+                         "http://#{request.host}", "https://#{request.host}" ])
+      end
+      [ request&.host || "localhost", origins.compact.uniq ]
+    end
+  end
+
+  rescue_from NotConfigured do
+    render json: { error: "Passkeys are not available until the public hostname (APP_HOST) is configured." }, status: :service_unavailable
+  end
   allow_unauthenticated_access only: %i[index registration_options create destroy authentication_options callback]
+  # Signing in with a passkey comes before the hosted Terms gate.
+  allow_without_current_terms only: %i[authentication_options callback]
   before_action :require_user_for_management, only: %i[index registration_options create destroy]
   before_action :forbid_kiosk_access, only: %i[index registration_options create destroy]
 
@@ -124,21 +168,12 @@ class PasskeysController < ApplicationController
   end
 
   def relying_party
-    allowed = [
-      request.origin,
-      "http://#{request.host_with_port}",
-      "https://#{request.host_with_port}",
-      "http://#{request.host}",
-      "https://#{request.host}",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://www.example.com",
-      "https://www.example.com"
-    ].compact.uniq
+    rp_id, allowed = self.class.relying_party_settings(request)
+    raise NotConfigured if rp_id.blank?
 
     WebAuthn::RelyingParty.new(
       name: "FamilyPlates",
-      id: request.host,
+      id: rp_id,
       allowed_origins: allowed
     )
   end
