@@ -49,5 +49,14 @@ The Grocery List aggregates all ingredients required across scheduled breakfast,
 
 * **Aisle-Grouped Walk Order:** Categorized by Produce, Meat & Seafood, Dairy & Refrigerated, Bakery, Pantry & Grains, Spices & Baking, Frozen, and Other.
 * **Unit Normalization & Aggregation:** Automatically sums matching ingredients (e.g. `2 tbsp olive oil` + `3 tbsp olive oil` = `5 tbsp olive oil`).
-* **Interactive Mobile Checklist:** Real-time offline-capable checkbox with instant strikethrough, remaining item counter, and recipe source attribution.
+* **Interactive Mobile Checklist:** Checkbox that works offline (see below), with instant strikethrough, remaining item counter, and recipe source attribution.
 * **Plain Text Copy:** 1-click clipboard export for messaging family members or pasting into store pickup apps.
+
+## 📶 Using FamilyPlates Offline
+
+Three areas work without a connection: the **grocery list**, **recipes** (including Cook Mode) and the **meal plan** (including its print view).
+
+* A page is available offline after you have opened it on that device while online. Pages you have not opened yet are not saved.
+* Every other page needs a connection. Opened offline, it shows a short notice listing the three offline areas.
+* Signing out clears the pages saved in that browser. It also resets the theme, grocery list ticks and Cook Mode progress stored there.
+* The browser keeps saved pages only on HTTPS or `localhost`.

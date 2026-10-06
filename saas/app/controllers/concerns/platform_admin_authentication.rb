@@ -1,5 +1,6 @@
 module PlatformAdminAuthentication
   extend ActiveSupport::Concern
+  include ClearsSiteData
 
   included do
     before_action :set_current_platform_admin
@@ -35,6 +36,7 @@ module PlatformAdminAuthentication
     else
       session_record&.destroy
       cookies.delete(:platform_admin_session_token)
+      clear_site_data
     end
   end
 
@@ -62,5 +64,6 @@ module PlatformAdminAuthentication
     cookies.delete(:platform_admin_session_token)
     Current.platform_admin_session = nil
     Current.platform_admin = nil
+    clear_site_data
   end
 end
