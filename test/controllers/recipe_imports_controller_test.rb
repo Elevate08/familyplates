@@ -93,8 +93,8 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "a site that trickles its response is cut off and the import says it timed out" do
-    with_fetch_deadline(2) do
-      with_slow_drip_server(interval: 0.5) do |url|
+    with_slow_drip_server do |url|
+      with_fetch_timeout(2) do
         assert_no_difference "Recipe.count" do
           post recipe_imports_url, params: { url: url }
         end
@@ -126,6 +126,17 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # The scraper calls the fetcher with its defaults, so shorten the deadline at that call.
+  def with_fetch_timeout(seconds)
+    original = SafeHttpFetcher.method(:get_response)
+    SafeHttpFetcher.define_singleton_method(:get_response) do |url, headers: {}, **|
+      original.call(url, headers: headers, timeout: seconds)
+    end
+    yield
+  ensure
+    SafeHttpFetcher.define_singleton_method(:get_response, original)
+  end
 
   def with_scrape_failure(error)
     original_fetch = RecipeScraper.method(:fetch)

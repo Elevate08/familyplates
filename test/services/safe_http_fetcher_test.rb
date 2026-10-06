@@ -9,8 +9,8 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
   class ScriptedFetcher < SafeHttpFetcher
     attr_reader :visited
 
-    def initialize(url, replies:)
-      super(url)
+    def initialize(url, replies:, timeout: SafeHttpFetcher::TOTAL_TIMEOUT)
+      super(url, timeout: timeout)
       @replies = replies
       @visited = []
     end
@@ -117,35 +117,72 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
     assert_equal "<html>recipe</html>", fetcher.send(:read_capped, small)
   end
 
-  test "cuts off a response that trickles in slower than the total deadline" do
-    with_fetch_deadline(2) do
-      with_slow_drip_server(interval: 0.5) do |url|
+  {
+    body: "a body",
+    headers: "response headers",
+    gzip: "a gzip stream that decodes to nothing"
+  }.each do |where, what|
+    test "cuts off #{what} that trickles in slower than the total deadline" do
+      with_slow_drip_server(where: where) do |url|
         started = monotonic_now
 
-        assert_raises(Timeout::Error) { SafeHttpFetcher.get(url) }
+        assert_raises(Timeout::Error) { SafeHttpFetcher.get(url, timeout: 2) }
 
         elapsed = monotonic_now - started
-        assert_operator elapsed, :>=, 1.5, "it should have read until the deadline, not given up early"
-        assert_operator elapsed, :<, 4, "the deadline must cover the whole fetch, not each read"
+        assert_operator elapsed, :>=, 1.5, "it should have waited for the deadline, not given up early"
+        assert_operator elapsed, :<, 5, "the deadline must cover the whole fetch, not each read"
       end
     end
   end
 
   test "the total deadline spans every redirect hop" do
-    fetcher = nil
-    with_fetch_deadline(1) do
-      fetcher = ScriptedFetcher.new(
-        "http://93.184.216.34/a",
-        replies: [ redirect_to("http://93.184.216.34/b"), ok("late") ]
-      )
-      fetcher.define_singleton_method(:perform_request) do |target|
-        sleep 1.2
-        super(target)
-      end
-
-      assert_raises(Timeout::Error) { fetcher.get }
+    fetcher = ScriptedFetcher.new(
+      "http://93.184.216.34/a",
+      replies: [ redirect_to("http://93.184.216.34/b"), ok("late") ],
+      timeout: 1
+    )
+    fetcher.define_singleton_method(:perform_request) do |target|
+      sleep 0.7
+      super(target)
     end
-    assert_equal 1, fetcher.visited.length, "no hop may start once the deadline has passed"
+
+    assert_raises(Timeout::Error) { fetcher.get }
+    assert_equal 1, fetcher.visited.length, "the second hop is interrupted before it completes"
+  end
+
+  test "a slow policy check, such as a DNS lookup, counts against the deadline" do
+    original = OutboundUrlPolicy.method(:check!)
+    OutboundUrlPolicy.define_singleton_method(:check!) { |_url| sleep 5 }
+
+    started = monotonic_now
+    assert_raises(Timeout::Error) { SafeHttpFetcher.get("http://slow-dns.test/", timeout: 1) }
+    assert_operator monotonic_now - started, :<, 4
+  ensure
+    OutboundUrlPolicy.define_singleton_method(:check!, original)
+  end
+
+  test "a request the server drops is not silently retried" do
+    server = TCPServer.new("127.0.0.1", 0)
+    connections = 0
+    acceptor = Thread.new do
+      loop { server.accept.close; connections += 1 }
+    rescue IOError
+      nil
+    end
+    original = OutboundUrlPolicy.method(:check!)
+    OutboundUrlPolicy.define_singleton_method(:check!) do |url|
+      OutboundUrlPolicy::Target.new(uri: URI.parse(url), address: "127.0.0.1")
+    end
+
+    assert_raises(EOFError, Errno::ECONNRESET) do
+      SafeHttpFetcher.get("http://drop.test:#{server.addr[1]}/")
+    end
+    sleep 0.2
+    assert_equal 1, connections, "Net::HTTP retries an idempotent request unless max_retries is 0"
+  ensure
+    OutboundUrlPolicy.define_singleton_method(:check!, original)
+    server&.close
+    acceptor&.join(1)
   end
 
   test "environment proxies are not used for the pinned connection" do

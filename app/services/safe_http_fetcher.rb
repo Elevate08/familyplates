@@ -10,30 +10,29 @@ class SafeHttpFetcher
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 10
   WRITE_TIMEOUT = 10
-  # One budget for the whole fetch, every redirect hop included. The timeouts above
-  # apply per socket operation, so a server sending a byte every few seconds never trips
-  # them and would hold the request thread (Puma has few) indefinitely. The deadline is
-  # checked before each hop and after each chunk, so a single read can run past it by at
-  # most READ_TIMEOUT.
+  # One budget for the whole fetch: DNS, every redirect hop, connect, headers and body.
+  # The timeouts above apply per socket operation, so a server sending a byte every few
+  # seconds never trips them and would hold the request thread (Puma has few) indefinitely.
+  # Timeout::Error is what RecipeScraper already reports as :timeout.
   TOTAL_TIMEOUT = 20
 
   Result = Struct.new(:status, :location, :body, keyword_init: true) do
     def redirect? = status.between?(300, 399) && location.present?
   end
 
-  def self.get(url, headers: {})
-    new(url, headers: headers).get
+  def self.get(url, headers: {}, timeout: TOTAL_TIMEOUT)
+    new(url, headers: headers, timeout: timeout).get
   end
 
   # Returns status too, so import can tell a 403/429 block from a page with no recipe.
-  def self.get_response(url, headers: {})
-    new(url, headers: headers).get_response
+  def self.get_response(url, headers: {}, timeout: TOTAL_TIMEOUT)
+    new(url, headers: headers, timeout: timeout).get_response
   end
 
-  def initialize(url, headers: {})
+  def initialize(url, headers: {}, timeout: TOTAL_TIMEOUT)
     @url = url
     @headers = headers
-    @deadline = monotonic_now + TOTAL_TIMEOUT
+    @timeout = timeout
   end
 
   def get
@@ -41,11 +40,16 @@ class SafeHttpFetcher
   end
 
   def get_response
+    Timeout.timeout(@timeout) { follow_redirects }
+  end
+
+  private
+
+  def follow_redirects
     url = @url
     seen = 0
 
     loop do
-      check_deadline!
       target = OutboundUrlPolicy.check!(url)
       result = perform_request(target)
 
@@ -59,8 +63,6 @@ class SafeHttpFetcher
     end
   end
 
-  private
-
   # Connect to the pinned address. Keep the hostname for SNI and Host so DNS is not resolved again.
   # The proxy address is nil, not the default :ENV, so http_proxy/https_proxy cannot
   # reroute the request through a host the address policy never checked.
@@ -69,9 +71,11 @@ class SafeHttpFetcher
     http = Net::HTTP.new(uri.host, uri.port, nil)
     http.ipaddr = target.address
     http.use_ssl = uri.scheme == "https"
-    http.open_timeout = [ OPEN_TIMEOUT, time_left ].min
-    http.read_timeout = [ READ_TIMEOUT, time_left ].min
-    http.write_timeout = [ WRITE_TIMEOUT, time_left ].min
+    http.open_timeout = OPEN_TIMEOUT
+    http.read_timeout = READ_TIMEOUT
+    http.write_timeout = WRITE_TIMEOUT
+    # Net::HTTP silently retries an idempotent request once, which would restart its timeouts.
+    http.max_retries = 0
 
     http.start do |connection|
       request = Net::HTTP::Get.new(uri.request_uri, @headers)
@@ -95,18 +99,8 @@ class SafeHttpFetcher
       if body.bytesize > MAX_BYTES
         raise Rejected, "response exceeded #{MAX_BYTES} bytes"
       end
-      check_deadline!
     end
 
     body
-  end
-
-  def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-  def time_left = [ @deadline - monotonic_now, 0.1 ].max
-
-  # Timeout::Error is what RecipeScraper already reports as :timeout.
-  def check_deadline!
-    raise Timeout::Error, "fetch exceeded #{TOTAL_TIMEOUT}s" if monotonic_now >= @deadline
   end
 end
