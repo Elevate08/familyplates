@@ -122,9 +122,11 @@ All external identity providers are disabled by default. Configure these variabl
 | `OIDC_CLIENT_SECRET` | *(None)* | OIDC Client Secret. |
 | `OIDC_DISPLAY_NAME` | `Single Sign-On` | Button label for SSO on sign-in screen (e.g. `Authentik` or `Authelia`). |
 | `AUTH_FORWARD_AUTH_ENABLED` | `false` | Enable trusted reverse proxy forward-auth (`true` / `false`). |
-| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | Comma-separated trusted reverse proxy IPs or CIDR subnets (e.g. `10.0.0.0/8`). |
+| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | Comma-separated trusted reverse proxy IPs or CIDR subnets (e.g. `10.0.0.0/8`). See the note below. |
 | `FORWARD_AUTH_EMAIL_HEADERS` | `Remote-Email,X-Forwarded-Email,Tailscale-User-Login` | Headers checked for user email from trusted proxies. |
 | `FORWARD_AUTH_LOGOUT_URL` | *(None)* | Optional URL to redirect to on sign-out (e.g. proxy SSO logout page). |
+
+**Forward-auth trusted proxies.** The app checks the address of the hop that connected to it, never a client-supplied `X-Forwarded-For` value. In the Docker image the app runs behind its own Thruster server, so that internal hop is ignored and the address Thruster saw connect (your reverse proxy) is checked instead. Set `FORWARD_AUTH_TRUSTED_PROXIES` to the reverse proxy's address as the container sees it (for example its Docker network address), and keep the app port reachable only from that proxy. If the loopback address is the connecting hop and the request carries `X-Forwarded-For`, the last entry is used; so running `rails server` directly behind a proxy on the same host, without Thruster, is not supported for forward-auth when the proxy sends `X-Forwarded-For`: the request is refused. A refused request logs `[auth] forward_auth_untrusted_peer peer=<ip>` (no header values).
 
 ## Running the tests
 

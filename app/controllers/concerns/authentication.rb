@@ -1,3 +1,5 @@
+require "ipaddr"
+
 module Authentication
   extend ActiveSupport::Concern
 
@@ -251,11 +253,33 @@ module Authentication
   def forward_auth_active?
     return false unless FamilyPlates.config.forward_auth_enabled?
     return false if session[:forward_auth_signed_out]
-    # The immediate peer, not request.remote_ip: remote_ip is read from
-    # X-Forwarded-For, which any client on a private network can set.
-    return false unless trusted_forward_auth_proxy?(request.remote_addr)
+    return false if extract_forward_auth_email.blank?
 
-    extract_forward_auth_email.present?
+    peer = forward_auth_peer_ip
+    return true if trusted_forward_auth_proxy?(peer)
+
+    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{peer}")
+    false
+  end
+
+  # The address that connected to the app, not request.remote_ip: remote_ip is
+  # read from X-Forwarded-For, which any client on a private network can set.
+  # In the Docker image Puma sits behind Thruster, so the TCP peer is always
+  # loopback and Thruster appends the address that connected to it as the last
+  # X-Forwarded-For entry. That entry is the hop to check.
+  def forward_auth_peer_ip
+    peer = normalize_peer_ip(request.remote_addr)
+    forwarded = request.get_header("HTTP_X_FORWARDED_FOR").to_s
+    return peer unless peer&.loopback? && forwarded.present?
+
+    normalize_peer_ip(forwarded.split(",").last)
+  end
+
+  def normalize_peer_ip(value)
+    ip = IPAddr.new(value.to_s.strip)
+    ip.ipv4_mapped? ? ip.native : ip
+  rescue IPAddr::Error
+    nil
   end
 
   def authenticate_via_forward_auth
@@ -289,19 +313,14 @@ module Authentication
     start_new_session_for_user(user)
   end
 
-  def trusted_forward_auth_proxy?(peer_ip)
-    return false if peer_ip.blank?
+  def trusted_forward_auth_proxy?(peer)
+    return false if peer.nil?
 
-    require "ipaddr"
-    proxies = FamilyPlates.config.forward_auth_trusted_proxies
-    peer = IPAddr.new(peer_ip)
-    proxies.any? do |trusted|
+    FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
       IPAddr.new(trusted.strip).include?(peer)
     rescue IPAddr::Error
       false
     end
-  rescue IPAddr::Error
-    false
   end
 
   def extract_forward_auth_email

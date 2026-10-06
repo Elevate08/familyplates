@@ -83,21 +83,134 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert_not existing_user.identities.exists?(provider: "forward_auth")
   end
 
-  # SA-01
-  test "trusted proxy that adds its own X-Forwarded-For still signs the user in" do
+  # SA-01: in the Docker image Puma sits behind Thruster, so REMOTE_ADDR is always
+  # 127.0.0.1 and Thruster appends the address that connected to it as the last
+  # X-Forwarded-For entry.
+  test "forward-auth through Thruster refuses a client that spoofs the identity header" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    # default trusted list: 127.0.0.1, ::1
+    assert_no_difference [ "User.count", "Identity.count", "Session.count" ] do
+      get root_path, headers: {
+        "Remote-Email" => "victim@example.com",
+        "X-Forwarded-For" => "127.0.0.1, 192.168.1.50",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+
+    assert_redirected_to select_profile_path
+    assert cookies[:session_token].blank?
+    assert_not User.exists?(email: "victim@example.com")
+  end
+
+  # SA-01
+  test "forward-auth through Thruster trusts the proxy Thruster saw connect" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
         "Remote-Email" => "proxied_user@example.com",
-        "X-Forwarded-For" => "203.0.113.9",
+        "X-Forwarded-For" => "203.0.113.9, 172.18.0.5",
         "REMOTE_ADDR" => "127.0.0.1"
       }
-
-      assert_redirected_to select_profile_path
-      assert cookies[:session_token].present?
     end
+
+    assert_redirected_to select_profile_path
+    assert cookies[:session_token].present?
+  end
+
+  # SA-01
+  test "forward-auth through Thruster ignores a proxy address the client put in X-Forwarded-For" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_no_difference [ "User.count", "Identity.count", "Session.count" ] do
+      get root_path, headers: {
+        "Remote-Email" => "victim@example.com",
+        "X-Forwarded-For" => "172.18.0.5, 192.168.1.50",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
+  test "forward-auth through Thruster reads an IPv4-mapped IPv6 proxy address" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "mapped_user@example.com",
+        "X-Forwarded-For" => "203.0.113.9, ::ffff:172.18.0.5",
+        "REMOTE_ADDR" => "::ffff:127.0.0.1"
+      }
+    end
+  end
+
+  # SA-01
+  test "forward-auth with a direct non-loopback trusted peer uses REMOTE_ADDR, not X-Forwarded-For" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "direct_user@example.com",
+        "X-Forwarded-For" => "203.0.113.9",
+        "REMOTE_ADDR" => "172.18.0.5"
+      }
+    end
+    assert cookies[:session_token].present?
+  end
+
+  # SA-01
+  test "forward-auth normalises an IPv4-mapped IPv6 direct peer" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "mapped_direct@example.com",
+        "REMOTE_ADDR" => "::ffff:172.18.0.5"
+      }
+    end
+  end
+
+  # SA-01
+  test "forward-auth refuses an unparseable or blank peer" do
+    FamilyPlates.config.forward_auth_enabled = true
+
+    assert_no_difference "User.count" do
+      get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "" }
+      get root_path, headers: {
+        "Remote-Email" => "b@example.com",
+        "X-Forwarded-For" => "127.0.0.1, not-an-ip",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+  end
+
+  # SA-01
+  test "an untrusted peer with identity headers is logged without header values" do
+    FamilyPlates.config.forward_auth_enabled = true
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: {
+        "Remote-Email" => "secret_victim@example.com",
+        "REMOTE_ADDR" => "192.168.1.50"
+      }
+      get root_path, headers: { "REMOTE_ADDR" => "192.168.1.51" }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_includes io.string, "[auth] forward_auth_untrusted_peer peer=192.168.1.50"
+    assert_not_includes io.string, "forward_auth_untrusted_peer peer=192.168.1.51"
+    assert_not_includes io.string, "secret_victim"
   end
 
   # @card-20.6
