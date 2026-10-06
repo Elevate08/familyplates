@@ -686,6 +686,114 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # SA-04 review
+  test "a client-added Remote-User cannot sign in as another user when only the email header is trusted" do
+    victim = User.create!(email: "victim@example.com", password: "password123")
+    victim.identities.create!(provider: "forward_auth", uid: "victim@example.com")
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    with_forward_auth_header_env("FORWARD_AUTH_EMAIL_HEADERS" => "X-Forwarded-Email") do
+      assert_no_difference [ "User.count", "Identity.count", "Session.count" ] do
+        get root_path, headers: {
+          "X-Forwarded-Email" => "attacker@example.com",
+          "Remote-User" => "victim@example.com",
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+    end
+
+    assert cookies[:session_token].blank?
+    assert_not victim.sessions.exists?
+    auth_lines = io.string.lines.grep(/\[auth\]/).join
+    assert_includes auth_lines, "forward_auth_identity_email_mismatch"
+    assert_not_includes auth_lines, "victim@example.com"
+    assert_not_includes auth_lines, "attacker@example.com"
+  ensure
+    Rails.logger.stop_broadcasting_to(capture) if capture
+  end
+
+  # SA-04 review
+  test "a returning forward-auth user whose email matches the identity still signs in" do
+    user = User.create!(email: "regular@example.com", password: "password123")
+    user.identities.create!(provider: "forward_auth", uid: "regular_uid")
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    assert_no_difference [ "User.count", "Identity.count" ] do
+      get root_path, headers: {
+        "Remote-Email" => "Regular@Example.com",
+        "Remote-User" => "regular_uid",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+
+    assert cookies[:session_token].present?
+    assert user.sessions.exists?
+  end
+
+  # SA-04 review
+  test "a trusted proxy request without the email header logs one warning per process naming the header" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      with_forward_auth_header_env("FORWARD_AUTH_EMAIL_HEADERS" => "Tailscale-User-Login, X-Forwarded-Email") do
+        get root_path, headers: { "Remote-Email" => "old_default@example.com", "REMOTE_ADDR" => "127.0.0.1" }
+        get root_path, headers: { "REMOTE_ADDR" => "127.0.0.1" }
+      end
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    auth_lines = io.string.lines.grep(/\[auth\]/).join
+    assert_equal 1, auth_lines.scan("forward_auth_email_header_missing").size
+    assert_includes auth_lines, "Tailscale-User-Login, X-Forwarded-Email"
+    assert_not_includes auth_lines, "old_default@example.com"
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-04 review
+  test "a request from an untrusted peer without the email header does not trigger the missing-header warning" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: { "REMOTE_ADDR" => "192.168.1.50" }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_not_includes io.string, "forward_auth_email_header_missing"
+  end
+
+  # SA-04 review
+  test "the missing-header warning is not logged when the proxy sends the header, and is not logged when forward-auth is off" do
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: { "REMOTE_ADDR" => "127.0.0.1" }
+      FamilyPlates.config.forward_auth_enabled = true
+      get root_path, headers: { "Remote-Email" => "fine@example.com", "REMOTE_ADDR" => "127.0.0.1" }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_not_includes io.string, "forward_auth_email_header_missing"
+  end
+
   private
 
   # Runs the block with the forward-auth header variables cleared, then set to

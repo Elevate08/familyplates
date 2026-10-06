@@ -257,13 +257,30 @@ module Authentication
     return if session[:forward_auth_signed_out]
 
     email = extract_forward_auth_email
-    return if email.blank?
-
     peer = forward_auth_peer_ip
-    return email if trusted_forward_auth_proxy?(peer)
+    trusted = trusted_forward_auth_proxy?(peer)
+
+    if email.blank?
+      warn_forward_auth_email_header_missing if trusted
+      return
+    end
+    return email if trusted
 
     Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{forward_auth_peer_label(peer)}")
     nil
+  end
+
+  # Only called for a trusted proxy, so a client cannot trigger it. An install
+  # that relied on the old default headers (X-Forwarded-Email, Tailscale-User-Login)
+  # stops signing people in, and this is the clue. Logged once per process.
+  def warn_forward_auth_email_header_missing
+    return unless FamilyPlates.config.forward_auth_email_header_warning_due?
+
+    Rails.logger.warn(
+      "[auth] forward_auth_email_header_missing a request from a trusted proxy had none of the email " \
+      "headers forward-auth reads (#{FamilyPlates.config.forward_auth_email_headers.join(', ')}); " \
+      "set FORWARD_AUTH_EMAIL_HEADERS to the header your proxy sends. Logged once per process."
+    )
   end
 
   # The address that connected to the app, not request.remote_ip: remote_ip is
@@ -308,6 +325,8 @@ module Authentication
       end
     end
 
+    return if forward_auth_identity_email_mismatch?(uid, email)
+
     user = User.find_or_create_from_identity(
       provider: "forward_auth",
       uid: uid,
@@ -318,6 +337,18 @@ module Authentication
       name: name
     )
     start_new_session_for_user(user)
+  end
+
+  # The user ID header is not always set by the proxy: when only the email header
+  # is, a client can add a user ID header naming someone else's identity. An
+  # identity found by that ID belongs to the user the proxy's email names, or the
+  # request is refused. Logged without any address or ID.
+  def forward_auth_identity_email_mismatch?(uid, email)
+    identity = Identity.includes(:user).find_by(provider: "forward_auth", uid: uid)
+    return false if identity.nil? || identity.user.email == email
+
+    Rails.logger.warn("[auth] forward_auth_identity_email_mismatch the user ID header named an identity whose account email differs from the proxy's email header; sign-in refused")
+    true
   end
 
   def trusted_forward_auth_proxy?(peer)

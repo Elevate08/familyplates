@@ -161,22 +161,33 @@ module FamilyPlates
     end
 
     def forward_auth_email_headers
-      @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_email_headers, "EMAIL", "Remote-Email")
     end
 
     def forward_auth_user_headers
-      @forward_auth_user_headers || (ENV["FORWARD_AUTH_USER_HEADERS"].presence || ENV["FORWARD_AUTH_USER_HEADER"].presence || "Remote-User").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_user_headers, "USER", "Remote-User")
     end
 
     def forward_auth_name_headers
-      @forward_auth_name_headers || (ENV["FORWARD_AUTH_NAME_HEADERS"].presence || ENV["FORWARD_AUTH_NAME_HEADER"].presence || "Remote-Name").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_name_headers, "NAME", "Remote-Name")
     end
 
     def forward_auth_logout_url
       @forward_auth_logout_url || ENV["FORWARD_AUTH_LOGOUT_URL"]
     end
 
+    def initialize
+      @forward_auth_email_header_warned = Concurrent::AtomicBoolean.new(false)
+    end
+
+    # True the first time it is called in this process (until reset!), so a
+    # warning that every request could trigger is logged once.
+    def forward_auth_email_header_warning_due?
+      @forward_auth_email_header_warned.make_true
+    end
+
     def reset!
+      @forward_auth_email_header_warned = Concurrent::AtomicBoolean.new(false)
       @mode = nil
       @require_login = nil
       @google_auth_enabled = nil
@@ -199,6 +210,14 @@ module FamilyPlates
       @forward_auth_user_headers = nil
       @forward_auth_name_headers = nil
       @forward_auth_logout_url = nil
+    end
+
+    private
+
+    # The header names for one forward-auth identity field: the value set in
+    # code, else FORWARD_AUTH_<KIND>_HEADERS (or the older singular name), else the default.
+    def forward_auth_headers(configured, kind, default)
+      configured || (ENV["FORWARD_AUTH_#{kind}_HEADERS"].presence || ENV["FORWARD_AUTH_#{kind}_HEADER"].presence || default).split(",").map(&:strip)
     end
   end
 
