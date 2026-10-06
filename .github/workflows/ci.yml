@@ -227,10 +227,27 @@ jobs:
       - name: Build the ${{ matrix.edition }} image
         run: docker build --build-arg EDITION=${{ matrix.edition }} -t familyplates:${{ matrix.edition }} .
 
+      # Development and test tools are not shipped: some (brakeman,
+      # bundler-audit) carry licenses that should not ride along in a
+      # distributed image, and none are needed to run the app.
+      - name: The ${{ matrix.edition }} image ships no development or test gems
+        run: |
+          # Bundler installs gems under /usr/local/bundle/ruby/<version>/gems, where
+          # `gem list` does not look. A runtime gem must be found there first, or the
+          # check proves nothing.
+          has_gem() {
+            docker run --rm --entrypoint sh familyplates:${{ matrix.edition }} \
+              -c "ls -d /usr/local/bundle/ruby/*/gems/$1-[0-9]* >/dev/null 2>&1"
+          }
+          has_gem rails || { echo "rails not found where the bundle is installed"; exit 1; }
+          for gem in brakeman bundler-audit rubocop capybara selenium-webdriver debug; do
+            if has_gem $gem; then echo "$gem is in the image"; exit 1; fi
+          done
+
       - name: The appliance image leaves the hosted edition out
         if: matrix.edition == 'appliance'
         run: |
-          docker run --rm --entrypoint sh familyplates:appliance -c 'test ! -e saas && test ! -e Gemfile.saas && ! gem list -i "^pay$"'
+          docker run --rm --entrypoint sh familyplates:appliance -c 'test ! -e saas && test ! -e Gemfile.saas && ! ls -d /usr/local/bundle/ruby/*/gems/pay-[0-9]* >/dev/null 2>&1'
           docker run --rm -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted' | grep -x booted
           ! docker run --rm -e FAMILYPLATES_MODE=hosted -e SECRET_KEY_BASE="$(openssl rand -hex 64)" familyplates:appliance ./bin/rails runner 'puts :booted'
 
