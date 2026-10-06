@@ -51,6 +51,10 @@ env:
     - STRIPE_PRIVATE_KEY
     - STRIPE_SIGNING_SECRET
 
-# The SQLite databases and uploaded images. Nothing else is mounted.
+# The SQLite databases and uploaded images. Nothing else is mounted. The host
+# folder sits on a separate data disk mounted at /srv/familyplates-production, so the
+# server can be replaced or resized without moving the data, and the disk is
+# snapshotted on its own schedule. Create storage/ owned by 1000:1000 (the
+# container's rails user) before the first `kamal setup`.
 volumes:
-  - "familyplates_production_storage:/rails/storage"
+  - "/srv/familyplates-production/storage:/rails/storage"

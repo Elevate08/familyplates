@@ -60,6 +60,10 @@ env:
     - STAGING_ACCESS_USERNAME
     - STAGING_ACCESS_PASSWORD
 
-# The SQLite databases and uploaded images. Nothing else is mounted.
+# The SQLite databases and uploaded images. Nothing else is mounted. The host
+# folder sits on a separate data disk mounted at /srv/familyplates-staging, so the
+# server can be replaced or resized without moving the data, and the disk is
+# snapshotted on its own schedule. Create storage/ owned by 1000:1000 (the
+# container's rails user) before the first `kamal setup`.
 volumes:
-  - "familyplates_staging_storage:/rails/storage"
+  - "/srv/familyplates-staging/storage:/rails/storage"
