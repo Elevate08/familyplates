@@ -251,7 +251,9 @@ module Authentication
   def forward_auth_active?
     return false unless FamilyPlates.config.forward_auth_enabled?
     return false if session[:forward_auth_signed_out]
-    return false unless trusted_forward_auth_proxy?(request.remote_ip)
+    # The immediate peer, not request.remote_ip: remote_ip is read from
+    # X-Forwarded-For, which any client on a private network can set.
+    return false unless trusted_forward_auth_proxy?(request.remote_addr)
 
     extract_forward_auth_email.present?
   end
@@ -287,14 +289,14 @@ module Authentication
     start_new_session_for_user(user)
   end
 
-  def trusted_forward_auth_proxy?(remote_ip)
-    return false if remote_ip.blank?
+  def trusted_forward_auth_proxy?(peer_ip)
+    return false if peer_ip.blank?
 
     require "ipaddr"
     proxies = FamilyPlates.config.forward_auth_trusted_proxies
-    client_ip = IPAddr.new(remote_ip)
+    peer = IPAddr.new(peer_ip)
     proxies.any? do |trusted|
-      IPAddr.new(trusted.strip).include?(client_ip)
+      IPAddr.new(trusted.strip).include?(peer)
     rescue IPAddr::Error
       false
     end

@@ -47,6 +47,59 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # SA-01
+  test "forward-auth ignores a spoofed X-Forwarded-For from an untrusted private peer" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    assert_no_difference [ "User.count", "Identity.count", "Session.count" ] do
+      get root_path, headers: {
+        "Remote-Email" => "victim@example.com",
+        "X-Forwarded-For" => "127.0.0.1",
+        "REMOTE_ADDR" => "192.168.1.50"
+      }
+
+      assert_redirected_to select_profile_path
+      assert cookies[:session_token].blank?
+      assert_not User.exists?(email: "victim@example.com")
+    end
+  end
+
+  # SA-01
+  test "forward-auth does not link an existing user when X-Forwarded-For is spoofed" do
+    existing_user = User.create!(email: "victim@example.com", password: "password123")
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    assert_no_difference [ "Identity.count", "Session.count" ] do
+      get root_path, headers: {
+        "X-Forwarded-Email" => "victim@example.com",
+        "X-Forwarded-For" => "127.0.0.1",
+        "REMOTE_ADDR" => "10.0.0.7"
+      }
+    end
+
+    assert cookies[:session_token].blank?
+    assert_not existing_user.identities.exists?(provider: "forward_auth")
+  end
+
+  # SA-01
+  test "trusted proxy that adds its own X-Forwarded-For still signs the user in" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "proxied_user@example.com",
+        "X-Forwarded-For" => "203.0.113.9",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+
+      assert_redirected_to select_profile_path
+      assert cookies[:session_token].present?
+    end
+  end
+
   # @card-20.6
   test "trusted forward-auth provisions user and establishes session" do
     FamilyPlates.config.forward_auth_enabled = true
