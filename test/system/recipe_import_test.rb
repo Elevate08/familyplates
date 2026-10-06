@@ -24,7 +24,7 @@ class RecipeImportTest < ApplicationSystemTestCase
 
     finish_import RecipeScraper::Result.new(recipe: { title: "Browser Tacos", servings: 4, ingredients: [] })
 
-    assert_text "Imported \"Browser Tacos\" into your recipe box", wait: 10
+    assert_text_after_reload "Imported \"Browser Tacos\" into your recipe box"
     assert_current_path %r{\A/recipes/\d+/edit\z}
     assert_selector "input[name='recipe[title]'][value='Browser Tacos']"
     assert_equal 1, Recipe.where(title: "Browser Tacos").count
@@ -37,11 +37,25 @@ class RecipeImportTest < ApplicationSystemTestCase
 
     finish_import RecipeScraper::Result.new(error: :timeout)
 
-    assert_text RecipeImport::FAILURE_MESSAGES[:timeout], wait: 10
+    assert_text_after_reload RecipeImport::FAILURE_MESSAGES[:timeout]
     assert_current_path new_recipe_import_path
   end
 
   private
+
+  # The waiting page moves on by itself (a meta refresh), so a query can land in the
+  # middle of that navigation. Chrome then answers "Node with given id does not belong
+  # to the document", an error Capybara does not retry (it failed one CI run).
+  def assert_text_after_reload(text, wait: 10)
+    deadline = Time.now + wait
+    begin
+      assert_text text, wait: wait
+    rescue Selenium::WebDriver::Error::UnknownError => e
+      raise unless e.message.include?("does not belong to the document") && Time.now < deadline
+
+      retry
+    end
+  end
 
   def start_import(url)
     visit new_recipe_import_path
