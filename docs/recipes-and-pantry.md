@@ -56,9 +56,9 @@ The Grocery List aggregates all ingredients required across scheduled breakfast,
 
 Three areas work without a connection: the **grocery list**, **recipes** (including Cook Mode) and the **meal plan** (including its print view).
 
-* A page is available offline after you have opened it on that device while online. Pages you have not opened yet are not saved. The Planner link and the app's start page show this week's plan as it was when you last opened the Planner.
+* A page is available offline after you have opened it on that device while online. Pages you have not opened yet are not saved. The Planner link and the app's start page show the plan you opened most recently.
 * Pages with a filter or search in the address (for example a recipe search, or the month view) are not saved; the plain page is.
 * Recipe photos you uploaded are saved with the recipes that show them.
 * Every other page needs a connection. Opened offline, it shows a short notice listing the three offline areas.
-* Signing out clears the pages saved in that browser. It also resets the theme, grocery list ticks and Cook Mode progress stored there.
+* Signing out, or switching to a profile in another household, clears the pages saved in that browser. It also resets the theme, grocery list ticks and Cook Mode progress stored there.
 * The browser keeps saved pages only on HTTPS or `localhost`.

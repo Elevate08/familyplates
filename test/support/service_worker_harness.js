@@ -1,5 +1,5 @@
 // Runs the rendered service worker (stdin) against fake caches and a fake
-// network, then prints what it did as JSON. Used by ServiceWorkerBehaviourTest;
+// network, then prints what it did as JSON. Used by PwaControllerTest;
 // nothing here ships to the browser.
 const vm = require("vm");
 const fs = require("fs");
@@ -29,11 +29,12 @@ function fakeResponse(body, { url, redirected = false, type = "basic", status = 
   return response;
 }
 
-// The fake network answers "network <final path>". `redirects` maps a path to where the server sends it.
-// A request that leaves redirects to the browser (navigate mode) gets an opaque redirect, as in Chromium.
-function fakeNetwork(redirects = {}) {
+// The fake network answers "network <final path>". `redirects` maps a path to where the server sends it;
+// `statuses` maps a path to a status other than 200. A request that leaves redirects to the browser
+// (navigate mode) gets an opaque redirect, as in Chromium. `calls` records every request made.
+function fakeNetwork(redirects = {}, statuses = {}) {
   const calls = [];
-  const network = {
+  return {
     calls,
     fetch: async (req) => {
       const manual = typeof req !== "string" && req.redirect === "manual";
@@ -42,10 +43,11 @@ function fakeNetwork(redirects = {}) {
       const target = redirects[asked.pathname];
       if (target && manual) return fakeResponse("", { url: "", type: "opaqueredirect", status: 0 });
       const final = target ? new URL(target + asked.search, ORIGIN) : asked;
-      return fakeResponse("network " + final.pathname + final.search, { url: final.href, redirected: Boolean(target) });
+      return fakeResponse("network " + final.pathname + final.search, {
+        url: final.href, redirected: Boolean(target), status: statuses[final.pathname] || 200
+      });
     }
   };
-  return network;
 }
 
 const offlineNetwork = { fetch: async () => { throw new TypeError("offline"); } };
@@ -53,13 +55,18 @@ const offlineNetwork = { fetch: async () => { throw new TypeError("offline"); } 
 function boot(network) {
   const stores = new Map();
   const puts = [];
+  const deletes = [];
+  let clock = 0;
   const keyOf = (req) => (typeof req === "string" ? new URL(req, ORIGIN).href : req.url);
   const open = async (name) => {
     if (!stores.has(name)) stores.set(name, new Map());
     const store = stores.get(name);
     return {
       put: async (req, res) => { puts.push(new URL(keyOf(req)).pathname); store.set(keyOf(req), res); },
-      addAll: async (urls) => { for (const url of urls) store.set(keyOf(url), new Response("precached " + url)); }
+      addAll: async (urls) => { for (const url of urls) store.set(keyOf(url), new Response("precached " + url)); },
+      keys: async () => [...store.keys()].map((url) => ({ url })),
+      match: async (req) => (store.has(keyOf(req)) ? store.get(keyOf(req)).clone() : undefined),
+      delete: async (req) => { deletes.push(new URL(keyOf(req)).pathname); return store.delete(keyOf(req)); }
     };
   };
   const caches = {
@@ -78,8 +85,12 @@ function boot(network) {
     skipWaiting: () => Promise.resolve(),
     clients: { claim: () => Promise.resolve() }
   };
-  const worker = { listeners, caches, puts, stores, network };
-  const context = { self, caches, URL, Response, TypeError, console: { warn() {}, log() {} }, fetch: (req) => worker.network.fetch(req) };
+  const worker = { listeners, caches, puts, deletes, stores, network };
+  // Date.now() ticks once per call, so "most recent" is unambiguous
+  const context = {
+    self, caches, URL, Response, Headers, TypeError, Date: { now: () => ++clock }, console: { warn() {}, log() {} },
+    fetch: (req) => worker.network.fetch(req)
+  };
   vm.runInNewContext(source, context);
   return worker;
 }
@@ -100,9 +111,16 @@ async function dispatch(worker, request) {
   return { intercepted: responded !== undefined, response, error };
 }
 
+async function install(worker) {
+  let installing;
+  worker.listeners.install({ waitUntil: (p) => { installing = p; } });
+  await installing;
+}
+
 const text = async (r) => (r.response ? r.response.text() : null);
 const goOffline = (worker) => { worker.network = offlineNetwork; };
-const putsSince = (worker, from) => worker.puts.slice(from);
+const uniqueSorted = (list) => [...new Set(list)].sort();
+const keptPaths = (worker) => [...worker.stores.values()].flatMap((store) => [...store.keys()].map((key) => new URL(key).pathname)).sort();
 
 async function run() {
   const results = {};
@@ -123,7 +141,7 @@ async function run() {
   for (const path of probes.html) await dispatch(worker, fakeRequest(path));
   for (const path of probes.other) await dispatch(worker, fakeRequest(path, { accept: "*/*", mode: "cors" }));
   for (const path of probes.assets) await dispatch(worker, fakeRequest(path, { accept: "*/*", mode: "no-cors" }));
-  results.cachedPaths = [...new Set(worker.puts)].sort();
+  results.cachedPaths = uniqueSorted(worker.puts);
 
   // Other GET page that asks for HTML but is the export link, and non-GET and cross-origin.
   results.postIntercepted = (await dispatch(worker, fakeRequest("/recipes", { method: "POST" }))).intercepted;
@@ -138,48 +156,60 @@ async function run() {
   await dispatch(bounced, fakeRequest("/", { mode: "navigate" }));
   results.signInRedirectCached = bounced.puts;
 
-  // Turbo visits to "/" and "/meal_plans" reach the plan through a redirect: the plan is kept under its own
-  // address, and as the "/" and "/meal_plans" copies.
+  // A Turbo visit to "/" or "/meal_plans" follows the redirect: the plan is kept under its own address,
+  // stamped with the time it was kept, and nothing else is written or fetched.
   const plan = { "/": "/meal_plans/4", "/meal_plans": "/meal_plans/4" };
   const turbo = boot(fakeNetwork(plan));
   await dispatch(turbo, fakeRequest("/", { mode: "cors" }));
-  results.turboHomeCached = [...new Set(turbo.puts)].sort();
+  results.turboHomeCached = keptPaths(turbo);
+  results.turboNetworkCalls = [...turbo.network.calls];
+  const stamped = [...turbo.stores.values()][0].get(ORIGIN + "/meal_plans/4");
+  results.turboStamp = stamped.headers.get("X-SW-Cached-At");
   const turboIndex = boot(fakeNetwork(plan));
   await dispatch(turboIndex, fakeRequest("/meal_plans", { mode: "cors" }));
-  results.turboIndexCached = [...new Set(turboIndex.puts)].sort();
+  results.turboIndexCached = keptPaths(turboIndex);
 
-  // Browser navigations leave the redirect to the browser, so the worker looks the plan up itself.
+  // A browser navigation leaves the redirect to the browser: the worker keeps nothing and makes no second
+  // request; the plan is kept when the browser's own request for it comes through.
   const navigated = boot(fakeNetwork(plan));
-  await dispatch(navigated, fakeRequest("/", { mode: "navigate" }));
-  results.navigateHomeCached = [...new Set(navigated.puts)].sort();
-  const navigatedIndex = boot(fakeNetwork(plan));
-  await dispatch(navigatedIndex, fakeRequest("/meal_plans", { mode: "navigate" }));
-  results.navigateIndexCached = [...new Set(navigatedIndex.puts)].sort();
-  const navigatedElsewhere = boot(fakeNetwork({ "/recipes": "/recipes/12" }));
-  await dispatch(navigatedElsewhere, fakeRequest("/recipes", { mode: "navigate" }));
-  results.navigateOtherRedirectNetworkCalls = navigatedElsewhere.network.calls;
+  const opaque = await dispatch(navigated, fakeRequest("/", { mode: "navigate" }));
+  await dispatch(navigated, fakeRequest("/meal_plans", { mode: "navigate" }));
+  results.navigateRedirectStatus = opaque.response.status;
+  results.navigateRedirectCached = keptPaths(navigated);
+  results.navigateRedirectCalls = [...navigated.network.calls];
+  await dispatch(navigated, fakeRequest("/meal_plans/4", { mode: "navigate" }));
+  results.navigateFollowedCached = keptPaths(navigated);
 
-  // Only those redirects write the "/" and "/meal_plans" copies: another week's plan, or a month view, must not.
-  const copies = boot(fakeNetwork(plan));
-  await dispatch(copies, fakeRequest("/", { mode: "cors" }));
-  let mark = copies.puts.length;
-  await dispatch(copies, fakeRequest("/meal_plans/9", { mode: "cors" }));
-  await dispatch(copies, fakeRequest("/meal_plans/9", { mode: "navigate" }));
-  await dispatch(copies, fakeRequest("/meal_plans/9/print", { mode: "navigate" }));
-  await dispatch(copies, fakeRequest("/meal_plans/4?view=month", { mode: "cors" }));
-  await dispatch(copies, fakeRequest("/meal_plans?view=month", { mode: "cors" }));
-  results.otherPlanWrites = putsSince(copies, mark);
-  goOffline(copies);
-  results.homeCopyAfterOtherPlans = await text(await dispatch(copies, fakeRequest("/")));
-  results.indexCopyAfterOtherPlans = await text(await dispatch(copies, fakeRequest("/meal_plans")));
+  // Offline, "/" and "/meal_plans" show the most recently kept plan without a query string.
+  const plans = boot(fakeNetwork());
+  await dispatch(plans, fakeRequest("/meal_plans/9", { mode: "cors" }));
+  await dispatch(plans, fakeRequest("/meal_plans/4", { mode: "navigate" }));
+  await dispatch(plans, fakeRequest("/meal_plans/9?view=month", { mode: "cors" }));
+  await dispatch(plans, fakeRequest("/recipes/12", { mode: "navigate" }));
+  goOffline(plans);
+  results.latestPlanHome = await text(await dispatch(plans, fakeRequest("/")));
+  results.latestPlanIndex = await text(await dispatch(plans, fakeRequest("/meal_plans")));
+  results.latestPlanQuery = await text(await dispatch(plans, fakeRequest("/meal_plans?view=month")));
+  plans.network = fakeNetwork();
+  await dispatch(plans, fakeRequest("/meal_plans/9", { mode: "navigate" }));
+  goOffline(plans);
+  results.latestPlanAfterRevisit = await text(await dispatch(plans, fakeRequest("/")));
+  results.latestPlanTurbo = await dispatch(plans, fakeRequest("/", { mode: "cors" }));
+
+  // With no plan kept, "/" gets the notice rather than another page.
+  const noPlan = boot(fakeNetwork());
+  await dispatch(noPlan, fakeRequest("/recipes/12", { mode: "navigate" }));
+  goOffline(noPlan);
+  const noPlanHome = await dispatch(noPlan, fakeRequest("/"));
+  results.noPlanHome = { body: await text(noPlanHome), status: noPlanHome.response && noPlanHome.response.status };
 
   // Turbo Frame responses are fragments: never kept, and never over the full page.
   const frames = boot(online);
   await dispatch(frames, fakeRequest("/recipes/12", { mode: "navigate" }));
-  mark = frames.puts.length;
+  const framesMark = frames.puts.length;
   const frame = await dispatch(frames, fakeRequest("/recipes/12", { mode: "cors", headers: { "Turbo-Frame": "recipe_card" } }));
   await dispatch(frames, fakeRequest("/recipes", { mode: "cors", headers: { "Turbo-Frame": "list" } }));
-  results.frameWrites = putsSince(frames, mark);
+  results.frameWrites = frames.puts.slice(framesMark);
   results.frameBody = await text(frame);
 
   // A query string (search, tag filter, view variant) is a different page of the same area: not kept.
@@ -198,12 +228,37 @@ async function run() {
   for (const path of [blob, variant, proxied, "/rails/active_storage/disk/key/photo.jpg"]) {
     await dispatch(photos, fakeRequest(path, { accept: "image/*", mode: "no-cors" }));
   }
-  results.photoCached = [...new Set(photos.puts)].sort();
+  results.photoCached = uniqueSorted(photos.puts);
   goOffline(photos);
   results.photoOffline = await text(await dispatch(photos, fakeRequest(blob, { accept: "image/*", mode: "no-cors" })));
   results.photoNeverSeenOffline = (await dispatch(photos, fakeRequest("/rails/active_storage/blobs/redirect/zzz/other.jpg", { accept: "image/*", mode: "no-cors" }))).error;
 
-  // Offline: an allowed page that was viewed comes back from the cache, and "/" shows the current plan.
+  // A page or photo the server reports gone (404, 410) loses its kept copy.
+  const gone = boot(online);
+  await dispatch(gone, fakeRequest("/recipes/12", { mode: "navigate" }));
+  await dispatch(gone, fakeRequest("/recipes/13", { mode: "navigate" }));
+  await dispatch(gone, fakeRequest(blob, { accept: "image/*", mode: "no-cors" }));
+  await dispatch(gone, fakeRequest("/assets/application-abc123.css", { accept: "text/css", mode: "no-cors" }));
+  gone.network = fakeNetwork({}, { "/recipes/12": 404, "/recipes/13": 500, [blob]: 410, "/assets/application-abc123.css": 404 });
+  const goneReply = await dispatch(gone, fakeRequest("/recipes/12", { mode: "navigate" }));
+  await dispatch(gone, fakeRequest("/recipes/13", { mode: "navigate" }));
+  await dispatch(gone, fakeRequest(blob, { accept: "image/*", mode: "no-cors" }));
+  await dispatch(gone, fakeRequest("/assets/application-abc123.css", { accept: "text/css", mode: "no-cors" }));
+  results.goneStatus = goneReply.response.status;
+  results.goneKept = keptPaths(gone);
+
+  // Install saves the grocery list and recipes when signed in, and nothing when the answer is a redirect.
+  const signedIn = boot(fakeNetwork());
+  await install(signedIn);
+  results.installSignedIn = keptPaths(signedIn);
+  const signedOut = boot(fakeNetwork({ "/grocery_list": "/session/new", "/recipes": "/session/new" }));
+  await install(signedOut);
+  results.installSignedOut = keptPaths(signedOut);
+  const failing = boot(fakeNetwork({}, { "/grocery_list": 503, "/recipes": 404 }));
+  await install(failing);
+  results.installFailing = keptPaths(failing);
+
+  // Offline: an allowed page that was viewed comes back from the cache.
   const later = boot(fakeNetwork(plan));
   await dispatch(later, fakeRequest("/", { mode: "cors" }));
   await dispatch(later, fakeRequest("/recipes/12"));
@@ -212,7 +267,6 @@ async function run() {
   results.offlineHome = await text(await dispatch(later, fakeRequest("/")));
   results.offlinePlanIndex = await text(await dispatch(later, fakeRequest("/meal_plans")));
   results.offlinePlan = await text(await dispatch(later, fakeRequest("/meal_plans/4")));
-  results.offlineHomeTurbo = await text(await dispatch(later, fakeRequest("/", { mode: "cors" })));
   const refused = {};
   for (const path of ["/platform_admin", "/account_data", "/subscription", "/recipes/99", "/grocery_list"]) {
     const reply = await dispatch(later, fakeRequest(path));
@@ -220,13 +274,9 @@ async function run() {
   }
   results.offlineFallbacks = refused;
 
-  // Opened offline with nothing kept yet, "/" gets the notice rather than another page.
+  // Only a navigation gets the notice page or the plan; a Turbo or script fetch gets the network error.
   const empty = boot(online);
   goOffline(empty);
-  const emptyHome = await dispatch(empty, fakeRequest("/"));
-  results.offlineHomeEmpty = { body: await text(emptyHome), status: emptyHome.response && emptyHome.response.status };
-
-  // Only a navigation gets the notice page; a Turbo or script fetch gets the network error.
   const scripted = {};
   for (const path of ["/recipes/99", "/account_data", "/"]) {
     const reply = await dispatch(empty, fakeRequest(path, { mode: "cors" }));
@@ -236,12 +286,8 @@ async function run() {
 
   // Activate deletes older cache versions and keeps its own.
   const upgraded = boot(online);
-  await upgraded.caches.open("familyplates-v1");
-  await upgraded.caches.open("familyplates-v2");
-  await upgraded.caches.open("familyplates-v3");
-  let installing;
-  upgraded.listeners.install({ waitUntil: (p) => { installing = p; } });
-  await installing;
+  for (const old of ["familyplates-v1", "familyplates-v2", "familyplates-v3", "familyplates-v4"]) await upgraded.caches.open(old);
+  await install(upgraded);
   let activation;
   upgraded.listeners.activate({ waitUntil: (p) => { activation = p; } });
   await activation;

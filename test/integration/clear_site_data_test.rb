@@ -75,6 +75,40 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
     assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   end
 
+  # The worker's offline pages are keyed by per-household numbers (/recipes/12), so another
+  # household's page must not be left behind for the same address.
+  test "switching to a profile in another household clears the browser" do
+    other = Household.create!(name: "Second Home").family_members.create!(name: "Alex", role: "member", user: @user)
+    post session_path, params: { email: @user.email, password: "password123" }
+
+    post switch_family_member_path(other)
+
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
+    assert signed_in_as?(other)
+  end
+
+  test "choosing a profile in another household from the profile picker clears the browser" do
+    other = Household.create!(name: "Second Home").family_members.create!(name: "Alex", role: "member", user: @user)
+    post session_path, params: { email: @user.email, password: "password123" }
+
+    post set_profile_path(other)
+
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
+    assert signed_in_as?(other)
+  end
+
+  test "switching profiles within one household leaves the browser alone" do
+    sibling = family_members(:two)
+    post session_path, params: { email: @user.email, password: "password123" }
+
+    post switch_family_member_path(sibling)
+    assert_nil response.headers["Clear-Site-Data"]
+    assert signed_in_as?(sibling)
+
+    post set_profile_path(family_members(:one)), params: { pin: "1234" }
+    assert_nil response.headers["Clear-Site-Data"]
+  end
+
   test "ordinary signed-in pages do not clear anything" do
     post session_path, params: { email: @user.email, password: "password123" }
 

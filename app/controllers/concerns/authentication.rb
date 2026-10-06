@@ -234,6 +234,10 @@ module Authentication
   end
 
   def start_new_session_for(member)
+    # The service worker's pages are addressed by per-household numbers (/recipes/12), so another
+    # household's must not stay in the browser under the same address.
+    clear_site_data if Current.household && Current.household.id != member.household_id
+
     Current.family_member = member
     Current.household = member.household
     write_permanent_signed_cookie(:active_family_member_id, member.id)

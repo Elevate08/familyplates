@@ -1,4 +1,4 @@
-const CACHE_NAME = "familyplates-v4";
+const CACHE_NAME = "familyplates-v5";
 
 // Only these pages work offline: the grocery list, recipes and the meal plan.
 // Nothing else is kept (no operator console, account data, billing, support,
@@ -10,10 +10,13 @@ const OFFLINE_PAGES = [
   /^\/meal_plans(\/\d+(\/print)?)?$/
 ];
 
-// "/" (the manifest start_url) and "/meal_plans" only redirect to this week's plan. The plan is
-// kept under its own address and, when reached through one of them, as their copy too.
+// "/" (the manifest start_url) and "/meal_plans" only redirect to this week's plan. Offline, a
+// navigation to either shows the plan that was kept most recently (see latestPlan).
 const PLAN_ENTRY_PATHS = ["/", "/meal_plans"];
 const PLAN_PAGE = /^\/meal_plans\/\d+$/;
+
+// Opened at install, so a fresh install or a new sign-in does not start with nothing offline.
+const PRECACHED_PAGES = ["/grocery_list", "/recipes"];
 
 // Static files that carry no household data. The icons are also saved at install.
 const ICON_PATHS = ["/icon.png", "/icon.svg", "/favicon.ico"];
@@ -23,6 +26,9 @@ const STATIC_PATHS = [...ICON_PATHS, "/manifest.json"];
 // pages keep their pictures. Signing out clears them with everything else.
 const UPLOADED_IMAGE = /^\/rails\/active_storage\/(blobs|representations)\//;
 
+// Stamped on a kept page: when it was kept, to find the plan seen last.
+const KEPT_AT = "X-SW-Cached-At";
+
 function isOfflinePage(pathname) {
   return OFFLINE_PAGES.some((pattern) => pattern.test(pathname));
 }
@@ -31,37 +37,58 @@ function isCachedFile(pathname) {
   return pathname.startsWith("/assets/") || STATIC_PATHS.includes(pathname) || UPLOADED_IMAGE.test(pathname);
 }
 
-// Keep an offline page the network just answered with, under the address it ended at. Not kept: a
-// redirect to some other page (sign-in), a Turbo Frame fragment, and a page with a query string
-// (search, tag filter, view variant: unbounded in number). Reached through "/" or "/meal_plans",
-// the plan is also the copy that answers those two offline.
+// A copy to keep: stamped, and without the "redirected" mark, because the browser refuses to show a
+// redirected response for a navigation and a plan reached through "/" is one.
+function stampedCopy(response) {
+  const copy = response.clone();
+  const headers = new Headers(copy.headers);
+  headers.set(KEPT_AT, String(Date.now()));
+  return new Response(copy.body, { status: copy.status, statusText: copy.statusText, headers });
+}
+
+// Keep an offline page the network just answered with, under the address it ended at (so a plan
+// reached through the redirect from "/" is kept as /meal_plans/N). Not kept: a redirect to some other
+// page (sign-in), a Turbo Frame fragment, and a page with a query string (search, tag filter, view
+// variant: unbounded in number).
 function keepOfflinePage(request, response) {
-  const asked = new URL(request.url);
   const landed = new URL(response.url || request.url);
   if (response.status !== 200 || landed.origin !== self.location.origin) return Promise.resolve();
   if (!isOfflinePage(landed.pathname) || landed.search) return Promise.resolve();
   if (request.headers.get("Turbo-Frame")) return Promise.resolve();
 
-  const keys = [landed.href];
-  if (PLAN_ENTRY_PATHS.includes(asked.pathname) && !asked.search && PLAN_PAGE.test(landed.pathname)) {
-    PLAN_ENTRY_PATHS.forEach((path) => keys.push(self.location.origin + path));
+  const copy = stampedCopy(response);
+  return caches.open(CACHE_NAME).then((cache) => cache.put(landed.href, copy));
+}
+
+// A page or file the server says is gone (404, 410) loses its kept copy.
+function forgetIfGone(request, response) {
+  if (response.status !== 404 && response.status !== 410) return Promise.resolve();
+  return caches.open(CACHE_NAME).then((cache) => cache.delete(request.url));
+}
+
+// The kept plan page without a query string that was kept last, or undefined.
+async function latestPlan() {
+  const cache = await caches.open(CACHE_NAME);
+  let newest;
+  let newestAt = -1;
+  for (const key of await cache.keys()) {
+    const kept = new URL(key.url);
+    if (kept.search || !PLAN_PAGE.test(kept.pathname)) continue;
+    const response = await cache.match(key);
+    const keptAt = Number(response && response.headers.get(KEPT_AT)) || 0;
+    if (keptAt > newestAt) {
+      newest = response;
+      newestAt = keptAt;
+    }
   }
-  const copies = keys.map((key) => [key, plainCopy(response)]);
-  return caches.open(CACHE_NAME).then((cache) => Promise.all(copies.map(([key, copy]) => cache.put(key, copy))));
+  return newest;
 }
 
-// A copy without the "redirected" mark: the browser refuses to show a redirected response for a
-// navigation, and a plan reached through "/" or "/meal_plans" is one.
-function plainCopy(response) {
-  const copy = response.clone();
-  return new Response(copy.body, { status: copy.status, statusText: copy.statusText, headers: copy.headers });
-}
-
-// A navigation to "/" or "/meal_plans" is redirected by the browser itself, so the worker only sees an
-// opaque redirect and never learns which plan it led to. Look once more, following the redirect.
-function keepPlanBehind(request) {
-  return fetch(request.url, { headers: { Accept: "text/html" } })
-    .then((response) => keepOfflinePage(request, response))
+// Open a page at install. A redirect (to sign-in, when nobody is signed in) or an error is not kept.
+function precachePage(path) {
+  const asked = { url: self.location.origin + path, headers: { get: () => null } };
+  return fetch(path, { headers: { Accept: "text/html" } })
+    .then((response) => (response.redirected ? null : keepOfflinePage(asked, response)))
     .catch(() => {});
 }
 
@@ -84,14 +111,14 @@ function offlineResponse() {
   });
 }
 
-// Install: Cache the icons only; offline pages are saved as they are visited
+// Install: Cache the icons, the grocery list and recipes; other offline pages are saved as they are visited
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ICON_PATHS).catch((err) => {
         console.warn("ServiceWorker pre-caching partial failure", err);
       });
-    }).then(() => self.skipWaiting())
+    }).then(() => Promise.all(PRECACHED_PAGES.map(precachePage))).then(() => self.skipWaiting())
   );
 });
 
@@ -130,18 +157,21 @@ self.addEventListener("fetch", (event) => {
       event.respondWith(
         fetch(request)
           .then((response) => {
-            if (response.type === "opaqueredirect") {
-              if (PLAN_ENTRY_PATHS.includes(url.pathname) && !url.search) event.waitUntil(keepPlanBehind(request));
-            } else {
-              event.waitUntil(keepOfflinePage(request, response));
+            // An opaque redirect is a navigation whose redirect the browser follows itself; the page it
+            // leads to comes through here as its own request and is kept then. The worker adds no request.
+            if (response.type !== "opaqueredirect") {
+              event.waitUntil(Promise.all([keepOfflinePage(request, response), forgetIfGone(request, response)]));
             }
             return response;
           })
           .catch(async (error) => {
             const cached = await caches.match(request, { ignoreVary: true });
             if (cached) return cached;
-            // Only a navigation can show the notice page; a Turbo or script fetch gets the network error
-            if (request.mode === "navigate") return offlineResponse();
+            // Only a navigation can show the plan or the notice page; a Turbo or script fetch gets the network error
+            if (request.mode === "navigate") {
+              const plan = PLAN_ENTRY_PATHS.includes(url.pathname) && !url.search && await latestPlan();
+              return plan || offlineResponse();
+            }
             throw error;
           })
       );
@@ -161,13 +191,15 @@ self.addEventListener("fetch", (event) => {
       const networkFetch = fetch(request).then((networkResponse) => {
         if (networkResponse.status === 200) {
           const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+        } else {
+          event.waitUntil(forgetIfGone(request, networkResponse));
         }
         return networkResponse;
       });
 
       if (cachedResponse) {
-        networkFetch.catch(() => {});
+        event.waitUntil(networkFetch.catch(() => {}));
         return cachedResponse;
       }
 

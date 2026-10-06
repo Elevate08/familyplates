@@ -59,10 +59,10 @@ test.describe("Offline pages and sign-out", () => {
     await page.goto("/grocery_list");
 
     // /meal_plans redirects to the current plan, so the plan page itself is what gets kept.
-    await expect.poll(() => cachedPaths(page)).toEqual(expect.arrayContaining(["/grocery_list", "/recipes", "/meal_plans"]));
+    await expect.poll(() => cachedPaths(page)).toEqual(expect.arrayContaining(["/grocery_list", "/recipes"]));
     const kept = await cachedPaths(page);
     expect(kept.some((path) => /^\/meal_plans\/\d+$/.test(path))).toBe(true);
-    for (const path of ["/preferences/edit", "/admin"]) expect(kept).not.toContain(path);
+    for (const path of ["/", "/meal_plans", "/preferences/edit", "/admin"]) expect(kept).not.toContain(path);
     // A search is a page of the recipes area, but one of unboundedly many: only the plain page is kept.
     expect((await cachedUrls(page)).filter((url) => url.includes("?"))).toEqual([]);
 
@@ -95,8 +95,10 @@ test.describe("Offline pages and sign-out", () => {
     // In-app navigation: Turbo fetches "/", follows the redirect to the plan, and swaps the page in.
     await plannerLink(page).click();
     await page.waitForURL(/\/meal_plans\/\d+$/);
-    await expect.poll(() => cachedPaths(page)).toEqual(expect.arrayContaining(["/", "/meal_plans"]));
-    expect((await cachedPaths(page)).some((path) => /^\/meal_plans\/\d+$/.test(path))).toBe(true);
+    await expect.poll(async () => (await cachedPaths(page)).some((path) => /^\/meal_plans\/\d+$/.test(path))).toBe(true);
+    // The plan is kept under its own address only; "/" is not a copy of it.
+    expect(await cachedPaths(page)).not.toContain("/");
+    const planPath = new URL(page.url()).pathname;
 
     await recipesLink(page).click();
     await page.waitForURL(/\/recipes$/);
@@ -111,6 +113,11 @@ test.describe("Offline pages and sign-out", () => {
     const start = await page.goto("/");
     expect(start?.status()).toBe(200);
     await expect(page.locator(PLAN_MARKER)).toBeVisible();
+
+    // The plan kept from the redirected Turbo visit also opens by its own address, as a navigation.
+    const plan = await page.goto(planPath);
+    expect(plan?.status()).toBe(200);
+    await expect(page.locator(PLAN_MARKER)).toBeVisible();
     await page.context().setOffline(false);
   });
 
@@ -118,14 +125,36 @@ test.describe("Offline pages and sign-out", () => {
     await signInAs(page, "Dad", "1234");
     await waitForWorker(page);
 
-    // A browser navigation: the redirect is the browser's, so the worker looks the plan up itself.
+    // A browser navigation: the browser follows the redirect itself, and the plan is kept when its own request arrives.
     await page.goto("/");
-    await expect.poll(() => cachedPaths(page)).toEqual(expect.arrayContaining(["/", "/meal_plans"]));
+    await expect.poll(async () => (await cachedPaths(page)).some((path) => /^\/meal_plans\/\d+$/.test(path))).toBe(true);
 
     await page.context().setOffline(true);
-    const start = await page.goto("/");
-    expect(start?.status()).toBe(200);
-    await expect(page.locator(PLAN_MARKER)).toBeVisible();
+    for (const path of ["/", "/meal_plans"]) {
+      const start = await page.goto(path);
+      expect(start?.status()).toBe(200);
+      await expect(page.locator(PLAN_MARKER)).toBeVisible();
+    }
+    await page.context().setOffline(false);
+  });
+
+  test("a fresh install saves the grocery list and recipes without a visit", async ({ page }) => {
+    await signInAs(page, "Dad", "1234");
+    await waitForWorker(page);
+
+    // Start over: no worker, nothing kept, then the page load installs the worker again.
+    await page.evaluate(async () => {
+      for (const registration of await navigator.serviceWorker.getRegistrations()) await registration.unregister();
+      for (const name of await caches.keys()) await caches.delete(name);
+    });
+    await page.goto("/preferences/edit");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    await expect.poll(() => cachedPaths(page)).toEqual(expect.arrayContaining(["/grocery_list", "/recipes"]));
+    expect(await cachedPaths(page)).not.toContain("/preferences/edit");
+
+    await page.context().setOffline(true);
+    expect((await page.goto("/recipes"))?.status()).toBe(200);
     await page.context().setOffline(false);
   });
 });
