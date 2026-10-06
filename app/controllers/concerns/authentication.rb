@@ -268,9 +268,10 @@ module Authentication
 
   # The address that connected to the app, not request.remote_ip: remote_ip is
   # read from X-Forwarded-For, which any client on a private network can set.
-  # In the Docker image Puma sits behind Thruster, so the TCP peer is always
-  # loopback and Thruster appends the address that connected to it as the last
-  # X-Forwarded-For entry. That entry is the hop to check.
+  # In the Docker image, requests normally arrive through Thruster, so the TCP
+  # peer is loopback and Thruster appends the address that connected to it as
+  # the last X-Forwarded-For entry. That entry is the hop to check. A connection
+  # straight to Puma's own port (3000) has its own address and is checked as is.
   def forward_auth_peer_ip
     peer = normalize_peer_ip(request.remote_addr)
     forwarded = request.get_header("HTTP_X_FORWARDED_FOR")

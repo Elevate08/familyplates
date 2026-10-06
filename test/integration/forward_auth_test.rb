@@ -105,7 +105,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth through Thruster trusts the proxy Thruster saw connect" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
@@ -122,7 +122,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth through Thruster ignores a proxy address the client put in X-Forwarded-For" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_no_difference [ "User.count", "Identity.count", "Session.count" ] do
       get root_path, headers: {
@@ -138,7 +138,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth through Thruster reads an IPv4-mapped IPv6 proxy address" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
@@ -149,10 +149,53 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # SA-01: Thruster can also connect over IPv6 loopback.
+  test "forward-auth from an IPv6 loopback peer refuses a spoofed last X-Forwarded-For entry" do
+    FamilyPlates.config.forward_auth_enabled = true
+
+    assert_no_difference [ "User.count", "Session.count" ] do
+      get root_path, headers: {
+        "Remote-Email" => "victim@example.com",
+        "X-Forwarded-For" => "192.168.1.50",
+        "REMOTE_ADDR" => "::1"
+      }
+    end
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
+  test "forward-auth from an IPv6 loopback peer trusts a trusted last X-Forwarded-For entry" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "ipv6_loopback@example.com",
+        "X-Forwarded-For" => "203.0.113.9, 172.18.0.5",
+        "REMOTE_ADDR" => "::1"
+      }
+    end
+    assert cookies[:session_token].present?
+  end
+
+  # SA-01
+  test "a CIDR range in the trusted list still matches a host address inside it" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "range_entry@example.com",
+        "X-Forwarded-For" => "203.0.113.9, 172.18.0.5",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+  end
+
   # SA-01
   test "forward-auth with a direct non-loopback trusted peer uses REMOTE_ADDR, not X-Forwarded-For" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
@@ -167,7 +210,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth normalises an IPv4-mapped IPv6 direct peer" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
@@ -243,7 +286,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth accepts a host-length prefix on the hop" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
