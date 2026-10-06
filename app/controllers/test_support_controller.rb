@@ -20,6 +20,9 @@ class TestSupportController < ActionController::Base
     CLOCK.travel_back
     CLOCK.travel_to(Time.iso8601(params[:now])) if params[:now].present?
 
+    # Before the fixtures, which replace the family members these rows point at.
+    RecipeImport.delete_all
+
     ActiveRecord::FixtureSet.reset_cache
     ActiveRecord::FixtureSet.create_fixtures(
       Rails.root.join("test/fixtures"),

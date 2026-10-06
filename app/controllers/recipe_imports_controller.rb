@@ -1,4 +1,10 @@
 class RecipeImportsController < ApplicationController
+  # Starting an import costs the web process nothing, so what is left to bound is how
+  # much a household can queue. Counted per household, in the login-throttling store.
+  RATE_LIMIT = 10
+  RATE_LIMIT_WINDOW = 5.minutes
+  RATE_LIMIT_ALERT = "You've started a lot of imports in a short time. Please wait a few minutes and try again.".freeze
+
   def new
   end
 
@@ -17,6 +23,12 @@ class RecipeImportsController < ApplicationController
       return
     end
 
+    if rate_limited?
+      Rails.logger.warn("[import] rate_limited household_id=#{current_household.id}")
+      redirect_to new_recipe_import_path, alert: RATE_LIMIT_ALERT
+      return
+    end
+
     import = current_household.recipe_imports.create!(url: url, family_member: current_family_member)
     RecipeImportJob.perform_later(import)
     redirect_to recipe_import_path(import)
@@ -27,8 +39,9 @@ class RecipeImportsController < ApplicationController
   # the pre-filled form when it could not be saved, or the reason it failed.
   def show
     @import = current_household.recipe_imports.find(params[:id])
+    @import.stall! if @import.stalled?
 
-    if @import.failed? || @import.stalled?
+    if @import.failed?
       redirect_to new_recipe_import_path, alert: @import.failure_message
     elsif @import.succeeded?
       show_import_result
@@ -36,6 +49,14 @@ class RecipeImportsController < ApplicationController
   end
 
   private
+
+  # Counted after the blank and duplicate-link checks, so only an import that is
+  # about to be queued uses up the allowance.
+  def rate_limited?
+    key = "rate-limit:recipe_imports:#{current_household.id}"
+    count = LoginThrottling.store.increment(key, 1, expires_in: RATE_LIMIT_WINDOW)
+    count.present? && count > RATE_LIMIT
+  end
 
   def show_import_result
     if @import.recipe_id
