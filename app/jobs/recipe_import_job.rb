@@ -5,10 +5,11 @@
 # Jobs run on a memory-capped worker (bin/jobs: the `worker` service in
 # docker-compose.yml, the `job` role in the Kamal deploy files), never inside Puma,
 # because a hostile page can send an endless response header, which Net::HTTP
-# buffers without limit until the fetch deadline (SA-12). That one worker runs
-# every queue; the `imports` queue name stays so imports can be given a worker of
-# their own. One import per household at a time, so one household cannot occupy
-# every worker thread (SA-13). Not retried: a page that failed once is not fetched
+# buffers without limit until the fetch deadline (SA-12). Inside it the `imports`
+# queue has a worker process of its own with one thread (config/queue.yml), so one
+# fetch at a time grows it and a kill by the memory cap leaves the other jobs
+# running. One import per household at a time, so one household cannot hold that
+# thread with a backlog of its own (SA-13). Not retried: a page that failed once is not fetched
 # again unasked. An import already failed as stalled is not started
 # (RecipeImport#claim!).
 class RecipeImportJob < ApplicationJob

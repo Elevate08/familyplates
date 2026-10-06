@@ -48,17 +48,36 @@ class BackgroundWorkerTest < ActiveSupport::TestCase
     assert_no_match(/SOLID_QUEUE_IN_PUMA/, Array(compose["familyplates"]["environment"]).join("\n"))
   end
 
-  test "one dispatcher and one worker definition, and the worker takes the imports queue once" do
-    config = YAML.safe_load(ERB.new(QUEUE_FILE.read).result, aliases: true).fetch("production")
-    workers = Array(config["workers"])
-    queue_lists = workers.map { |worker| Array(worker["queues"]).flat_map { |queues| queues.to_s.split(",").map(&:strip) } }
+  test "imports have a worker of their own with one thread, and no other worker takes the queue" do
+    workers = queue_config.fetch("workers")
+    imports, others = workers.partition { |worker| queue_names(worker) == [ "imports" ] }
 
-    assert_equal 1, Array(config["dispatchers"]).size
-    assert_equal 1, workers.size
-    # "*" is every queue, imports included; naming it as well would run it twice.
-    assert_equal 1, queue_lists.count { |queues| queues.include?("*") || queues.include?("imports") }
-    assert_equal 1, queue_lists.flatten.size, "a single queue list, not a * plus names"
+    assert_equal 1, Array(queue_config["dispatchers"]).size
+    assert_equal 1, imports.size, "exactly one worker for the imports queue"
+    assert_equal 1, imports.first["threads"], "one fetch at a time can grow this process"
+    assert_equal 1, imports.first["processes"]
+    assert_equal 1, others.size
+    # "*" is every queue, imports included, so it would run them in the other worker too.
+    assert_not_includes queue_names(others.first), "*"
+    assert_not_includes queue_names(others.first), "imports"
     assert_equal "imports", RecipeImportJob.queue_name
+  end
+
+  test "every job runs on a queue some worker takes" do
+    Rails.application.eager_load!
+    taken = queue_config.fetch("workers").flat_map { |worker| queue_names(worker) }
+    used = ActiveJob::Base.descendants.reject { |job| job.name.nil? || job <= ActionMailer::MailDeliveryJob }
+                          .map { |job| job.new.queue_name } + [ ActionMailer::Base.deliver_later_queue_name.presence || ActiveJob::Base.default_queue_name ]
+
+    assert_empty used.uniq - taken, "a job on a queue no worker takes would never run; add the queue to config/queue.yml"
+  end
+
+  test "Solid Queue accepts the worker blocks" do
+    configuration = SolidQueue::Configuration.new(config_file: QUEUE_FILE, recurring_schedule_file: RECURRING_FILE)
+    workers = configuration.configured_processes.select { |process| process.kind == :worker }
+
+    assert configuration.valid?, configuration.errors.full_messages.to_sentence
+    assert_equal [ [ "imports" ], %w[default solid_queue_recurring] ], workers.map { |worker| Array(worker.attributes[:queues]).flat_map { |q| q.to_s.split(",").map(&:strip) } }
   end
 
   test "the scheduler runs the recurring tasks, including the import cleanup, from the one supervisor" do
@@ -71,6 +90,14 @@ class BackgroundWorkerTest < ActiveSupport::TestCase
   end
 
   private
+
+  def queue_config
+    @queue_config ||= YAML.safe_load(ERB.new(QUEUE_FILE.read).result, aliases: true).fetch("production")
+  end
+
+  def queue_names(worker)
+    Array(worker["queues"]).flat_map { |queues| queues.to_s.split(",").map(&:strip) }
+  end
 
   def compose
     @compose ||= YAML.safe_load(COMPOSE_FILE.read, aliases: true).fetch("services")
