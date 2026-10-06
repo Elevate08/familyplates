@@ -9,8 +9,8 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
   class ScriptedFetcher < SafeHttpFetcher
     attr_reader :visited
 
-    def initialize(url, replies:, timeout: SafeHttpFetcher::TOTAL_TIMEOUT)
-      super(url, timeout: timeout)
+    def initialize(url, replies:, **options)
+      super(url, **options)
       @replies = replies
       @visited = []
     end
@@ -165,24 +165,31 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
     server = TCPServer.new("127.0.0.1", 0)
     connections = 0
     acceptor = Thread.new do
-      loop { server.accept.close; connections += 1 }
+      loop do
+        client = server.accept
+        connections += 1 # counted before the close, so the fetcher cannot fail first
+        client.close
+      end
     rescue IOError
       nil
     end
-    original = OutboundUrlPolicy.method(:check!)
-    OutboundUrlPolicy.define_singleton_method(:check!) do |url|
-      OutboundUrlPolicy::Target.new(uri: URI.parse(url), address: "127.0.0.1")
-    end
 
-    assert_raises(EOFError, Errno::ECONNRESET) do
-      SafeHttpFetcher.get("http://drop.test:#{server.addr[1]}/")
+    with_loopback_policy_pin do
+      assert_raises(EOFError, Errno::ECONNRESET, Errno::EPIPE, Errno::ECONNABORTED) do
+        SafeHttpFetcher.get("http://drop.test:#{server.addr[1]}/")
+      end
     end
-    sleep 0.2
+    server.close
+    acceptor.join(2)
     assert_equal 1, connections, "Net::HTTP retries an idempotent request unless max_retries is 0"
   ensure
-    OutboundUrlPolicy.define_singleton_method(:check!, original)
     server&.close
-    acceptor&.join(1)
+  end
+
+  test "refuses a missing or non-positive timeout, which Timeout would read as no limit" do
+    [ nil, 0, -1, "20" ].each do |bad|
+      assert_raises(ArgumentError, "timeout: #{bad.inspect}") { SafeHttpFetcher.new("http://93.184.216.34/", timeout: bad) }
+    end
   end
 
   test "environment proxies are not used for the pinned connection" do

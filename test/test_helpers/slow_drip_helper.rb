@@ -2,8 +2,7 @@ require "socket"
 require "zlib"
 
 # A real local server that answers with one byte every `interval` seconds, for
-# tests of SafeHttpFetcher's overall deadline. OutboundUrlPolicy refuses
-# 127.0.0.1, so the policy is stubbed to hand back a target pinned to it.
+# tests of SafeHttpFetcher's overall deadline, with the policy pinned to loopback.
 module SlowDripHelper
   # The server gives up after `for_seconds`, so a fetcher with no deadline ends the test by
   # failing an assertion instead of hanging it. `where` is the part of the response that
@@ -37,16 +36,21 @@ module SlowDripHelper
       client&.close
     end
 
+    with_loopback_policy_pin { yield "http://slow.test:#{port}/recipe" }
+  ensure
+    served&.kill
+    server&.close
+  end
+
+  # OutboundUrlPolicy refuses 127.0.0.1, so hand back a target pinned to it.
+  def with_loopback_policy_pin
     original = OutboundUrlPolicy.method(:check!)
     OutboundUrlPolicy.define_singleton_method(:check!) do |url|
       OutboundUrlPolicy::Target.new(uri: URI.parse(url), address: "127.0.0.1")
     end
-
-    yield "http://slow.test:#{port}/recipe"
+    yield
   ensure
-    OutboundUrlPolicy.define_singleton_method(:check!, original) if original
-    served&.kill
-    server&.close
+    OutboundUrlPolicy.define_singleton_method(:check!, original)
   end
 
   def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
