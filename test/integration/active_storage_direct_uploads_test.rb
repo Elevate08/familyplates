@@ -54,6 +54,22 @@ class ActiveStorageDirectUploadsTest < ActionDispatch::IntegrationTest
     blob&.service&.delete(blob.key)
   end
 
+  # A Rails upgrade that adds a write endpoint to Active Storage fails here
+  # until the endpoint is refused too.
+  test "every Active Storage route that is not a read goes to a controller that refuses writes" do
+    writes = Rails.application.routes.routes.select do |route|
+      next false unless route.defaults[:controller].to_s.start_with?("active_storage/")
+
+      route.verb.blank? || (route.verb.split("|") - %w[GET HEAD]).any?
+    end
+    assert_not_empty writes, "expected to find Active Storage's write routes"
+
+    writes.each do |route|
+      controller = "#{route.defaults[:controller]}_controller".camelize.constantize
+      assert_includes controller.ancestors, RefuseActiveStorageWrites, "#{route.verb} #{route.path.spec} is not refused"
+    end
+  end
+
   private
 
   def pixel

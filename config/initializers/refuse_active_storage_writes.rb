@@ -13,8 +13,7 @@ module RefuseActiveStorageWrites
   extend ActiveSupport::Concern
 
   included do
-    before_action :refuse_active_storage_write, prepend: true,
-      except: (:show if self == ActiveStorage::DiskController)
+    before_action :refuse_active_storage_write, prepend: true
   end
 
   private
@@ -26,6 +25,10 @@ end
 
 Rails.application.config.to_prepare do
   [ ActiveStorage::DirectUploadsController, ActiveStorage::DiskController ].each do |controller|
-    controller.include(RefuseActiveStorageWrites) unless controller.ancestors.include?(RefuseActiveStorageWrites)
+    next if controller.ancestors.include?(RefuseActiveStorageWrites)
+
+    controller.include(RefuseActiveStorageWrites)
+    # Serving images stays open.
+    controller.skip_before_action :refuse_active_storage_write, only: :show if controller == ActiveStorage::DiskController
   end
 end
