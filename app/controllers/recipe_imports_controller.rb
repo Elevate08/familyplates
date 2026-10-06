@@ -1,32 +1,9 @@
 class RecipeImportsController < ApplicationController
-  # "Could not fetch recipe" covered a site refusing bots, a dead link, and a
-  # page with no recipe on it alike, which left the user with nothing to act on.
-  IMPORT_FAILURE_MESSAGES = {
-    blocked_by_site: "That site blocks automatic recipe imports. Try copying the recipe in manually, or import it from another site.",
-    timeout: "That site took too long to respond. Please try again in a moment, or add the recipe manually.",
-    not_found: "That recipe page no longer exists. Please double-check the link.",
-    site_error: "That site is having trouble right now. Please try again later, or add the recipe manually.",
-    busy: "Recipe import is busy right now. Please try again in a moment.",
-    unparseable: "We couldn't find a recipe on that page. Make sure the link points at the recipe itself, or add it manually."
-    # :blocked (egress policy) deliberately has no entry: an address this server
-    # is not allowed to reach must look exactly like any other bad link, or the
-    # message becomes a probe for what is reachable from inside the network.
-  }.freeze
-
-  DEFAULT_IMPORT_FAILURE_MESSAGE = "Could not fetch recipe from that web address. Please check the link or add manually."
-
-  # The fetch runs inside the request and a slow site can hold its thread for the whole
-  # fetch deadline. At most one Puma thread per process is ever held by an outbound import
-  # fetch: this slot is taken without waiting, and anyone else is turned away at once.
-  FETCH_SLOT = Mutex.new
-
-  # The failure path renders "recipes/new", which needs the ingredient
-  # catalogue. Without this the view fell back to querying for it inline.
-  before_action :set_available_ingredients, only: %i[create]
-
   def new
   end
 
+  # The page is fetched by RecipeImportJob, not in this request: a slow or hostile
+  # site must not hold a web thread. The person waits on #show.
   def create
     url = params[:url].to_s.strip
     if url.blank?
@@ -40,13 +17,27 @@ class RecipeImportsController < ApplicationController
       return
     end
 
-    result = fetch_recipe(url)
-    if !result.success?
-      redirect_to new_recipe_import_path, alert: import_failure_message(result.error)
-      return
-    end
+    import = current_household.recipe_imports.create!(url: url, family_member: current_family_member)
+    RecipeImportJob.perform_later(import)
+    redirect_to recipe_import_path(import)
+  end
 
-    data = result.recipe
+  # The waiting page, which reloads itself until the job is done. Then the
+  # pre-filled recipe form, or the reason it failed.
+  def show
+    @import = current_household.recipe_imports.find(params[:id])
+
+    if @import.failed? || @import.stalled?
+      redirect_to new_recipe_import_path, alert: @import.failure_message
+    elsif @import.succeeded?
+      show_imported_recipe
+    end
+  end
+
+  private
+
+  def show_imported_recipe
+    data = @import.recipe_data
 
     existing_by_title = current_household.recipes.where("LOWER(title) = ?", data[:title].to_s.strip.downcase).first
     if existing_by_title
@@ -78,37 +69,11 @@ class RecipeImportsController < ApplicationController
         aisle_category: ing[:aisle_category].presence
       )
     end
+    5.times { @recipe.recipe_ingredients.build } if @recipe.recipe_ingredients.empty?
 
-    saved = RecipeIngredient.without_aisle_sync { @recipe.save }
-    @recipe.resync_aisle_mappings! if saved
-
-    if saved
-      target_path = current_family_member&.admin? ? edit_recipe_path(@recipe) : recipe_path(@recipe)
-      redirect_to target_path, notice: "🎉 Imported \"#{@recipe.title}\" into your recipe box!"
-    else
-      if @recipe.recipe_ingredients.empty?
-        5.times { @recipe.recipe_ingredients.build }
-      end
-      render "recipes/new", status: :unprocessable_entity
-    end
-  end
-
-  private
-
-  # Answers :busy at once, without waiting, when another import holds the slot.
-  def fetch_recipe(url)
-    unless FETCH_SLOT.try_lock
-      Rails.logger.info("[import] fetch_slot_busy household_id=#{current_household.id}")
-      return RecipeScraper::Result.new(recipe: nil, error: :busy)
-    end
-
-    RecipeScraper.fetch(url)
-  ensure
-    FETCH_SLOT.unlock if FETCH_SLOT.owned?
-  end
-
-  def import_failure_message(error)
-    IMPORT_FAILURE_MESSAGES.fetch(error, DEFAULT_IMPORT_FAILURE_MESSAGE)
+    # recipes/new needs the ingredient catalogue; without it the view queries for it inline.
+    set_available_ingredients
+    render "recipes/new"
   end
 
   def set_available_ingredients

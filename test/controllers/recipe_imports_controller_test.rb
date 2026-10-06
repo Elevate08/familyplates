@@ -3,9 +3,15 @@ require "test_helper"
 class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   include SlowDripHelper
 
+  GENERIC_FAILURE = "Could not fetch recipe from that web address. Please check the link or add manually.".freeze
+
   setup do
     @admin = family_members(:one)
     sign_in_as(@admin)
+  end
+
+  teardown do
+    RecipeScraper.define_singleton_method(:fetch, @original_fetch) if @original_fetch
   end
 
   test "should get new" do
@@ -14,11 +20,45 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should handle blank url" do
-    post recipe_imports_url, params: { url: "" }
+    assert_no_difference "RecipeImport.count" do
+      post recipe_imports_url, params: { url: "" }
+    end
     assert_redirected_to new_recipe_import_url
   end
 
-  test "should import recipe and redirect to recipe show page" do
+  test "starting an import queues a job on the imports queue and sends the person to the waiting page" do
+    stub_scraper { |_url| raise "the request must not fetch" }
+
+    assert_difference "RecipeImport.count", 1 do
+      assert_enqueued_with(job: RecipeImportJob, queue: "imports") do
+        post recipe_imports_url, params: { url: "  https://example.com/recipes/tacos  " }
+      end
+    end
+
+    import = RecipeImport.order(:created_at).last
+    assert_redirected_to recipe_import_url(import)
+    assert_equal households(:one), import.household
+    assert_equal @admin, import.family_member
+    assert_equal "https://example.com/recipes/tacos", import.url
+    assert import.queued?
+  end
+
+  test "the waiting page says the import is in progress and refreshes itself" do
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/wait")
+
+    get recipe_import_url(import)
+    assert_response :success
+    assert_select "meta[http-equiv=refresh][content^='3']", 1
+    assert_select "[role=status]", text: /Importing/
+    assert_select "form[action='#{recipes_path}']", 0
+
+    import.update!(status: "running", started_at: Time.current)
+    get recipe_import_url(import)
+    assert_response :success
+    assert_select "meta[http-equiv=refresh]", 1
+  end
+
+  test "a finished import opens the pre-filled recipe form, and saves nothing until the person saves it" do
     scraped_data = {
       title: "French Toast Casserole",
       description: "Delicious breakfast casserole",
@@ -31,28 +71,39 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
         { raw_text: "5 cups bread cubes", name: "Bread cubes", quantity: 5.0, unit: "cups", aisle_category: "Bakery" }
       ]
     }
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
 
-    original_fetch = RecipeScraper.method(:fetch)
-    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
-
-    begin
-      assert_difference("Recipe.count", 1) do
-        post recipe_imports_url, params: { url: "https://www.allrecipes.com/recipe/22389/french-toast-casserole/" }
-      end
-      recipe = Recipe.last
-      assert_redirected_to edit_recipe_url(recipe)
-      assert_equal "French Toast Casserole", recipe.title
-      assert_equal 1, recipe.recipe_ingredients.count
-      assert_includes flash[:notice], "Imported"
-    ensure
-      RecipeScraper.define_singleton_method(:fetch, original_fetch)
+    assert_no_difference "Recipe.count" do
+      import_and_wait("https://www.allrecipes.com/recipe/22389/french-toast-casserole/")
     end
+
+    assert_response :success
+    assert_select "meta[http-equiv=refresh]", 0
+    assert_select "form[action='#{recipes_path}']" do
+      assert_select "input[name='recipe[title]'][value='French Toast Casserole']"
+      assert_select "input[name='recipe[source_url]'][value='https://www.allrecipes.com/recipe/22389/french-toast-casserole/']"
+      assert_select "input[name='recipe[servings]'][value='6']"
+      assert_select "input[name='recipe[recipe_ingredients_attributes][0][name]'][value='Bread cubes']"
+      assert_select "input[name='recipe[recipe_ingredients_attributes][0][unit]'][value='cups']"
+    end
+  end
+
+  test "a finished import with no ingredients still offers blank ingredient rows" do
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: { title: "Plain Page", servings: 4, ingredients: [] }) }
+
+    import_and_wait("https://example.com/recipes/plain")
+
+    assert_response :success
+    assert_select "input[name='recipe[title]'][value='Plain Page']"
+    assert_select "input[name^='recipe[recipe_ingredients_attributes]'][name$='[name]']", minimum: 5
   end
 
   test "should redirect with alert if recipe URL already imported" do
     recipes(:one).update!(source_url: "https://example.com/existing-tacos")
 
-    post recipe_imports_url, params: { url: "https://example.com/existing-tacos" }
+    assert_no_difference "RecipeImport.count" do
+      post recipe_imports_url, params: { url: "https://example.com/existing-tacos" }
+    end
     assert_redirected_to recipe_url(recipes(:one))
     assert_includes flash[:alert], "already saved as"
   end
@@ -68,96 +119,36 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       instructions: "Cook.",
       ingredients: []
     }
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
 
-    original_fetch = RecipeScraper.method(:fetch)
-    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
-
-    begin
-      assert_no_difference("Recipe.count") do
-        post recipe_imports_url, params: { url: "https://example.com/different-tacos" }
-      end
-      assert_redirected_to recipe_url(recipes(:one))
-      assert_includes flash[:alert], "already in your recipe box"
-    ensure
-      RecipeScraper.define_singleton_method(:fetch, original_fetch)
+    assert_no_difference "Recipe.count" do
+      import_and_wait("https://example.com/different-tacos")
     end
+
+    assert_redirected_to recipe_url(recipes(:one))
+    assert_includes flash[:alert], "already in your recipe box"
   end
 
   test "a blocked import URL is refused with the ordinary error and creates nothing" do
     assert_no_difference "Recipe.count" do
-      post recipe_imports_url, params: { url: "http://169.254.169.254/latest/meta-data/" }
+      import_and_wait("http://169.254.169.254/latest/meta-data/")
     end
 
     assert_redirected_to new_recipe_import_url
-    assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.", flash[:alert]
+    assert_equal GENERIC_FAILURE, flash[:alert]
   end
 
   test "a site that trickles its response is cut off and the import says it timed out" do
     with_slow_drip_server do |url|
       with_fetch_timeout(2) do
         assert_no_difference "Recipe.count" do
-          post recipe_imports_url, params: { url: url }
+          import_and_wait(url)
         end
       end
     end
 
     assert_redirected_to new_recipe_import_url
-    assert_equal RecipeImportsController::IMPORT_FAILURE_MESSAGES[:timeout], flash[:alert]
-  end
-
-  test "a second import while one is fetching is refused at once, without fetching" do
-    slot = RecipeImportsController::FETCH_SLOT
-    held = Queue.new
-    release = Queue.new
-    fetching = Thread.new { slot.synchronize { held << true; release.pop } }
-    held.pop
-
-    log = StringIO.new
-    original_logger = Rails.logger
-    begin
-      Rails.logger = Logger.new(log)
-      original_fetch = RecipeScraper.method(:fetch)
-      RecipeScraper.define_singleton_method(:fetch) { |_url| raise "must not fetch while another import runs" }
-
-      assert_no_difference "Recipe.count" do
-        post recipe_imports_url, params: { url: "https://example.com/recipes/busy" }
-      end
-    ensure
-      Rails.logger = original_logger
-      RecipeScraper.define_singleton_method(:fetch, original_fetch)
-      release << true
-      fetching.join
-    end
-
-    assert_redirected_to new_recipe_import_url
-    assert_equal "Recipe import is busy right now. Please try again in a moment.", flash[:alert]
-    assert_includes log.string, "[import] fetch_slot_busy household_id=#{@admin.household_id}"
-    busy_line = log.string.lines.find { |line| line.include?("fetch_slot_busy") }
-    assert_not_includes busy_line, "example.com", "the refusal must not log the URL"
-  end
-
-  test "the fetch slot is free again after a fetch times out or raises" do
-    slot = RecipeImportsController::FETCH_SLOT
-
-    with_scrape_failure(:timeout) do
-      post recipe_imports_url, params: { url: "https://example.com/recipes/slow" }
-    end
-    assert_includes flash[:alert], "took too long"
-    assert_not slot.locked?, "a failed fetch must release the slot"
-
-    original_fetch = RecipeScraper.method(:fetch)
-    RecipeScraper.define_singleton_method(:fetch) { |_url| raise "boom" }
-    begin
-      assert_raises(RuntimeError) { post recipe_imports_url, params: { url: "https://example.com/recipes/raises" } }
-    ensure
-      RecipeScraper.define_singleton_method(:fetch, original_fetch)
-    end
-    assert_not slot.locked?, "an exception must release the slot"
-
-    with_scrape_failure(:timeout) do
-      post recipe_imports_url, params: { url: "https://example.com/recipes/again" }
-    end
-    assert_includes flash[:alert], "took too long", "the next import must be allowed to run"
+    assert_equal RecipeImport::FAILURE_MESSAGES[:timeout], flash[:alert]
   end
 
   # @card-34.5
@@ -167,21 +158,61 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       timeout: "took too long to respond",
       not_found: "no longer exists",
       site_error: "having trouble right now",
-      busy: "import is busy right now",
       unparseable: "couldn't find a recipe on that page"
     }.each do |error, expected|
-      with_scrape_failure(error) do
-        assert_no_difference "Recipe.count" do
-          post recipe_imports_url, params: { url: "https://example.com/recipes/#{error}" }
-        end
+      stub_scraper { |_url| RecipeScraper::Result.new(error: error) }
 
-        assert_redirected_to new_recipe_import_url
-        assert_includes flash[:alert], expected, "#{error} needs its own message"
+      assert_no_difference "Recipe.count" do
+        import_and_wait("https://example.com/recipes/#{error}")
       end
+
+      assert_redirected_to new_recipe_import_url
+      assert_includes flash[:alert], expected, "#{error} needs its own message"
     end
   end
 
+  test "an import that crashed leaves the person with the ordinary error, not a spinner" do
+    stub_scraper { |_url| raise "boom" }
+
+    post recipe_imports_url, params: { url: "https://example.com/recipes/crash" }
+    assert_raises(RuntimeError) { perform_enqueued_jobs }
+
+    get recipe_import_url(RecipeImport.order(:created_at).last)
+    assert_redirected_to new_recipe_import_url
+    assert_equal GENERIC_FAILURE, flash[:alert]
+  end
+
+  test "an import nobody picked up for minutes stops claiming progress" do
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/stuck", created_at: 10.minutes.ago)
+
+    get recipe_import_url(import)
+
+    assert_redirected_to new_recipe_import_url
+    assert_equal RecipeImport::FAILURE_MESSAGES[:busy], flash[:alert]
+  end
+
+  test "another household's import is not found" do
+    other = households(:two).recipe_imports.create!(url: "https://example.com/recipes/theirs", status: "succeeded",
+                                                    data: { title: "Miller Secret Casserole" })
+
+    get recipe_import_url(other)
+
+    assert_response :not_found
+  end
+
+  test "an unknown import is not found" do
+    get recipe_import_url("no-such-import")
+    assert_response :not_found
+  end
+
   private
+
+  # Starts an import, runs its job, and opens the page the person would be sent to.
+  def import_and_wait(url)
+    post recipe_imports_url, params: { url: url }
+    perform_enqueued_jobs
+    get recipe_import_url(RecipeImport.order(:created_at).last)
+  end
 
   # The scraper calls the fetcher with its defaults, so shorten the deadline at that call.
   def with_fetch_timeout(seconds)
@@ -194,11 +225,9 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     SafeHttpFetcher.define_singleton_method(:get_response, original)
   end
 
-  def with_scrape_failure(error)
-    original_fetch = RecipeScraper.method(:fetch)
-    RecipeScraper.define_singleton_method(:fetch) { |_url| RecipeScraper::Result.new(error: error) }
-    yield
-  ensure
-    RecipeScraper.define_singleton_method(:fetch, original_fetch)
+  # Replaced for the rest of the test; teardown puts the real one back.
+  def stub_scraper(&fetch)
+    @original_fetch ||= RecipeScraper.method(:fetch)
+    RecipeScraper.define_singleton_method(:fetch, &fetch)
   end
 end

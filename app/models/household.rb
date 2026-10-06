@@ -11,6 +11,7 @@ class Household < ApplicationRecord
   has_many :meal_plan_slots, through: :meal_plans
   has_many :device_grants, dependent: :nullify
   has_many :activity_events, dependent: :delete_all
+  has_many :recipe_imports, dependent: :delete_all
 
   has_secure_token :calendar_feed_token
 
