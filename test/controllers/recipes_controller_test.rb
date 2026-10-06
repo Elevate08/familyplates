@@ -115,6 +115,12 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Blueberry French Toast", created.title
     assert_equal [ "breakfast" ], created.meal_types_list
     assert created.image.attached?
+
+    get created.display_image_url
+    assert_response :redirect
+    follow_redirect!
+    assert_response :success
+    assert_equal "image/png", response.media_type
   end
 
   test "should update recipe" do
