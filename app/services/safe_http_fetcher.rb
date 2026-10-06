@@ -32,8 +32,10 @@ class SafeHttpFetcher
   def initialize(url, headers: {}, timeout: TOTAL_TIMEOUT)
     @url = url
     @headers = headers
-    # Timeout.timeout(nil) and (0) mean no limit at all, the opposite of this class's job.
-    raise ArgumentError, "timeout must be a positive number" unless timeout.is_a?(Numeric) && timeout.positive?
+    # Timeout.timeout(nil), (0) and (Float::INFINITY) mean no limit, the opposite of this class's job.
+    unless timeout.is_a?(Numeric) && timeout.real? && timeout.finite? && timeout.positive?
+      raise ArgumentError, "timeout must be a positive, finite number"
+    end
 
     @timeout = timeout
   end

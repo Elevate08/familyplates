@@ -187,7 +187,7 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
   end
 
   test "refuses a missing or non-positive timeout, which Timeout would read as no limit" do
-    [ nil, 0, -1, "20" ].each do |bad|
+    [ nil, 0, -1, "20", Float::INFINITY, Float::NAN, Complex(1, 1) ].each do |bad|
       assert_raises(ArgumentError, "timeout: #{bad.inspect}") { SafeHttpFetcher.new("http://93.184.216.34/", timeout: bad) }
     end
   end

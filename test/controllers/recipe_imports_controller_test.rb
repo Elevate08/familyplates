@@ -130,6 +130,54 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a second import while one is fetching is refused at once, without fetching" do
+    slot = RecipeImportsController::FETCH_SLOT
+    held = Queue.new
+    release = Queue.new
+    fetching = Thread.new { slot.synchronize { held << true; release.pop } }
+    held.pop
+
+    begin
+      original_fetch = RecipeScraper.method(:fetch)
+      RecipeScraper.define_singleton_method(:fetch) { |_url| raise "must not fetch while another import runs" }
+
+      assert_no_difference "Recipe.count" do
+        post recipe_imports_url, params: { url: "https://example.com/recipes/busy" }
+      end
+    ensure
+      RecipeScraper.define_singleton_method(:fetch, original_fetch)
+      release << true
+      fetching.join
+    end
+
+    assert_redirected_to new_recipe_import_url
+    assert_equal "Another recipe import is running. Please try again in a moment.", flash[:alert]
+  end
+
+  test "the fetch slot is free again after a fetch times out or raises" do
+    slot = RecipeImportsController::FETCH_SLOT
+
+    with_scrape_failure(:timeout) do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/slow" }
+    end
+    assert_includes flash[:alert], "took too long"
+    assert_not slot.locked?, "a failed fetch must release the slot"
+
+    original_fetch = RecipeScraper.method(:fetch)
+    RecipeScraper.define_singleton_method(:fetch) { |_url| raise "boom" }
+    begin
+      assert_raises(RuntimeError) { post recipe_imports_url, params: { url: "https://example.com/recipes/raises" } }
+    ensure
+      RecipeScraper.define_singleton_method(:fetch, original_fetch)
+    end
+    assert_not slot.locked?, "an exception must release the slot"
+
+    with_scrape_failure(:timeout) do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/again" }
+    end
+    assert_includes flash[:alert], "took too long", "the next import must be allowed to run"
+  end
+
   # @card-34.5
   test "each scrape failure explains what the user can do about it" do
     {

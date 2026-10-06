@@ -25,6 +25,10 @@ class RecipeImportsController < ApplicationController
              with: -> { redirect_to new_recipe_import_path, alert: "Too many recipe imports. Please wait a few minutes and try again." },
              only: :create
 
+  # The fetch runs inside the request, and Puma has few threads. Allow one in flight per
+  # process and turn the rest away at once, so slow sites cannot hold every thread.
+  FETCH_SLOT = Mutex.new
+
   # The failure path renders "recipes/new", which needs the ingredient
   # catalogue. Without this the view fell back to querying for it inline.
   before_action :set_available_ingredients, only: %i[create]
@@ -45,7 +49,12 @@ class RecipeImportsController < ApplicationController
       return
     end
 
-    result = RecipeScraper.fetch(url)
+    result = fetch_recipe(url)
+    if result.nil?
+      redirect_to new_recipe_import_path, alert: "Another recipe import is running. Please try again in a moment."
+      return
+    end
+
     if !result.success?
       redirect_to new_recipe_import_path, alert: import_failure_message(result.error)
       return
@@ -99,6 +108,17 @@ class RecipeImportsController < ApplicationController
   end
 
   private
+
+  # Nil when another import already holds the slot. Never waits.
+  def fetch_recipe(url)
+    return unless FETCH_SLOT.try_lock
+
+    begin
+      RecipeScraper.fetch(url)
+    ensure
+      FETCH_SLOT.unlock
+    end
+  end
 
   def import_failure_message(error)
     IMPORT_FAILURE_MESSAGES.fetch(error, DEFAULT_IMPORT_FAILURE_MESSAGE)
