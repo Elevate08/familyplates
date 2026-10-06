@@ -2,6 +2,12 @@ Rails.application.routes.draw do
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Active Storage draws a direct-upload endpoint with no sign-in check, and the
+  # app never uses direct uploads (recipe images go through the recipe form), so
+  # nobody may create a blob this way. This route is matched before Active
+  # Storage's own, which stays drawn to serve images.
+  post "#{ActiveStorage.routes_prefix}/direct_uploads", to: ->(_env) { [ 404, {}, [] ] }
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
