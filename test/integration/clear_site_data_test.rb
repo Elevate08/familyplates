@@ -5,8 +5,6 @@ require "test_helper"
 # honours the header on the redirect response itself; `"cache"` alone leaves
 # Cache Storage in place, which is why `"storage"` is listed too.
 class ClearSiteDataTest < ActionDispatch::IntegrationTest
-  CLEAR = '"cache", "storage"'.freeze
-
   setup do
     @user = User.create!(email: "parent@example.com", password: "password123")
     family_members(:one).update!(user: @user)
@@ -19,7 +17,7 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
     delete session_path
 
     assert_redirected_to select_profile_path
-    assert_equal CLEAR, response.headers["Clear-Site-Data"]
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   end
 
   test "signing out of a forward-auth session sent to the proxy logout URL still clears" do
@@ -30,7 +28,7 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
     delete session_path
 
     assert_redirected_to "https://auth.example.com/sign_out"
-    assert_equal CLEAR, response.headers["Clear-Site-Data"]
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   ensure
     FamilyPlates.config.forward_auth_enabled = false
     FamilyPlates.config.forward_auth_logout_url = nil
@@ -43,7 +41,7 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
     delete device_path(current)
 
     assert_redirected_to signed_out_path(kind: "browser")
-    assert_equal CLEAR, response.headers["Clear-Site-Data"]
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   end
 
   test "revoking another device leaves this browser's cache alone" do
@@ -63,7 +61,7 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
     get recipes_path
 
     assert_redirected_to signed_out_path(kind: "browser")
-    assert_equal CLEAR, response.headers["Clear-Site-Data"]
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   end
 
   test "a session revoked elsewhere clears the browser on the JSON 401" do
@@ -74,7 +72,7 @@ class ClearSiteDataTest < ActionDispatch::IntegrationTest
 
     assert_response :unauthorized
     assert_equal "session_revoked", response.parsed_body["error"]
-    assert_equal CLEAR, response.headers["Clear-Site-Data"]
+    assert_equal ClearsSiteData::CLEAR_SITE_DATA, response.headers["Clear-Site-Data"]
   end
 
   test "ordinary signed-in pages do not clear anything" do

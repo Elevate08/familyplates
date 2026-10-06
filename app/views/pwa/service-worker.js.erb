@@ -1,4 +1,4 @@
-const CACHE_NAME = "familyplates-v3";
+const CACHE_NAME = "familyplates-v4";
 
 // Only these pages work offline: the grocery list, recipes and the meal plan.
 // Nothing else is kept (no operator console, account data, billing, support,
@@ -10,16 +10,59 @@ const OFFLINE_PAGES = [
   /^\/meal_plans(\/\d+(\/print)?)?$/
 ];
 
-// Static files that carry no household data.
-const STATIC_PATHS = ["/icon.png", "/icon.svg", "/favicon.ico", "/manifest.json"];
-const PRECACHE_URLS = ["/icon.png", "/icon.svg", "/favicon.ico"];
+// "/" (the manifest start_url) and "/meal_plans" only redirect to this week's plan. The plan is
+// kept under its own address and, when reached through one of them, as their copy too.
+const PLAN_ENTRY_PATHS = ["/", "/meal_plans"];
+const PLAN_PAGE = /^\/meal_plans\/\d+$/;
+
+// Static files that carry no household data. The icons are also saved at install.
+const ICON_PATHS = ["/icon.png", "/icon.svg", "/favicon.ico"];
+const STATIC_PATHS = [...ICON_PATHS, "/manifest.json"];
+
+// Uploaded recipe photos, and their resized copies, are kept like static files so offline recipe
+// pages keep their pictures. Signing out clears them with everything else.
+const UPLOADED_IMAGE = /^\/rails\/active_storage\/(blobs|representations)\//;
 
 function isOfflinePage(pathname) {
   return OFFLINE_PAGES.some((pattern) => pattern.test(pathname));
 }
 
-function isStaticAsset(pathname) {
-  return pathname.startsWith("/assets/") || STATIC_PATHS.includes(pathname);
+function isCachedFile(pathname) {
+  return pathname.startsWith("/assets/") || STATIC_PATHS.includes(pathname) || UPLOADED_IMAGE.test(pathname);
+}
+
+// Keep an offline page the network just answered with, under the address it ended at. Not kept: a
+// redirect to some other page (sign-in), a Turbo Frame fragment, and a page with a query string
+// (search, tag filter, view variant: unbounded in number). Reached through "/" or "/meal_plans",
+// the plan is also the copy that answers those two offline.
+function keepOfflinePage(request, response) {
+  const asked = new URL(request.url);
+  const landed = new URL(response.url || request.url);
+  if (response.status !== 200 || landed.origin !== self.location.origin) return Promise.resolve();
+  if (!isOfflinePage(landed.pathname) || landed.search) return Promise.resolve();
+  if (request.headers.get("Turbo-Frame")) return Promise.resolve();
+
+  const keys = [landed.href];
+  if (PLAN_ENTRY_PATHS.includes(asked.pathname) && !asked.search && PLAN_PAGE.test(landed.pathname)) {
+    PLAN_ENTRY_PATHS.forEach((path) => keys.push(self.location.origin + path));
+  }
+  const copies = keys.map((key) => [key, plainCopy(response)]);
+  return caches.open(CACHE_NAME).then((cache) => Promise.all(copies.map(([key, copy]) => cache.put(key, copy))));
+}
+
+// A copy without the "redirected" mark: the browser refuses to show a redirected response for a
+// navigation, and a plan reached through "/" or "/meal_plans" is one.
+function plainCopy(response) {
+  const copy = response.clone();
+  return new Response(copy.body, { status: copy.status, statusText: copy.statusText, headers: copy.headers });
+}
+
+// A navigation to "/" or "/meal_plans" is redirected by the browser itself, so the worker only sees an
+// opaque redirect and never learns which plan it led to. Look once more, following the redirect.
+function keepPlanBehind(request) {
+  return fetch(request.url, { headers: { Accept: "text/html" } })
+    .then((response) => keepOfflinePage(request, response))
+    .catch(() => {});
 }
 
 // Shown when a page that is not available offline is opened without a connection.
@@ -45,7 +88,7 @@ function offlineResponse() {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_URLS).catch((err) => {
+      return cache.addAll(ICON_PATHS).catch((err) => {
         console.warn("ServiceWorker pre-caching partial failure", err);
       });
     }).then(() => self.skipWaiting())
@@ -67,8 +110,8 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch: Network-First with Cache Fallback for the offline pages, Stale-While-Revalidate for static assets,
-// and straight to the network (never cached) for everything else
+// Fetch: Network-First with Cache Fallback for the offline pages, Stale-While-Revalidate for static files
+// and uploaded photos, and straight to the network (never cached) for everything else
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
@@ -80,38 +123,39 @@ self.addEventListener("fetch", (event) => {
   // Only intercept same-origin requests (allow browser to handle external images/CDNs natively)
   if (url.origin !== self.location.origin) return;
 
-  // For HTML page navigations
+  // For HTML page navigations and Turbo visits
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
-    if (isOfflinePage(url.pathname)) {
+    if (isOfflinePage(url.pathname) || url.pathname === "/") {
       // Network-first, fallback to cache
       event.respondWith(
         fetch(request)
           .then((response) => {
-            // A redirect (for example to sign-in) is somebody else's page, not this one
-            if (response.status === 200 && !response.redirected) {
-              const keep = [[request, response.clone()]];
-              // /meal_plans only redirects to the plan, so the plan seen last also answers it offline
-              if (/^\/meal_plans\/\d+$/.test(url.pathname)) keep.push(["/meal_plans", response.clone()]);
-              caches.open(CACHE_NAME).then((cache) => keep.forEach(([key, copy]) => cache.put(key, copy)));
+            if (response.type === "opaqueredirect") {
+              if (PLAN_ENTRY_PATHS.includes(url.pathname) && !url.search) event.waitUntil(keepPlanBehind(request));
+            } else {
+              event.waitUntil(keepOfflinePage(request, response));
             }
             return response;
           })
-          .catch(async () => {
+          .catch(async (error) => {
             const cached = await caches.match(request, { ignoreVary: true });
-            return cached || offlineResponse();
+            if (cached) return cached;
+            // Only a navigation can show the notice page; a Turbo or script fetch gets the network error
+            if (request.mode === "navigate") return offlineResponse();
+            throw error;
           })
       );
-    } else {
+    } else if (request.mode === "navigate") {
       // Not an offline page: never cache it, and never answer with another cached page
       event.respondWith(fetch(request).catch(() => offlineResponse()));
     }
     return;
   }
 
-  // Anything else that is not a static asset (exports, calendar feeds, uploaded files): leave it to the network
-  if (!isStaticAsset(url.pathname)) return;
+  // Anything else that is not a static file or an uploaded photo (exports, calendar feeds): leave it to the network
+  if (!isCachedFile(url.pathname)) return;
 
-  // For same-origin static assets (CSS, JS, icons): Stale-While-Revalidate
+  // For same-origin static files and uploaded photos (CSS, JS, icons, recipe images): Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const networkFetch = fetch(request).then((networkResponse) => {

@@ -134,14 +134,16 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not PlatformAdminSession.exists?
   end
 
-  # SA-05: the operator console shares the layout, so its pages must not outlive the session.
-  test "platform admin sign out clears the browser's cached pages" do
+  # SA-05: the operator console shares the layout, so its pages must not outlive the session. Only the
+  # HTTP cache is cleared: "storage" would also wipe the offline data of a household the operator is
+  # a member of in the same browser, and the worker never keeps operator pages.
+  test "platform admin sign out clears the browser's HTTP cache and nothing else" do
     sign_in_platform_admin(@admin)
 
     delete platform_admin_session_path
 
     assert_redirected_to new_platform_admin_session_path
-    assert_equal '"cache", "storage"', response.headers["Clear-Site-Data"]
+    assert_equal '"cache"', response.headers["Clear-Site-Data"]
   end
 
   test "a platform admin session that was revoked clears the browser on the next request" do
@@ -151,7 +153,7 @@ class PlatformAdmin::SessionsControllerTest < ActionDispatch::IntegrationTest
     get platform_admin_root_path
 
     assert_redirected_to new_platform_admin_session_path
-    assert_equal '"cache", "storage"', response.headers["Clear-Site-Data"]
+    assert_equal '"cache"', response.headers["Clear-Site-Data"]
   end
 
   private

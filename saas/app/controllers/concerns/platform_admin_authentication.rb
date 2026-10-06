@@ -36,7 +36,7 @@ module PlatformAdminAuthentication
     else
       session_record&.destroy
       cookies.delete(:platform_admin_session_token)
-      clear_site_data
+      clear_site_data(ClearsSiteData::CLEAR_CACHE)
     end
   end
 
@@ -64,6 +64,6 @@ module PlatformAdminAuthentication
     cookies.delete(:platform_admin_session_token)
     Current.platform_admin_session = nil
     Current.platform_admin = nil
-    clear_site_data
+    clear_site_data(ClearsSiteData::CLEAR_CACHE)
   end
 end
