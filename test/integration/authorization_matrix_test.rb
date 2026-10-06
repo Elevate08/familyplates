@@ -222,7 +222,9 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
   }.merge(HOSTED ? HOSTED::EXEMPT : {}).freeze
 
   EXEMPT_PREFIXES = {
-    "/rails/" => "Framework endpoints (Active Storage, Action Mailbox and its conductor).",
+    "/rails/" => "Framework endpoints (Active Storage, Action Mailbox and its conductor). " \
+                 "Active Storage's direct-upload and disk-upload writes are refused by " \
+                 "RefuseActiveStorageWrites and tested in test/integration/active_storage_direct_uploads_test.rb.",
     "/__test/" => "Test-only helpers, routed only in the test environment."
   }.freeze
 
