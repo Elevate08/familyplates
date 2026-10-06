@@ -13,8 +13,15 @@ test.describe("Interactive Flow: Recipe Management", () => {
     await page.fill('input[name="url"], input[type="url"]', "https://example.invalid/recipe");
     await page.locator('input[value*="Extract & Import"]').click();
 
-    // Should re-render new with friendly alert in flash-messages, not 500 error
-    await expect(page.locator('#flash-messages [role="alert"]').first()).toBeVisible({ timeout: 10_000 });
+    // The fetch runs in a background job behind a waiting page that reloads itself
+    // (every 3 seconds) until the job has failed, then sends the person back to the
+    // form with the reason. The server runs the job itself (E2E_RUN_JOBS).
+    await page.waitForURL(/\/recipe_imports\/new$/, { timeout: 15_000 });
+
+    // A friendly alert in flash-messages, not a 500 error
+    const alert = page.locator('#flash-messages [role="alert"]').first();
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("Could not fetch recipe from that web address");
   });
 
   test("manual recipe creation and display", async ({ page }) => {
