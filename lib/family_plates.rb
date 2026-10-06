@@ -161,15 +161,15 @@ module FamilyPlates
     end
 
     def forward_auth_email_headers
-      @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email,X-Forwarded-Email,Tailscale-User-Login").split(",").map(&:strip)
+      @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email").split(",").map(&:strip)
     end
 
     def forward_auth_user_headers
-      @forward_auth_user_headers || (ENV["FORWARD_AUTH_USER_HEADERS"].presence || ENV["FORWARD_AUTH_USER_HEADER"].presence || "Remote-User,X-Forwarded-User").split(",").map(&:strip)
+      @forward_auth_user_headers || (ENV["FORWARD_AUTH_USER_HEADERS"].presence || ENV["FORWARD_AUTH_USER_HEADER"].presence || "Remote-User").split(",").map(&:strip)
     end
 
     def forward_auth_name_headers
-      @forward_auth_name_headers || (ENV["FORWARD_AUTH_NAME_HEADERS"].presence || ENV["FORWARD_AUTH_NAME_HEADER"].presence || "Remote-Name,X-Forwarded-Name,X-Forwarded-Preferred-Username").split(",").map(&:strip)
+      @forward_auth_name_headers || (ENV["FORWARD_AUTH_NAME_HEADERS"].presence || ENV["FORWARD_AUTH_NAME_HEADER"].presence || "Remote-Name").split(",").map(&:strip)
     end
 
     def forward_auth_logout_url

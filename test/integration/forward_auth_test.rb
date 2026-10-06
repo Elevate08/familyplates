@@ -73,7 +73,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference [ "Identity.count", "Session.count" ] do
       get root_path, headers: {
-        "X-Forwarded-Email" => "victim@example.com",
+        "Remote-Email" => "victim@example.com",
         "X-Forwarded-For" => "127.0.0.1",
         "REMOTE_ADDR" => "10.0.0.7"
       }
@@ -556,8 +556,8 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert_no_difference -> { User.count } do
       assert_difference -> { Identity.count } => 1 do
         get root_path, headers: {
-          "X-Forwarded-Email" => "existing_chef@example.com",
-          "X-Forwarded-User" => "authentik_chef",
+          "Remote-Email" => "existing_chef@example.com",
+          "Remote-User" => "authentik_chef",
           "REMOTE_ADDR" => "127.0.0.1"
         }
 
@@ -607,5 +607,97 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
 
     delete session_path
     assert_redirected_to "https://auth.example.com/outpost.goauthentik.io/sign_out"
+  end
+
+  # SA-04
+  test "by default only Remote-Email is read, so X-Forwarded-Email from a trusted hop is ignored" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    with_forward_auth_header_env do
+      assert_no_difference [ "User.count", "Session.count" ] do
+        get root_path, headers: {
+          "X-Forwarded-Email" => "oauth2proxy_user@example.com",
+          "Tailscale-User-Login" => "tailscale_user@example.com",
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+      assert cookies[:session_token].blank?
+
+      assert_difference "User.count", 1 do
+        get root_path, headers: { "Remote-Email" => "authelia_default@example.com", "REMOTE_ADDR" => "127.0.0.1" }
+      end
+      assert cookies[:session_token].present?
+    end
+  end
+
+  # SA-04
+  test "an operator-set header list is read, and a client-added Remote-Email is ignored" do
+    existing_user = User.create!(email: "victim@example.com", password: "password123")
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    with_forward_auth_header_env("FORWARD_AUTH_EMAIL_HEADERS" => "X-Forwarded-Email") do
+      get root_path, headers: {
+        "X-Forwarded-Email" => "oauth2proxy_user@example.com",
+        "Remote-Email" => "victim@example.com",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+
+      assert cookies[:session_token].present?
+      assert User.exists?(email: "oauth2proxy_user@example.com")
+      assert_not existing_user.identities.exists?(provider: "forward_auth")
+    end
+  end
+
+  # SA-04
+  test "an operator can list several headers and the first one present is used" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+
+    with_forward_auth_header_env("FORWARD_AUTH_EMAIL_HEADERS" => "Remote-Email, Tailscale-User-Login") do
+      get root_path, headers: { "Tailscale-User-Login" => "tailnet_user@example.com", "REMOTE_ADDR" => "127.0.0.1" }
+
+      assert cookies[:session_token].present?
+      assert User.exists?(email: "tailnet_user@example.com")
+    end
+  end
+
+  # SA-04
+  test "the user and name headers also default to one header and can be set" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1" ]
+    headers = {
+      "Remote-Email" => "uid_user@example.com",
+      "Remote-User" => "remote_uid",
+      "X-Forwarded-User" => "client_uid",
+      "REMOTE_ADDR" => "127.0.0.1"
+    }
+
+    with_forward_auth_header_env do
+      get root_path, headers: headers
+      assert User.find_by!(email: "uid_user@example.com").identities.exists?(provider: "forward_auth", uid: "remote_uid")
+    end
+
+    with_forward_auth_header_env("FORWARD_AUTH_USER_HEADERS" => "X-Forwarded-User") do
+      reset!
+      get root_path, headers: headers.merge("Remote-Email" => "uid_user2@example.com")
+      assert User.find_by!(email: "uid_user2@example.com").identities.exists?(provider: "forward_auth", uid: "client_uid")
+    end
+  end
+
+  private
+
+  # Runs the block with the forward-auth header variables cleared, then set to
+  # the given values, and restores whatever they were.
+  def with_forward_auth_header_env(overrides = {})
+    keys = %w[FORWARD_AUTH_EMAIL_HEADERS FORWARD_AUTH_EMAIL_HEADER FORWARD_AUTH_USER_HEADERS
+              FORWARD_AUTH_USER_HEADER FORWARD_AUTH_NAME_HEADERS FORWARD_AUTH_NAME_HEADER]
+    original = keys.to_h { |key| [ key, ENV[key] ] }
+    keys.each { |key| ENV.delete(key) }
+    overrides.each { |key, value| ENV[key] = value }
+    yield
+  ensure
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end
