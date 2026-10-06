@@ -112,7 +112,7 @@ class DockerignoreTest < ActiveSupport::TestCase
   end
 
   test "no tracked file is ignored unless that is intended" do
-    skip "needs a git checkout" unless git_checkout?
+    require_git_checkout
 
     tracked = git_paths("ls-files", "-z").reject { |path| INTENDED_EXCLUSIONS.any? { |pattern| pattern.match?(path) } }
 
@@ -121,19 +121,28 @@ class DockerignoreTest < ActiveSupport::TestCase
   end
 
   test "everything git ignores is also ignored by docker" do
-    skip "needs a git checkout" unless git_checkout?
+    require_git_checkout
 
     # Only the root .gitignore: not a developer's global excludes, and not the
-    # .gitignore files inside installed gems (vendor/bundle on CI).
-    leaked = git_paths("ls-files", "-z", "--others", "--ignored", "--exclude-from=#{Rails.root.join(".gitignore")}", "--directory")
+    # .gitignore files inside installed gems. vendor/bundle is left out of the
+    # walk; the host-built gems test above checks that docker ignores it.
+    leaked = git_paths("ls-files", "-z", "--others", "--ignored", "--exclude-from=#{Rails.root.join(".gitignore")}", "--directory", "--", ".", ":(exclude)vendor/bundle")
       .map { |path| path.chomp("/") }
-      .reject { |path| path == "vendor/bundle" || path.start_with?("vendor/bundle/") } # excluded as a whole, and checked below
       .reject { |path| ignored?(path) }
 
     assert_empty leaked, "git-ignored but not in .dockerignore (add it, or write down why the image needs it)"
   end
 
   private
+
+  # A guard that cannot run must not pass quietly: on CI it fails, locally
+  # (no git, or git refuses the repository) it skips.
+  def require_git_checkout
+    return if git_checkout?
+
+    flunk "needs a git checkout (CI must run the git-backed guards)" if ENV["CI"]
+    skip "needs a git checkout"
+  end
 
   def git_checkout?
     out, _err, status = Open3.capture3("git", "-C", Rails.root.to_s, "rev-parse", "--show-toplevel")
