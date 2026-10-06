@@ -124,67 +124,61 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
 
   # SA-10: Active Storage reads a String assigned to an attachment as a signed
   # blob id, and every rendered image URL carries one that never expires. Only
-  # an uploaded file may set recipe[image].
+  # an uploaded file may set recipe[image]. (Array and Hash values never reach
+  # the model: strong params already drop them for a scalar key.)
   def other_household_image_recipe
     recipe = households(:two).recipes.create!(title: "Miller Casserole", instructions: "Bake it.", number: 99)
-    recipe.image.attach(io: file_fixture("pixel.png").open, filename: "pixel.png", content_type: "image/png")
+    recipe.image.attach(io: StringIO.new(file_fixture("pixel.png").binread), filename: "pixel.png", content_type: "image/png")
     recipe
   end
 
-  test "create ignores a signed blob id as recipe image" do
-    victim = other_household_image_recipe
-    blob = victim.image.blob
+  def capture_rails_log
+    original = Rails.logger
+    io = StringIO.new
+    Rails.logger = ActiveSupport::Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = original
+  end
 
-    assert_difference("Recipe.count", 1) do
-      post recipes_url, params: { recipe: { title: "Borrowed Photo", image: blob.signed_id } }
+  test "create ignores a signed blob id as recipe image" do
+    blob = other_household_image_recipe.image.blob
+
+    log = capture_rails_log do
+      assert_difference("Recipe.count", 1) do
+        post recipes_url, params: { recipe: { title: "Borrowed Photo", image: blob.signed_id } }
+      end
     end
 
     assert_not Recipe.find_by!(title: "Borrowed Photo").image.attached?
+    assert_includes log, "[recipes] ignored non-file image param recipe_id=new household_id=#{households(:one).id}"
+    assert_not_includes log, blob.signed_id
   end
 
-  test "update ignores a signed blob id as recipe image and the other image survives" do
-    victim = other_household_image_recipe
-    blob = victim.image.blob
+  test "update ignores a signed blob id as recipe image" do
+    blob = other_household_image_recipe.image.blob
 
-    patch recipe_url(@recipe), params: { recipe: { image: blob.signed_id } }
+    log = capture_rails_log do
+      patch recipe_url(@recipe), params: { recipe: { image: blob.signed_id } }
+    end
+
     assert_not @recipe.reload.image.attached?
+    assert_includes log, "[recipes] ignored non-file image param recipe_id=#{@recipe.id} household_id=#{@recipe.household_id}"
+    assert_not_includes log, blob.signed_id
+  end
 
-    # Replacing the attacker's own image must not purge the borrowed blob.
+  # A blank value is dropped like any other non-file value. It does not detach
+  # an existing image.
+  test "blank image param keeps the existing image" do
     patch recipe_url(@recipe), params: { recipe: { image: fixture_file_upload("pixel.png", "image/png") } }
-    assert @recipe.reload.image.attached?
-    assert_not_equal blob.id, @recipe.image.blob.id
-
-    assert ActiveStorage::Blob.exists?(blob.id)
-    assert victim.reload.image.attached?
-    assert victim.image.blob.service.exist?(victim.image.blob.key)
-  end
-
-  test "destroying a recipe that tried to borrow a blob id leaves the other image serving" do
-    victim = other_household_image_recipe
-    blob = victim.image.blob
-
-    patch recipe_url(@recipe), params: { recipe: { image: blob.signed_id } }
-    perform_enqueued_jobs { delete recipe_url(@recipe) }
-
-    get victim.display_image_url
-    assert_response :redirect
-    follow_redirect!
-    assert_response :success
-    assert_equal "image/png", response.media_type
-  end
-
-  test "image params that are not an uploaded file are ignored" do
-    victim = other_household_image_recipe
-    signed_id = victim.image.blob.signed_id
-
-    patch recipe_url(@recipe), params: { recipe: { image: [ signed_id ] } }
-    assert_not @recipe.reload.image.attached?
-
-    patch recipe_url(@recipe), params: { recipe: { image: { io: signed_id } } }
-    assert_not @recipe.reload.image.attached?
+    blob_id = @recipe.reload.image.blob.id
 
     patch recipe_url(@recipe), params: { recipe: { title: "Still Updates", image: "" } }
+
     assert_equal "Still Updates", @recipe.reload.title
+    assert @recipe.image.attached?
+    assert_equal blob_id, @recipe.image.blob.id
   end
 
   test "should update recipe" do
