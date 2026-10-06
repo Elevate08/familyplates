@@ -258,7 +258,7 @@ module Authentication
     peer = forward_auth_peer_ip
     return true if trusted_forward_auth_proxy?(peer)
 
-    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{peer}")
+    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{peer || "unparseable"}")
     false
   end
 
@@ -272,14 +272,21 @@ module Authentication
     forwarded = request.get_header("HTTP_X_FORWARDED_FOR").to_s
     return peer unless peer&.loopback? && forwarded.present?
 
-    normalize_peer_ip(forwarded.split(",").last)
+    normalize_peer_ip(forwarded.split(",", -1).last)
   end
 
   def normalize_peer_ip(value)
-    ip = IPAddr.new(value.to_s.strip)
-    ip.ipv4_mapped? ? ip.native : ip
+    native_ip(IPAddr.new(value.to_s.strip))
   rescue IPAddr::Error
     nil
+  end
+
+  # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
+  # becomes the IPv4 one, so it compares equal to the same IPv4 address.
+  def native_ip(ip)
+    return ip unless ip.ipv4_mapped? && ip.prefix >= 96
+
+    ip.native.mask(ip.prefix - 96)
   end
 
   def authenticate_via_forward_auth
@@ -317,7 +324,7 @@ module Authentication
     return false if peer.nil?
 
     FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
-      IPAddr.new(trusted.strip).include?(peer)
+      native_ip(IPAddr.new(trusted.strip)).include?(peer)
     rescue IPAddr::Error
       false
     end

@@ -18,6 +18,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * **Profile transfer links made before the upgrade stop working.** Links are now tied to the profile's owner when issued, so ask for a new link.
 * **Recipe links must be `http` or `https`.** A recipe whose source or image link uses another scheme, such as `data:`, has to have that link fixed before it can be saved again. The URL importer only fetches from ports 80, 443, 8080 and 8443.
 * **Hosted production ignores Stripe test-mode webhooks.** Set `STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS=true`, or the same key in credentials, to accept them.
+* **Forward-auth now checks the reverse proxy's own address.** `FORWARD_AUTH_TRUSTED_PROXIES` must list the proxy's address as the app container sees it, not client ranges. Before, the check used the client address read from `X-Forwarded-For`, which a client on your network could set to be signed in as any user. Installs that listed client ranges must change the setting, or forward-auth sign-in stops working. Requests with identity headers from an address that isn't trusted are refused and logged as `forward_auth_untrusted_peer`.
 
 ### 📄 License
 * **FamilyPlates is now under the [O'Saasy License](LICENSE.md).** It's MIT plus one condition: you may not offer FamilyPlates to others as a competing hosted service. Self-hosting, modifying and sharing it stay free. Earlier releases were labelled MIT.

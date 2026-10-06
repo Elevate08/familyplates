@@ -192,6 +192,68 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-01
+  test "forward-auth refuses a blank last X-Forwarded-For field" do
+    FamilyPlates.config.forward_auth_enabled = true
+
+    assert_no_difference [ "User.count", "Session.count" ] do
+      [ "127.0.0.1,", "127.0.0.1, " ].each do |forwarded|
+        get root_path, headers: {
+          "Remote-Email" => "blank_tail@example.com",
+          "X-Forwarded-For" => forwarded,
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+    end
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
+  test "an IPv4-mapped IPv6 trusted-proxy entry matches the IPv4 peer" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.0/112" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "mapped_entry@example.com",
+        "REMOTE_ADDR" => "172.18.0.5"
+      }
+    end
+  end
+
+  # SA-01
+  test "an IPv4-mapped IPv6 trusted-proxy entry keeps its prefix length" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.0/112" ]
+
+    assert_no_difference "User.count" do
+      get root_path, headers: {
+        "Remote-Email" => "outside@example.com",
+        "REMOTE_ADDR" => "172.19.0.5"
+      }
+    end
+  end
+
+  # SA-01
+  test "an unparseable hop is logged as unparseable" do
+    FamilyPlates.config.forward_auth_enabled = true
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: {
+        "Remote-Email" => "a@example.com",
+        "X-Forwarded-For" => "127.0.0.1, not-an-ip",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_includes io.string, "[auth] forward_auth_untrusted_peer peer=unparseable\n"
+  end
+
+  # SA-01
   test "an untrusted peer with identity headers is logged without header values" do
     FamilyPlates.config.forward_auth_enabled = true
     io = StringIO.new
