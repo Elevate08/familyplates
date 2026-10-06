@@ -118,6 +118,8 @@ class RecipeScraper
     Rails.logger.warn("RecipeScraper timed out fetching #{url}: #{e.class}")
     @error = :timeout
     nil
+  rescue SafeHttpFetcher::InvalidTimeout
+    raise # a bug in the caller, not an unreachable site
   rescue StandardError => e
     Rails.logger.warn("RecipeScraper failed to fetch #{url}: #{e.class}: #{e.message}")
     @error = :unreachable

@@ -6,6 +6,7 @@ class RecipeImportsController < ApplicationController
     timeout: "That site took too long to respond. Please try again in a moment, or add the recipe manually.",
     not_found: "That recipe page no longer exists. Please double-check the link.",
     site_error: "That site is having trouble right now. Please try again later, or add the recipe manually.",
+    busy: "Recipe import is busy right now. Please try again in a moment.",
     unparseable: "We couldn't find a recipe on that page. Make sure the link points at the recipe itself, or add it manually."
     # :blocked (egress policy) deliberately has no entry: an address this server
     # is not allowed to reach must look exactly like any other bad link, or the
@@ -13,6 +14,11 @@ class RecipeImportsController < ApplicationController
   }.freeze
 
   DEFAULT_IMPORT_FAILURE_MESSAGE = "Could not fetch recipe from that web address. Please check the link or add manually."
+
+  # The fetch runs inside the request and a slow site can hold its thread for the whole
+  # fetch deadline. At most one Puma thread per process is ever held by an outbound import
+  # fetch: this slot is taken without waiting, and anyone else is turned away at once.
+  FETCH_SLOT = Mutex.new
 
   # The failure path renders "recipes/new", which needs the ingredient
   # catalogue. Without this the view fell back to querying for it inline.
@@ -34,7 +40,7 @@ class RecipeImportsController < ApplicationController
       return
     end
 
-    result = RecipeScraper.fetch(url)
+    result = fetch_recipe(url)
     if !result.success?
       redirect_to new_recipe_import_path, alert: import_failure_message(result.error)
       return
@@ -88,6 +94,18 @@ class RecipeImportsController < ApplicationController
   end
 
   private
+
+  # Answers :busy at once, without waiting, when another import holds the slot.
+  def fetch_recipe(url)
+    unless FETCH_SLOT.try_lock
+      Rails.logger.info("[import] fetch_slot_busy household_id=#{current_household.id}")
+      return RecipeScraper::Result.new(recipe: nil, error: :busy)
+    end
+
+    RecipeScraper.fetch(url)
+  ensure
+    FETCH_SLOT.unlock if FETCH_SLOT.owned?
+  end
 
   def import_failure_message(error)
     IMPORT_FAILURE_MESSAGES.fetch(error, DEFAULT_IMPORT_FAILURE_MESSAGE)
