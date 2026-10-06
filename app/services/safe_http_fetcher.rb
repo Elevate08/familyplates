@@ -9,6 +9,13 @@ class SafeHttpFetcher
   MAX_BYTES = 2.megabytes
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 10
+  WRITE_TIMEOUT = 10
+  # One budget for the whole fetch, every redirect hop included. The timeouts above
+  # apply per socket operation, so a server sending a byte every few seconds never trips
+  # them and would hold the request thread (Puma has few) indefinitely. The deadline is
+  # checked before each hop and after each chunk, so a single read can run past it by at
+  # most READ_TIMEOUT.
+  TOTAL_TIMEOUT = 20
 
   Result = Struct.new(:status, :location, :body, keyword_init: true) do
     def redirect? = status.between?(300, 399) && location.present?
@@ -26,6 +33,7 @@ class SafeHttpFetcher
   def initialize(url, headers: {})
     @url = url
     @headers = headers
+    @deadline = monotonic_now + TOTAL_TIMEOUT
   end
 
   def get
@@ -37,6 +45,7 @@ class SafeHttpFetcher
     seen = 0
 
     loop do
+      check_deadline!
       target = OutboundUrlPolicy.check!(url)
       result = perform_request(target)
 
@@ -60,8 +69,9 @@ class SafeHttpFetcher
     http = Net::HTTP.new(uri.host, uri.port, nil)
     http.ipaddr = target.address
     http.use_ssl = uri.scheme == "https"
-    http.open_timeout = OPEN_TIMEOUT
-    http.read_timeout = READ_TIMEOUT
+    http.open_timeout = [ OPEN_TIMEOUT, time_left ].min
+    http.read_timeout = [ READ_TIMEOUT, time_left ].min
+    http.write_timeout = [ WRITE_TIMEOUT, time_left ].min
 
     http.start do |connection|
       request = Net::HTTP::Get.new(uri.request_uri, @headers)
@@ -85,8 +95,18 @@ class SafeHttpFetcher
       if body.bytesize > MAX_BYTES
         raise Rejected, "response exceeded #{MAX_BYTES} bytes"
       end
+      check_deadline!
     end
 
     body
+  end
+
+  def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+  def time_left = [ @deadline - monotonic_now, 0.1 ].max
+
+  # Timeout::Error is what RecipeScraper already reports as :timeout.
+  def check_deadline!
+    raise Timeout::Error, "fetch exceeded #{TOTAL_TIMEOUT}s" if monotonic_now >= @deadline
   end
 end

@@ -1,6 +1,8 @@
 require "test_helper"
 
 class SafeHttpFetcherTest < ActiveSupport::TestCase
+  include SlowDripHelper
+
   # Stands in for the network. Each entry is the canned reply for one hop, so a
   # redirect chain can be exercised without a server - and without giving the
   # test a way to accidentally reach one.
@@ -113,6 +115,37 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
     fetcher = SafeHttpFetcher.new("http://93.184.216.34/small")
 
     assert_equal "<html>recipe</html>", fetcher.send(:read_capped, small)
+  end
+
+  test "cuts off a response that trickles in slower than the total deadline" do
+    with_fetch_deadline(2) do
+      with_slow_drip_server(interval: 0.5) do |url|
+        started = monotonic_now
+
+        assert_raises(Timeout::Error) { SafeHttpFetcher.get(url) }
+
+        elapsed = monotonic_now - started
+        assert_operator elapsed, :>=, 1.5, "it should have read until the deadline, not given up early"
+        assert_operator elapsed, :<, 4, "the deadline must cover the whole fetch, not each read"
+      end
+    end
+  end
+
+  test "the total deadline spans every redirect hop" do
+    fetcher = nil
+    with_fetch_deadline(1) do
+      fetcher = ScriptedFetcher.new(
+        "http://93.184.216.34/a",
+        replies: [ redirect_to("http://93.184.216.34/b"), ok("late") ]
+      )
+      fetcher.define_singleton_method(:perform_request) do |target|
+        sleep 1.2
+        super(target)
+      end
+
+      assert_raises(Timeout::Error) { fetcher.get }
+    end
+    assert_equal 1, fetcher.visited.length, "no hop may start once the deadline has passed"
   end
 
   test "environment proxies are not used for the pinned connection" do

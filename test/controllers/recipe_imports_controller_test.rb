@@ -1,6 +1,8 @@
 require "test_helper"
 
 class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
+  include SlowDripHelper
+
   setup do
     @admin = family_members(:one)
     sign_in_as(@admin)
@@ -88,6 +90,19 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_recipe_import_url
     assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.", flash[:alert]
+  end
+
+  test "a site that trickles its response is cut off and the import says it timed out" do
+    with_fetch_deadline(2) do
+      with_slow_drip_server(interval: 0.5) do |url|
+        assert_no_difference "Recipe.count" do
+          post recipe_imports_url, params: { url: url }
+        end
+      end
+    end
+
+    assert_redirected_to new_recipe_import_url
+    assert_equal RecipeImportsController::IMPORT_FAILURE_MESSAGES[:timeout], flash[:alert]
   end
 
   # @card-34.5
