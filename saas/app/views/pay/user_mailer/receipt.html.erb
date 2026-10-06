@@ -1,0 +1,21 @@
+<%# Draft wording: not reviewed by an attorney. %>
+<p>We received payment for your <%= link_to Pay.application_name, root_url %> subscription. Thank you.</p>
+
+<p>Questions about this charge? Write to <%= mail_to BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.</p>
+
+<p>
+  <strong>Receipt - subscription</strong><br>
+  Amount: <%= params[:pay_charge].amount_with_currency %><br>
+  Charged to: <%= params[:pay_charge].charged_to %><br>
+  Transaction ID: <%= params[:pay_charge].id %><br>
+  Date: <%= l params[:pay_charge].created_at %>
+</p>
+
+<p>
+  You can cancel on your <%= link_to "Subscription & Billing page", subscription_url %>. Access continues to the end
+  of the period you have paid for.
+</p>
+
+<%# The owner-approved refund wording, word for word, with the support address linked. %>
+<% before_email, after_email = BillingOffer::REFUND_REQUEST.split(BillingOffer::SUPPORT_EMAIL, 2) %>
+<p><%= safe_join([ before_email, mail_to(BillingOffer::SUPPORT_EMAIL), after_email ]) %></p>

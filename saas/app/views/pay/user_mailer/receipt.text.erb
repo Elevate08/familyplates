@@ -1,0 +1,15 @@
+<%# Draft wording: not reviewed by an attorney. %>
+We received payment for your <%= Pay.application_name %> subscription. Thank you.
+
+Questions about this charge? Write to <%= BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.
+
+Receipt - subscription
+Amount: <%= params[:pay_charge].amount_with_currency %>
+Charged to: <%= params[:pay_charge].charged_to %>
+Transaction ID: <%= params[:pay_charge].id %>
+Date: <%= l params[:pay_charge].created_at %>
+
+You can cancel on your Subscription & Billing page: <%= subscription_url %>
+Access continues to the end of the period you have paid for.
+
+<%= BillingOffer::REFUND_REQUEST %>
