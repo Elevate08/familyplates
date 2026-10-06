@@ -272,24 +272,24 @@ module FamilyPlates
   # one of them: the address Thruster, or the operator's proxy, saw. The image
   # keeps Puma on loopback, so nothing reaches it without passing Thruster.
   #
-  # While TRUSTED_PROXIES is unset, the single addresses in
-  # FORWARD_AUTH_TRUSTED_PROXIES stand in for it: an install already behind a
-  # proxy that names it there keeps seeing each client's own address.
+  # While TRUSTED_PROXIES lists nothing and forward-auth is on, the single
+  # addresses in FORWARD_AUTH_TRUSTED_PROXIES stand in for it: an install already
+  # behind a proxy that names it there keeps seeing each client's own address.
   #
   # Returns nil for the hosted edition, which keeps Rails' default. Its clients
   # arrive from public addresses, and kamal-proxy reaches the app from a private
   # one: narrowing the list would give every user kamal-proxy's address.
-  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"], forward_auth: nil)
+  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"])
     return if hosted
 
-    loopback = %w[127.0.0.0/8 ::1].map { |address| IPAddr.new(address) }
-    return loopback + (forward_auth || config.forward_auth_proxies.hosts) if extra.blank?
-
-    loopback + extra.split(",").map(&:strip).compact_blank.map do |address|
+    listed = extra.to_s.split(",").map(&:strip).compact_blank.map do |address|
       single_ip(address)
     rescue IPAddr::Error
       raise ArgumentError, "TRUSTED_PROXIES must list single IP addresses, comma-separated; #{address.inspect} is not one."
     end
+    listed = config.forward_auth_proxies.hosts if listed.empty? && config.forward_auth_enabled?
+
+    %w[127.0.0.0/8 ::1].map { |address| IPAddr.new(address) } + listed
   end
 
   # Hostname operators set for a public deploy. Blank on a LAN appliance.

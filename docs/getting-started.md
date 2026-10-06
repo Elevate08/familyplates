@@ -83,7 +83,7 @@ docker run -d \
 | `SMTP_USER_NAME` | *(None)* | Mail server username, when the server requires one. |
 | `SMTP_PASSWORD` | *(None)* | Mail server password. Required when a username is set. |
 | `MAILER_DEFAULT_FROM` | `noreply@familyplates.app` | From address on sign-in mail. |
-| `TRUSTED_PROXIES` | *(None)* | Appliance only. Your TLS or reverse proxy's own address (a single IP, as the app container sees it), comma-separated if there is more than one. The app already trusts loopback, which is where the image's Thruster connects from. List the proxy so client addresses are recorded correctly: the sign-in and PIN limits are per client address, so without it every client shares the proxy's address. While this is unset, the single addresses in `FORWARD_AUTH_TRUSTED_PROXIES` are trusted in its place, so an install that already lists its proxy there keeps working; setting this replaces that. Not a client or LAN range: a range is refused at boot. |
+| `TRUSTED_PROXIES` | *(None)* | Appliance only. Your TLS or reverse proxy's own address (a single IP, as the app container sees it), comma-separated if there is more than one. The app already trusts loopback, which is where the image's Thruster connects from. List the proxy so client addresses are recorded correctly: the sign-in and PIN limits are per client address, so without it every client shares the proxy's address. While this is unset and forward-auth is on, the single addresses in `FORWARD_AUTH_TRUSTED_PROXIES` are trusted in its place, so a forward-auth install that already lists its proxy there keeps working; setting this replaces that. Not a client or LAN range: a range is refused at boot. |
 
 ### Public hostname and email
 

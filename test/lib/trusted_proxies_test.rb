@@ -102,35 +102,52 @@ class TrustedProxiesTest < ActiveSupport::TestCase
 
   # An appliance that was already behind a reverse proxy, with TRUSTED_PROXIES not
   # set yet, would otherwise record every client as the proxy's address and share
-  # one per-IP sign-in and PIN allowance. Its forward-auth setting names the proxy.
-  test "with TRUSTED_PROXIES unset, the forward-auth proxy addresses are trusted too" do
-    proxies = FamilyPlates.trusted_proxies(hosted: false, extra: nil, forward_auth: [ IPAddr.new("172.18.0.5") ])
+  # one per-IP sign-in and PIN allowance. With forward-auth on, its setting names
+  # the proxy.
+  def with_forward_auth(enabled, proxies)
+    FamilyPlates.config.forward_auth_enabled = enabled
+    FamilyPlates.config.forward_auth_trusted_proxies = proxies
+    yield
+  ensure
+    FamilyPlates.config.reset!
+  end
 
-    assert_equal "198.51.100.7",
-      remote_ip_for(proxies, remote_addr: "127.0.0.1", forwarded_for: "203.0.113.50, 198.51.100.7, 172.18.0.5")
-    assert_equal FamilyPlates.trusted_proxies(hosted: false, extra: "", forward_auth: [ IPAddr.new("172.18.0.5") ]), proxies
+  test "with TRUSTED_PROXIES unset and forward-auth on, the forward-auth proxy addresses are trusted too" do
+    with_forward_auth(true, [ "172.18.0.5" ]) do
+      [ nil, "", " , ", "," ].each do |unset|
+        proxies = FamilyPlates.trusted_proxies(hosted: false, extra: unset)
+
+        assert_equal "198.51.100.7",
+          remote_ip_for(proxies, remote_addr: "127.0.0.1", forwarded_for: "203.0.113.50, 198.51.100.7, 172.18.0.5"),
+          "TRUSTED_PROXIES #{unset.inspect}"
+      end
+    end
+  end
+
+  test "with forward-auth off, its proxy addresses are not trusted to set the client address" do
+    with_forward_auth(false, [ "172.17.0.1" ]) do
+      proxies = FamilyPlates.trusted_proxies(hosted: false, extra: nil)
+
+      assert_equal [ "127.0.0.0/8", "::1" ].map { IPAddr.new(_1) }, proxies
+      assert_equal "172.17.0.1",
+        remote_ip_for(proxies, remote_addr: "127.0.0.1", forwarded_for: "203.0.113.50, 172.17.0.1")
+    end
   end
 
   test "a set TRUSTED_PROXIES replaces the forward-auth fallback" do
-    proxies = FamilyPlates.trusted_proxies(hosted: false, extra: "172.18.0.9", forward_auth: [ IPAddr.new("172.18.0.5") ])
+    with_forward_auth(true, [ "172.18.0.5" ]) do
+      proxies = FamilyPlates.trusted_proxies(hosted: false, extra: "172.18.0.9")
 
-    assert_includes proxies, IPAddr.new("172.18.0.9")
-    assert_not_includes proxies, IPAddr.new("172.18.0.5")
+      assert_includes proxies, IPAddr.new("172.18.0.9")
+      assert_not_includes proxies, IPAddr.new("172.18.0.5")
+    end
   end
 
-  test "the fallback reads FORWARD_AUTH_TRUSTED_PROXIES and leaves out its ranges and non-addresses" do
-    previous = [ ENV["TRUSTED_PROXIES"], ENV["FORWARD_AUTH_TRUSTED_PROXIES"] ]
-    ENV.delete("TRUSTED_PROXIES")
-    ENV["FORWARD_AUTH_TRUSTED_PROXIES"] = "172.18.0.5, 10.0.0.0/8, traefik, ::ffff:172.18.0.6"
-    FamilyPlates.config.reset!
-
-    assert_equal [ "127.0.0.0/8", "::1", "172.18.0.5", "172.18.0.6" ].map { IPAddr.new(_1) },
-      FamilyPlates.trusted_proxies(hosted: false)
-  ensure
-    ENV["TRUSTED_PROXIES"], ENV["FORWARD_AUTH_TRUSTED_PROXIES"] = previous
-    ENV.delete("TRUSTED_PROXIES") if previous.first.nil?
-    ENV.delete("FORWARD_AUTH_TRUSTED_PROXIES") if previous.last.nil?
-    FamilyPlates.config.reset!
+  test "the fallback leaves out forward-auth ranges and non-addresses" do
+    with_forward_auth(true, [ "172.18.0.5", "10.0.0.0/8", "traefik", "::ffff:172.18.0.6" ]) do
+      assert_equal [ "127.0.0.0/8", "::1", "172.18.0.5", "172.18.0.6" ].map { IPAddr.new(_1) },
+        FamilyPlates.trusted_proxies(hosted: false, extra: nil)
+    end
   end
 
   test "the hosted edition keeps Rails' default whatever TRUSTED_PROXIES says" do
@@ -168,5 +185,32 @@ class TrustedProxiesTest < ActiveSupport::TestCase
 
     assert_match(/^ENV .*\bBINDING="?127\.0\.0\.1"?/m, dockerfile.gsub(/\\\n\s*/, " "))
     assert_match(/^CMD \["\.\/bin\/thrust", "\.\/bin\/rails", "server"\]$/, dockerfile)
+  end
+
+  # Starting Puma straight from config/puma.rb must bind the way `rails server`
+  # does, from the same BINDING setting.
+  def puma_binds(binding_env)
+    require "puma/configuration"
+    previous = ENV["BINDING"]
+    binding_env.nil? ? ENV.delete("BINDING") : ENV["BINDING"] = binding_env
+    config = Puma::Configuration.new({ config_files: [ Rails.root.join("config/puma.rb").to_s ] })
+    config.clamp
+    config.final_options[:binds]
+  ensure
+    previous.nil? ? ENV.delete("BINDING") : ENV["BINDING"] = previous
+  end
+
+  test "puma.rb binds to BINDING when it is set" do
+    assert_equal [ "tcp://127.0.0.1:3000" ], puma_binds("127.0.0.1")
+  end
+
+  test "puma.rb binds as before when BINDING is unset or blank" do
+    # Puma's own default host (all addresses), the same as a bare `port 3000`.
+    [ nil, "" ].each do |unset|
+      binds = puma_binds(unset)
+
+      assert_equal 1, binds.size
+      assert_match(%r{\Atcp://(0\.0\.0\.0|\[::\]):3000\z}, binds.first, "BINDING #{unset.inspect}")
+    end
   end
 end
