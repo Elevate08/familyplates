@@ -262,7 +262,7 @@ module Authentication
     peer = forward_auth_peer_ip
     return email if trusted_forward_auth_proxy?(peer)
 
-    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{peer || "unparseable"}")
+    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{forward_auth_peer_label(peer)}")
     nil
   end
 
@@ -273,19 +273,28 @@ module Authentication
   # the last X-Forwarded-For entry. That entry is the hop to check. A connection
   # straight to Puma's own port (3000) has its own address and is checked as is.
   def forward_auth_peer_ip
-    peer = normalize_peer_ip(request.remote_addr)
+    peer = parse_peer_ip(request.remote_addr)
     forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
-    return peer unless peer&.loopback? && !forwarded.nil?
+    return peer unless peer && host_address?(peer) && peer.loopback? && !forwarded.nil?
 
-    normalize_peer_ip(forwarded.split(",", -1).last)
+    parse_peer_ip(forwarded.split(",", -1).last)
   end
 
-  # A single host address, or nil: a value that parses as a range is not a hop.
-  def normalize_peer_ip(value)
-    ip = native_ip(IPAddr.new(value.to_s.strip))
-    ip if ip.prefix == (ip.ipv4? ? 32 : 128)
+  def parse_peer_ip(value)
+    native_ip(IPAddr.new(value.to_s.strip))
   rescue IPAddr::Error
     nil
+  end
+
+  # A hop is a single host address; a value that parses as a range is not one.
+  def host_address?(ip)
+    ip.prefix == (ip.ipv4? ? 32 : 128)
+  end
+
+  def forward_auth_peer_label(peer)
+    return "unparseable" if peer.nil?
+
+    host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
   end
 
   # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
@@ -325,7 +334,7 @@ module Authentication
   end
 
   def trusted_forward_auth_proxy?(peer)
-    return false if peer.nil?
+    return false if peer.nil? || !host_address?(peer)
 
     FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
       native_ip(IPAddr.new(trusted.strip)).include?(peer)

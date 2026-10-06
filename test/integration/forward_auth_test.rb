@@ -344,6 +344,29 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-01
+  test "a range where a hop is expected is logged as a range, not as unparseable" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: {
+        "Remote-Email" => "a@example.com",
+        "X-Forwarded-For" => "203.0.113.9, 172.18.0.0/24",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_includes io.string, "forward_auth_untrusted_peer peer=range:172.18.0.0/24"
+    assert_not_includes io.string, "peer=unparseable"
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
   test "an untrusted peer with identity headers is logged without header values" do
     FamilyPlates.config.forward_auth_enabled = true
     io = StringIO.new
