@@ -164,8 +164,10 @@ module FamilyPlates
       forward_auth_headers(@forward_auth_email_headers, "EMAIL", "Remote-Email")
     end
 
+    # No default: with none set, the user ID is the email. A client can add any
+    # header a proxy neither sets nor strips, so a default name would be one more.
     def forward_auth_user_headers
-      forward_auth_headers(@forward_auth_user_headers, "USER", "Remote-User")
+      forward_auth_headers(@forward_auth_user_headers, "USER", "")
     end
 
     def forward_auth_name_headers
@@ -176,18 +178,7 @@ module FamilyPlates
       @forward_auth_logout_url || ENV["FORWARD_AUTH_LOGOUT_URL"]
     end
 
-    def initialize
-      @forward_auth_email_header_warned = Concurrent::AtomicBoolean.new(false)
-    end
-
-    # True the first time it is called in this process (until reset!), so a
-    # warning that every request could trigger is logged once.
-    def forward_auth_email_header_warning_due?
-      @forward_auth_email_header_warned.make_true
-    end
-
     def reset!
-      @forward_auth_email_header_warned = Concurrent::AtomicBoolean.new(false)
       @mode = nil
       @require_login = nil
       @google_auth_enabled = nil

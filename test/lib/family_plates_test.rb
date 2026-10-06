@@ -86,14 +86,14 @@ class FamilyPlatesTest < ActiveSupport::TestCase
     assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
   end
 
-  test "forward-auth identity headers default to one header each and can be listed" do
+  test "forward-auth reads Remote-Email and Remote-Name by default, no user ID header, and any can be listed" do
     keys = %w[FORWARD_AUTH_EMAIL_HEADERS FORWARD_AUTH_EMAIL_HEADER FORWARD_AUTH_USER_HEADERS
               FORWARD_AUTH_USER_HEADER FORWARD_AUTH_NAME_HEADERS FORWARD_AUTH_NAME_HEADER]
     original = keys.to_h { |key| [ key, ENV[key] ] }
     keys.each { |key| ENV.delete(key) }
 
     assert_equal [ "Remote-Email" ], FamilyPlates.config.forward_auth_email_headers
-    assert_equal [ "Remote-User" ], FamilyPlates.config.forward_auth_user_headers
+    assert_empty FamilyPlates.config.forward_auth_user_headers
     assert_equal [ "Remote-Name" ], FamilyPlates.config.forward_auth_name_headers
 
     ENV["FORWARD_AUTH_EMAIL_HEADERS"] = "X-Forwarded-Email, Tailscale-User-Login"

@@ -257,30 +257,13 @@ module Authentication
     return if session[:forward_auth_signed_out]
 
     email = extract_forward_auth_email
-    peer = forward_auth_peer_ip
-    trusted = trusted_forward_auth_proxy?(peer)
+    return if email.blank?
 
-    if email.blank?
-      warn_forward_auth_email_header_missing if trusted
-      return
-    end
-    return email if trusted
+    peer = forward_auth_peer_ip
+    return email if trusted_forward_auth_proxy?(peer)
 
     Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{forward_auth_peer_label(peer)}")
     nil
-  end
-
-  # Only called for a trusted proxy, so a client cannot trigger it. An install
-  # that relied on the old default headers (X-Forwarded-Email, Tailscale-User-Login)
-  # stops signing people in, and this is the clue. Logged once per process.
-  def warn_forward_auth_email_header_missing
-    return unless FamilyPlates.config.forward_auth_email_header_warning_due?
-
-    Rails.logger.warn(
-      "[auth] forward_auth_email_header_missing a request from a trusted proxy had none of the email " \
-      "headers forward-auth reads (#{FamilyPlates.config.forward_auth_email_headers.join(', ')}); " \
-      "set FORWARD_AUTH_EMAIL_HEADERS to the header your proxy sends. Logged once per process."
-    )
   end
 
   # The address that connected to the app, not request.remote_ip: remote_ip is
@@ -345,7 +328,7 @@ module Authentication
   # request is refused. Logged without any address or ID.
   def forward_auth_identity_email_mismatch?(uid, email)
     identity = Identity.includes(:user).find_by(provider: "forward_auth", uid: uid)
-    return false if identity.nil? || identity.user.email == email
+    return false if identity.nil? || identity.user.email.casecmp?(email)
 
     Rails.logger.warn("[auth] forward_auth_identity_email_mismatch the user ID header named an identity whose account email differs from the proxy's email header; sign-in refused")
     true
