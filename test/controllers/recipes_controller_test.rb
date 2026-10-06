@@ -98,8 +98,7 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create recipe with meal types and image upload" do
-    png_data = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82".b
-    file = Rack::Test::UploadedFile.new(StringIO.new(png_data), "image/png", true, original_filename: "test.png")
+    file = fixture_file_upload("pixel.png", "image/png")
 
     assert_difference("Recipe.count", 1) do
       post recipes_url, params: {
