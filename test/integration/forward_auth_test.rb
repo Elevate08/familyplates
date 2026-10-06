@@ -32,7 +32,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # @card-20.6
   test "forward-auth headers are ignored when request comes from untrusted proxy IP" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1", "10.0.0.0/8" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "127.0.0.1", "10.0.0.7" ]
 
     assert_no_difference -> { User.count } do
       # Client IP from untrusted public IP spoofing reverse proxy header
@@ -178,18 +178,106 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert cookies[:session_token].present?
   end
 
-  # SA-01
-  test "a CIDR range in the trusted list still matches a host address inside it" do
+  # SA-11
+  test "a range entry in the trusted list no longer trusts a host inside it" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
 
-    assert_difference -> { User.count } => 1 do
-      get root_path, headers: {
-        "Remote-Email" => "range_entry@example.com",
-        "X-Forwarded-For" => "203.0.113.9, 172.18.0.5",
-        "REMOTE_ADDR" => "127.0.0.1"
-      }
+    [
+      [ "10.0.0.0/8", "10.9.8.7" ],
+      [ "172.18.0.0/16", "172.18.0.5" ],
+      [ "::ffff:172.18.0.0/112", "172.18.0.5" ]
+    ].each do |entry, peer|
+      FamilyPlates.config.forward_auth_trusted_proxies = [ entry ]
+
+      # Direct connection, and through Thruster (loopback peer, last X-Forwarded-For entry).
+      assert_no_difference [ "User.count", "Identity.count", "Session.count" ], "direct peer #{peer} in #{entry}" do
+        get root_path, headers: { "Remote-Email" => "victim@example.com", "REMOTE_ADDR" => peer }
+      end
+      assert_no_difference [ "User.count", "Identity.count", "Session.count" ], "Thruster hop #{peer} in #{entry}" do
+        get root_path, headers: {
+          "Remote-Email" => "victim@example.com",
+          "X-Forwarded-For" => "203.0.113.9, #{peer}",
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+      assert cookies[:session_token].blank?
+      assert_not User.exists?(email: "victim@example.com")
     end
+  end
+
+  # SA-11
+  test "a range entry does not stop a single address in the same list from working" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "10.0.0.0/8", "172.18.0.5" ]
+
+    assert_no_difference "User.count" do
+      get root_path, headers: { "Remote-Email" => "lan@example.com", "REMOTE_ADDR" => "10.9.8.7" }
+    end
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: { "Remote-Email" => "proxy@example.com", "REMOTE_ADDR" => "172.18.0.5" }
+    end
+  end
+
+  # SA-11
+  test "an explicit host-length prefix in the trusted list still works" do
+    FamilyPlates.config.forward_auth_enabled = true
+
+    [ "172.18.0.5/32", "::ffff:172.18.0.5/128", "fd00::5/128" ].each_with_index do |entry, i|
+      FamilyPlates.config.forward_auth_trusted_proxies = [ entry ]
+      peer = entry.start_with?("fd00") ? "fd00::5" : "172.18.0.5"
+
+      assert_difference -> { User.count } => 1 do
+        get root_path, headers: { "Remote-Email" => "host#{i}@example.com", "REMOTE_ADDR" => peer }
+      end
+    end
+  end
+
+  # SA-11
+  test "an IPv6 range entry does not trust a host inside it" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "fd00::/64" ]
+
+    assert_no_difference [ "User.count", "Session.count" ] do
+      get root_path, headers: { "Remote-Email" => "victim@example.com", "REMOTE_ADDR" => "fd00::5" }
+    end
+  end
+
+  # SA-11
+  test "ignored range entries are logged once per process, naming the entries" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "10.0.0.0/8", "::ffff:172.18.0.0/112" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      3.times do
+        get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "10.9.8.7" }
+      end
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_equal 1, io.string.scan("[auth] forward_auth_trusted_proxies ignored range entries:").size
+    assert_includes io.string, "ignored range entries: 10.0.0.0/8, ::ffff:172.18.0.0/112"
+    assert_not_includes io.string, "172.18.0.5,"
+  end
+
+  # SA-11
+  test "no range warning is logged when every entry is a single address" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "127.0.0.1/32" ]
+    io = StringIO.new
+    capture = ActiveSupport::Logger.new(io)
+    Rails.logger.broadcast_to(capture)
+
+    begin
+      get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "172.18.0.5" }
+    ensure
+      Rails.logger.stop_broadcasting_to(capture)
+    end
+
+    assert_not_includes io.string, "ignored range entries"
   end
 
   # SA-01
@@ -269,7 +357,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "forward-auth refuses a range where an address is expected" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0", "172.18.0.5" ]
 
     assert_no_difference [ "User.count", "Session.count" ] do
       [ "172.18.0.0/24", "172.18.0.5/16", "::ffff:172.18.0.0/112" ].each do |hop|
@@ -300,7 +388,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "an IPv4-mapped IPv6 trusted-proxy entry matches the IPv4 peer" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.0/112" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.5" ]
 
     assert_difference -> { User.count } => 1 do
       get root_path, headers: {
@@ -311,14 +399,14 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-01
-  test "an IPv4-mapped IPv6 trusted-proxy entry keeps its prefix length" do
+  test "an IPv4-mapped IPv6 trusted-proxy entry does not match another IPv4 peer" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.0/112" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.5" ]
 
     assert_no_difference "User.count" do
       get root_path, headers: {
         "Remote-Email" => "outside@example.com",
-        "REMOTE_ADDR" => "172.19.0.5"
+        "REMOTE_ADDR" => "172.18.0.6"
       }
     end
   end
@@ -346,7 +434,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   # SA-01
   test "a range where a hop is expected is logged as a range, not as unparseable" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0" ]
     io = StringIO.new
     capture = ActiveSupport::Logger.new(io)
     Rails.logger.broadcast_to(capture)

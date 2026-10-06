@@ -336,11 +336,30 @@ module Authentication
   def trusted_forward_auth_proxy?(peer)
     return false if peer.nil? || !host_address?(peer)
 
-    FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
-      native_ip(IPAddr.new(trusted.strip)).include?(peer)
+    forward_auth_trusted_hosts.include?(peer)
+  end
+
+  # The single-host entries of FORWARD_AUTH_TRUSTED_PROXIES. A network range
+  # would make every client inside it a trusted hop, so range entries are
+  # ignored, and logged once per process so an operator can see why sign-in
+  # stopped. An unparseable entry is ignored without a log, as before.
+  def forward_auth_trusted_hosts
+    ranges = []
+    hosts = FamilyPlates.config.forward_auth_trusted_proxies.filter_map do |entry|
+      ip = native_ip(IPAddr.new(entry.strip))
+      next ip if host_address?(ip)
+
+      ranges << entry.strip
+      nil
     rescue IPAddr::Error
-      false
+      nil
     end
+
+    if ranges.any? && !FamilyPlates.config.forward_auth_ranges_logged
+      FamilyPlates.config.forward_auth_ranges_logged = true
+      Rails.logger.warn("[auth] forward_auth_trusted_proxies ignored range entries: #{ranges.join(', ')}")
+    end
+    hosts
   end
 
   def extract_forward_auth_email

@@ -52,6 +52,7 @@ module FamilyPlates
     attr_accessor :google_client_id, :google_client_secret
     attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_jwks_url, :oidc_display_name, :oidc_scope
     attr_accessor :forward_auth_trusted_proxies, :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
+    attr_accessor :forward_auth_ranges_logged
     attr_writer :google_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
 
     def google_auth_enabled?
@@ -164,6 +165,7 @@ module FamilyPlates
       @forward_auth_user_headers = nil
       @forward_auth_name_headers = nil
       @forward_auth_logout_url = nil
+      @forward_auth_ranges_logged = nil
     end
   end
 
