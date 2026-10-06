@@ -226,7 +226,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "an import nobody picked up for minutes stops claiming progress, and never runs afterwards" do
-    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/stuck", created_at: 10.minutes.ago)
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/stuck", created_at: 40.minutes.ago)
     RecipeImportJob.perform_later(import)
 
     get recipe_import_url(import)
@@ -242,6 +242,15 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     end
     assert import.reload.failed?
     assert_nil import.recipe_id
+  end
+
+  test "an import queued behind the household's other imports for minutes is still waiting" do
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/queued", created_at: 10.minutes.ago)
+
+    get recipe_import_url(import)
+
+    assert_response :success
+    assert import.reload.queued?
   end
 
   test "an import that has been running for minutes stops claiming progress" do
@@ -281,6 +290,40 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_recipe_import_url
     assert_equal RecipeImportsController::RATE_LIMIT_ALERT, flash[:alert]
     assert_equal 10, RecipeImport.count
+  end
+
+  test "starting the same link twice while it is still importing goes to the same waiting page" do
+    post recipe_imports_url, params: { url: "https://example.com/recipes/twice" }
+    first = RecipeImport.order(:created_at).last
+
+    assert_no_difference "RecipeImport.count" do
+      assert_no_enqueued_jobs only: RecipeImportJob do
+        post recipe_imports_url, params: { url: " https://example.com/recipes/twice " }
+      end
+    end
+    assert_redirected_to recipe_import_url(first)
+
+    first.update!(status: "running", started_at: Time.current)
+    assert_no_difference "RecipeImport.count" do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/twice" }
+    end
+    assert_redirected_to recipe_import_url(first)
+  end
+
+  test "a link whose earlier import finished can be imported again, and repeats do not use up the allowance" do
+    households(:one).recipe_imports.create!(url: "https://example.com/recipes/retry", status: "failed", error: "timeout")
+    assert_difference "RecipeImport.count", 1 do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/retry" }
+    end
+
+    15.times { post recipe_imports_url, params: { url: "https://example.com/recipes/retry" } }
+    assert_equal 2, RecipeImport.count
+
+    9.times { |n| post recipe_imports_url, params: { url: "https://example.com/recipes/more-#{n}" } }
+    assert_equal 11, RecipeImport.count, "the repeats must not have been counted"
+
+    post recipe_imports_url, params: { url: "https://example.com/recipes/one-too-many" }
+    assert_equal RecipeImportsController::RATE_LIMIT_ALERT, flash[:alert]
   end
 
   test "another household is not held back by one household's imports" do
