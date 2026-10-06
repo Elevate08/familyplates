@@ -203,6 +203,34 @@ module FamilyPlates
     target_household.can_require_login?
   end
 
+  # The addresses that may sit between a client and the app, for
+  # config.action_dispatch.trusted_proxies. Rails' default trusts every private
+  # range, so on an appliance (a LAN, or the Docker bridge) any client could name
+  # its own address in X-Forwarded-For and dodge the per-IP sign-in and PIN
+  # limits. An appliance trusts only loopback (Thruster, in the image) and the
+  # single addresses in TRUSTED_PROXIES, so remote_ip is the last hop that is not
+  # one of them: the address Thruster, or the operator's proxy, saw.
+  #
+  # Returns nil for the hosted edition, which keeps Rails' default. Its clients
+  # arrive from public addresses, and kamal-proxy reaches the app from a private
+  # one: narrowing the list would give every user kamal-proxy's address.
+  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"])
+    return if hosted
+
+    loopback = %w[127.0.0.0/8 ::1].map { |address| IPAddr.new(address) }
+    loopback + extra.to_s.split(",").map(&:strip).compact_blank.map { |address| single_proxy_address(address) }
+  end
+
+  def self.single_proxy_address(address)
+    ip = IPAddr.new(address)
+    raise IPAddr::Error, "a range" unless ip.to_range.first == ip.to_range.last
+
+    ip
+  rescue IPAddr::Error
+    raise ArgumentError, "TRUSTED_PROXIES must list single IP addresses, comma-separated; #{address.inspect} is not one."
+  end
+  private_class_method :single_proxy_address
+
   # Hostname operators set for a public deploy. Blank on a LAN appliance.
   def self.public_host
     ENV["APP_HOST"].to_s.strip.sub(%r{\Ahttps?://}i, "").split("/").first.presence

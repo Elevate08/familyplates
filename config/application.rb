@@ -52,6 +52,12 @@ module HomeMealPlanner
       LogPathFilter.install(Rails.logger)
     end
 
+    # Appliance: trust loopback and TRUSTED_PROXIES only, so a LAN client cannot
+    # choose its own address through X-Forwarded-For (SA-09). Hosted: Rails' default.
+    if (trusted_proxies = FamilyPlates.trusted_proxies)
+      config.action_dispatch.trusted_proxies = trusted_proxies
+    end
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

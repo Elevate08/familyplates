@@ -5,6 +5,11 @@ require "open3"
 # test, and release/v1.3.0 shipped an initializer that could not load in
 # production (FamilyPlates was not yet autoloadable). These boot it for real.
 class ProductionBootTest < ActiveSupport::TestCase
+  PRINT_PROXIES = <<~'RUBY'.freeze
+    proxies = Rails.application.config.action_dispatch.trusted_proxies
+    puts(proxies ? proxies.map { "#{_1}/#{_1.prefix}" }.join(" ") : "default")
+  RUBY
+
   test "an appliance boots in production with no deployment settings" do
     out, err, status = boot_production("FAMILYPLATES_MODE" => "appliance", "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s)
 
@@ -111,6 +116,31 @@ class ProductionBootTest < ActiveSupport::TestCase
     assert_includes out, "booted"
   end
 
+  test "an appliance boots in production trusting loopback only, plus TRUSTED_PROXIES" do
+    out, err, status = boot_production({ "FAMILYPLATES_MODE" => "appliance", "TRUSTED_PROXIES" => "172.18.0.5",
+                                         "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s }, PRINT_PROXIES)
+
+    assert status.success?, err
+    assert_equal "127.0.0.0/8 ::1/128 172.18.0.5/32", out.strip
+  end
+
+  test "an appliance refuses to boot when TRUSTED_PROXIES lists a range" do
+    _out, err, status = boot_production({ "FAMILYPLATES_MODE" => "appliance", "TRUSTED_PROXIES" => "172.18.0.0/16",
+                                          "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s })
+
+    assert_not status.success?
+    assert_includes err, "TRUSTED_PROXIES must list single IP addresses"
+  end
+
+  test "the hosted edition boots in production with Rails' default trusted proxies" do
+    skip "needs the hosted bundle" unless FamilyPlates.saas?
+
+    out, err, status = boot_production(production_env.merge("TRUSTED_PROXIES" => "172.18.0.5"), PRINT_PROXIES)
+
+    assert status.success?, err
+    assert_equal "default", out.strip
+  end
+
   private
 
   def staging_env
@@ -141,13 +171,13 @@ class ProductionBootTest < ActiveSupport::TestCase
     { "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY" => "boot-placeholder-primary", "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT" => "boot-placeholder-salt" }
   end
 
-  def boot_production(env)
+  def boot_production(env, script = "puts :booted")
     clean = { "RAILS_ENV" => "production", "APP_HOST" => nil, "SMTP_ADDRESS" => nil, "SECRET_KEY_BASE_DUMMY" => "1",
               "BUNDLE_GEMFILE" => ENV["BUNDLE_GEMFILE"] }.merge(env)
     clean["SECRET_KEY_BASE_DUMMY"] = nil unless env.key?("SECRET_KEY_BASE_DUMMY")
     clean["SECRET_KEY_BASE"] = "x" * 64 if clean["SECRET_KEY_BASE_DUMMY"].nil?
     Bundler.with_unbundled_env do
-      Open3.capture3(clean, Rails.root.join("bin/rails").to_s, "runner", "puts :booted", chdir: Rails.root.to_s)
+      Open3.capture3(clean, Rails.root.join("bin/rails").to_s, "runner", script, chdir: Rails.root.to_s)
     end
   end
 end
