@@ -443,6 +443,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
     t.string "family_member_id"
     t.datetime "finished_at"
     t.string "household_id", null: false
+    t.integer "recipe_id"
     t.datetime "started_at"
     t.string "status", default: "queued", null: false
     t.datetime "updated_at", null: false

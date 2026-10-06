@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 # The waiting page reloads itself while RecipeImportJob fetches the page. Request
 # tests see the meta tag; only a browser shows that the reload really happens
-# and lands on the recipe form or the error without anyone touching it.
+# and lands on the saved recipe's edit page or the error without anyone touching it.
 class RecipeImportTest < ApplicationSystemTestCase
   # System tests otherwise run jobs on the async adapter, in the background and
   # against the real scraper. This one decides when the import's job runs.
@@ -16,7 +16,7 @@ class RecipeImportTest < ApplicationSystemTestCase
     RecipeScraper.define_singleton_method(:fetch, @original_fetch) if @original_fetch
   end
 
-  test "the waiting page opens the pre-filled recipe form by itself when the import finishes" do
+  test "the waiting page opens the saved recipe by itself when the import finishes" do
     start_import("https://example.com/recipes/browser-tacos")
 
     assert_text "Importing your recipe"
@@ -24,8 +24,10 @@ class RecipeImportTest < ApplicationSystemTestCase
 
     finish_import RecipeScraper::Result.new(recipe: { title: "Browser Tacos", servings: 4, ingredients: [] })
 
-    assert_selector "input[name='recipe[title]'][value='Browser Tacos']", wait: 10
-    assert_no_text "Importing your recipe"
+    assert_text "Imported \"Browser Tacos\" into your recipe box", wait: 10
+    assert_current_path %r{\A/recipes/\d+/edit\z}
+    assert_selector "input[name='recipe[title]'][value='Browser Tacos']"
+    assert_equal 1, Recipe.where(title: "Browser Tacos").count
   end
 
   test "the waiting page shows the error by itself when the import fails" do
