@@ -122,6 +122,71 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "image/png", response.media_type
   end
 
+  # SA-10: Active Storage reads a String assigned to an attachment as a signed
+  # blob id, and every rendered image URL carries one that never expires. Only
+  # an uploaded file may set recipe[image].
+  def other_household_image_recipe
+    recipe = households(:two).recipes.create!(title: "Miller Casserole", instructions: "Bake it.", number: 99)
+    recipe.image.attach(io: file_fixture("pixel.png").open, filename: "pixel.png", content_type: "image/png")
+    recipe
+  end
+
+  test "create ignores a signed blob id as recipe image" do
+    victim = other_household_image_recipe
+    blob = victim.image.blob
+
+    assert_difference("Recipe.count", 1) do
+      post recipes_url, params: { recipe: { title: "Borrowed Photo", image: blob.signed_id } }
+    end
+
+    assert_not Recipe.find_by!(title: "Borrowed Photo").image.attached?
+  end
+
+  test "update ignores a signed blob id as recipe image and the other image survives" do
+    victim = other_household_image_recipe
+    blob = victim.image.blob
+
+    patch recipe_url(@recipe), params: { recipe: { image: blob.signed_id } }
+    assert_not @recipe.reload.image.attached?
+
+    # Replacing the attacker's own image must not purge the borrowed blob.
+    patch recipe_url(@recipe), params: { recipe: { image: fixture_file_upload("pixel.png", "image/png") } }
+    assert @recipe.reload.image.attached?
+    assert_not_equal blob.id, @recipe.image.blob.id
+
+    assert ActiveStorage::Blob.exists?(blob.id)
+    assert victim.reload.image.attached?
+    assert victim.image.blob.service.exist?(victim.image.blob.key)
+  end
+
+  test "destroying a recipe that tried to borrow a blob id leaves the other image serving" do
+    victim = other_household_image_recipe
+    blob = victim.image.blob
+
+    patch recipe_url(@recipe), params: { recipe: { image: blob.signed_id } }
+    perform_enqueued_jobs { delete recipe_url(@recipe) }
+
+    get victim.display_image_url
+    assert_response :redirect
+    follow_redirect!
+    assert_response :success
+    assert_equal "image/png", response.media_type
+  end
+
+  test "image params that are not an uploaded file are ignored" do
+    victim = other_household_image_recipe
+    signed_id = victim.image.blob.signed_id
+
+    patch recipe_url(@recipe), params: { recipe: { image: [ signed_id ] } }
+    assert_not @recipe.reload.image.attached?
+
+    patch recipe_url(@recipe), params: { recipe: { image: { io: signed_id } } }
+    assert_not @recipe.reload.image.attached?
+
+    patch recipe_url(@recipe), params: { recipe: { title: "Still Updates", image: "" } }
+    assert_equal "Still Updates", @recipe.reload.title
+  end
+
   test "should update recipe" do
     patch recipe_url(@recipe), params: {
       recipe: {

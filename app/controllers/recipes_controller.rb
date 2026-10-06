@@ -155,6 +155,10 @@ class RecipesController < ApplicationController
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
     )
 
+    # Active Storage reads a String as a signed blob id, and every rendered image
+    # URL carries one. Only an uploaded file may set the image (SA-10).
+    cleaned_params.delete(:image) unless cleaned_params[:image].is_a?(ActionDispatch::Http::UploadedFile)
+
     if cleaned_params[:meal_types].is_a?(Array)
       cleaned_params[:meal_types] = cleaned_params[:meal_types].reject(&:blank?).join(",")
     end
