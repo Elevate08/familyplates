@@ -6,6 +6,7 @@ class RecipeImportsController < ApplicationController
     timeout: "That site took too long to respond. Please try again in a moment, or add the recipe manually.",
     not_found: "That recipe page no longer exists. Please double-check the link.",
     site_error: "That site is having trouble right now. Please try again later, or add the recipe manually.",
+    busy: "Recipe import is busy right now. Please try again in a moment.",
     unparseable: "We couldn't find a recipe on that page. Make sure the link points at the recipe itself, or add it manually."
     # :blocked (egress policy) deliberately has no entry: an address this server
     # is not allowed to reach must look exactly like any other bad link, or the
@@ -40,11 +41,6 @@ class RecipeImportsController < ApplicationController
     end
 
     result = fetch_recipe(url)
-    if result.nil?
-      redirect_to new_recipe_import_path, alert: "Another recipe import is running. Please try again in a moment."
-      return
-    end
-
     if !result.success?
       redirect_to new_recipe_import_path, alert: import_failure_message(result.error)
       return
@@ -99,19 +95,16 @@ class RecipeImportsController < ApplicationController
 
   private
 
-  # Nil when another import already holds the slot. Never waits. The slot is taken inside
-  # the begin so an exception raised into this thread cannot leave it held.
+  # Answers :busy at once, without waiting, when another import holds the slot.
   def fetch_recipe(url)
-    begin
-      unless FETCH_SLOT.try_lock
-        Rails.logger.info("[import] fetch_slot_busy household_id=#{current_household.id}")
-        return
-      end
-
-      RecipeScraper.fetch(url)
-    ensure
-      FETCH_SLOT.unlock if FETCH_SLOT.owned?
+    unless FETCH_SLOT.try_lock
+      Rails.logger.info("[import] fetch_slot_busy household_id=#{current_household.id}")
+      return RecipeScraper::Result.new(recipe: nil, error: :busy)
     end
+
+    RecipeScraper.fetch(url)
+  ensure
+    FETCH_SLOT.unlock if FETCH_SLOT.owned?
   end
 
   def import_failure_message(error)

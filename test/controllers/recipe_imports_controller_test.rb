@@ -130,7 +130,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to new_recipe_import_url
-    assert_equal "Another recipe import is running. Please try again in a moment.", flash[:alert]
+    assert_equal "Recipe import is busy right now. Please try again in a moment.", flash[:alert]
     assert_includes log.string, "[import] fetch_slot_busy household_id=#{@admin.household_id}"
     busy_line = log.string.lines.find { |line| line.include?("fetch_slot_busy") }
     assert_not_includes busy_line, "example.com", "the refusal must not log the URL"
@@ -167,6 +167,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
       timeout: "took too long to respond",
       not_found: "no longer exists",
       site_error: "having trouble right now",
+      busy: "import is busy right now",
       unparseable: "couldn't find a recipe on that page"
     }.each do |error, expected|
       with_scrape_failure(error) do
