@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "ipaddr"
+
 module FamilyPlates
   class Error < StandardError; end
   class AdminPasswordRequiredError < Error; end
@@ -51,8 +53,7 @@ module FamilyPlates
 
     attr_accessor :google_client_id, :google_client_secret
     attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_jwks_url, :oidc_display_name, :oidc_scope
-    attr_accessor :forward_auth_trusted_proxies, :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
-    attr_accessor :forward_auth_ranges_logged
+    attr_accessor :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
     attr_writer :google_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
 
     def google_auth_enabled?
@@ -127,6 +128,37 @@ module FamilyPlates
       @forward_auth_trusted_proxies || (ENV["FORWARD_AUTH_TRUSTED_PROXIES"].presence || "127.0.0.1,::1").split(",").map(&:strip)
     end
 
+    def forward_auth_trusted_proxies=(value)
+      @forward_auth_proxies = nil
+      @forward_auth_trusted_proxies = value
+    end
+
+    # The single-host addresses in forward_auth_trusted_proxies, parsed once.
+    # A network range would make every client inside it a trusted hop, so range
+    # entries (and entries that are not an IP address) are ignored.
+    ForwardAuthProxies = Struct.new(:hosts, :ignored)
+
+    def forward_auth_proxies
+      @forward_auth_proxies ||= begin
+        parsed = forward_auth_trusted_proxies.map(&:strip).compact_blank.map do |entry|
+          [ entry, FamilyPlates.native_ip(IPAddr.new(entry)) ]
+        rescue IPAddr::Error
+          [ entry, nil ]
+        end
+        hosts, others = parsed.partition { |_, ip| ip && FamilyPlates.host_address?(ip) }
+        ignored = others.map { |entry, ip| "#{entry} (#{ip ? 'range' : 'not an IP address'})" }
+        ForwardAuthProxies.new(hosts.map(&:last), ignored)
+      end
+    end
+
+    # Called once at boot, so an operator can see why forward-auth sign-in stopped.
+    def log_ignored_forward_auth_proxies(logger)
+      return unless forward_auth_enabled?
+
+      ignored = forward_auth_proxies.ignored
+      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: #{ignored.join(', ')}") if ignored.any?
+    end
+
     def forward_auth_email_headers
       @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email,X-Forwarded-Email,Tailscale-User-Login").split(",").map(&:strip)
     end
@@ -161,16 +193,29 @@ module FamilyPlates
       @oidc_scope = nil
       @forward_auth_enabled = nil
       @forward_auth_trusted_proxies = nil
+      @forward_auth_proxies = nil
       @forward_auth_email_headers = nil
       @forward_auth_user_headers = nil
       @forward_auth_name_headers = nil
       @forward_auth_logout_url = nil
-      @forward_auth_ranges_logged = nil
     end
   end
 
   def self.config
     @config ||= Config.new
+  end
+
+  # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
+  # becomes the IPv4 one, so it compares equal to the same IPv4 address.
+  def self.native_ip(ip)
+    return ip unless ip.ipv4_mapped? && ip.prefix >= 96
+
+    ip.native.mask(ip.prefix - 96)
+  end
+
+  # A single host address; a value that parses as a range is not one.
+  def self.host_address?(ip)
+    ip.prefix == (ip.ipv4? ? 32 : 128)
   end
 
   # True when the hosted edition's engine is loaded (Gemfile.saas).

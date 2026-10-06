@@ -243,41 +243,66 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-11
-  test "ignored range entries are logged once per process, naming the entries" do
+  test "the boot warning names ignored range and unparseable entries" do
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "10.0.0.0/8", "::ffff:172.18.0.0/112" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "10.0.0.0/8", "traefik", "::ffff:172.18.0.0/112" ]
     io = StringIO.new
-    capture = ActiveSupport::Logger.new(io)
-    Rails.logger.broadcast_to(capture)
 
-    begin
-      3.times do
-        get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "10.9.8.7" }
-      end
-    ensure
-      Rails.logger.stop_broadcasting_to(capture)
-    end
+    FamilyPlates.config.log_ignored_forward_auth_proxies(ActiveSupport::Logger.new(io))
 
-    assert_equal 1, io.string.scan("[auth] forward_auth_trusted_proxies ignored range entries:").size
-    assert_includes io.string, "ignored range entries: 10.0.0.0/8, ::ffff:172.18.0.0/112"
-    assert_not_includes io.string, "172.18.0.5,"
+    assert_equal "[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: 10.0.0.0/8 (range), " \
+      "traefik (not an IP address), ::ffff:172.18.0.0/112 (range)\n",
+      io.string
   end
 
   # SA-11
-  test "no range warning is logged when every entry is a single address" do
+  test "the boot warning is silent when forward-auth is off or every entry is a single address" do
+    io = StringIO.new
+    logger = ActiveSupport::Logger.new(io)
+
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "10.0.0.0/8" ]
+    FamilyPlates.config.log_ignored_forward_auth_proxies(logger)
+
     FamilyPlates.config.forward_auth_enabled = true
-    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "127.0.0.1/32" ]
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.5", "127.0.0.1/32", "::1" ]
+    FamilyPlates.config.log_ignored_forward_auth_proxies(logger)
+
+    assert_empty io.string
+  end
+
+  # SA-11
+  test "the request path does not log about ignored entries" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "10.0.0.0/8" ]
     io = StringIO.new
     capture = ActiveSupport::Logger.new(io)
     Rails.logger.broadcast_to(capture)
 
     begin
-      get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "172.18.0.5" }
+      get root_path, headers: { "Remote-Email" => "a@example.com", "REMOTE_ADDR" => "10.9.8.7" }
     ensure
       Rails.logger.stop_broadcasting_to(capture)
     end
 
-    assert_not_includes io.string, "ignored range entries"
+    assert_not_includes io.string, "ignored entries"
+  end
+
+  # SA-11
+  test "the parsed trusted list is memoized, and assignment and reset! clear it" do
+    config = FamilyPlates.config
+    config.forward_auth_trusted_proxies = [ "172.18.0.5", "10.0.0.0/8" ]
+    first = config.forward_auth_proxies
+
+    assert_same first, config.forward_auth_proxies
+    assert_equal [ IPAddr.new("172.18.0.5") ], first.hosts
+    assert_equal [ "10.0.0.0/8 (range)" ], first.ignored
+
+    config.forward_auth_trusted_proxies = [ "172.18.0.6" ]
+    assert_equal [ IPAddr.new("172.18.0.6") ], config.forward_auth_proxies.hosts
+    assert_empty config.forward_auth_proxies.ignored
+
+    config.reset!
+    assert_equal [ IPAddr.new("127.0.0.1"), IPAddr.new("::1") ], config.forward_auth_proxies.hosts
   end
 
   # SA-01
