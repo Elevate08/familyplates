@@ -87,9 +87,31 @@ class LegalControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # The owner-approved refund clause (2026-10-02), with the request sentence
+  # shared with the checkout disclosure and billing emails.
+  test "the terms state the approved refund clause" do
+    get terms_path
+
+    assert_not_includes document_text, "[REFUND POLICY"
+    assert_includes document_text, BillingOffer::REFUND_REQUEST
+    assert_includes document_text, "Except where required by law, cancellation does not provide a prorated refund."
+    assert_includes document_text, "This policy does not limit any rights or remedies you have under applicable law."
+  end
+
+  # Changed Terms need explicit acceptance; continuing to use the Service is
+  # not acceptance, and declining has a support route for unused prepaid time.
+  test "the terms describe explicit reacceptance and the decline option, not passive acceptance" do
+    get terms_path
+
+    assert_no_match(/keep using the Service after that, you accept/i, document_text)
+    assert_includes document_text, "at least 30 days"
+    assert_includes document_text, "accept them before you can keep using your household"
+    assert_includes document_text, "request an adjusted refund for unused prepaid service"
+  end
+
   test "the drafts keep their unresolved placeholders" do
     get terms_path
-    [ "[CONTACT EMAIL]", "[REFUND POLICY:", "[STATE]" ].each do |placeholder|
+    [ "[CONTACT EMAIL]", "[STATE]" ].each do |placeholder|
       assert_includes document_text, placeholder
     end
 

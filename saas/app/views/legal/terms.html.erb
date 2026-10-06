@@ -45,7 +45,7 @@
     <li>After the trial, continued access requires a paid subscription, billed monthly or annually at the price shown when you subscribe.</li>
     <li><strong>Subscriptions renew automatically</strong> at the end of each billing period, at the then-current price, until you cancel. We will tell you in advance of any price change.</li>
     <li>You can cancel at any time from the Subscription page. Cancellation takes effect at the end of the current billing period, and you keep access until then.</li>
-    <li>[REFUND POLICY: for example, "Payments are non-refundable, except where required by law."]</li>
+    <li><%= BillingOffer::REFUND_REQUEST %> Except where required by law, cancellation does not provide a prorated refund. This policy does not limit any rights or remedies you have under applicable law.</li>
     <li>Payments are processed by Stripe. We do not store your full card number.</li>
     <li>If a payment fails, we may limit access to your household until it is resolved.</li>
   </ul>
@@ -93,8 +93,12 @@
   <h2>8. Changes to the Service and these Terms</h2>
   <p>
     We may change the Service over time. If we make material changes to these Terms, we will
-    notify you before they take effect. If you keep using the Service after that, you accept
-    the new Terms.
+    email you at least 30 days before they apply to you, and you will be asked to accept them
+    before you can keep using your household. Continuing to use the Service is not acceptance.
+    If you decline the updated Terms, you can email <%= BillingOffer::SUPPORT_EMAIL %> to request
+    an adjusted refund for unused prepaid service, cancel your subscription, or ask us to delete
+    your account. While you decide, you can still sign in and out, read these Terms and the
+    Privacy Policy, contact support, and manage or cancel your subscription.
   </p>
 
   <h2>9. Disclaimers</h2>
