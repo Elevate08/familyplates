@@ -127,19 +127,25 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
   # an uploaded file may set recipe[image]. (Array and Hash values never reach
   # the model: strong params already drop them for a scalar key.)
   def other_household_image_recipe
-    recipe = households(:two).recipes.create!(title: "Miller Casserole", instructions: "Bake it.", number: 99)
+    recipe = households(:two).recipes.create!(title: "Miller Casserole", instructions: "Bake it.")
     recipe.image.attach(io: StringIO.new(file_fixture("pixel.png").binread), filename: "pixel.png", content_type: "image/png")
     recipe
   end
 
   def capture_rails_log
-    original = Rails.logger
     io = StringIO.new
-    Rails.logger = ActiveSupport::Logger.new(io)
+    capture = ActiveSupport::Logger.new(io, level: :debug)
+    Rails.logger.broadcast_to(capture)
     yield
     io.string
   ensure
-    Rails.logger = original
+    Rails.logger.stop_broadcasting_to(capture) if capture
+  end
+
+  # Only the refusal line is checked: Rails' own "Parameters:" line still shows
+  # the submitted value, as signed ids already appear in rendered image URLs.
+  def refusal_line(log)
+    log.lines.find { |line| line.include?("[recipes] image_param_refused") }
   end
 
   test "create ignores a signed blob id as recipe image" do
@@ -152,8 +158,8 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_not Recipe.find_by!(title: "Borrowed Photo").image.attached?
-    assert_includes log, "[recipes] ignored non-file image param recipe_id=new household_id=#{households(:one).id}"
-    assert_not_includes log, blob.signed_id
+    assert_includes refusal_line(log), "recipe_id=new household_id=#{households(:one).id}"
+    assert_not_includes refusal_line(log), blob.signed_id
   end
 
   test "update ignores a signed blob id as recipe image" do
@@ -164,8 +170,8 @@ class RecipesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_not @recipe.reload.image.attached?
-    assert_includes log, "[recipes] ignored non-file image param recipe_id=#{@recipe.id} household_id=#{@recipe.household_id}"
-    assert_not_includes log, blob.signed_id
+    assert_includes refusal_line(log), "recipe_id=#{@recipe.id} household_id=#{@recipe.household_id}"
+    assert_not_includes refusal_line(log), blob.signed_id
   end
 
   # A blank value is dropped like any other non-file value. It does not detach

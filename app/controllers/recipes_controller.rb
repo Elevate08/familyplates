@@ -149,7 +149,7 @@ class RecipesController < ApplicationController
   def recipe_params
     cleaned_params = params.require(:recipe).permit(
       :title, :description, :prep_time, :cook_time, :total_time, :equipment, :servings,
-      :source_url, :image_url, :image, :instructions, :tags, :meal_types, :yields_leftovers,
+      :source_url, :image_url, :instructions, :tags, :meal_types, :yields_leftovers,
       :leftover_capacity, :leftover_shelf_life_days,
       meal_types: [],
       recipe_ingredients_attributes: %i[id name raw_text quantity unit aisle_category _destroy]
@@ -157,10 +157,11 @@ class RecipesController < ApplicationController
 
     # Active Storage reads a String as a signed blob id, and every rendered image
     # URL carries one. Only an uploaded file may set the image (SA-10).
-    unless cleaned_params[:image].is_a?(ActionDispatch::Http::UploadedFile)
-      if cleaned_params.delete(:image).present?
-        Rails.logger.info("[recipes] ignored non-file image param recipe_id=#{@recipe&.id || 'new'} household_id=#{current_household.id}")
-      end
+    image = params[:recipe][:image]
+    if image.is_a?(ActionDispatch::Http::UploadedFile)
+      cleaned_params[:image] = image
+    elsif image.present?
+      Rails.logger.warn("[recipes] image_param_refused recipe_id=#{@recipe&.id || 'new'} household_id=#{current_household.id}")
     end
 
     if cleaned_params[:meal_types].is_a?(Array)
