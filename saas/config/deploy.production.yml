@@ -17,6 +17,25 @@ servers:
       cpus: 1.5
       pids-limit: 512
 
+  # Every background job, recipe imports included, runs here and not inside
+  # Puma (SOLID_QUEUE_IN_PUMA is off): an import fetches a stranger's page, and
+  # a hostile one can send an endless response header that Net::HTTP buffers
+  # until the 20 second fetch deadline (SA-12). The memory cap stops that fetch
+  # in a container that serves no traffic. bin/jobs is Solid Queue's supervisor,
+  # which also runs the dispatcher and the recurring-task scheduler, so each
+  # runs once. A role without a proxy key takes no traffic. memory-swap equal to
+  # memory leaves no swap to absorb the runaway; 512m is unvalidated, so watch
+  # `docker stats` after the first deploy. Env and volume are the shared ones below.
+  job:
+    hosts:
+      - <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SERVER") %>
+    cmd: bin/jobs
+    options:
+      memory: 512m
+      memory-swap: 512m
+      cpus: 0.5
+      pids-limit: 256
+
 ssh:
   user: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SSH_USER", "root") %>
 
@@ -34,7 +53,6 @@ env:
     APP_HOST: familyplates.org
     # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
     ASSUME_SSL: true
-    SOLID_QUEUE_IN_PUMA: true
     SMTP_ADDRESS: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_ADDRESS") %>
     SMTP_PORT: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_PORT", "587") %>
     MAILER_DEFAULT_FROM: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_MAILER_DEFAULT_FROM", "FamilyPlates <no-reply@familyplates.org>") %>

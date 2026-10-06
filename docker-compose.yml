@@ -10,7 +10,7 @@ services:
     # "127.0.0.1:3000:80" instead (see docs/getting-started.md).
     ports:
       - "3000:80"
-    environment:
+    environment: &environment
       - RAILS_ENV=production
       # No default on purpose. A fallback here would be a published constant, and
       # secret_key_base signs the session cookie that carries who you are signed
@@ -28,6 +28,36 @@ services:
       - RAILS_LOG_TO_STDOUT=true
     volumes:
       - familyplates_data:/rails/storage
+    # The worker waits for this, because starting the web container is what
+    # prepares and migrates the databases.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Runs every background job, recipe imports included. An import fetches a
+  # page from a stranger's server, and a hostile page can send an endless
+  # response header that the HTTP client buffers in memory until the fetch
+  # deadline (SA-12), so jobs run here, where a memory cap stops a runaway
+  # fetch without taking down the web container. Same image, storage and
+  # settings as above; it takes no web traffic. The web container prepares
+  # the databases, so the worker never does.
+  worker:
+    image: ghcr.io/elevate08/familyplates:latest
+    container_name: familyplates-worker
+    command: ["./bin/jobs"]
+    restart: unless-stopped
+    depends_on:
+      familyplates:
+        condition: service_healthy
+    environment: *environment
+    volumes:
+      - familyplates_data:/rails/storage
+    # memswap_limit equal to mem_limit leaves no swap to absorb a runaway fetch.
+    mem_limit: 512m
+    memswap_limit: 512m
 
 volumes:
   familyplates_data:

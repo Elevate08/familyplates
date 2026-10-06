@@ -35,6 +35,8 @@ port ENV.fetch("PORT", 3000)
 plugin :tmp_restart
 
 # Run the Solid Queue supervisor inside of Puma for single-server deployments.
+# Neither edition sets this: both run jobs in a memory-capped worker (bin/jobs),
+# and setting it as well would run imports in an uncapped second supervisor (SA-12).
 plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.

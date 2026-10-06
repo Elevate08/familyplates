@@ -19,17 +19,39 @@ FamilyPlates is packaged as a lightweight, production-ready container powered by
        restart: unless-stopped
        ports:
          - "3000:80"
-       environment:
+       environment: &environment
          - RAILS_ENV=production
          - "SECRET_KEY_BASE=${SECRET_KEY_BASE:?required - generate one with openssl rand -hex 64}"
          - RAILS_SERVE_STATIC_FILES=true
          - RAILS_LOG_TO_STDOUT=true
        volumes:
          - familyplates_data:/rails/storage
+       healthcheck:
+         test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+         interval: 10s
+         timeout: 5s
+         retries: 5
+         start_period: 30s
+
+     worker:
+       image: ghcr.io/elevate08/familyplates:latest
+       container_name: familyplates-worker
+       command: ["./bin/jobs"]
+       restart: unless-stopped
+       depends_on:
+         familyplates:
+           condition: service_healthy
+       environment: *environment
+       volumes:
+         - familyplates_data:/rails/storage
+       mem_limit: 512m
+       memswap_limit: 512m
 
    volumes:
      familyplates_data:
    ```
+
+   **Why two containers.** The `worker` container runs background jobs, which today means recipe imports. An import fetches a page from a website you do not control, and a hostile page can make the fetch use more and more memory before it gives up. The worker has a 512 MB memory limit, so a runaway fetch stops the worker, which Docker restarts, and never touches the web container. Both containers use the same image, the same `familyplates_data` volume and the same settings, so anything you add under `environment` (such as `APP_HOST`) goes in the shared list. The worker starts after the web container reports healthy, because starting the web container is what prepares and updates the databases. Without the worker, a pasted recipe link is never fetched: the import page waits and then reports that import is busy.
 
 2. **Generate a Secret Key:**
    ```bash
@@ -49,22 +71,36 @@ FamilyPlates is packaged as a lightweight, production-ready container powered by
 
 ### Method 2: Docker CLI (`docker run`)
 
-Run FamilyPlates with persistent storage mounted to a local volume:
+Run FamilyPlates with persistent storage mounted to a local volume. Use one secret key for both containers, so generate it once. The second container is the background worker (see Method 1 for why it exists); start it after the first is up, because the first one prepares the databases.
 
 ```bash
 docker volume create familyplates_data
+export SECRET_KEY_BASE=$(openssl rand -hex 64)
 
 docker run -d \
   --name familyplates \
   --restart unless-stopped \
   -p 3000:80 \
   -e RAILS_ENV=production \
-  -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  -e SECRET_KEY_BASE \
   -e RAILS_SERVE_STATIC_FILES=true \
   -e RAILS_LOG_TO_STDOUT=true \
   -v familyplates_data:/rails/storage \
   ghcr.io/elevate08/familyplates:latest
+
+docker run -d \
+  --name familyplates-worker \
+  --restart unless-stopped \
+  --memory 512m --memory-swap 512m \
+  -e RAILS_ENV=production \
+  -e SECRET_KEY_BASE \
+  -e RAILS_LOG_TO_STDOUT=true \
+  -v familyplates_data:/rails/storage \
+  ghcr.io/elevate08/familyplates:latest \
+  ./bin/jobs
 ```
+
+Keep `SECRET_KEY_BASE` somewhere safe: you need the same value whenever you recreate either container.
 
 ---
 

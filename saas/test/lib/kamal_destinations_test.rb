@@ -177,6 +177,49 @@ class KamalDestinationsTest < ActiveSupport::TestCase
     end
   end
 
+  # SA-12: recipe imports run in a memory-limited worker. One job role per
+  # destination runs the Solid Queue supervisor (dispatcher, workers and the
+  # scheduler, once), and Puma no longer does, so a runaway fetch can only
+  # take down a container that has a memory cap and serves no web traffic.
+  test "each destination runs its jobs in one capped job role on the web host" do
+    DESTINATIONS.each do |destination|
+      resolved = resolve(destination)
+      web, job = resolved[:raw].dig("servers", "web"), resolved[:raw].dig("servers", "job")
+
+      assert job, "#{destination} needs a job role"
+      assert_equal web["hosts"], job["hosts"], "#{destination}: jobs run on the web host, over the same storage"
+      assert_equal "bin/jobs", job["cmd"]
+      assert_equal "512m", job.dig("options", "memory")
+      assert_equal "512m", job.dig("options", "memory-swap"), "#{destination}: without this a runaway fetch swaps instead of being stopped"
+      assert job.dig("options", "cpus").present?, "#{destination} CPU limit"
+      assert job.dig("options", "pids-limit").present?, "#{destination} process limit"
+      assert_empty job["options"].keys & %w[volume mount privileged network pid], "#{destination} job options"
+      assert_nil job["proxy"], "#{destination}: only web takes traffic"
+      assert_nil job["env"], "#{destination}: the job role reads the shared env"
+      assert_nil job["volumes"], "#{destination}: the job role reads the shared volume"
+      assert_equal %w[job web], resolved[:raw]["servers"].keys.sort, "#{destination}: no other role runs jobs"
+      assert_not resolved[:config].role(:job).running_proxy?, destination
+    end
+  end
+
+  test "the job role's container has web's env and storage and runs bin/jobs under its cap" do
+    DESTINATIONS.each do |destination|
+      resolved = resolve(destination)
+      config = resolved[:config]
+      host = config.primary_host
+      run = ->(role) { Kamal::Commands::App.new(config, role: config.role(role), host: host).run.join(" ") }
+
+      assert_includes run.call(:job), "--volume #{resolved[:raw]['volumes'].first}", destination
+      assert_includes run.call(:job), %(--memory "512m" --memory-swap "512m"), destination
+      assert_match(/#{Regexp.escape(config.absolute_image)} bin\/jobs\z/, run.call(:job), destination)
+      assert_no_match(/\bbin\/jobs\b/, run.call(:web), "#{destination}: web does not run the job supervisor")
+      assert_equal config.role(:web).env(host).clear, config.role(:job).env(host).clear, destination
+      assert_equal config.role(:web).secrets_io(host).read, config.role(:job).secrets_io(host).read, destination
+      # Puma's plugin would be a second, uncapped supervisor: duplicate scheduling and uncapped imports.
+      assert_nil config.role(:web).env(host).clear["SOLID_QUEUE_IN_PUMA"], destination
+    end
+  end
+
   private
 
   def resolve(destination)
