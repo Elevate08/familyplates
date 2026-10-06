@@ -14,19 +14,9 @@ class RecipeImportsController < ApplicationController
 
   DEFAULT_IMPORT_FAILURE_MESSAGE = "Could not fetch recipe from that web address. Please check the link or add manually."
 
-  # An import fetches inside the request, so one household importing slow URLs over and
-  # over could keep every Puma thread busy even with the fetch deadline.
-  IMPORT_LIMIT = 10
-  IMPORT_WINDOW = 5.minutes
-
-  rate_limit to: IMPORT_LIMIT, within: IMPORT_WINDOW, name: "recipe_import_by_household", scope: "recipe_imports",
-             store: LoginThrottling.store,
-             by: -> { "household:#{current_household.id}" },
-             with: -> { redirect_to new_recipe_import_path, alert: "Too many recipe imports. Please wait a few minutes and try again." },
-             only: :create
-
-  # The fetch runs inside the request, and Puma has few threads. Allow one in flight per
-  # process and turn the rest away at once, so slow sites cannot hold every thread.
+  # The fetch runs inside the request and a slow site can hold its thread for the whole
+  # fetch deadline. At most one Puma thread per process is ever held by an outbound import
+  # fetch: this slot is taken without waiting, and anyone else is turned away at once.
   FETCH_SLOT = Mutex.new
 
   # The failure path renders "recipes/new", which needs the ingredient

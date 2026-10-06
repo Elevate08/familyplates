@@ -105,31 +105,6 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal RecipeImportsController::IMPORT_FAILURE_MESSAGES[:timeout], flash[:alert]
   end
 
-  test "imports are rate limited per household, and another household is unaffected" do
-    user = User.create!(email: "miller@example.com")
-    other = households(:two).family_members.create!(
-      name: "Miller Organizer", role: "admin", pin: SessionTestHelper::FIXTURE_PIN,
-      avatar_color: "#8B5CF6", avatar_icon: "star", user: user
-    )
-
-    with_scrape_failure(:timeout) do
-      RecipeImportsController::IMPORT_LIMIT.times do |i|
-        post recipe_imports_url, params: { url: "https://example.com/recipes/#{i}" }
-        assert_includes flash[:alert], "took too long"
-      end
-
-      post recipe_imports_url, params: { url: "https://example.com/recipes/one-too-many" }
-      assert_redirected_to new_recipe_import_url
-      assert_equal "Too many recipe imports. Please wait a few minutes and try again.", flash[:alert]
-
-      reset!
-      sign_in_user(user)
-      sign_in_as(other)
-      post recipe_imports_url, params: { url: "https://example.com/recipes/other-household" }
-      assert_includes flash[:alert], "took too long", "the other household has its own budget"
-    end
-  end
-
   test "a second import while one is fetching is refused at once, without fetching" do
     slot = RecipeImportsController::FETCH_SLOT
     held = Queue.new
