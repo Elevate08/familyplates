@@ -34,6 +34,9 @@ class DockerignoreTest < ActiveSupport::TestCase
     config/google_service_account.json
     config/anything.json
     config/service_account.json.key
+    saas/config/master.key
+    saas/config/credentials/production.key
+    saas/config/service_account.json
     saas/.kamal/secrets.production
     saas/.kamal/secrets.staging
     .kamal/secrets
@@ -71,6 +74,19 @@ class DockerignoreTest < ActiveSupport::TestCase
     log/.keep
   ].freeze
 
+  # Tracked files that .dockerignore excludes on purpose; every other tracked
+  # file must reach the image.
+  INTENDED_EXCLUSIONS = [
+    %r{\A\.dockerignore\z},
+    %r{\ADockerfile},
+    %r{\A\.gitignore\z},
+    %r{\A\.github/},                                  # CI
+    %r{\A\.env\.example\z},                           # environment files
+    %r{\A(saas/)?config/deploy.*\.yml\z},             # Kamal config
+    %r{\A(saas/)?\.kamal/},                           # Kamal hooks and secrets
+    %r{\Aapp/assets/builds/(?!\.keep\z)}              # rebuilt by assets:precompile in the image
+  ].freeze
+
   # Git-ignored paths the image needs. None today: add one here, with the
   # reason, only if something at build or run time reads it.
   IGNORED_BUT_NEEDED = [].freeze
@@ -91,30 +107,40 @@ class DockerignoreTest < ActiveSupport::TestCase
     KEPT_PATHS.each { |path| assert_not ignored?(path), "#{path} would be missing from the image" }
   end
 
-  test "no tracked runtime file is ignored" do
-    runtime = git("ls-files", "app", "lib", "bin", "db", "public", "vendor", "config", "saas/app", "saas/lib", "saas/config",
-                  "Gemfile", "Gemfile.lock", "Gemfile.saas", "Gemfile.saas.lock")
-    runtime -= [ "app/assets/builds/tailwind.css" ] # rebuilt by assets:precompile in the image
-    runtime.reject! { |path| path.match?(%r{\A(saas/)?config/deploy.*\.yml\z}) } # Kamal config, excluded on purpose
+  test "no tracked file is ignored unless that is intended" do
+    skip "needs a git checkout" unless git_checkout?
 
-    assert_not_empty runtime
-    assert_empty runtime.select { |path| ignored?(path) }
+    tracked = git("ls-files").reject { |path| INTENDED_EXCLUSIONS.any? { |pattern| pattern.match?(path) } }
+
+    assert_not_empty tracked
+    assert_empty tracked.select { |path| ignored?(path) }, "tracked files the image may need would be left out (list them in INTENDED_EXCLUSIONS if that is on purpose)"
   end
 
   test "everything git ignores is also ignored by docker" do
-    leaked = git("ls-files", "--others", "--ignored", "--exclude-standard", "--directory")
-      .reject { |path| IGNORED_BUT_NEEDED.include?(path) }
-      .reject { |path| ignored?(path.chomp("/")) }
+    skip "needs a git checkout" unless git_checkout?
+
+    # Only the repo's own .gitignore files, not a developer's global excludes.
+    leaked = git("ls-files", "--others", "--ignored", "--exclude-per-directory=.gitignore", "--directory")
+      .map { |path| path.chomp("/") }
+      .reject { |path| IGNORED_BUT_NEEDED.map { |needed| needed.chomp("/") }.include?(path) }
+      .reject { |path| ignored?(path) }
 
     assert_empty leaked, "git-ignored but not in .dockerignore (add it, or list it in IGNORED_BUT_NEEDED with a reason)"
   end
 
   private
 
+  def git_checkout?
+    system("git", "-C", Rails.root.to_s, "rev-parse", "--is-inside-work-tree", out: File::NULL, err: File::NULL) == true
+  end
+
+  # Paths come back NUL-separated so names with quotes or non-ASCII
+  # characters are not escaped.
   def git(*args)
+    args.insert(1, "-z")
     out, status = Open3.capture2("git", "-C", Rails.root.to_s, *args)
     assert status.success?, "git #{args.first} failed"
-    out.split("\n")
+    out.force_encoding(Encoding::UTF_8).split("\0")
   end
 
   # Docker's rules: the last matching pattern wins, "!" re-includes, a
