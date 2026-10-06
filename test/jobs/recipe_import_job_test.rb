@@ -123,6 +123,19 @@ class RecipeImportJobTest < ActiveJob::TestCase
     assert_equal "Done", @import.reload.data["title"]
   end
 
+  test "does not start an import that was failed as stalled while it waited" do
+    @import.update!(created_at: 10.minutes.ago)
+    RecipeImport.find(@import.id).stall!
+    stub_scraper { |_url| raise "must not fetch" }
+
+    assert_no_difference "Recipe.count" do
+      RecipeImportJob.perform_now(@import)
+    end
+
+    assert @import.reload.failed?
+    assert_equal "busy", @import.error
+  end
+
   test "is dropped quietly when the import was deleted before it ran" do
     job = RecipeImportJob.new(@import)
     serialized = job.serialize

@@ -17,6 +17,7 @@ class CreateRecipeImports < ActiveRecord::Migration[8.1]
       t.timestamps
     end
     add_index :recipe_imports, :household_id
+    add_index :recipe_imports, :family_member_id
     add_index :recipe_imports, :created_at
     add_foreign_key :recipe_imports, :households
     add_foreign_key :recipe_imports, :family_members

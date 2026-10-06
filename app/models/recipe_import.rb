@@ -36,31 +36,65 @@ class RecipeImport < ApplicationRecord
 
   scope :expired, -> { where(created_at: ...RETENTION.ago) }
 
-  def start!
-    update!(status: :running, started_at: Time.current)
+  # The job's claim on a queued import. Only one caller gets true, and an import
+  # already failed as stalled is never started, so it cannot run after the person
+  # was told it failed.
+  def claim!
+    now = Time.current
+    claimed = self.class.where(id: id, status: "queued").update_all(status: "running", started_at: now, updated_at: now) == 1
+    reload
+    claimed
   end
 
   # Keeps what the scraper found and saves it as a recipe, exactly as the import
   # did when it ran inside the request. A title already in the box, or a recipe that
   # fails validation, is not saved: the waiting page then redirects to the existing
   # recipe, or opens the pre-filled form with the errors.
+  #
+  # The recipe and the succeeded status are written together. The aisle resync
+  # runs after that and only logs a failure: a recipe that was saved is never
+  # reported as a failed import.
   def succeed!(scraped)
     self.data = scraped
-    recipe = save_recipe
-    update!(status: :succeeded, recipe_id: recipe&.id, finished_at: Time.current)
+    recipe = transaction do
+      saved = save_recipe
+      update!(status: :succeeded, recipe_id: saved&.id, finished_at: Time.current)
+      saved
+    end
+    resync_aisle_mappings(recipe)
   end
 
   def fail!(error)
     update!(status: :failed, error: error.to_s, finished_at: Time.current)
   end
 
+  # Queued imports wait from created_at; running ones from started_at, so time
+  # spent queued behind another import is not held against the fetch.
   def stalled?
-    (queued? || running?) && created_at < STALLED_AFTER.ago
+    waiting_since = queued? ? created_at : started_at
+    (queued? || running?) && waiting_since.present? && waiting_since < STALLED_AFTER.ago
+  end
+
+  # Fails an unfinished import as busy, once the waiting page has given up on it.
+  def stall!
+    now = Time.current
+    self.class.where(id: id, status: %w[queued running]).update_all(status: "failed", error: "busy", finished_at: now, updated_at: now)
+    reload
   end
 
   # The scraped recipe as the scraper returned it: symbol keys all the way down.
   def recipe_data
-    data.to_h.deep_symbolize_keys
+    @recipe_data ||= data.to_h.deep_symbolize_keys
+  end
+
+  def data=(value)
+    @recipe_data = nil
+    super
+  end
+
+  def reload(*)
+    @recipe_data = nil
+    super
   end
 
   def existing_recipe_with_title
@@ -98,8 +132,6 @@ class RecipeImport < ApplicationRecord
   end
 
   def failure_message
-    return FAILURE_MESSAGES.fetch(:busy) if stalled?
-
     FAILURE_MESSAGES.fetch(error.to_s.to_sym, DEFAULT_FAILURE_MESSAGE)
   end
 
@@ -109,8 +141,12 @@ class RecipeImport < ApplicationRecord
     return if existing_recipe_with_title
 
     recipe = build_recipe
-    saved = RecipeIngredient.without_aisle_sync { recipe.save }
-    recipe.resync_aisle_mappings! if saved
-    recipe if saved
+    recipe if RecipeIngredient.without_aisle_sync { recipe.save }
+  end
+
+  def resync_aisle_mappings(recipe)
+    recipe&.resync_aisle_mappings!
+  rescue StandardError => e
+    Rails.logger.error("[import] aisle resync failed for recipe_id=#{recipe.id}: #{e.class}")
   end
 end

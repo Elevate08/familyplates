@@ -449,6 +449,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
     t.datetime "updated_at", null: false
     t.string "url", null: false
     t.index ["created_at"], name: "index_recipe_imports_on_created_at"
+    t.index ["family_member_id"], name: "index_recipe_imports_on_family_member_id"
     t.index ["household_id"], name: "index_recipe_imports_on_household_id"
   end
 

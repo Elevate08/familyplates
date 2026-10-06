@@ -49,6 +49,11 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     get recipe_import_url(import)
     assert_response :success
     assert_select "meta[http-equiv=refresh][content^='3']", 1
+    # Turbo would otherwise merge the tag into the page it is already showing.
+    assert_select "meta[name='turbo-visit-control'][content=reload]", 1
+    assert_select "a", text: "Back to Recipe Box"
+    assert_select "a", text: /Cancel/, count: 0
+    assert_select "[role=status]", text: /appear in your recipe box when the import finishes/
     assert_select "[role=status]", text: /Importing/
     assert_select "form[action='#{recipes_path}']", 0
 
@@ -220,13 +225,78 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal GENERIC_FAILURE, flash[:alert]
   end
 
-  test "an import nobody picked up for minutes stops claiming progress" do
+  test "an import nobody picked up for minutes stops claiming progress, and never runs afterwards" do
     import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/stuck", created_at: 10.minutes.ago)
+    RecipeImportJob.perform_later(import)
 
     get recipe_import_url(import)
 
     assert_redirected_to new_recipe_import_url
     assert_equal RecipeImport::FAILURE_MESSAGES[:busy], flash[:alert]
+    assert import.reload.failed?
+    assert_equal "busy", import.error
+
+    stub_scraper { |_url| raise "a stalled import must not be fetched" }
+    assert_no_difference "Recipe.count" do
+      perform_enqueued_jobs
+    end
+    assert import.reload.failed?
+    assert_nil import.recipe_id
+  end
+
+  test "an import that has been running for minutes stops claiming progress" do
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/dead",
+                                                     status: "running", started_at: 10.minutes.ago)
+
+    get recipe_import_url(import)
+
+    assert_redirected_to new_recipe_import_url
+    assert_equal RecipeImport::FAILURE_MESSAGES[:busy], flash[:alert]
+    assert import.reload.failed?
+  end
+
+  test "an import that waited a long time in the queue but only just started is still working" do
+    import = households(:one).recipe_imports.create!(url: "https://example.com/recipes/slow-start", created_at: 10.minutes.ago,
+                                                     status: "running", started_at: 10.seconds.ago)
+
+    get recipe_import_url(import)
+
+    assert_response :success
+    assert import.reload.running?
+  end
+
+  test "starting too many imports is refused, and only imports that were queued count" do
+    15.times { post recipe_imports_url, params: { url: "" } }
+    recipes(:one).update!(source_url: "https://example.com/saved")
+    15.times { post recipe_imports_url, params: { url: "https://example.com/saved" } }
+    assert_equal 0, RecipeImport.count
+
+    10.times { |n| post recipe_imports_url, params: { url: "https://example.com/recipes/#{n}" } }
+    assert_equal 10, RecipeImport.count
+    assert_response :redirect
+
+    assert_no_enqueued_jobs only: RecipeImportJob do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/eleven" }
+    end
+    assert_redirected_to new_recipe_import_url
+    assert_equal RecipeImportsController::RATE_LIMIT_ALERT, flash[:alert]
+    assert_equal 10, RecipeImport.count
+  end
+
+  test "another household is not held back by one household's imports" do
+    10.times { |n| post recipe_imports_url, params: { url: "https://example.com/recipes/#{n}" } }
+    post recipe_imports_url, params: { url: "https://example.com/recipes/eleven" }
+    assert_equal RecipeImportsController::RATE_LIMIT_ALERT, flash[:alert]
+
+    neighbour = households(:two).family_members.create!(name: "Miller Kid", role: "member", avatar_color: "#84CC16", avatar_icon: "smile")
+    delete session_url
+    sign_in_user(User.create!(email: "miller@import.test").tap { |user| neighbour.update!(user: user) })
+    sign_in_as(neighbour)
+
+    assert_difference -> { households(:two).recipe_imports.count }, 1 do
+      post recipe_imports_url, params: { url: "https://example.com/recipes/miller" }
+    end
+    assert_redirected_to recipe_import_url(households(:two).recipe_imports.last)
   end
 
   test "another household's import is not found" do
