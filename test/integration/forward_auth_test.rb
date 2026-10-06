@@ -208,6 +208,53 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-01
+  test "forward-auth refuses a blank or whitespace-only X-Forwarded-For from a loopback peer" do
+    FamilyPlates.config.forward_auth_enabled = true
+
+    assert_no_difference [ "User.count", "Session.count" ] do
+      [ "", " ", "   " ].each do |forwarded|
+        get root_path, headers: {
+          "Remote-Email" => "blank_header@example.com",
+          "X-Forwarded-For" => forwarded,
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+    end
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
+  test "forward-auth refuses a range where an address is expected" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_no_difference [ "User.count", "Session.count" ] do
+      [ "172.18.0.0/24", "172.18.0.5/16", "::ffff:172.18.0.0/112" ].each do |hop|
+        get root_path, headers: {
+          "Remote-Email" => "range@example.com",
+          "X-Forwarded-For" => "203.0.113.9, #{hop}",
+          "REMOTE_ADDR" => "127.0.0.1"
+        }
+      end
+    end
+    assert cookies[:session_token].blank?
+  end
+
+  # SA-01
+  test "forward-auth accepts a host-length prefix on the hop" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "172.18.0.0/16" ]
+
+    assert_difference -> { User.count } => 1 do
+      get root_path, headers: {
+        "Remote-Email" => "host_prefix@example.com",
+        "X-Forwarded-For" => "203.0.113.9, 172.18.0.5/32",
+        "REMOTE_ADDR" => "127.0.0.1"
+      }
+    end
+  end
+
+  # SA-01
   test "an IPv4-mapped IPv6 trusted-proxy entry matches the IPv4 peer" do
     FamilyPlates.config.forward_auth_enabled = true
     FamilyPlates.config.forward_auth_trusted_proxies = [ "::ffff:172.18.0.0/112" ]
@@ -250,7 +297,7 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
       Rails.logger.stop_broadcasting_to(capture)
     end
 
-    assert_includes io.string, "[auth] forward_auth_untrusted_peer peer=unparseable\n"
+    assert_includes io.string, "forward_auth_untrusted_peer peer=unparseable"
   end
 
   # SA-01

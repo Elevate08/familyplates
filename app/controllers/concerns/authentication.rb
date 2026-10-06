@@ -269,14 +269,16 @@ module Authentication
   # X-Forwarded-For entry. That entry is the hop to check.
   def forward_auth_peer_ip
     peer = normalize_peer_ip(request.remote_addr)
-    forwarded = request.get_header("HTTP_X_FORWARDED_FOR").to_s
-    return peer unless peer&.loopback? && forwarded.present?
+    forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
+    return peer unless peer&.loopback? && !forwarded.nil?
 
     normalize_peer_ip(forwarded.split(",", -1).last)
   end
 
+  # A single host address, or nil: a value that parses as a range is not a hop.
   def normalize_peer_ip(value)
-    native_ip(IPAddr.new(value.to_s.strip))
+    ip = native_ip(IPAddr.new(value.to_s.strip))
+    ip if ip.prefix == (ip.ipv4? ? 32 : 128)
   rescue IPAddr::Error
     nil
   end
