@@ -147,7 +147,7 @@ module FamilyPlates
         end
         hosts, others = parsed.partition { |_, ip| ip && FamilyPlates.host_address?(ip) }
         ignored = others.map { |entry, ip| "#{entry} (#{ip ? 'range' : 'not an IP address'})" }
-        ForwardAuthProxies.new(hosts.map(&:last), ignored)
+        ForwardAuthProxies.new(hosts.map(&:last).freeze, ignored.freeze).freeze
       end
     end
 
@@ -155,8 +155,9 @@ module FamilyPlates
     def log_ignored_forward_auth_proxies(logger)
       return unless forward_auth_enabled?
 
-      ignored = forward_auth_proxies.ignored
-      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: #{ignored.join(', ')}") if ignored.any?
+      proxies = forward_auth_proxies
+      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: #{proxies.ignored.join(', ')}") if proxies.ignored.any?
+      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES has no usable address; forward-auth will not sign anyone in") if proxies.hosts.empty?
     end
 
     def forward_auth_email_headers

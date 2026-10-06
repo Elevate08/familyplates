@@ -256,10 +256,23 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
   end
 
   # SA-11
+  test "the boot warning says when no usable address remains" do
+    FamilyPlates.config.forward_auth_enabled = true
+    FamilyPlates.config.forward_auth_trusted_proxies = [ "10.0.0.0/8", "traefik" ]
+    io = StringIO.new
+
+    FamilyPlates.config.log_ignored_forward_auth_proxies(ActiveSupport::Logger.new(io))
+
+    assert_equal "[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: 10.0.0.0/8 (range), traefik (not an IP address)\n" \
+      "[auth] FORWARD_AUTH_TRUSTED_PROXIES has no usable address; forward-auth will not sign anyone in\n", io.string
+  end
+
+  # SA-11
   test "the boot warning is silent when forward-auth is off or every entry is a single address" do
     io = StringIO.new
     logger = ActiveSupport::Logger.new(io)
 
+    FamilyPlates.config.forward_auth_enabled = false
     FamilyPlates.config.forward_auth_trusted_proxies = [ "10.0.0.0/8" ]
     FamilyPlates.config.log_ignored_forward_auth_proxies(logger)
 
@@ -301,8 +314,17 @@ class ForwardAuthTest < ActionDispatch::IntegrationTest
     assert_equal [ IPAddr.new("172.18.0.6") ], config.forward_auth_proxies.hosts
     assert_empty config.forward_auth_proxies.ignored
 
+    assert_predicate first, :frozen?
+    assert_predicate first.hosts, :frozen?
+    assert_predicate first.ignored, :frozen?
+
     config.reset!
-    assert_equal [ IPAddr.new("127.0.0.1"), IPAddr.new("::1") ], config.forward_auth_proxies.hosts
+    saved = ENV.delete("FORWARD_AUTH_TRUSTED_PROXIES")
+    begin
+      assert_equal [ IPAddr.new("127.0.0.1"), IPAddr.new("::1") ], config.forward_auth_proxies.hosts
+    ensure
+      ENV["FORWARD_AUTH_TRUSTED_PROXIES"] = saved if saved
+    end
   end
 
   # SA-01

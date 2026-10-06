@@ -275,29 +275,21 @@ module Authentication
   def forward_auth_peer_ip
     peer = parse_peer_ip(request.remote_addr)
     forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
-    return peer unless peer && host_address?(peer) && peer.loopback? && !forwarded.nil?
+    return peer unless peer && FamilyPlates.host_address?(peer) && peer.loopback? && !forwarded.nil?
 
     parse_peer_ip(forwarded.split(",", -1).last)
   end
 
   def parse_peer_ip(value)
-    native_ip(IPAddr.new(value.to_s.strip))
+    FamilyPlates.native_ip(IPAddr.new(value.to_s.strip))
   rescue IPAddr::Error
     nil
-  end
-
-  def host_address?(ip)
-    FamilyPlates.host_address?(ip)
   end
 
   def forward_auth_peer_label(peer)
     return "unparseable" if peer.nil?
 
-    host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
-  end
-
-  def native_ip(ip)
-    FamilyPlates.native_ip(ip)
+    FamilyPlates.host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
   end
 
   def authenticate_via_forward_auth(email)
@@ -329,7 +321,8 @@ module Authentication
   end
 
   def trusted_forward_auth_proxy?(peer)
-    return false if peer.nil? || !host_address?(peer)
+    # Load-bearing: IPAddr#== ignores the prefix, so a range hop must be refused here.
+    return false if peer.nil? || !FamilyPlates.host_address?(peer)
 
     FamilyPlates.config.forward_auth_proxies.hosts.include?(peer)
   end
