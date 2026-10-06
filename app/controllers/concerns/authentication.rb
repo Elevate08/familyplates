@@ -1,3 +1,5 @@
+require "ipaddr"
+
 module Authentication
   extend ActiveSupport::Concern
 
@@ -66,8 +68,8 @@ module Authentication
   end
 
   def set_current_user
-    if forward_auth_active?
-      authenticate_via_forward_auth
+    if (email = trusted_forward_auth_email)
+      authenticate_via_forward_auth(email)
       return if Current.user.present?
     end
 
@@ -248,18 +250,62 @@ module Authentication
     session[:forward_auth_signed_out] = true
   end
 
-  def forward_auth_active?
-    return false unless FamilyPlates.config.forward_auth_enabled?
-    return false if session[:forward_auth_signed_out]
-    return false unless trusted_forward_auth_proxy?(request.remote_ip)
+  # The identity email from the proxy's headers, or nil unless forward-auth is
+  # on and the connecting hop is a trusted proxy.
+  def trusted_forward_auth_email
+    return unless FamilyPlates.config.forward_auth_enabled?
+    return if session[:forward_auth_signed_out]
 
-    extract_forward_auth_email.present?
-  end
-
-  def authenticate_via_forward_auth
     email = extract_forward_auth_email
     return if email.blank?
 
+    peer = forward_auth_peer_ip
+    return email if trusted_forward_auth_proxy?(peer)
+
+    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{forward_auth_peer_label(peer)}")
+    nil
+  end
+
+  # The address that connected to the app, not request.remote_ip: remote_ip is
+  # read from X-Forwarded-For, which any client on a private network can set.
+  # In the Docker image, requests normally arrive through Thruster, so the TCP
+  # peer is loopback and Thruster appends the address that connected to it as
+  # the last X-Forwarded-For entry. That entry is the hop to check. A connection
+  # straight to Puma's own port (3000) has its own address and is checked as is.
+  def forward_auth_peer_ip
+    peer = parse_peer_ip(request.remote_addr)
+    forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
+    return peer unless peer && host_address?(peer) && peer.loopback? && !forwarded.nil?
+
+    parse_peer_ip(forwarded.split(",", -1).last)
+  end
+
+  def parse_peer_ip(value)
+    native_ip(IPAddr.new(value.to_s.strip))
+  rescue IPAddr::Error
+    nil
+  end
+
+  # A hop is a single host address; a value that parses as a range is not one.
+  def host_address?(ip)
+    ip.prefix == (ip.ipv4? ? 32 : 128)
+  end
+
+  def forward_auth_peer_label(peer)
+    return "unparseable" if peer.nil?
+
+    host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
+  end
+
+  # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
+  # becomes the IPv4 one, so it compares equal to the same IPv4 address.
+  def native_ip(ip)
+    return ip unless ip.ipv4_mapped? && ip.prefix >= 96
+
+    ip.native.mask(ip.prefix - 96)
+  end
+
+  def authenticate_via_forward_auth(email)
     email = email.strip.downcase
     uid = extract_forward_auth_uid || email
     name = extract_forward_auth_name
@@ -279,7 +325,7 @@ module Authentication
       provider: "forward_auth",
       uid: uid,
       email: email,
-      # Identity headers are only read after forward_auth_active? confirmed the
+      # Identity headers are only used after trusted_forward_auth_email confirmed the
       # trusted proxy sent them; the proxy has already authenticated the user.
       email_verified: true,
       name: name
@@ -287,19 +333,14 @@ module Authentication
     start_new_session_for_user(user)
   end
 
-  def trusted_forward_auth_proxy?(remote_ip)
-    return false if remote_ip.blank?
+  def trusted_forward_auth_proxy?(peer)
+    return false if peer.nil? || !host_address?(peer)
 
-    require "ipaddr"
-    proxies = FamilyPlates.config.forward_auth_trusted_proxies
-    client_ip = IPAddr.new(remote_ip)
-    proxies.any? do |trusted|
-      IPAddr.new(trusted.strip).include?(client_ip)
+    FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
+      native_ip(IPAddr.new(trusted.strip)).include?(peer)
     rescue IPAddr::Error
       false
     end
-  rescue IPAddr::Error
-    false
   end
 
   def extract_forward_auth_email

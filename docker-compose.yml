@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: familyplates
     restart: unless-stopped
+    # With forward-auth and a reverse proxy on this host, publish as
+    # "127.0.0.1:3000:80" instead (see docs/getting-started.md).
     ports:
       - "3000:80"
     environment:
