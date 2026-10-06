@@ -14,11 +14,18 @@
 /config/master.key
 /config/credentials/*.key
 
+# Ignore credentials that .gitignore also keeps out of git: Google service-account
+# keys, and Kamal secrets (the hosted edition keeps saas/ in the image).
+/config/*.json
+**/*.json.key
+/saas/.kamal/secrets*
+
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
 !/log/.keep
 !/tmp/.keep
+/*.log
 
 # Ignore pidfiles, but keep the directory.
 /tmp/pids/*
@@ -45,6 +52,26 @@
 
 # Ignore development files
 /.devcontainer
+
+# Ignore private working documents. They are git-ignored, not public.
+/tasks
+/notes
+/docs/ideas
+/CONTEXT.md
+/saas/DEPLOY.md
+/script/hermes-review
+/scratch
+
+# Ignore local debugging and test artifacts that can hold session data.
+/cookies.txt
+/test_output.txt
+/playwright-report
+/test-results
+/tmp/screenshots
+
+# Ignore agent worktrees, which hold full copies of the repository.
+/.claude
+/.worktrees
 
 # Ignore Docker-related files
 /.dockerignore
