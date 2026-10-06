@@ -22,7 +22,7 @@ class RecipeImportTest < ActiveSupport::TestCase
   end
 
   test "scraped data comes back with symbol keys, nested ingredients included" do
-    import = @household.recipe_imports.create!(url: "https://example.com/a")
+    import = @household.recipe_imports.create!(url: "https://example.com/a", status: "running", started_at: Time.current)
     import.succeed!({ title: "Tacos", ingredients: [ { raw_text: "1 tortilla", quantity: 1.0 } ] })
 
     data = import.reload.recipe_data
@@ -41,11 +41,13 @@ class RecipeImportTest < ActiveSupport::TestCase
     assert_not RecipeImport::FAILURE_MESSAGES.key?(:blocked), "an egress refusal must look like any other bad link"
   end
 
-  test "a queued import is stalled when nobody picked it up for minutes" do
+  test "a queued import is stalled when nobody picked it up for a long time" do
     fresh = @household.recipe_imports.create!(url: "https://example.com/fresh")
-    old = @household.recipe_imports.create!(url: "https://example.com/old", created_at: 10.minutes.ago)
+    waiting = @household.recipe_imports.create!(url: "https://example.com/waiting", created_at: 10.minutes.ago)
+    old = @household.recipe_imports.create!(url: "https://example.com/old", created_at: 40.minutes.ago)
 
     assert_not fresh.stalled?
+    assert_not waiting.stalled?, "an import queued behind the household's other slow imports is still waiting"
     assert old.stalled?
   end
 
@@ -67,7 +69,7 @@ class RecipeImportTest < ActiveSupport::TestCase
   end
 
   test "stall! fails an unfinished import with the busy message and leaves a finished one alone" do
-    old = @household.recipe_imports.create!(url: "https://example.com/old", created_at: 10.minutes.ago)
+    old = @household.recipe_imports.create!(url: "https://example.com/old", created_at: 40.minutes.ago)
     done = @household.recipe_imports.create!(url: "https://example.com/done", status: "succeeded")
 
     old.stall!
@@ -88,20 +90,21 @@ class RecipeImportTest < ActiveSupport::TestCase
     assert import.running?
     assert import.started_at
     assert_not same.claim!, "a second worker must not start the same import"
-    assert_not same.queued?
+    assert_not same.reload.queued?
   end
 
   test "claim! refuses an import that was failed as stalled while it waited" do
-    import = @household.recipe_imports.create!(url: "https://example.com/a", created_at: 10.minutes.ago)
+    import = @household.recipe_imports.create!(url: "https://example.com/a", created_at: 40.minutes.ago)
     RecipeImport.find(import.id).stall!
 
     assert_not import.claim!
-    assert import.failed?
+    assert import.reload.failed?
   end
 
   test "the saved recipe and the succeeded import are written together" do
     import = @household.recipe_imports.create!(url: "https://example.com/a")
-    import.define_singleton_method(:update!) { |*| raise ActiveRecord::StatementInvalid, "disk full" }
+    import.claim!
+    import.define_singleton_method(:finish_running!) { |*| raise ActiveRecord::StatementInvalid, "disk full" }
 
     assert_no_difference "Recipe.count" do
       assert_raises(ActiveRecord::StatementInvalid) { import.succeed!({ title: "Half Done", servings: 4 }) }
@@ -109,7 +112,7 @@ class RecipeImportTest < ActiveSupport::TestCase
   end
 
   test "a failed aisle resync is logged, and the saved recipe is still reported as imported" do
-    import = @household.recipe_imports.create!(url: "https://example.com/a")
+    import = @household.recipe_imports.create!(url: "https://example.com/a", status: "running", started_at: Time.current)
     log = StringIO.new
     original_logger = Rails.logger
     original = Recipe.instance_method(:resync_aisle_mappings!)
@@ -128,16 +131,54 @@ class RecipeImportTest < ActiveSupport::TestCase
     Rails.logger = original_logger
   end
 
-  test "scraped data is read once and refreshed when the import changes" do
-    import = @household.recipe_imports.create!(url: "https://example.com/a")
-    import.succeed!({ title: "First", servings: 4 })
-    assert_equal "First", import.recipe_data[:title]
-    assert_same import.recipe_data, import.recipe_data
+  test "stall! only fails the status the caller saw, so a job that has started is not failed" do
+    import = @household.recipe_imports.create!(url: "https://example.com/a", created_at: 40.minutes.ago)
+    seen_queued = RecipeImport.find(import.id)
+    assert seen_queued.stalled?
 
-    import.data = { title: "Second" }
-    assert_equal "Second", import.recipe_data[:title]
+    assert import.claim!
+    seen_queued.stall!
+
+    assert seen_queued.running?
+    assert import.reload.running?
+    assert_nil import.error
+  end
+
+  test "succeed! saves nothing when the import is no longer running" do
+    import = @household.recipe_imports.create!(url: "https://example.com/a", created_at: 40.minutes.ago)
+    assert import.claim!
+    RecipeImport.find(import.id).stall!
+
+    assert_no_difference "Recipe.count" do
+      assert_not import.succeed!({ title: "Too Late", servings: 4 })
+    end
+
     import.reload
-    assert_equal "First", import.recipe_data[:title]
+    assert import.failed?
+    assert_equal "busy", import.error
+    assert_nil import.recipe_id
+  end
+
+  test "fail! does not overwrite an import that is no longer running" do
+    import = @household.recipe_imports.create!(url: "https://example.com/a")
+    assert import.claim!
+    assert import.succeed!({ title: "Done First", servings: 4 })
+
+    assert_not import.fail!(:timeout)
+
+    assert import.reload.succeeded?
+    assert_nil import.error
+  end
+
+  test "succeed! and fail! on a deleted import do nothing and do not raise" do
+    import = @household.recipe_imports.create!(url: "https://example.com/a")
+    assert import.claim!
+    RecipeImport.where(id: import.id).delete_all
+
+    assert_no_difference "Recipe.count" do
+      assert_not import.succeed!({ title: "Orphan", servings: 4 })
+    end
+    assert_not import.fail!(:timeout)
   end
 
   test "old imports expire" do

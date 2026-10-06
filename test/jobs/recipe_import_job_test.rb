@@ -124,7 +124,7 @@ class RecipeImportJobTest < ActiveJob::TestCase
   end
 
   test "does not start an import that was failed as stalled while it waited" do
-    @import.update!(created_at: 10.minutes.ago)
+    @import.update!(created_at: 40.minutes.ago)
     RecipeImport.find(@import.id).stall!
     stub_scraper { |_url| raise "must not fetch" }
 
@@ -134,6 +134,42 @@ class RecipeImportJobTest < ActiveJob::TestCase
 
     assert @import.reload.failed?
     assert_equal "busy", @import.error
+  end
+
+  test "is dropped quietly when the import is deleted while it fetches" do
+    import = @import
+    stub_scraper do |_url|
+      RecipeImport.where(id: import.id).delete_all
+      RecipeScraper::Result.new(recipe: { title: "Orphan", servings: 4 })
+    end
+
+    assert_no_difference "Recipe.count" do
+      assert_nothing_raised { RecipeImportJob.perform_now(@import) }
+    end
+  end
+
+  test "an error while the import is deleted is the error that surfaces" do
+    import = @import
+    stub_scraper do |_url|
+      RecipeImport.where(id: import.id).delete_all
+      raise ArgumentError, "bug in the scraper"
+    end
+
+    assert_raises(ArgumentError) { RecipeImportJob.perform_now(@import) }
+  end
+
+  test "does not save a recipe for an import the waiting page already gave up on" do
+    import = @import
+    stub_scraper do |_url|
+      RecipeImport.find(import.id).stall!
+      RecipeScraper::Result.new(recipe: { title: "Too Late", servings: 4 })
+    end
+
+    assert_no_difference "Recipe.count" do
+      RecipeImportJob.perform_now(@import)
+    end
+
+    assert @import.reload.failed?
   end
 
   test "is dropped quietly when the import was deleted before it ran" do
@@ -160,6 +196,8 @@ class RecipeImportJobTest < ActiveJob::TestCase
     assert_equal RecipeImportJob.new(@import).concurrency_key, RecipeImportJob.new(other_import).concurrency_key
     assert_not_equal RecipeImportJob.new(@import).concurrency_key, RecipeImportJob.new(foreign_import).concurrency_key
     assert_includes RecipeImportJob.new(@import).concurrency_key, @household.id
+    fresh = RecipeImport.find(@import.id)
+    assert_no_queries { RecipeImportJob.new(fresh).concurrency_key }
   end
 
   private
