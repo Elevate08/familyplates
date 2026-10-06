@@ -33,6 +33,48 @@ class RecipeImportJobTest < ActiveJob::TestCase
     assert @import.finished_at
   end
 
+  test "saves the recipe into the household's recipe box and remembers it" do
+    stub_scraper do |url|
+      RecipeScraper::Result.new(recipe: { title: "Tacos", servings: 4, source_url: url, instructions: "Fold.",
+                                          ingredients: [ { raw_text: "1 tortilla", name: "Tortilla", quantity: 1.0 } ] })
+    end
+
+    assert_difference -> { @household.recipes.count }, 1 do
+      RecipeImportJob.perform_now(@import)
+    end
+
+    recipe = @household.recipes.order(:id).last
+    assert_equal recipe.id, @import.reload.recipe_id
+    assert_equal "Tacos", recipe.title
+    assert_equal "https://example.com/recipes/tacos", recipe.source_url
+    assert_equal [ "Tortilla" ], recipe.recipe_ingredients.map(&:name)
+  end
+
+  test "does not save a recipe whose title is already in the box" do
+    title = " #{recipes(:one).title.upcase} "
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: { title: title, servings: 4 }) }
+
+    assert_no_difference "Recipe.count" do
+      RecipeImportJob.perform_now(@import)
+    end
+
+    assert @import.reload.succeeded?
+    assert_nil @import.recipe_id
+  end
+
+  test "does not save a recipe that fails validation, and keeps what was scraped for the form" do
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: { title: "Bad Link", servings: 4, source_url: "ftp://example.com/x" }) }
+
+    assert_no_difference "Recipe.count" do
+      RecipeImportJob.perform_now(@import)
+    end
+
+    @import.reload
+    assert @import.succeeded?
+    assert_nil @import.recipe_id
+    assert_equal "Bad Link", @import.data["title"]
+  end
+
   test "marks the import running while it fetches" do
     seen = nil
     import = @import

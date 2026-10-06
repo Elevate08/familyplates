@@ -40,8 +40,14 @@ class RecipeImport < ApplicationRecord
     update!(status: :running, started_at: Time.current)
   end
 
-  def succeed!(recipe)
-    update!(status: :succeeded, data: recipe, finished_at: Time.current)
+  # Keeps what the scraper found and saves it as a recipe, exactly as the import
+  # did when it ran inside the request. A title already in the box, or a recipe that
+  # fails validation, is not saved: the waiting page then redirects to the existing
+  # recipe, or opens the pre-filled form with the errors.
+  def succeed!(scraped)
+    self.data = scraped
+    recipe = save_recipe
+    update!(status: :succeeded, recipe_id: recipe&.id, finished_at: Time.current)
   end
 
   def fail!(error)
@@ -57,9 +63,54 @@ class RecipeImport < ApplicationRecord
     data.to_h.deep_symbolize_keys
   end
 
+  def existing_recipe_with_title
+    household.recipes.where("LOWER(title) = ?", recipe_data[:title].to_s.strip.downcase).first
+  end
+
+  # An unsaved recipe built from the scraped data.
+  def build_recipe
+    data = recipe_data
+    recipe = household.recipes.build(
+      title: data[:title].presence || "Imported Recipe",
+      description: data[:description],
+      prep_time: data[:prep_time],
+      cook_time: data[:cook_time],
+      total_time: data[:total_time],
+      equipment: data[:equipment],
+      servings: data[:servings] || RecipeScraper::DEFAULT_SERVINGS,
+      source_url: data[:source_url],
+      image_url: data[:image_url],
+      instructions: data[:instructions]
+    )
+
+    Array(data[:ingredients]).each do |ing|
+      recipe.recipe_ingredients.build(
+        raw_text: ing[:raw_text],
+        name: ing[:name],
+        quantity: ing[:quantity],
+        unit: ing[:unit],
+        # nil, not "Other" - the model classifies when no aisle is supplied,
+        # and cannot tell a scraper default from a user's deliberate choice.
+        aisle_category: ing[:aisle_category].presence
+      )
+    end
+    recipe
+  end
+
   def failure_message
     return FAILURE_MESSAGES.fetch(:busy) if stalled?
 
     FAILURE_MESSAGES.fetch(error.to_s.to_sym, DEFAULT_FAILURE_MESSAGE)
+  end
+
+  private
+
+  def save_recipe
+    return if existing_recipe_with_title
+
+    recipe = build_recipe
+    saved = RecipeIngredient.without_aisle_sync { recipe.save }
+    recipe.resync_aisle_mappings! if saved
+    recipe if saved
   end
 end

@@ -58,42 +58,80 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[http-equiv=refresh]", 1
   end
 
-  test "a finished import opens the pre-filled recipe form, and saves nothing until the person saves it" do
-    scraped_data = {
-      title: "French Toast Casserole",
-      description: "Delicious breakfast casserole",
-      prep_time: 15,
-      cook_time: 45,
-      servings: 6,
-      source_url: "https://www.allrecipes.com/recipe/22389/french-toast-casserole/",
-      instructions: "1. Line pan with bread.\n2. Bake.",
-      ingredients: [
-        { raw_text: "5 cups bread cubes", name: "Bread cubes", quantity: 5.0, unit: "cups", aisle_category: "Bakery" }
-      ]
-    }
-    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped_data) }
+  test "a finished import is saved by the job and an organizer lands on its edit page" do
+    scraped = french_toast
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped) }
 
-    assert_no_difference "Recipe.count" do
+    assert_difference "Recipe.count", 1 do
       import_and_wait("https://www.allrecipes.com/recipe/22389/french-toast-casserole/")
     end
 
-    assert_response :success
+    recipe = Recipe.order(:id).last
+    assert_redirected_to edit_recipe_url(recipe)
+    assert_includes flash[:notice], "Imported"
+    assert_equal households(:one), recipe.household
+    assert_equal "French Toast Casserole", recipe.title
+    assert_equal "https://www.allrecipes.com/recipe/22389/french-toast-casserole/", recipe.source_url
+    assert_equal 6, recipe.servings
+    assert_equal 1, recipe.recipe_ingredients.count
+    assert_equal "Bread cubes", recipe.recipe_ingredients.first.name
+  end
+
+  test "a finished import takes a member to the recipe page, not the organizer's edit page" do
+    delete session_url
+    sign_in_as(family_members(:two))
+    scraped = french_toast
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped) }
+
+    assert_difference "Recipe.count", 1 do
+      import_and_wait("https://www.allrecipes.com/recipe/22389/french-toast-casserole/")
+    end
+
+    assert_redirected_to recipe_url(Recipe.order(:id).last)
+    assert_includes flash[:notice], "Imported"
+  end
+
+  test "reloading the page after the import was saved does not save it again" do
+    scraped = french_toast
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped) }
+
+    import_and_wait("https://www.allrecipes.com/recipe/22389/french-toast-casserole/")
+
+    assert_no_difference "Recipe.count" do
+      get recipe_import_url(RecipeImport.order(:created_at).last)
+    end
+    assert_redirected_to edit_recipe_url(Recipe.order(:id).last)
+  end
+
+  test "an import that cannot be saved opens the pre-filled recipe form with the errors" do
+    scraped = french_toast.merge(source_url: "ftp://example.com/not-web")
+    stub_scraper { |_url| RecipeScraper::Result.new(recipe: scraped) }
+
+    assert_no_difference "Recipe.count" do
+      import_and_wait("https://example.com/recipes/unsaveable")
+    end
+
+    assert_response :unprocessable_entity
     assert_select "meta[http-equiv=refresh]", 0
     assert_select "form[action='#{recipes_path}']" do
       assert_select "input[name='recipe[title]'][value='French Toast Casserole']"
-      assert_select "input[name='recipe[source_url]'][value='https://www.allrecipes.com/recipe/22389/french-toast-casserole/']"
       assert_select "input[name='recipe[servings]'][value='6']"
       assert_select "input[name='recipe[recipe_ingredients_attributes][0][name]'][value='Bread cubes']"
       assert_select "input[name='recipe[recipe_ingredients_attributes][0][unit]'][value='cups']"
     end
+    assert_select "p", text: /prohibited this recipe from being saved/
   end
 
-  test "a finished import with no ingredients still offers blank ingredient rows" do
-    stub_scraper { |_url| RecipeScraper::Result.new(recipe: { title: "Plain Page", servings: 4, ingredients: [] }) }
+  test "an import that cannot be saved and has no ingredients still offers blank ingredient rows" do
+    stub_scraper do |_url|
+      RecipeScraper::Result.new(recipe: { title: "Plain Page", servings: 4, source_url: "ftp://example.com/x", ingredients: [] })
+    end
 
-    import_and_wait("https://example.com/recipes/plain")
+    assert_no_difference "Recipe.count" do
+      import_and_wait("https://example.com/recipes/plain")
+    end
 
-    assert_response :success
+    assert_response :unprocessable_entity
     assert_select "input[name='recipe[title]'][value='Plain Page']"
     assert_select "input[name^='recipe[recipe_ingredients_attributes]'][name$='[name]']", minimum: 5
   end
@@ -206,6 +244,21 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def french_toast
+    {
+      title: "French Toast Casserole",
+      description: "Delicious breakfast casserole",
+      prep_time: 15,
+      cook_time: 45,
+      servings: 6,
+      source_url: "https://www.allrecipes.com/recipe/22389/french-toast-casserole/",
+      instructions: "1. Line pan with bread.\n2. Bake.",
+      ingredients: [
+        { raw_text: "5 cups bread cubes", name: "Bread cubes", quantity: 5.0, unit: "cups", aisle_category: "Bakery" }
+      ]
+    }
+  end
 
   # Starts an import, runs its job, and opens the page the person would be sent to.
   def import_and_wait(url)

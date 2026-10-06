@@ -1,5 +1,6 @@
-# Fetches the page behind a RecipeImport and records the result on it; the
-# waiting page (RecipeImportsController#show) reads it from there.
+# Fetches the page behind a RecipeImport, saves the recipe it finds into the
+# household's recipe box and records the result on the import; the waiting page
+# (RecipeImportsController#show) reads it from there.
 #
 # Runs on its own queue so a worker can be pointed at imports alone, with a
 # memory cap: a hostile page can send an endless response header, which
