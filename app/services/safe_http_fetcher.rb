@@ -4,6 +4,8 @@ require "net/http"
 # hop and refusing to read an unbounded response into memory.
 class SafeHttpFetcher
   Rejected = OutboundUrlPolicy::Rejected
+  # A programming error, not a fetch failure: RecipeScraper lets it propagate.
+  class InvalidTimeout < ArgumentError; end
 
   MAX_REDIRECTS = 5
   MAX_BYTES = 2.megabytes
@@ -34,7 +36,7 @@ class SafeHttpFetcher
     @headers = headers
     # Timeout.timeout(nil), (0) and (Float::INFINITY) mean no limit, the opposite of this class's job.
     unless timeout.is_a?(Numeric) && timeout.real? && timeout.finite? && timeout.positive?
-      raise ArgumentError, "timeout must be a positive, finite number"
+      raise InvalidTimeout, "timeout must be a positive, finite number"
     end
 
     @timeout = timeout

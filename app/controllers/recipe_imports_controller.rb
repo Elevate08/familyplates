@@ -99,14 +99,18 @@ class RecipeImportsController < ApplicationController
 
   private
 
-  # Nil when another import already holds the slot. Never waits.
+  # Nil when another import already holds the slot. Never waits. The slot is taken inside
+  # the begin so an exception raised into this thread cannot leave it held.
   def fetch_recipe(url)
-    return unless FETCH_SLOT.try_lock
-
     begin
+      unless FETCH_SLOT.try_lock
+        Rails.logger.info("[import] fetch_slot_busy household_id=#{current_household.id}")
+        return
+      end
+
       RecipeScraper.fetch(url)
     ensure
-      FETCH_SLOT.unlock
+      FETCH_SLOT.unlock if FETCH_SLOT.owned?
     end
   end
 

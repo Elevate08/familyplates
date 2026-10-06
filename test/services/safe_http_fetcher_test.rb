@@ -138,16 +138,16 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
   test "the total deadline spans every redirect hop" do
     fetcher = ScriptedFetcher.new(
       "http://93.184.216.34/a",
-      replies: [ redirect_to("http://93.184.216.34/b"), ok("late") ],
+      replies: [ redirect_to("http://93.184.216.34/b"), redirect_to("http://93.184.216.34/c"), ok("late") ],
       timeout: 1
     )
     fetcher.define_singleton_method(:perform_request) do |target|
-      sleep 0.7
+      sleep 0.5 # each hop is well inside the deadline; only the sum is not
       super(target)
     end
 
     assert_raises(Timeout::Error) { fetcher.get }
-    assert_equal 1, fetcher.visited.length, "the second hop is interrupted before it completes"
+    assert_operator fetcher.visited.length, :<, 3, "the last hop would end at 1.5s, past the 1s deadline"
   end
 
   test "a slow policy check, such as a DNS lookup, counts against the deadline" do
@@ -188,7 +188,7 @@ class SafeHttpFetcherTest < ActiveSupport::TestCase
 
   test "refuses a missing or non-positive timeout, which Timeout would read as no limit" do
     [ nil, 0, -1, "20", Float::INFINITY, Float::NAN, Complex(1, 1) ].each do |bad|
-      assert_raises(ArgumentError, "timeout: #{bad.inspect}") { SafeHttpFetcher.new("http://93.184.216.34/", timeout: bad) }
+      assert_raises(SafeHttpFetcher::InvalidTimeout, "timeout: #{bad.inspect}") { SafeHttpFetcher.new("http://93.184.216.34/", timeout: bad) }
     end
   end
 

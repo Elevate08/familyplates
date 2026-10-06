@@ -112,7 +112,10 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
     fetching = Thread.new { slot.synchronize { held << true; release.pop } }
     held.pop
 
+    log = StringIO.new
+    original_logger = Rails.logger
     begin
+      Rails.logger = Logger.new(log)
       original_fetch = RecipeScraper.method(:fetch)
       RecipeScraper.define_singleton_method(:fetch) { |_url| raise "must not fetch while another import runs" }
 
@@ -120,6 +123,7 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
         post recipe_imports_url, params: { url: "https://example.com/recipes/busy" }
       end
     ensure
+      Rails.logger = original_logger
       RecipeScraper.define_singleton_method(:fetch, original_fetch)
       release << true
       fetching.join
@@ -127,6 +131,9 @@ class RecipeImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_recipe_import_url
     assert_equal "Another recipe import is running. Please try again in a moment.", flash[:alert]
+    assert_includes log.string, "[import] fetch_slot_busy household_id=#{@admin.household_id}"
+    busy_line = log.string.lines.find { |line| line.include?("fetch_slot_busy") }
+    assert_not_includes busy_line, "example.com", "the refusal must not log the URL"
   end
 
   test "the fetch slot is free again after a fetch times out or raises" do

@@ -413,6 +413,12 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_equal :blocked, fetch_error_for(raises: OutboundUrlPolicy::Rejected.new("private address"))
   end
 
+  test "a bad fetch timeout fails loudly instead of looking like an unreachable site" do
+    assert_raises(SafeHttpFetcher::InvalidTimeout) do
+      fetch_error_for(raises: SafeHttpFetcher::InvalidTimeout.new("timeout must be a positive, finite number"))
+    end
+  end
+
   private
 
   def scrape_fixture(name, url)
