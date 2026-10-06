@@ -51,8 +51,10 @@ class KamalDestinationsTest < ActiveSupport::TestCase
     assert_equal "dev.familyplates.org", staging[:raw].dig("proxy", "host")
     assert_equal [ "203.0.113.10" ], production[:raw].dig("servers", "web", "hosts")
     assert_equal [ "203.0.113.11" ], staging[:raw].dig("servers", "web", "hosts")
-    assert_equal [ "familyplates_production_storage:/rails/storage" ], production[:raw]["volumes"]
-    assert_equal [ "familyplates_staging_storage:/rails/storage" ], staging[:raw]["volumes"]
+    # A host folder on each server's attached data disk, so the databases survive
+    # replacing the server and are snapshotted apart from it.
+    assert_equal [ "/srv/familyplates-production/storage:/rails/storage" ], production[:raw]["volumes"]
+    assert_equal [ "/srv/familyplates-staging/storage:/rails/storage" ], staging[:raw]["volumes"]
   end
 
   test "both run the hosted edition as RAILS_ENV production, each naming its own target" do
