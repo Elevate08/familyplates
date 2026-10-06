@@ -227,6 +227,19 @@ jobs:
       - name: Build the ${{ matrix.edition }} image
         run: docker build --build-arg EDITION=${{ matrix.edition }} -t familyplates:${{ matrix.edition }} .
 
+      # Development and test tools are not shipped: some (brakeman,
+      # bundler-audit) carry licenses that should not ride along in a
+      # distributed image, and none are needed to run the app.
+      - name: The ${{ matrix.edition }} image ships no development or test gems
+        run: |
+          # The same lookup must find a runtime gem, or the check proves nothing.
+          docker run --rm --entrypoint sh familyplates:${{ matrix.edition }} -c "gem list -i '^rails\$'" >/dev/null
+          for gem in brakeman bundler-audit rubocop capybara selenium-webdriver debug; do
+            if docker run --rm --entrypoint sh familyplates:${{ matrix.edition }} -c "gem list -i '^$gem\$'" >/dev/null; then
+              echo "$gem is in the image"; exit 1
+            fi
+          done
+
       - name: The appliance image leaves the hosted edition out
         if: matrix.edition == 'appliance'
         run: |

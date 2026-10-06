@@ -34,7 +34,7 @@ RUN apt-get update -qq && \
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development" \
+    BUNDLE_WITHOUT="development:test" \
     FAMILYPLATES_MODE="${EDITION}" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so"
 
