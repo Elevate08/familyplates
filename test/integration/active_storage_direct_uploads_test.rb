@@ -23,14 +23,14 @@ class ActiveStorageDirectUploadsTest < ActionDispatch::IntegrationTest
   # Without a CSRF token the request would be a 422 if forgery protection ran
   # first, so a 404 shows the guard runs before it.
   test "the direct-upload guard runs before forgery protection" do
-    forgery_protection = ActionController::Base.allow_forgery_protection
-    ActionController::Base.allow_forgery_protection = true
+    forgery_protection = ActiveStorage::DirectUploadsController.allow_forgery_protection
+    ActiveStorage::DirectUploadsController.allow_forgery_protection = true
 
     assert_no_difference("ActiveStorage::Blob.count") { post_direct_upload }
 
     assert_response :not_found
   ensure
-    ActionController::Base.allow_forgery_protection = forgery_protection
+    ActiveStorage::DirectUploadsController.allow_forgery_protection = forgery_protection
   end
 
   test "bytes cannot be uploaded even with a valid direct-upload token" do
@@ -50,6 +50,8 @@ class ActiveStorageDirectUploadsTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert_not blob.service.exist?(blob.key), "the refused upload still wrote to storage"
+  ensure
+    blob&.service&.delete(blob.key)
   end
 
   private
