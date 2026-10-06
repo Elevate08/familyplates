@@ -1,30 +1,30 @@
+# frozen_string_literal: true
+
 # Active Storage ships two endpoints that let anyone write files to storage/:
 # POST /rails/active_storage/direct_uploads (no sign-in check) mints an upload
 # token, and PUT /rails/active_storage/disk/:encoded_token accepts the bytes for
 # any valid token. The app never uses direct uploads (recipe images go through the
-# recipe form), so both controller actions refuse every request, whatever route
-# reaches them. That also closes tokens minted before this was deployed or with a
-# leaked key. Blob and image serving, including DiskController#show, are untouched.
-# Each callback is a named method, so running this again on a reload replaces it
-# rather than adding another.
-Rails.application.config.to_prepare do
-  ActiveStorage::DirectUploadsController.class_eval do
-    before_action :refuse_direct_upload, prepend: true
+# recipe form), so every action of both controllers except DiskController#show,
+# which serves images, is refused, whatever route reaches it. Disk tokens expire
+# after service_urls_expire_in (5 minutes); refusing the PUT as well is for a
+# leaked secret_key_base and for any future token minting.
+module RefuseActiveStorageWrites
+  extend ActiveSupport::Concern
 
-    private
-
-    def refuse_direct_upload
-      head :not_found
-    end
+  included do
+    before_action :refuse_active_storage_write, except: :show, prepend: true
   end
 
-  ActiveStorage::DiskController.class_eval do
-    before_action :refuse_disk_upload, only: :update, prepend: true
+  private
 
-    private
+  def refuse_active_storage_write
+    head :not_found
+  end
+end
 
-    def refuse_disk_upload
-      head :not_found
-    end
+Rails.application.config.to_prepare do
+  refusal = RefuseActiveStorageWrites
+  [ ActiveStorage::DirectUploadsController, ActiveStorage::DiskController ].each do |controller|
+    controller.include(refusal) unless controller.ancestors.include?(refusal)
   end
 end

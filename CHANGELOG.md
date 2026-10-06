@@ -72,7 +72,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * **An operator's authenticator code works once.** A captured code can't open a second operator session.
 * **Recipe source and image links must be `http` or `https`**, both when saved and when shown, and imported images drop `data:` and `javascript:` links. Uploaded images need a JPEG, PNG, GIF or WebP file extension.
 * **The URL importer refuses more internal addresses:** IPv4-compatible IPv6, 6to4, site-local and other reserved ranges, and ports other than 80, 443, 8080 and 8443.
-* **Anonymous clients could write files through Active Storage direct uploads.** The endpoint had no sign-in check, so anyone could fill the disk (which also holds the databases) or host files on the domain. Direct uploads and disk uploads are now refused for everyone; recipe images still upload through the recipe form and display as before.
+* **Active Storage direct uploads and disk uploads are refused.** Before, the direct-upload endpoint had no sign-in check, so an anonymous client could fill the disk (which also holds the databases) or host files on the domain. Recipe images still upload through the recipe form and display as before.
 
 ### 🐛 Correctness
 * **The Docker image hadn't built since passkeys arrived.** The `webauthn` gem needs OpenSSL headers, which the image's build stage didn't install. Both editions build again, and CI now builds them on every change.

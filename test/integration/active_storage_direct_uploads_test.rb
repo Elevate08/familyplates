@@ -42,7 +42,11 @@ class ActiveStorageDirectUploadsTest < ActionDispatch::IntegrationTest
       content_type: "image/png"
     )
 
-    put blob.service_url_for_direct_upload, params: pixel, headers: blob.service_headers_for_direct_upload
+    url = blob.service_url_for_direct_upload
+    token = Rails.application.routes.recognize_path(url, method: :put)[:encoded_token]
+    assert ActiveStorage.verifier.verified(token, purpose: :blob_token).present?, "the minted token must be valid"
+
+    put url, params: pixel, headers: blob.service_headers_for_direct_upload
 
     assert_response :not_found
     assert_not blob.service.exist?(blob.key), "the refused upload still wrote to storage"
