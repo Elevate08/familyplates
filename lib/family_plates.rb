@@ -140,14 +140,16 @@ module FamilyPlates
 
     def forward_auth_proxies
       @forward_auth_proxies ||= begin
-        parsed = forward_auth_trusted_proxies.map(&:strip).compact_blank.map do |entry|
-          [ entry, FamilyPlates.native_ip(IPAddr.new(entry)) ]
+        hosts = []
+        ignored = []
+        forward_auth_trusted_proxies.map(&:strip).compact_blank.each do |entry|
+          hosts << FamilyPlates.single_ip(entry)
+        rescue IPAddr::InvalidPrefixError
+          ignored << "#{entry} (range)"
         rescue IPAddr::Error
-          [ entry, nil ]
+          ignored << "#{entry} (not an IP address)"
         end
-        hosts, others = parsed.partition { |_, ip| ip && FamilyPlates.host_address?(ip) }
-        ignored = others.map { |entry, ip| "#{entry} (#{ip ? 'range' : 'not an IP address'})" }
-        ForwardAuthProxies.new(hosts.map(&:last).freeze, ignored.freeze).freeze
+        ForwardAuthProxies.new(hosts.freeze, ignored.freeze).freeze
       end
     end
 
@@ -219,6 +221,16 @@ module FamilyPlates
     ip.prefix == (ip.ipv4? ? 32 : 128)
   end
 
+  # The one address in a setting such as TRUSTED_PROXIES, with an IPv4-mapped
+  # IPv6 address as IPv4. Raises IPAddr::InvalidPrefixError for a range and
+  # IPAddr::InvalidAddressError for anything that is not an IP address.
+  def self.single_ip(address)
+    ip = native_ip(IPAddr.new(address.to_s.strip))
+    raise IPAddr::InvalidPrefixError, "#{address.inspect} is a range" unless host_address?(ip)
+
+    ip
+  end
+
   # True when the hosted edition's engine is loaded (Gemfile.saas).
   def self.saas?
     defined?(FamilyPlatesSaas::Engine) ? true : false
@@ -257,27 +269,28 @@ module FamilyPlates
   # its own address in X-Forwarded-For and dodge the per-IP sign-in and PIN
   # limits. An appliance trusts only loopback (Thruster, in the image) and the
   # single addresses in TRUSTED_PROXIES, so remote_ip is the last hop that is not
-  # one of them: the address Thruster, or the operator's proxy, saw.
+  # one of them: the address Thruster, or the operator's proxy, saw. The image
+  # keeps Puma on loopback, so nothing reaches it without passing Thruster.
+  #
+  # While TRUSTED_PROXIES is unset, the single addresses in
+  # FORWARD_AUTH_TRUSTED_PROXIES stand in for it: an install already behind a
+  # proxy that names it there keeps seeing each client's own address.
   #
   # Returns nil for the hosted edition, which keeps Rails' default. Its clients
   # arrive from public addresses, and kamal-proxy reaches the app from a private
   # one: narrowing the list would give every user kamal-proxy's address.
-  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"])
+  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"], forward_auth: nil)
     return if hosted
 
     loopback = %w[127.0.0.0/8 ::1].map { |address| IPAddr.new(address) }
-    loopback + extra.to_s.split(",").map(&:strip).compact_blank.map { |address| single_proxy_address(address) }
-  end
+    return loopback + (forward_auth || config.forward_auth_proxies.hosts) if extra.blank?
 
-  def self.single_proxy_address(address)
-    ip = IPAddr.new(address)
-    raise IPAddr::Error, "a range" unless ip.to_range.first == ip.to_range.last
-
-    ip
-  rescue IPAddr::Error
-    raise ArgumentError, "TRUSTED_PROXIES must list single IP addresses, comma-separated; #{address.inspect} is not one."
+    loopback + extra.split(",").map(&:strip).compact_blank.map do |address|
+      single_ip(address)
+    rescue IPAddr::Error
+      raise ArgumentError, "TRUSTED_PROXIES must list single IP addresses, comma-separated; #{address.inspect} is not one."
+    end
   end
-  private_class_method :single_proxy_address
 
   # Hostname operators set for a public deploy. Blank on a LAN appliance.
   def self.public_host

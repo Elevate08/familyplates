@@ -74,13 +74,99 @@ class TrustedProxiesTest < ActiveSupport::TestCase
     assert_equal "198.51.100.7", remote_ip_for(nil, remote_addr: "172.18.0.2", forwarded_for: "198.51.100.7")
   end
 
-  test "the mode comes from the configured edition and TRUSTED_PROXIES from the environment" do
+  test "TRUSTED_PROXIES matches an IPv4-mapped IPv6 address, as forward-auth's list does" do
+    proxies = appliance_proxies("::ffff:172.18.0.5")
+
+    assert_includes proxies, IPAddr.new("172.18.0.5")
+    assert_equal "198.51.100.7",
+      remote_ip_for(proxies, remote_addr: "127.0.0.1", forwarded_for: "198.51.100.7, 172.18.0.5")
+  end
+
+  test "TRUSTED_PROXIES refuses a mapped range" do
+    assert_raises(ArgumentError) { appliance_proxies("::ffff:172.18.0.0/112") }
+  end
+
+  test "single_ip returns one address, with an IPv4-mapped one as IPv4" do
+    assert_equal IPAddr.new("172.18.0.5"), FamilyPlates.single_ip(" 172.18.0.5 ")
+    assert_equal IPAddr.new("172.18.0.5"), FamilyPlates.single_ip("::ffff:172.18.0.5")
+    assert_equal IPAddr.new("172.18.0.5"), FamilyPlates.single_ip("172.18.0.5/32")
+    assert_equal IPAddr.new("fd00::5"), FamilyPlates.single_ip("fd00::5/128")
+  end
+
+  test "single_ip tells a range from something that is not an address" do
+    assert_raises(IPAddr::InvalidPrefixError) { FamilyPlates.single_ip("10.0.0.0/8") }
+    assert_raises(IPAddr::InvalidPrefixError) { FamilyPlates.single_ip("::ffff:10.0.0.0/104") }
+    assert_raises(IPAddr::InvalidAddressError) { FamilyPlates.single_ip("proxy.example.com") }
+    assert_raises(IPAddr::InvalidAddressError) { FamilyPlates.single_ip("") }
+  end
+
+  # An appliance that was already behind a reverse proxy, with TRUSTED_PROXIES not
+  # set yet, would otherwise record every client as the proxy's address and share
+  # one per-IP sign-in and PIN allowance. Its forward-auth setting names the proxy.
+  test "with TRUSTED_PROXIES unset, the forward-auth proxy addresses are trusted too" do
+    proxies = FamilyPlates.trusted_proxies(hosted: false, extra: nil, forward_auth: [ IPAddr.new("172.18.0.5") ])
+
+    assert_equal "198.51.100.7",
+      remote_ip_for(proxies, remote_addr: "127.0.0.1", forwarded_for: "203.0.113.50, 198.51.100.7, 172.18.0.5")
+    assert_equal FamilyPlates.trusted_proxies(hosted: false, extra: "", forward_auth: [ IPAddr.new("172.18.0.5") ]), proxies
+  end
+
+  test "a set TRUSTED_PROXIES replaces the forward-auth fallback" do
+    proxies = FamilyPlates.trusted_proxies(hosted: false, extra: "172.18.0.9", forward_auth: [ IPAddr.new("172.18.0.5") ])
+
+    assert_includes proxies, IPAddr.new("172.18.0.9")
+    assert_not_includes proxies, IPAddr.new("172.18.0.5")
+  end
+
+  test "the fallback reads FORWARD_AUTH_TRUSTED_PROXIES and leaves out its ranges and non-addresses" do
+    previous = [ ENV["TRUSTED_PROXIES"], ENV["FORWARD_AUTH_TRUSTED_PROXIES"] ]
+    ENV.delete("TRUSTED_PROXIES")
+    ENV["FORWARD_AUTH_TRUSTED_PROXIES"] = "172.18.0.5, 10.0.0.0/8, traefik, ::ffff:172.18.0.6"
+    FamilyPlates.config.reset!
+
+    assert_equal [ "127.0.0.0/8", "::1", "172.18.0.5", "172.18.0.6" ].map { IPAddr.new(_1) },
+      FamilyPlates.trusted_proxies(hosted: false)
+  ensure
+    ENV["TRUSTED_PROXIES"], ENV["FORWARD_AUTH_TRUSTED_PROXIES"] = previous
+    ENV.delete("TRUSTED_PROXIES") if previous.first.nil?
+    ENV.delete("FORWARD_AUTH_TRUSTED_PROXIES") if previous.last.nil?
+    FamilyPlates.config.reset!
+  end
+
+  test "the hosted edition keeps Rails' default whatever TRUSTED_PROXIES says" do
+    skip "hosted mode needs the hosted bundle" unless FamilyPlates.saas?
+
+    previous = ENV["TRUSTED_PROXIES"]
+    FamilyPlates.config.mode = "hosted"
+    ENV["TRUSTED_PROXIES"] = "172.18.0.5"
+
+    assert_predicate FamilyPlates.config, :hosted?
+    assert_nil FamilyPlates.trusted_proxies
+  ensure
+    previous.nil? ? ENV.delete("TRUSTED_PROXIES") : ENV["TRUSTED_PROXIES"] = previous
+    FamilyPlates.config.reset!
+  end
+
+  test "the appliance mode comes from the configured edition and TRUSTED_PROXIES from the environment" do
+    previous = ENV["TRUSTED_PROXIES"]
     FamilyPlates.config.mode = "appliance"
     ENV["TRUSTED_PROXIES"] = "172.18.0.5"
 
     assert_includes FamilyPlates.trusted_proxies, IPAddr.new("172.18.0.5")
   ensure
-    ENV.delete("TRUSTED_PROXIES")
+    previous.nil? ? ENV.delete("TRUSTED_PROXIES") : ENV["TRUSTED_PROXIES"] = previous
     FamilyPlates.config.reset!
+  end
+
+  # Narrowing the trusted list only helps requests that arrive through Thruster.
+  # Puma must not be reachable on its own port from outside the container, or a
+  # client could send a forged X-Forwarded-For straight to it. Thruster (the
+  # image's CMD, and what kamal-proxy and the published port reach) talks to it
+  # over loopback.
+  test "the image binds Puma to loopback and starts it behind Thruster" do
+    dockerfile = Rails.root.join("Dockerfile").read
+
+    assert_match(/^ENV .*\bBINDING="?127\.0\.0\.1"?/m, dockerfile.gsub(/\\\n\s*/, " "))
+    assert_match(/^CMD \["\.\/bin\/thrust", "\.\/bin\/rails", "server"\]$/, dockerfile)
   end
 end
