@@ -87,16 +87,20 @@ class DockerignoreTest < ActiveSupport::TestCase
     %r{\Aapp/assets/builds/(?!\.keep\z)}              # rebuilt by assets:precompile in the image
   ].freeze
 
-  # Git-ignored paths the image needs. None today: add one here, with the
-  # reason, only if something at build or run time reads it.
-  IGNORED_BUT_NEEDED = [].freeze
-
   test "private git-ignored files are kept out of the build context" do
     PRIVATE_PATHS.each { |path| assert ignored?(path), "#{path} would be copied into the image" }
   end
 
   test "secrets and credential files are kept out of the build context" do
     SECRET_PATHS.each { |path| assert ignored?(path), "#{path} would be copied into the image" }
+  end
+
+  test "host-built gems and packages are kept out of the build context" do
+    %w[
+      vendor/bundle/ruby/4.0.0/gems/example/lib/example.rb
+      node_modules/example/index.js
+      public/assets/application.css
+    ].each { |path| assert ignored?(path), "#{path} would be copied into the image" }
   end
 
   test "deployment files are kept out of the build context" do
@@ -110,7 +114,7 @@ class DockerignoreTest < ActiveSupport::TestCase
   test "no tracked file is ignored unless that is intended" do
     skip "needs a git checkout" unless git_checkout?
 
-    tracked = git("ls-files").reject { |path| INTENDED_EXCLUSIONS.any? { |pattern| pattern.match?(path) } }
+    tracked = git_paths("ls-files", "-z").reject { |path| INTENDED_EXCLUSIONS.any? { |pattern| pattern.match?(path) } }
 
     assert_not_empty tracked
     assert_empty tracked.select { |path| ignored?(path) }, "tracked files the image may need would be left out (list them in INTENDED_EXCLUSIONS if that is on purpose)"
@@ -119,27 +123,30 @@ class DockerignoreTest < ActiveSupport::TestCase
   test "everything git ignores is also ignored by docker" do
     skip "needs a git checkout" unless git_checkout?
 
-    # Only the repo's own .gitignore files, not a developer's global excludes.
-    leaked = git("ls-files", "--others", "--ignored", "--exclude-per-directory=.gitignore", "--directory")
+    # Only the root .gitignore: not a developer's global excludes, and not the
+    # .gitignore files inside installed gems (vendor/bundle on CI).
+    leaked = git_paths("ls-files", "-z", "--others", "--ignored", "--exclude-from=#{Rails.root.join(".gitignore")}", "--directory")
       .map { |path| path.chomp("/") }
-      .reject { |path| IGNORED_BUT_NEEDED.map { |needed| needed.chomp("/") }.include?(path) }
+      .reject { |path| path == "vendor/bundle" || path.start_with?("vendor/bundle/") } # excluded as a whole, and checked below
       .reject { |path| ignored?(path) }
 
-    assert_empty leaked, "git-ignored but not in .dockerignore (add it, or list it in IGNORED_BUT_NEEDED with a reason)"
+    assert_empty leaked, "git-ignored but not in .dockerignore (add it, or write down why the image needs it)"
   end
 
   private
 
   def git_checkout?
-    system("git", "-C", Rails.root.to_s, "rev-parse", "--is-inside-work-tree", out: File::NULL, err: File::NULL) == true
+    out, _err, status = Open3.capture3("git", "-C", Rails.root.to_s, "rev-parse", "--show-toplevel")
+    status.success? && File.realpath(out.strip) == File.realpath(Rails.root)
+  rescue SystemCallError # git is not installed
+    false
   end
 
-  # Paths come back NUL-separated so names with quotes or non-ASCII
-  # characters are not escaped.
-  def git(*args)
-    args.insert(1, "-z")
-    out, status = Open3.capture2("git", "-C", Rails.root.to_s, *args)
-    assert status.success?, "git #{args.first} failed"
+  # Callers pass -z: paths come back NUL-separated, so names with quotes or
+  # non-ASCII characters are not escaped.
+  def git_paths(*args)
+    out, err, status = Open3.capture3("git", "-C", Rails.root.to_s, *args)
+    assert status.success?, "git #{args.first} failed: #{err}"
     out.force_encoding(Encoding::UTF_8).split("\0")
   end
 
