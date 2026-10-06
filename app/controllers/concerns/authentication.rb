@@ -68,8 +68,8 @@ module Authentication
   end
 
   def set_current_user
-    if forward_auth_active?
-      authenticate_via_forward_auth
+    if (email = trusted_forward_auth_email)
+      authenticate_via_forward_auth(email)
       return if Current.user.present?
     end
 
@@ -250,16 +250,20 @@ module Authentication
     session[:forward_auth_signed_out] = true
   end
 
-  def forward_auth_active?
-    return false unless FamilyPlates.config.forward_auth_enabled?
-    return false if session[:forward_auth_signed_out]
-    return false if extract_forward_auth_email.blank?
+  # The identity email from the proxy's headers, or nil unless forward-auth is
+  # on and the connecting hop is a trusted proxy.
+  def trusted_forward_auth_email
+    return unless FamilyPlates.config.forward_auth_enabled?
+    return if session[:forward_auth_signed_out]
+
+    email = extract_forward_auth_email
+    return if email.blank?
 
     peer = forward_auth_peer_ip
-    return true if trusted_forward_auth_proxy?(peer)
+    return email if trusted_forward_auth_proxy?(peer)
 
     Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{peer || "unparseable"}")
-    false
+    nil
   end
 
   # The address that connected to the app, not request.remote_ip: remote_ip is
@@ -291,10 +295,7 @@ module Authentication
     ip.native.mask(ip.prefix - 96)
   end
 
-  def authenticate_via_forward_auth
-    email = extract_forward_auth_email
-    return if email.blank?
-
+  def authenticate_via_forward_auth(email)
     email = email.strip.downcase
     uid = extract_forward_auth_uid || email
     name = extract_forward_auth_name
@@ -314,7 +315,7 @@ module Authentication
       provider: "forward_auth",
       uid: uid,
       email: email,
-      # Identity headers are only read after forward_auth_active? confirmed the
+      # Identity headers are only used after trusted_forward_auth_email confirmed the
       # trusted proxy sent them; the proxy has already authenticated the user.
       email_verified: true,
       name: name

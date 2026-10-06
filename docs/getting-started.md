@@ -122,14 +122,14 @@ All external identity providers are disabled by default. Configure these variabl
 | `OIDC_CLIENT_SECRET` | *(None)* | OIDC Client Secret. |
 | `OIDC_DISPLAY_NAME` | `Single Sign-On` | Button label for SSO on sign-in screen (e.g. `Authentik` or `Authelia`). |
 | `AUTH_FORWARD_AUTH_ENABLED` | `false` | Enable trusted reverse proxy forward-auth (`true` / `false`). |
-| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | Comma-separated trusted reverse proxy IPs or CIDR subnets (e.g. `10.0.0.0/8`). See the note below. |
+| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | The reverse proxy's own address (a single IP), comma-separated if there is more than one. Not a client range. See the note below. |
 | `FORWARD_AUTH_EMAIL_HEADERS` | `Remote-Email,X-Forwarded-Email,Tailscale-User-Login` | Headers checked for user email from trusted proxies. |
 | `FORWARD_AUTH_LOGOUT_URL` | *(None)* | Optional URL to redirect to on sign-out (e.g. proxy SSO logout page). |
 
 **Forward-auth trusted proxies.** The app does not use `request.remote_ip` for this check, because that value comes from `X-Forwarded-For`, which a client can set. It checks the hop that connected to the app: the TCP peer address, except when that peer is the loopback address and the request has an `X-Forwarded-For` header, in which case it checks the last entry of that header. A blank or unreadable entry, or one that is an address range, is refused.
 
 - **Docker image.** Forward-auth is supported with the Docker image, where Thruster is the loopback hop: the TCP peer is always loopback, and Thruster adds the address that connected to it as the last `X-Forwarded-For` entry. Set `FORWARD_AUTH_TRUSTED_PROXIES` to your reverse proxy's single address as the app container sees it (give the proxy container a fixed IP), not a network range: a range includes the bridge gateway and every other container on that network. Never add client address ranges to `FORWARD_AUTH_TRUSTED_PROXIES`. Keep the app port reachable only from the proxy.
-- **Proxy on the Docker host.** Publish the port on loopback only (`127.0.0.1:3000:80`) and trust the single address the container sees for the proxy. The first refused request logs it as `forward_auth_untrusted_peer peer=<ip>`.
+- **Proxy on the Docker host.** Publish the port on loopback only (`127.0.0.1:3000:80`). Find the address the container sees for the proxy from the Docker side (for example with `docker network inspect`, or the gateway of the network the container is on) and trust that single address. The `forward_auth_untrusted_peer peer=<ip>` log line only confirms which address requests from the proxy arrive with; do not trust an address just because it appears there, since any client's request can be the one logged. Connections relayed by Docker's userland proxy share that address, so do not publish the port on other interfaces while forward-auth is on.
 - **No Thruster.** Running `rails server` directly behind a proxy on the same host is not supported for forward-auth. The last `X-Forwarded-For` entry is then whatever the proxy forwarded, which can be the client's address.
 - **Refused requests.** When identity headers arrive from a hop that is not trusted, the app logs `[auth] forward_auth_untrusted_peer peer=<ip>` (`peer=unparseable` if the address could not be read). It never logs header values.
 
