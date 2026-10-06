@@ -279,34 +279,21 @@ module Authentication
   def forward_auth_peer_ip
     peer = parse_peer_ip(request.remote_addr)
     forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
-    return peer unless peer && host_address?(peer) && peer.loopback? && !forwarded.nil?
+    return peer unless peer && FamilyPlates.host_address?(peer) && peer.loopback? && !forwarded.nil?
 
     parse_peer_ip(forwarded.split(",", -1).last)
   end
 
   def parse_peer_ip(value)
-    native_ip(IPAddr.new(value.to_s.strip))
+    FamilyPlates.native_ip(IPAddr.new(value.to_s.strip))
   rescue IPAddr::Error
     nil
-  end
-
-  # A hop is a single host address; a value that parses as a range is not one.
-  def host_address?(ip)
-    ip.prefix == (ip.ipv4? ? 32 : 128)
   end
 
   def forward_auth_peer_label(peer)
     return "unparseable" if peer.nil?
 
-    host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
-  end
-
-  # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
-  # becomes the IPv4 one, so it compares equal to the same IPv4 address.
-  def native_ip(ip)
-    return ip unless ip.ipv4_mapped? && ip.prefix >= 96
-
-    ip.native.mask(ip.prefix - 96)
+    FamilyPlates.host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
   end
 
   def authenticate_via_forward_auth(email)
@@ -338,13 +325,10 @@ module Authentication
   end
 
   def trusted_forward_auth_proxy?(peer)
-    return false if peer.nil? || !host_address?(peer)
+    # Load-bearing: IPAddr#== ignores the prefix, so a range hop must be refused here.
+    return false if peer.nil? || !FamilyPlates.host_address?(peer)
 
-    FamilyPlates.config.forward_auth_trusted_proxies.any? do |trusted|
-      native_ip(IPAddr.new(trusted.strip)).include?(peer)
-    rescue IPAddr::Error
-      false
-    end
+    FamilyPlates.config.forward_auth_proxies.hosts.include?(peer)
   end
 
   def extract_forward_auth_email
