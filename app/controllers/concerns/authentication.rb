@@ -308,6 +308,8 @@ module Authentication
       end
     end
 
+    return if forward_auth_identity_email_mismatch?(uid, email)
+
     user = User.find_or_create_from_identity(
       provider: "forward_auth",
       uid: uid,
@@ -318,6 +320,18 @@ module Authentication
       name: name
     )
     start_new_session_for_user(user)
+  end
+
+  # The user ID header is not always set by the proxy: when only the email header
+  # is, a client can add a user ID header naming someone else's identity. An
+  # identity found by that ID belongs to the user the proxy's email names, or the
+  # request is refused. Logged without any address or ID.
+  def forward_auth_identity_email_mismatch?(uid, email)
+    identity = Identity.includes(:user).find_by(provider: "forward_auth", uid: uid)
+    return false if identity.nil? || identity.user.email.casecmp?(email)
+
+    Rails.logger.warn("[auth] forward_auth_identity_email_mismatch the user ID header named an identity whose account email differs from the proxy's email header; sign-in refused")
+    true
   end
 
   def trusted_forward_auth_proxy?(peer)
