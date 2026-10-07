@@ -129,6 +129,22 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
     FamilyPlates.config.reset!
   end
 
+  # SA-04 review: the forward-auth email check is in the forward-auth sign-in,
+  # not here, so a Google or OIDC account keeps signing in by its uid after the
+  # provider reports a new email address.
+  test "a google or oidc identity is found by uid even when the provider now reports another email" do
+    %w[google oidc].each do |provider|
+      user = User.create!(email: "#{provider}-original@example.com")
+      user.identities.create!(provider: provider, uid: "#{provider}-stable")
+
+      found = User.find_or_create_from_identity(
+        provider: provider, uid: "#{provider}-stable", email: "#{provider}-changed@example.com", email_verified: true
+      )
+
+      assert_equal user, found
+    end
+  end
+
   private
 
   def enable_google_and_oidc!
