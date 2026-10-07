@@ -136,7 +136,7 @@ Rails.application.routes.draw do
     end
     resources :recipe_requests, only: %i[create destroy]
   end
-  resources :recipe_imports, only: %i[new create]
+  resources :recipe_imports, only: %i[new create show]
 
   # Cook Mode straight from the clock: works out which planned meal is being
   # made right now and opens it, so a kitchen display needs one tap, not five.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -436,6 +436,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
     t.index ["code"], name: "index_promotion_programs_on_code", unique: true
   end
 
+  create_table "recipe_imports", id: :string, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.json "data"
+    t.string "error"
+    t.string "family_member_id"
+    t.datetime "finished_at"
+    t.string "household_id", null: false
+    t.integer "recipe_id"
+    t.datetime "started_at"
+    t.string "status", default: "queued", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["created_at"], name: "index_recipe_imports_on_created_at"
+    t.index ["family_member_id"], name: "index_recipe_imports_on_family_member_id"
+    t.index ["household_id"], name: "index_recipe_imports_on_household_id"
+  end
+
   create_table "recipe_ingredients", force: :cascade do |t|
     t.string "aisle_category", null: false
     t.datetime "created_at", null: false
@@ -591,6 +608,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
   add_foreign_key "pay_subscriptions", "pay_customers", column: "customer_id"
   add_foreign_key "platform_admin_sessions", "platform_admins"
   add_foreign_key "platform_audit_events", "platform_admins"
+  add_foreign_key "recipe_imports", "family_members"
+  add_foreign_key "recipe_imports", "households"
   add_foreign_key "recipe_ingredients", "recipes"
   add_foreign_key "recipe_requests", "family_members"
   add_foreign_key "recipe_requests", "recipes"

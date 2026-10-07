@@ -20,6 +20,9 @@ class TestSupportController < ActionController::Base
     CLOCK.travel_back
     CLOCK.travel_to(Time.iso8601(params[:now])) if params[:now].present?
 
+    # Before the fixtures, which replace the family members these rows point at.
+    RecipeImport.delete_all
+
     ActiveRecord::FixtureSet.reset_cache
     ActiveRecord::FixtureSet.create_fixtures(
       Rails.root.join("test/fixtures"),
@@ -89,14 +92,20 @@ class TestSupportController < ActionController::Base
   end
 
   # The records the Playwright route crawl puts into parameterised paths. The
-  # fixtures carry no support thread, so the hosted edition makes one;
-  # everything else is the primary household's fixture data.
+  # fixtures carry no support thread or recipe import, so those are made here
+  # (the support thread by the hosted edition only); everything else is the
+  # primary household's fixture data. The import is a finished one, so its page
+  # is the pre-filled recipe form rather than a page that reloads itself.
   def crawl_records
     household = Household.find_by!(name: "Spencer Family")
     member = household.family_members.find_by!(role: "member")
     records = {
       household: household.id,
       recipe: household.recipes.order(:id).first!.id,
+      recipe_import: household.recipe_imports.create!(
+        url: "https://example.com/route-crawl", status: "succeeded",
+        data: { title: "Route Crawl Casserole", servings: 4, ingredients: [] }
+      ).id,
       meal_plan: household.meal_plans.order(:id).first!.id,
       family_member: member.id,
       transfer_token: member.transfer_id
