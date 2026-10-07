@@ -31,7 +31,10 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment variables and enable jemalloc for reduced memory usage and latency.
+# BINDING keeps Puma on loopback: only Thruster (port 80) is reachable from outside the
+# container, so a client cannot send Puma a forged X-Forwarded-For (SA-09).
 ENV RAILS_ENV="production" \
+    BINDING="127.0.0.1" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development:test" \
