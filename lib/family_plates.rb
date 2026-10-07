@@ -163,15 +163,17 @@ module FamilyPlates
     end
 
     def forward_auth_email_headers
-      @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email,X-Forwarded-Email,Tailscale-User-Login").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_email_headers, "EMAIL", "Remote-Email")
     end
 
+    # No default: with none set, the user ID is the email. A client can add any
+    # header a proxy neither sets nor strips, so a default name would be one more.
     def forward_auth_user_headers
-      @forward_auth_user_headers || (ENV["FORWARD_AUTH_USER_HEADERS"].presence || ENV["FORWARD_AUTH_USER_HEADER"].presence || "Remote-User,X-Forwarded-User").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_user_headers, "USER", "")
     end
 
     def forward_auth_name_headers
-      @forward_auth_name_headers || (ENV["FORWARD_AUTH_NAME_HEADERS"].presence || ENV["FORWARD_AUTH_NAME_HEADER"].presence || "Remote-Name,X-Forwarded-Name,X-Forwarded-Preferred-Username").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_name_headers, "NAME", "Remote-Name")
     end
 
     def forward_auth_logout_url
@@ -201,6 +203,14 @@ module FamilyPlates
       @forward_auth_user_headers = nil
       @forward_auth_name_headers = nil
       @forward_auth_logout_url = nil
+    end
+
+    private
+
+    # The header names for one forward-auth identity field: the value set in
+    # code, else FORWARD_AUTH_<KIND>_HEADERS (or the older singular name), else the default.
+    def forward_auth_headers(configured, kind, default)
+      configured || (ENV["FORWARD_AUTH_#{kind}_HEADERS"].presence || ENV["FORWARD_AUTH_#{kind}_HEADER"].presence || default).split(",").map(&:strip)
     end
   end
 

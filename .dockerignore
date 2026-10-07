@@ -7,18 +7,23 @@
 # Ignore bundler config.
 /.bundle
 
-# Ignore all environment files.
-/.env*
+# Ignore all environment files, at any depth (the hosted edition keeps saas/ in the image).
+**/.env*
 
-# Ignore all default key files.
-/config/master.key
-/config/credentials/*.key
+# Ignore all default key files, at any depth.
+**/master.key
+**/credentials/*.key
+
+# Ignore credentials that .gitignore also keeps out of git: Google service-account keys.
+**/config/*.json
+**/*.json.key
 
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
 !/log/.keep
 !/tmp/.keep
+/*.log
 
 # Ignore pidfiles, but keep the directory.
 /tmp/pids/*
@@ -30,21 +35,57 @@
 /tmp/storage/*
 !/tmp/storage/.keep
 
+# Ignore SQLite databases outside storage/ as well.
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-shm
+/db/*.sqlite3-wal
+
 # Ignore assets.
 /node_modules/
+/vendor/bundle
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
+/public/packs
+/public/packs-test
+
+# Ignore system and editor files.
+**/.DS_Store
+**/*.swp
+**/*~
 
 # Ignore CI service files.
 /.github
 
-# Ignore Kamal files.
+# Ignore Kamal files, including the hosted edition's (secrets and hooks too).
 /config/deploy*.yml
 /.kamal
+/saas/config/deploy*.yml
+/saas/.kamal
 
 # Ignore development files
 /.devcontainer
+
+# Ignore private working documents. They are git-ignored, not public.
+/tasks
+/notes
+/docs/ideas
+/CONTEXT.md
+/saas/DEPLOY.md
+/script/hermes-review
+/scratch
+
+# Ignore local debugging and test artifacts that can hold session data.
+/cookies.txt
+/test_output.txt
+/playwright-report
+/test-results
+
+# Ignore agent worktrees and notes, which hold full copies of the repository or private text.
+**/.claude
+/.worktrees
+**/.notes
 
 # Ignore Docker-related files
 /.dockerignore

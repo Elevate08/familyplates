@@ -1,22 +1,124 @@
-const CACHE_NAME = "familyplates-v2";
-const OFFLINE_URLS = [
-  "/",
-  "/grocery_list",
-  "/recipes",
-  "/meal_plans",
-  "/icon.png",
-  "/icon.svg",
-  "/favicon.ico"
+const CACHE_NAME = "familyplates-v5";
+
+// Only these pages work offline: the grocery list, recipes and the meal plan.
+// Nothing else is kept (no operator console, account data, billing, support,
+// preferences, sign-in, pairing or devices pages), because a cached page is
+// shown to whoever opens this browser next. Forms (/recipes/new, .../edit) stay out too.
+const OFFLINE_PAGES = [
+  /^\/grocery_list(\/(\d+|current))?$/,
+  /^\/recipes(\/\d+(\/cook)?)?$/,
+  /^\/meal_plans(\/\d+(\/print)?)?$/
 ];
 
-// Install: Cache essential shell and offline pages
+// "/" (the manifest start_url) and "/meal_plans" only redirect to this week's plan. Offline, a
+// navigation to either shows the plan that was kept most recently (see latestPlan).
+const PLAN_ENTRY_PATHS = ["/", "/meal_plans"];
+const PLAN_PAGE = /^\/meal_plans\/\d+$/;
+
+// Opened at install, so a fresh install or a new sign-in does not start with nothing offline.
+const PRECACHED_PAGES = ["/grocery_list", "/recipes"];
+
+// Static files that carry no household data. The icons are also saved at install.
+const ICON_PATHS = ["/icon.png", "/icon.svg", "/favicon.ico"];
+const STATIC_PATHS = [...ICON_PATHS, "/manifest.json"];
+
+// Uploaded recipe photos, and their resized copies, are kept like static files so offline recipe
+// pages keep their pictures. Signing out clears them with everything else.
+const UPLOADED_IMAGE = /^\/rails\/active_storage\/(blobs|representations)\//;
+
+// Stamped on a kept page: when it was kept, to find the plan seen last.
+const KEPT_AT = "X-SW-Cached-At";
+
+function isOfflinePage(pathname) {
+  return OFFLINE_PAGES.some((pattern) => pattern.test(pathname));
+}
+
+function isCachedFile(pathname) {
+  return pathname.startsWith("/assets/") || STATIC_PATHS.includes(pathname) || UPLOADED_IMAGE.test(pathname);
+}
+
+// A copy to keep: stamped, and without the "redirected" mark, because the browser refuses to show a
+// redirected response for a navigation and a plan reached through "/" is one.
+function stampedCopy(response) {
+  const copy = response.clone();
+  const headers = new Headers(copy.headers);
+  headers.set(KEPT_AT, String(Date.now()));
+  return new Response(copy.body, { status: copy.status, statusText: copy.statusText, headers });
+}
+
+// Keep an offline page the network just answered with, under the address it ended at (so a plan
+// reached through the redirect from "/" is kept as /meal_plans/N). Not kept: a redirect to some other
+// page (sign-in), a Turbo Frame fragment, and a page with a query string (search, tag filter, view
+// variant: unbounded in number).
+function keepOfflinePage(request, response) {
+  const landed = new URL(response.url || request.url);
+  if (response.status !== 200 || landed.origin !== self.location.origin) return Promise.resolve();
+  if (!isOfflinePage(landed.pathname) || landed.search) return Promise.resolve();
+  if (request.headers.get("Turbo-Frame")) return Promise.resolve();
+
+  const copy = stampedCopy(response);
+  return caches.open(CACHE_NAME).then((cache) => cache.put(landed.href, copy));
+}
+
+// A page or file the server says is gone (404, 410) loses its kept copy.
+function forgetIfGone(request, response) {
+  if (response.status !== 404 && response.status !== 410) return Promise.resolve();
+  return caches.open(CACHE_NAME).then((cache) => cache.delete(request.url));
+}
+
+// The kept plan page without a query string that was kept last, or undefined.
+async function latestPlan() {
+  const cache = await caches.open(CACHE_NAME);
+  let newest;
+  let newestAt = -1;
+  for (const key of await cache.keys()) {
+    const kept = new URL(key.url);
+    if (kept.search || !PLAN_PAGE.test(kept.pathname)) continue;
+    const response = await cache.match(key);
+    const keptAt = Number(response && response.headers.get(KEPT_AT)) || 0;
+    if (keptAt > newestAt) {
+      newest = response;
+      newestAt = keptAt;
+    }
+  }
+  return newest;
+}
+
+// Open a page at install. A redirect (to sign-in, when nobody is signed in) or an error is not kept.
+function precachePage(path) {
+  const asked = { url: self.location.origin + path, headers: { get: () => null } };
+  return fetch(path, { headers: { Accept: "text/html" } })
+    .then((response) => (response.redirected ? null : keepOfflinePage(asked, response)))
+    .catch(() => {});
+}
+
+// Shown when a page that is not available offline is opened without a connection.
+function offlineResponse() {
+  const body = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+    "<title>Offline - FamilyPlates</title></head>" +
+    "<body style=\"font-family: system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; padding: 0 1rem;\">" +
+    "<h1>You are offline</h1>" +
+    "<p>This page is not available offline. Only these pages work without a connection:</p>" +
+    "<ul><li><a href=\"/grocery_list\">Grocery list</a></li>" +
+    "<li><a href=\"/recipes\">Recipes</a></li>" +
+    "<li><a href=\"/meal_plans\">Meal plan</a></li></ul>" +
+    "<p>Pages you have not opened yet are not saved on this device.</p>" +
+    "</body></html>";
+  return new Response(body, {
+    status: 503,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }
+  });
+}
+
+// Install: Cache the icons, the grocery list and recipes; other offline pages are saved as they are visited
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(OFFLINE_URLS).catch((err) => {
+      return cache.addAll(ICON_PATHS).catch((err) => {
         console.warn("ServiceWorker pre-caching partial failure", err);
       });
-    }).then(() => self.skipWaiting())
+    }).then(() => Promise.all(PRECACHED_PAGES.map(precachePage))).then(() => self.skipWaiting())
   );
 });
 
@@ -35,7 +137,8 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch: Network-First with Cache Fallback for HTML pages, Cache-First for static assets
+// Fetch: Network-First with Cache Fallback for the offline pages, Stale-While-Revalidate for static files
+// and uploaded photos, and straight to the network (never cached) for everything else
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
@@ -47,47 +150,56 @@ self.addEventListener("fetch", (event) => {
   // Only intercept same-origin requests (allow browser to handle external images/CDNs natively)
   if (url.origin !== self.location.origin) return;
 
-  // For HTML page navigations: Network-first, fallback to cache
+  // For HTML page navigations and Turbo visits
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-
-          // If looking for grocery list, serve cached grocery list
-          if (url.pathname.startsWith("/grocery_list")) {
-            const cachedGrocery = await caches.match("/grocery_list");
-            if (cachedGrocery) return cachedGrocery;
-          }
-
-          // Fallback to home/offline page
-          return caches.match("/");
-        })
-    );
+    if (isOfflinePage(url.pathname) || url.pathname === "/") {
+      // Network-first, fallback to cache
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            // An opaque redirect is a navigation whose redirect the browser follows itself; the page it
+            // leads to comes through here as its own request and is kept then. The worker adds no request.
+            if (response.type !== "opaqueredirect") {
+              event.waitUntil(Promise.all([keepOfflinePage(request, response), forgetIfGone(request, response)]));
+            }
+            return response;
+          })
+          .catch(async (error) => {
+            const cached = await caches.match(request, { ignoreVary: true });
+            if (cached) return cached;
+            // Only a navigation can show the plan or the notice page; a Turbo or script fetch gets the network error
+            if (request.mode === "navigate") {
+              const plan = PLAN_ENTRY_PATHS.includes(url.pathname) && !url.search && await latestPlan();
+              return plan || offlineResponse();
+            }
+            throw error;
+          })
+      );
+    } else if (request.mode === "navigate") {
+      // Not an offline page: never cache it, and never answer with another cached page
+      event.respondWith(fetch(request).catch(() => offlineResponse()));
+    }
     return;
   }
 
-  // For same-origin static assets (CSS, JS, local images, icons): Stale-While-Revalidate
+  // Anything else that is not a static file or an uploaded photo (exports, calendar feeds): leave it to the network
+  if (!isCachedFile(url.pathname)) return;
+
+  // For same-origin static files and uploaded photos (CSS, JS, icons, recipe images): Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const networkFetch = fetch(request).then((networkResponse) => {
         if (networkResponse.status === 200) {
           const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+        } else {
+          event.waitUntil(forgetIfGone(request, networkResponse));
         }
         return networkResponse;
       });
 
       if (cachedResponse) {
-        networkFetch.catch(() => {});
+        event.waitUntil(networkFetch.catch(() => {}));
         return cachedResponse;
       }
 

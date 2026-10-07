@@ -182,6 +182,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "DELETE /recipes/:recipe_id/recipe_requests/:id" => [ :household, {}, :not_found ],
     "GET /recipe_imports/new" => [ :household ],
     "POST /recipe_imports" => [ :household ],
+    "GET /recipe_imports/:id" => [ :household, {}, :not_found ],
     "GET /cook" => [ :household ],
     "POST /household_time_zone" => [ :household ],
 
@@ -243,6 +244,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     [ "onboarding", "id" ] => :mom,
     [ "pantry_items", "id" ] => :pantry_item,
     [ "recipes", "id" ] => :recipe,
+    [ "recipe_imports", "id" ] => :recipe_import,
     [ "recipe_requests", "recipe_id" ] => :recipe,
     [ "recipe_requests", "id" ] => :recipe_request,
     [ "meal_plans", "id" ] => :meal_plan,
@@ -341,6 +343,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
         calendar_token: household.calendar_feed_token,
         pantry_item: pantry_items(:one).id,
         recipe: recipes(:one).id,
+        recipe_import: household.recipe_imports.create!(url: "https://example.com/matrix").id,
         recipe_request: recipe_requests(:one).id,
         meal_plan: meal_plans(:one).id,
         meal_plan_slot: meal_plan_slots(:one).id
@@ -368,6 +371,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
         transfer_token: member.transfer_id,
         pantry_item: other.pantry_items.create!(name: "Miller Flour", aisle_category: "Pantry & Grains").id,
         recipe: recipe.id,
+        recipe_import: other.recipe_imports.create!(url: "https://example.com/miller").id,
         recipe_request: recipe.recipe_requests.create!(family_member: member, week_start_date: Date.current.beginning_of_week).id,
         meal_plan: plan.id,
         meal_plan_slot: plan.meal_plan_slots.create!(date: plan.week_start_date, meal_type: "dinner", custom_title: "Miller dinner").id,

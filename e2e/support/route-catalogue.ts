@@ -13,6 +13,7 @@ export type Route = { verb: string; path: string; controller: string | null; act
 export type CrawlRecords = {
   household: string;
   recipe: number;
+  recipe_import: string;
   meal_plan: number;
   family_member: string;
   support_thread: string;
@@ -33,6 +34,7 @@ export const PARAMETERISED: Record<string, (r: CrawlRecords) => string> = {
   "GET /admin/family_members/:id/edit": (r) => `/admin/family_members/${r.family_member}/edit`,
   "GET /platform_admin/households/:id": (r) => `/platform_admin/households/${r.household}`,
   "GET /platform_admin/support_threads/:id": (r) => `/platform_admin/support_threads/${r.support_thread}`,
+  "GET /recipe_imports/:id": (r) => `/recipe_imports/${r.recipe_import}`,
   "GET /recipes/:id": (r) => `/recipes/${r.recipe}`,
   "GET /recipes/:id/edit": (r) => `/recipes/${r.recipe}/edit`,
   "GET /recipes/:id/cook": (r) => `/recipes/${r.recipe}/cook`,

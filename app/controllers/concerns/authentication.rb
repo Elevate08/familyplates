@@ -2,6 +2,7 @@ require "ipaddr"
 
 module Authentication
   extend ActiveSupport::Concern
+  include ClearsSiteData
 
   included do
     before_action :require_installation
@@ -101,6 +102,8 @@ module Authentication
 
   def handle_revoked_session
     return unless @session_revoked
+
+    clear_site_data
 
     target_path = signed_out_path(kind: @revoked_kiosk ? "kiosk" : "browser")
     message = @revoked_kiosk ? "This kitchen display's access has been revoked." : "Device access has been revoked."
@@ -231,6 +234,10 @@ module Authentication
   end
 
   def start_new_session_for(member)
+    # The service worker's pages are addressed by per-household numbers (/recipes/12), so another
+    # household's must not stay in the browser under the same address.
+    clear_site_data if Current.household && Current.household.id != member.household_id
+
     Current.family_member = member
     Current.household = member.household
     write_permanent_signed_cookie(:active_family_member_id, member.id)
@@ -248,6 +255,7 @@ module Authentication
     cookies.delete(:active_family_member_id)
 
     session[:forward_auth_signed_out] = true
+    clear_site_data
   end
 
   # The identity email from the proxy's headers, or nil unless forward-auth is
@@ -309,6 +317,8 @@ module Authentication
       end
     end
 
+    return if forward_auth_identity_email_mismatch?(uid, email)
+
     user = User.find_or_create_from_identity(
       provider: "forward_auth",
       uid: uid,
@@ -319,6 +329,18 @@ module Authentication
       name: name
     )
     start_new_session_for_user(user)
+  end
+
+  # The user ID header is not always set by the proxy: when only the email header
+  # is, a client can add a user ID header naming someone else's identity. An
+  # identity found by that ID belongs to the user the proxy's email names, or the
+  # request is refused. Logged without any address or ID.
+  def forward_auth_identity_email_mismatch?(uid, email)
+    identity = Identity.includes(:user).find_by(provider: "forward_auth", uid: uid)
+    return false if identity.nil? || identity.user.email.casecmp?(email)
+
+    Rails.logger.warn("[auth] forward_auth_identity_email_mismatch the user ID header named an identity whose account email differs from the proxy's email header; sign-in refused")
+    true
   end
 
   def trusted_forward_auth_proxy?(peer)
