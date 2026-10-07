@@ -64,4 +64,32 @@ class AuthenticationTest < ApplicationSystemTestCase
 
     assert_no_selector "#flash-messages [role='alert']", wait: 3
   end
+
+  # SA-05: Back after signing out must not show the household's pages. Sign Out stays a Turbo form on
+  # purpose: Turbo clears its snapshot cache after a form submission (turbo-rails 2.0.23), whereas a
+  # plain page load lets Chromium serve the page from its HTTP cache on Back, because Chrome 127+
+  # only partly honours Clear-Site-Data "cache" for back/forward navigations (tried: it fails here).
+  test "Back after signing out does not show the household's pages" do
+    sign_in_as(@member)
+    visit grocery_list_path
+    # Reach more pages through Turbo, which snapshots each page when it is left
+    within("nav") { click_on "Recipe Box" }
+    assert_text recipes(:one).title
+    within("nav") { click_on "Grocery List" }
+    assert_current_path grocery_list_path
+    within("nav") { click_on "Recipe Box" }
+    assert_text recipes(:one).title
+
+    find("button[title='Active Profile & Kitchen Settings']").click
+    click_button "Sign Out"
+    assert_current_path select_profile_path, wait: 5
+
+    # Each Back asks the server, which no longer knows this browser.
+    2.times do
+      page.go_back
+      # A restored page would stay at its own address with its content
+      assert_current_path select_profile_path, wait: 5
+      assert_no_text recipes(:one).title, wait: 0
+    end
+  end
 end
