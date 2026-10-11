@@ -2,7 +2,7 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
-## [v1.3.0] - Unreleased
+## [v1.3.0] - 2026-10-11
 
 FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
 
