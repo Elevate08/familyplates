@@ -302,6 +302,8 @@ Appliance mode has no billing code at all — that is the point of the mode flag
 
 ### Pricing — $4/month, or $35/year
 
+> **Update, 2026-10-11:** the annual plan shipped in v1.3.0 at **$50/year**; monthly stays $4. The analysis below is the original $35 decision, kept as written.
+
 **Decided: $4/month, $35/year (27% discount).** With the annual price fixed at $35, $4 is the only whole-dollar monthly price that yields a sensible discount — $3/mo makes the annual plan a 3% saving (pointless) and $5/mo puts it back at 42%.
 
 **Sensitivity, not a recommendation.** This fixes the discount *ratio* by lowering the monthly price rather than raising the annual one. Against the earlier $5/$36 pairing at a 70/30 mix that is −$8,400/yr at 1,000 subscribers and −$84,000/yr at 10,000; a $5/$50 pairing would be roughly +$41,000/yr at 10,000.

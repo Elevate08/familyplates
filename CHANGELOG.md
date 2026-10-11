@@ -2,7 +2,7 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
-## [v1.3.0] - Unreleased
+## [v1.3.0] - 2026-10-11
 
 FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
 
@@ -23,7 +23,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 ### 🚀 Highlights
 * **Two editions** ([docs/editions.md](docs/editions.md)). Billing, the operator console, public sign-up, support conversations and deletion requests move into a `saas/` Rails engine, loaded only by `Gemfile.saas` when `FAMILYPLATES_MODE=hosted`. The appliance bundle has no Pay or Stripe and no hosted routes. The appliance image doesn't even contain `saas/`, and its Content Security Policy doesn't allow Stripe.
 * **Hosted multi-household mode** (`FAMILYPLATES_MODE=hosted`): public sign-up, per-household onboarding, and tenant isolation for every record.
-* **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $35/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
+* **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $50/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
 * **Operator console** at `/platform_admin`, behind its own password, TOTP and rate limit. It has a household health view, household activity, support conversations, reversible suspension, export and deletion requests, promotion programs, guarded bulk operations and a filterable audit log.
 * **Calendar subscriptions** (`.ics`/`webcal`) with one-tap setup for Apple, Google and Outlook.
 * **Cook Mode:** a distraction-free, step-by-step kitchen screen with countdown timers, an ingredient drawer and a screen wake lock. `/cook` opens whichever meal is due by the household's own serving times.
@@ -49,6 +49,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * Pantry staples can be flagged as running low from the pantry or from a recipe. They then join the grocery list, and ticking them off marks them restocked.
 * Recipes and meal plans are numbered per household.
 * The recipe URL importer handles JSON-LD, microdata and failed fetches more reliably.
+* **Recipes import from sites behind Cloudflare's bot challenge**, such as The Mediterranean Dish, and from Allrecipes, Serious Eats and Simply Recipes, which answer the importer with a 402. When a site turns the importer away, it tries once more as itself, with an honest FamilyPlates user agent. Both requests go through the same outbound URL checks, and stray punctuation in ingredient notes like "onion, (sliced)" is tidied up.
 * The planner has a date-range picker with a calendar popover, and dates follow the household's time zone.
 * Recipe images from CDNs that block hotlinking now load, and a placeholder shows when one fails.
 

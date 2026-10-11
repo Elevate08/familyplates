@@ -184,17 +184,17 @@ class PlatformAdmin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "operator refunds what is left of a charge by default" do
-    charge = charge(@alpha, amount: 3500)
+    charge = charge(@alpha, amount: 5000)
 
     post refund_charge_platform_admin_household_path(@alpha, charge_id: charge.id), params: { reason: "Double billed" }
 
-    assert_equal "Refunded $35.00.", flash[:notice]
-    assert_equal 3500, charge.reload.amount_refunded
-    assert_billing_audit "household.charge_refunded", reason: "Double billed", "amount_cents" => 3500
+    assert_equal "Refunded $50.00.", flash[:notice]
+    assert_equal 5000, charge.reload.amount_refunded
+    assert_billing_audit "household.charge_refunded", reason: "Double billed", "amount_cents" => 5000
   end
 
   test "operator refunds part of a charge" do
-    charge = charge(@alpha, amount: 3500)
+    charge = charge(@alpha, amount: 5000)
 
     post refund_charge_platform_admin_household_path(@alpha, charge_id: charge.id), params: { amount: "$10.50", reason: "Goodwill" }
 
