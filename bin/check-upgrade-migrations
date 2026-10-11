@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Upgrades a v1.2.0 database to the current migrations and checks the result
+# is exactly db/schema.rb. Run it under each edition's bundle:
+#
+#   BUNDLE_GEMFILE=Gemfile bin/check-upgrade-migrations       # the appliance
+#   BUNDLE_GEMFILE=Gemfile.saas bin/check-upgrade-migrations  # the hosted service
+#
+# The test suite only ever loads db/schema.rb, so it never runs a migration.
+# Appliances do: on an existing volume bin/docker-entrypoint's db:prepare runs
+# every migration since the release it was installed at. v1.3.0 shipped pay's
+# migrations, which named the pay gem the appliance does not bundle, and every
+# upgraded appliance crash-looped on boot while CI stayed green.
+#
+# The v1.2.0 schema is test/fixtures/files/schemas/v1.2.0_schema.rb. A few rows
+# go in before migrating so the id and backfill migrations have data to convert.
+# Everything happens in a throwaway SQLite file; db/schema.rb is only read.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+V120_SCHEMA=test/fixtures/files/schemas/v1.2.0_schema.rb
+EXPECTED_SCHEMA=db/schema.rb
+edition="${BUNDLE_GEMFILE:-Gemfile}"
+edition="${edition##*/}"
+
+workdir="$(mktemp -d)"
+trap 'rm -rf "$workdir"' EXIT
+
+export RAILS_ENV=test
+export TEST_DATABASE_PATH="$workdir/upgrade.sqlite3"
+
+fail() {
+  echo "check-upgrade-migrations ($edition): FAILED: $1" >&2
+  if [ -n "${2:-}" ] && [ -f "$2" ]; then
+    # Rails writes the error unbuffered, so it can land above the last
+    # migration's output rather than at the end of the log.
+    echo "--- errors in $(basename "$2") ---" >&2
+    grep -E -m 10 "aborted!|Error|uninitialized constant" "$2" >&2 || true
+    echo "--- last lines of $(basename "$2") ---" >&2
+    tail -n 20 "$2" >&2
+  fi
+  exit 1
+}
+
+echo "== Loading the v1.2.0 schema ($edition)"
+SCHEMA="$V120_SCHEMA" bin/rails db:schema:load > "$workdir/load.log" 2>&1 ||
+  fail "could not load $V120_SCHEMA" "$workdir/load.log"
+
+echo "== Adding v1.2.0 data"
+# Plain SQL against the v1.2.0 columns: today's models describe today's schema.
+bin/rails runner '
+  db = ActiveRecord::Base.connection
+  now = db.quote(Time.utc(2026, 8, 30, 12))
+  db.execute "INSERT INTO households (id, name, created_at, updated_at) VALUES (1, %s, #{now}, #{now})" % db.quote("The Okafors")
+  db.execute "INSERT INTO family_members (id, household_id, name, role, pin_digest, created_at, updated_at) VALUES " \
+    "(1, 1, %s, %s, %s, #{now}, #{now}), (2, 1, %s, %s, NULL, #{now}, #{now})" %
+    [ db.quote("Ada"), db.quote("admin"), db.quote(BCrypt::Password.create("1234")), db.quote("Tobi"), db.quote("member") ]
+  db.execute "INSERT INTO recipes (id, household_id, title, tags, created_at, updated_at) VALUES (1, 1, %s, %s, #{now}, #{now})" %
+    [ db.quote("Jollof rice"), db.quote("Quick, Family favourite") ]
+  db.execute "INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, aisle_category, created_at, updated_at) VALUES " \
+    "(1, %s, 2, %s, %s, #{now}, #{now}), (1, %s, 400, %s, %s, #{now}, #{now})" %
+    [ db.quote("rice"), db.quote("cups"), db.quote("Pantry & Grains"), db.quote("tomatoes"), db.quote("g"), db.quote("Produce") ]
+  db.execute "INSERT INTO meal_plans (id, household_id, week_start_date, created_at, updated_at) VALUES (1, 1, %s, #{now}, #{now})" %
+    db.quote(Date.new(2026, 8, 31))
+  db.execute "INSERT INTO meal_plan_slots (meal_plan_id, recipe_id, family_member_id, date, meal_type, created_at, updated_at) " \
+    "VALUES (1, 1, 1, %s, %s, #{now}, #{now})" % [ db.quote(Date.new(2026, 9, 1)), db.quote("dinner") ]
+  db.execute "INSERT INTO recipe_requests (family_member_id, recipe_id, week_start_date, created_at, updated_at) " \
+    "VALUES (2, 1, %s, #{now}, #{now})" % db.quote(Date.new(2026, 8, 31))
+  db.execute "INSERT INTO pantry_items (household_id, name, aisle_category, created_at, updated_at) VALUES (1, %s, %s, #{now}, #{now})" %
+    [ db.quote("olive oil"), db.quote("Pantry & Grains") ]
+  db.execute "INSERT INTO ingredient_aisle_mappings (household_id, name, aisle_category, created_at, updated_at) VALUES (1, %s, %s, #{now}, #{now})" %
+    [ db.quote("tomatoes"), db.quote("Produce") ]
+' > "$workdir/seed.log" 2>&1 || fail "could not insert the v1.2.0 data" "$workdir/seed.log"
+
+echo "== Migrating to the current schema ($edition)"
+# SCHEMA points every dump at the throwaway directory, including the one
+# db:migrate writes when it finishes, so db/schema.rb is never overwritten.
+SCHEMA="$workdir/schema.rb" bin/rails db:migrate > "$workdir/migrate.log" 2>&1 ||
+  fail "db:migrate did not finish on a v1.2.0 database" "$workdir/migrate.log"
+SCHEMA="$workdir/schema.rb" bin/rails db:schema:dump > "$workdir/dump.log" 2>&1 ||
+  fail "could not dump the migrated schema" "$workdir/dump.log"
+
+echo "== Comparing the migrated schema with $EXPECTED_SCHEMA"
+if ! diff -u --label "$EXPECTED_SCHEMA" --label "v1.2.0 upgraded with $edition" \
+  "$EXPECTED_SCHEMA" "$workdir/schema.rb" > "$workdir/schema.diff"; then
+  cat "$workdir/schema.diff" >&2
+  fail "upgrading a v1.2.0 database does not produce $EXPECTED_SCHEMA (diff above)"
+fi
+
+echo "== Checking the v1.2.0 rows survived"
+# The id conversion and backfills must carry data across, not just reshape
+# tables: every reference still resolves and every backfilled column is set.
+bin/rails runner '
+  db = ActiveRecord::Base.connection
+  uuid = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
+  problems = []
+  household_ids = db.select_values("SELECT id FROM households")
+  problems << "expected 1 household, found #{household_ids.size}" unless household_ids.size == 1
+  problems << "household id is not a UUID" unless household_ids.all? { |id| id.to_s.match?(uuid) }
+  problems << "family member ids are not UUIDs" unless db.select_values("SELECT id FROM family_members").all? { |id| id.to_s.match?(uuid) }
+  {
+    "family_members" => "SELECT COUNT(*) FROM family_members WHERE household_id NOT IN (SELECT id FROM households)",
+    "recipes" => "SELECT COUNT(*) FROM recipes WHERE household_id NOT IN (SELECT id FROM households)",
+    "meal_plans" => "SELECT COUNT(*) FROM meal_plans WHERE household_id NOT IN (SELECT id FROM households)",
+    "pantry_items" => "SELECT COUNT(*) FROM pantry_items WHERE household_id NOT IN (SELECT id FROM households)",
+    "ingredient_aisle_mappings" => "SELECT COUNT(*) FROM ingredient_aisle_mappings WHERE household_id NOT IN (SELECT id FROM households)",
+    "meal_plan_slots" => "SELECT COUNT(*) FROM meal_plan_slots WHERE family_member_id NOT IN (SELECT id FROM family_members)",
+    "recipe_requests" => "SELECT COUNT(*) FROM recipe_requests WHERE family_member_id NOT IN (SELECT id FROM family_members)"
+  }.each { |table, sql| problems << "#{table} rows lost their owner" unless db.select_value(sql).to_i.zero? }
+  {
+    "households.join_code" => "SELECT COUNT(*) FROM households WHERE join_code IS NULL",
+    "households.calendar_feed_token" => "SELECT COUNT(*) FROM households WHERE calendar_feed_token IS NULL",
+    "recipes.number" => "SELECT COUNT(*) FROM recipes WHERE number IS NULL",
+    "meal_plans.number" => "SELECT COUNT(*) FROM meal_plans WHERE number IS NULL"
+  }.each { |column, sql| problems << "#{column} was not backfilled" unless db.select_value(sql).to_i.zero? }
+  problems << "recipe ingredients were lost" unless db.select_value("SELECT COUNT(*) FROM recipe_ingredients").to_i == 2
+  abort problems.map { |problem| "  #{problem}" }.join("\n") if problems.any?
+' > "$workdir/verify.log" 2>&1 || fail "the migrated data is wrong" "$workdir/verify.log"
+
+echo "check-upgrade-migrations ($edition): OK, a v1.2.0 database upgrades to $EXPECTED_SCHEMA"

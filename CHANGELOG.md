@@ -2,6 +2,16 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [v1.3.1] - 2026-10-11
+
+Fixes the upgrade from v1.2.0, which crash-looped the appliance image on boot. Fresh installs of v1.3.0 were not affected.
+
+### 🐛 Correctness
+* **Upgrading an existing v1.2.0 appliance to v1.3.0 failed on every boot.** `rails db:prepare` stopped at the `pay` billing migrations with `uninitialized constant CreatePayTables::Pay`, because they named the `pay` gem, which only the hosted edition bundles. The container exited and restarted forever. The three migrations no longer depend on the gem and create the same tables and columns as before. Start v1.3.1 on the same volume: it carries on from where v1.3.0 stopped, and an upgrade straight from v1.2.0 works too.
+
+### 🧪 Testing & CI
+* CI now upgrades a v1.2.0 database to the current schema under both editions' bundles, with data in it, and fails unless the result is exactly `db/schema.rb`. Until now the suite only ever loaded the schema, so no migration ran in CI.
+
 ## [v1.3.0] - 2026-10-11
 
 FamilyPlates now comes in two editions from one codebase, the way Fizzy does: the free self-hosted **appliance**, and a **hosted service** with Stripe billing and a private operator console. The hosted service's code lives in a `saas/` engine that appliance builds don't contain. Sign-in, sessions and device pairing were rebuilt for multiple households, and every route is now tested against every kind of visitor.
