@@ -133,29 +133,21 @@
       </div>
 
       <div class="bg-white dark:bg-slate-900 rounded-3xl border-2 <%= @household.subscription_plan_key == :annual ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-primary-500 dark:border-primary-600' %> p-6 sm:p-8 flex flex-col justify-between shadow-md relative">
-        <div class="absolute -top-3 right-6 bg-primary-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm">
-          Save 27%
-        </div>
-
         <div>
           <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 font-black">Annual Plan</span>
             <span class="text-lg">⭐</span>
           </div>
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black text-slate-900 dark:text-white">$35</span>
-            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year ($2.91/mo)</span>
+            <span class="text-4xl font-black text-slate-900 dark:text-white">$50</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year ($4.17/mo)</span>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Best value for households. One annual payment, full uninterrupted peace of mind.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">One annual payment, full uninterrupted peace of mind.</p>
 
           <ul class="mt-6 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
             <li class="flex items-center gap-2">
               <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
               <span class="font-bold">Everything in Monthly</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
-              <span>27% discount compared to monthly billing</span>
             </li>
             <li class="flex items-center gap-2">
               <%= icon_tag("check", css_class: "w-4 h-4 text-emerald-500 shrink-0") %>
@@ -174,7 +166,7 @@
               Current Plan
             </button>
           <% elsif current_family_member&.admin? %>
-            <%= button_to "Subscribe Annually ($35/yr)", subscription_path(plan: :annual), method: :post,
+            <%= button_to "Subscribe Annually ($50/yr)", subscription_path(plan: :annual), method: :post,
                   data: { turbo: false },
                   class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>

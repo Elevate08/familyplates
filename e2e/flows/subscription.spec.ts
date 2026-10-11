@@ -106,7 +106,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     if (await chooseCurrency.isVisible()) {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
-    await expect(page.locator("body")).toContainText("$35.00");
+    await expect(page.locator("body")).toContainText("$50.00");
 
     // Checkout lists its payment methods closed. The Card radio sits under a
     // zero-size accordion button whose cover takes the pointer, so it is
@@ -224,7 +224,8 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
     await expect(page.locator("body")).toContainText(code);
-    await expect(page.locator("body")).toContainText("$17.50");
+    // The coupon is 50% off once, so the first year is half of $50.
+    await expect(page.locator("body")).toContainText("$25.00");
   });
 });
 

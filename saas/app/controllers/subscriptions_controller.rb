@@ -168,7 +168,7 @@ class SubscriptionsController < ApplicationController
         {
           price_data: {
             currency: "usd",
-            unit_amount: plan_key == :annual ? 3500 : 400,
+            unit_amount: plan_key == :annual ? 5000 : 400,
             recurring: { interval: plan_key == :annual ? "year" : "month" },
             product_data: {
               name: "FamilyPlates #{plan[:name]} Plan",

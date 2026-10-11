@@ -17,11 +17,10 @@ module Household::Billing
     },
     annual: {
       name: "Annual",
-      price: "$35",
+      price: "$50",
       interval: "year",
-      discount: "Save 27%",
       stripe_price_id: ENV["STRIPE_ANNUAL_PRICE_ID"].presence || "price_annual",
-      description: "Best value for families, billed once a year"
+      description: "Full family kitchen access, billed once a year"
     }
   }.freeze
 

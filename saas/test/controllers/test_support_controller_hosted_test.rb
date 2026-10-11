@@ -16,7 +16,7 @@ class HostedTestSupportControllerHostedTest < ActionDispatch::IntegrationTest
     subscription = customer.subscriptions.create!(
       name: "default", processor_id: "sub_paid", processor_plan: "annual", status: "active"
     )
-    customer.charges.create!(processor_id: "ch_paid", amount: 3500, subscription: subscription)
+    customer.charges.create!(processor_id: "ch_paid", amount: 5000, subscription: subscription)
     customer.payment_methods.create!(processor_id: "pm_card", default: true, payment_method_type: "card")
 
     post "/__test/reset", as: :json

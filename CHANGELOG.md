@@ -23,7 +23,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 ### 🚀 Highlights
 * **Two editions** ([docs/editions.md](docs/editions.md)). Billing, the operator console, public sign-up, support conversations and deletion requests move into a `saas/` Rails engine, loaded only by `Gemfile.saas` when `FAMILYPLATES_MODE=hosted`. The appliance bundle has no Pay or Stripe and no hosted routes. The appliance image doesn't even contain `saas/`, and its Content Security Policy doesn't allow Stripe.
 * **Hosted multi-household mode** (`FAMILYPLATES_MODE=hosted`): public sign-up, per-household onboarding, and tenant isolation for every record.
-* **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $35/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
+* **Subscriptions and billing through Stripe** (via Pay): a 14-day free trial, $4/month or $50/year, a 7-day grace period on a failed payment, a Stripe billing portal, and access that lasts to the end of a cancelled period.
 * **Operator console** at `/platform_admin`, behind its own password, TOTP and rate limit. It has a household health view, household activity, support conversations, reversible suspension, export and deletion requests, promotion programs, guarded bulk operations and a filterable audit log.
 * **Calendar subscriptions** (`.ics`/`webcal`) with one-tap setup for Apple, Google and Outlook.
 * **Cook Mode:** a distraction-free, step-by-step kitchen screen with countdown timers, an ingredient drawer and a screen wake lock. `/cook` opens whichever meal is due by the household's own serving times.
