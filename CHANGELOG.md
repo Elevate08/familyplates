@@ -49,6 +49,7 @@ FamilyPlates now comes in two editions from one codebase, the way Fizzy does: th
 * Pantry staples can be flagged as running low from the pantry or from a recipe. They then join the grocery list, and ticking them off marks them restocked.
 * Recipes and meal plans are numbered per household.
 * The recipe URL importer handles JSON-LD, microdata and failed fetches more reliably.
+* **Recipes import from sites behind Cloudflare's bot challenge**, such as The Mediterranean Dish, and from Allrecipes, Serious Eats and Simply Recipes, which answer the importer with a 402. When a site turns the importer away, it tries once more as itself, with an honest FamilyPlates user agent. Both requests go through the same outbound URL checks, and stray punctuation in ingredient notes like "onion, (sliced)" is tidied up.
 * The planner has a date-range picker with a calendar popover, and dates follow the household's time zone.
 * Recipe images from CDNs that block hotlinking now load, and a placeholder shows when one fails.
 
