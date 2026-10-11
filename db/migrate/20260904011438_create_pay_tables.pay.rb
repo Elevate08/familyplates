@@ -1,4 +1,9 @@
 # This migration comes from pay (originally 1)
+#
+# Edited after install: the appliance edition runs every migration but does not
+# bundle the pay gem, so nothing here may reference Pay. `t.json` is what
+# Pay::Adapter.json_column_type returns on SQLite (it is :jsonb only on
+# PostgreSQL), so hosted databases end up with the same columns as before.
 class CreatePayTables < ActiveRecord::Migration[6.0]
   def change
     primary_key_type, foreign_key_type = primary_and_foreign_key_types
@@ -8,7 +13,7 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
       t.string :processor, null: false
       t.string :processor_id
       t.boolean :default
-      t.public_send Pay::Adapter.json_column_type, :data
+      t.json :data
       t.string :stripe_account
       t.datetime :deleted_at
       t.timestamps
@@ -21,7 +26,7 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
       t.string :processor, null: false
       t.string :processor_id
       t.boolean :default
-      t.public_send Pay::Adapter.json_column_type, :data
+      t.json :data
       t.timestamps
     end
     add_index :pay_merchants, [ :owner_type, :owner_id, :processor ]
@@ -31,7 +36,7 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
       t.string :processor_id, null: false
       t.boolean :default
       t.string :type
-      t.public_send Pay::Adapter.json_column_type, :data
+      t.json :data
       t.string :stripe_account
       t.timestamps
     end
@@ -53,8 +58,8 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
       t.datetime :pause_starts_at
       t.datetime :pause_resumes_at
       t.decimal :application_fee_percent, precision: 8, scale: 2
-      t.public_send Pay::Adapter.json_column_type, :metadata
-      t.public_send Pay::Adapter.json_column_type, :data
+      t.json :metadata
+      t.json :data
       t.string :stripe_account
       t.string :payment_method_id
       t.timestamps
@@ -71,8 +76,8 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
       t.string :currency
       t.integer :application_fee_amount
       t.integer :amount_refunded
-      t.public_send Pay::Adapter.json_column_type, :metadata
-      t.public_send Pay::Adapter.json_column_type, :data
+      t.json :metadata
+      t.json :data
       t.string :stripe_account
       t.timestamps
     end
@@ -81,7 +86,7 @@ class CreatePayTables < ActiveRecord::Migration[6.0]
     create_table :pay_webhooks, id: primary_key_type do |t|
       t.string :processor
       t.string :event_type
-      t.public_send Pay::Adapter.json_column_type, :event
+      t.json :event
       t.timestamps
     end
   end

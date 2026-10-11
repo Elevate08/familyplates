@@ -133,6 +133,15 @@ jobs:
           RAILS_ENV: test
         run: bin/rails db:test:prepare test
 
+      # The tests load db/schema.rb and never run a migration, but an upgraded
+      # appliance runs every one since its release on boot. v1.3.0's pay
+      # migrations named a gem the appliance does not bundle, and every
+      # upgraded appliance crash-looped while this job stayed green. This
+      # upgrades a v1.2.0 database under this edition's bundle and fails unless
+      # the result is exactly db/schema.rb.
+      - name: A v1.2.0 database upgrades to the current schema
+        run: bin/check-upgrade-migrations
+
   test:
     needs: test_edition
     if: ${{ always() }}
