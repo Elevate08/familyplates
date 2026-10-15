@@ -6,3 +6,12 @@ inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 # # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
 # Layout/SpaceInsideArrayLiteralBrackets:
 #   Enabled: false
+
+# Old db/schema.rb dumps kept for bin/check-upgrade-migrations. They are Rails'
+# output, byte for byte, like db/schema.rb itself, which RuboCop already skips.
+inherit_mode:
+  merge:
+    - Exclude
+AllCops:
+  Exclude:
+    - test/fixtures/files/schemas/*.rb

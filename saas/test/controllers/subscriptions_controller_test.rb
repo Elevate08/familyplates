@@ -39,6 +39,10 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: /Subscription & Billing/i
     assert_select "button, input[type=submit]", text: /Subscribe/i
+    assert_select ".text-4xl", text: "$5"
+    assert_select ".text-4xl", text: "$50"
+    assert_select "button", text: "Subscribe Monthly ($5/mo)"
+    assert_select "button", text: "Subscribe Annually ($50/yr)"
   end
 
   # @card-23.10

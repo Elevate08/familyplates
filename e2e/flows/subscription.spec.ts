@@ -111,16 +111,24 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     }
     await expect(page.locator("body")).toContainText("$50.00");
 
-    // Checkout lists its payment methods closed. The card option is found by
-    // its role and name rather than Stripe's element ids, which change. It is
-    // a zero-size control behind the visible row, so the click is dispatched. A click that lands before Stripe's
-    // page has hydrated is ignored, so the choice is retried until the card
-    // fields open. They must open: a Checkout page without them has changed
-    // shape, and the test should fail rather than skip the payment it is
-    // named for.
+    // Checkout lists its payment methods closed. Card is chosen through the
+    // accordion's "Pay with card" button; Stripe draws the radio beside it as
+    // a decorative span, so it cannot be checked (older pages used a real
+    // radio, still tried as a fallback). The button is zero-size under a cover
+    // that takes the pointer, so the click is dispatched rather than aimed. A
+    // click that lands before Stripe's page has hydrated is ignored, so the
+    // choice is retried until the card fields open. They must open: a
+    // Checkout page without them has changed shape, and the test should fail
+    // rather than skip the payment it is named for.
     const cardNumber = page.locator("#cardNumber");
+    const payWithCard = page.getByRole("button", { name: "Pay with card" });
+    const cardRadio = page.locator('input[type=radio][value="card"], input#payment-method-accordion-item-title-card');
     await expect(async () => {
-      await page.getByRole("button", { name: "Pay with card" }).dispatchEvent("click", undefined, { timeout: 2_000 });
+      if (await payWithCard.count()) {
+        await payWithCard.first().dispatchEvent("click", {}, { timeout: 2_000 });
+      } else {
+        await cardRadio.first().check({ force: true, timeout: 2_000 });
+      }
       await expect(cardNumber).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 20_000 });
     await cardNumber.fill("4242 4242 4242 4242");
@@ -228,6 +236,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       await chooseCurrency.getByRole("button", { name: /USD/ }).click();
     }
     await expect(page.locator("body")).toContainText(code);
+    // The coupon is 50% off once, so the first year is half of $50.
     await expect(page.locator("body")).toContainText("$25.00");
   });
 });

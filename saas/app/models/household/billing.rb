@@ -25,7 +25,7 @@ module Household::Billing
       currency: "usd",
       interval: "year",
       stripe_price_id: ENV["STRIPE_ANNUAL_PRICE_ID"].presence || "price_annual",
-      description: "Best value for families, billed once a year"
+      description: "Full family kitchen access, billed once a year"
     }
   }.freeze
 

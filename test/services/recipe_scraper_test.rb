@@ -406,6 +406,7 @@ class RecipeScraperTest < ActiveSupport::TestCase
   test "distinguishes anti-bot, missing, failing, and timing-out sites" do
     assert_equal :blocked_by_site, fetch_error_for(status: 403)
     assert_equal :blocked_by_site, fetch_error_for(status: 429)
+    assert_equal :blocked_by_site, fetch_error_for(status: 402)
     assert_equal :not_found, fetch_error_for(status: 404)
     assert_equal :site_error, fetch_error_for(status: 503)
     assert_equal :timeout, fetch_error_for(raises: Net::ReadTimeout.new)
@@ -417,6 +418,110 @@ class RecipeScraperTest < ActiveSupport::TestCase
     assert_raises(SafeHttpFetcher::InvalidTimeout) do
       fetch_error_for(raises: SafeHttpFetcher::InvalidTimeout.new("timeout must be a positive, finite number"))
     end
+  end
+
+  MEDITERRANEAN_DISH = {
+    "mediterranean_dish_greek_salad.html" => {
+      title: "Greek Salad (Traditional Horiatiki Recipe)", servings: 6, ingredients: 10, prep: 15, cook: nil
+    },
+    "mediterranean_dish_chicken_provencal.html" => {
+      title: "Chicken Provencal", servings: 8, ingredients: 15, prep: 30, cook: 75
+    },
+    "mediterranean_dish_apricot_lentil_soup.html" => {
+      title: "Armenian Apricot Red Lentil Soup", servings: 6, ingredients: 16, prep: 10, cook: 30
+    }
+  }.freeze
+
+  MEDITERRANEAN_DISH.each do |fixture, expected|
+    test "imports The Mediterranean Dish page #{fixture}" do
+      result = scrape_fixture(fixture, "https://www.themediterraneandish.com/recipe/")
+
+      assert_equal expected[:title], result[:title]
+      assert_equal expected[:servings], result[:servings]
+      assert_equal expected[:ingredients], result[:ingredients].length
+      assert_match(/\A1\. \S/, result[:instructions])
+      assert_match %r{\Ahttps://www\.themediterraneandish\.com/wp-content/uploads/}, result[:image_url]
+      assert_equal expected[:prep], result[:prep_time]
+      if expected[:cook]
+        assert_equal expected[:cook], result[:cook_time]
+      else
+        assert_nil result[:cook_time]
+      end
+    end
+  end
+
+  test "tidies WP Recipe Maker note punctuation in ingredient text" do
+    salad = scrape_fixture("mediterranean_dish_greek_salad.html", "https://www.themediterraneandish.com/greek-salad/")
+    chicken = scrape_fixture("mediterranean_dish_chicken_provencal.html", "https://www.themediterraneandish.com/chicken-provencal/")
+    soup = scrape_fixture("mediterranean_dish_apricot_lentil_soup.html", "https://www.themediterraneandish.com/apricot-soup/")
+
+    assert_equal "1 medium red onion (thinly sliced into half moons)", salad[:ingredients].first[:raw_text]
+    assert_equal "3 pounds bone-in skin-on chicken thighs (about 8)", chicken[:ingredients].first[:raw_text]
+    assert_equal 3.0, chicken[:ingredients].first[:quantity]
+    assert_equal "pounds", chicken[:ingredients].first[:unit]
+    assert soup[:ingredients].first[:raw_text].start_with?("1 cup dried apricots (roughly chopped;")
+  end
+
+  test "a Cloudflare managed challenge page is reported as blocked by the site" do
+    html = file_fixture("recipe_pages/cloudflare_managed_challenge.html").read
+
+    assert_equal :blocked_by_site, RecipeScraper.parse_html(html, "https://www.themediterraneandish.com/greek-salad/").error
+  end
+
+  test "retries once with the honest user agent when Cloudflare challenges the browser one" do
+    calls = scripted_fetch(
+      [ response(403, "cloudflare_managed_challenge.html"), response(200, "mediterranean_dish_greek_salad.html") ]
+    ) { |result| assert_equal "Greek Salad (Traditional Horiatiki Recipe)", result.recipe[:title] }
+
+    assert_equal [ RecipeScraper::USER_AGENT, RecipeScraper::HONEST_USER_AGENT ], calls
+  end
+
+  test "retries once with the honest user agent after a 402 from a publisher network" do
+    calls = scripted_fetch(
+      [ response(402), response(200, "mediterranean_dish_chicken_provencal.html") ]
+    ) { |result| assert_equal "Chicken Provencal", result.recipe[:title] }
+
+    assert_equal [ RecipeScraper::USER_AGENT, RecipeScraper::HONEST_USER_AGENT ], calls
+  end
+
+  test "retries once when a 2xx body is a challenge page" do
+    calls = scripted_fetch(
+      [ response(200, "cloudflare_managed_challenge.html"), response(200, "mediterranean_dish_chicken_provencal.html") ]
+    ) { |result| assert_equal "Chicken Provencal", result.recipe[:title] }
+
+    assert_equal [ RecipeScraper::USER_AGENT, RecipeScraper::HONEST_USER_AGENT ], calls
+  end
+
+  test "reports blocked by site when both user agents are refused" do
+    calls = scripted_fetch(
+      [ response(403, "cloudflare_managed_challenge.html"), response(403, "cloudflare_managed_challenge.html") ]
+    ) { |result| assert_equal :blocked_by_site, result.error }
+
+    assert_equal 2, calls.length
+  end
+
+  test "does not retry a missing page" do
+    calls = scripted_fetch([ response(404), response(200, "mediterranean_dish_greek_salad.html") ]) do |result|
+      assert_equal :not_found, result.error
+    end
+
+    assert_equal [ RecipeScraper::USER_AGENT ], calls
+  end
+
+  test "does not retry a policy refusal" do
+    calls = scripted_fetch(
+      [ OutboundUrlPolicy::Rejected.new("private address"), response(200, "mediterranean_dish_greek_salad.html") ]
+    ) { |result| assert_equal :blocked, result.error }
+
+    assert_equal [ RecipeScraper::USER_AGENT ], calls
+  end
+
+  test "makes one request when the browser user agent gets the recipe" do
+    calls = scripted_fetch(
+      [ response(200, "mediterranean_dish_apricot_lentil_soup.html"), response(200, "mediterranean_dish_greek_salad.html") ]
+    ) { |result| assert_equal "Armenian Apricot Red Lentil Soup", result.recipe[:title] }
+
+    assert_equal [ RecipeScraper::USER_AGENT ], calls
   end
 
   private
@@ -435,6 +540,30 @@ class RecipeScraperTest < ActiveSupport::TestCase
     end
 
     silence_scraper_logs { RecipeScraper.fetch("https://example.com/recipe").error }
+  ensure
+    SafeHttpFetcher.define_singleton_method(:get_response, original)
+  end
+
+  def response(status, fixture = nil)
+    body = fixture ? file_fixture("recipe_pages/#{fixture}").read : "<html><body>nope</body></html>"
+    SafeHttpFetcher::Result.new(status: status, location: nil, body: body)
+  end
+
+  # Same seam as fetch_error_for, but replies in order and records the
+  # User-Agent of every request, so the retry policy itself is asserted.
+  def scripted_fetch(replies)
+    original = SafeHttpFetcher.method(:get_response)
+    queue = replies.dup
+    calls = []
+    SafeHttpFetcher.define_singleton_method(:get_response) do |_url, headers: {}|
+      calls << headers["User-Agent"]
+      reply = queue.shift
+      raise reply if reply.is_a?(Exception)
+      reply
+    end
+
+    yield silence_scraper_logs { RecipeScraper.fetch("https://www.themediterraneandish.com/recipe/") }
+    calls
   ensure
     SafeHttpFetcher.define_singleton_method(:get_response, original)
   end

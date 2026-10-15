@@ -7,6 +7,16 @@ class RecipeScraper
   DEFAULT_SERVINGS = 4
 
   USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FamilyPlates/1.0"
+  # Some sites (often behind Cloudflare) challenge a browser UA whose TLS
+  # fingerprint is not a browser, yet let a self-identifying bot through.
+  # Others refuse bots outright, so the browser UA stays first.
+  HONEST_USER_AGENT = "FamilyPlates/1.0 (+https://github.com/Elevate08/familyplates)"
+  USER_AGENTS = [ USER_AGENT, HONEST_USER_AGENT ].freeze
+
+  # Answers that mean "not you", rather than "not here". Worth one more try.
+  # 402 is what some publisher networks (Allrecipes, Serious Eats) send a
+  # browser UA that does not fingerprint as one.
+  RETRYABLE_STATUSES = [ 401, 402, 403, 429, 503 ].freeze
 
   ANTI_BOT_MARKERS = [
     "just a moment",
@@ -91,22 +101,14 @@ class RecipeScraper
     Result.new(recipe: nil, error: error)
   end
 
+  # At most one request per user agent. A policy refusal, timeout or 404 is
+  # raised or returned on the first attempt and never retried.
   def fetch_html
-    response = SafeHttpFetcher.get_response(url, headers: { "User-Agent" => USER_AGENT })
+    USER_AGENTS.each_with_index do |user_agent, index|
+      response = SafeHttpFetcher.get_response(url, headers: { "User-Agent" => user_agent })
+      return handle_response(response) if index == USER_AGENTS.length - 1 || !turned_away?(response)
 
-    case response.status
-    when 200..299
-      response.body
-    when 401, 403, 429
-      Rails.logger.info("RecipeScraper turned away by #{url} (HTTP #{response.status})")
-      @error = :blocked_by_site
-      nil
-    when 404, 410
-      @error = :not_found
-      nil
-    else
-      @error = :site_error
-      nil
+      Rails.logger.info("RecipeScraper turned away by #{url} (HTTP #{response.status}), retrying as FamilyPlates")
     end
   rescue OutboundUrlPolicy::Rejected => e
     # Distinct from a site simply being down: something asked this server to
@@ -124,6 +126,37 @@ class RecipeScraper
     Rails.logger.warn("RecipeScraper failed to fetch #{url}: #{e.class}: #{e.message}")
     @error = :unreachable
     nil
+  end
+
+  def handle_response(response)
+    case response.status
+    when 200..299
+      response.body
+    when 401, 402, 403, 429
+      Rails.logger.info("RecipeScraper turned away by #{url} (HTTP #{response.status})")
+      @error = :blocked_by_site
+      nil
+    when 404, 410
+      @error = :not_found
+      nil
+    else
+      @error = :site_error
+      nil
+    end
+  end
+
+  def turned_away?(response)
+    return true if RETRYABLE_STATUSES.include?(response.status)
+
+    response.status.between?(200, 299) && challenge_body?(response.body)
+  end
+
+  # Same order as #result: recipe markup wins over challenge wording.
+  def challenge_body?(body)
+    doc = parse_document(body.to_s)
+    return false if doc.nil?
+
+    anti_bot_page?(doc) && extract_json_ld_recipe(doc).nil? && extract_microdata_recipe(doc).nil?
   end
 
   # Nokogiri is forgiving, but a response that is not HTML at all (a PDF, a JSON
@@ -553,7 +586,7 @@ class RecipeScraper
   end
 
   def parse_ingredient_line(raw)
-    cleaned = raw.gsub(/\s+/, " ").strip
+    cleaned = tidy_ingredient_notes(raw.gsub(/\s+/, " ").strip)
 
     quantity = nil
     unit = nil
@@ -582,6 +615,14 @@ class RecipeScraper
       unit: unit,
       aisle_category: aisle
     }
+  end
+
+  # WP Recipe Maker wraps notes in its own parens, so "onion, (sliced)",
+  # "thighs ((about 8))" and "apricots (, chopped)" reach us as written.
+  def tidy_ingredient_notes(text)
+    text.gsub(/\(\(([^()]*)\)\)/, '(\\1)')
+        .gsub(/\(\s*,\s*/, "(")
+        .gsub(/\s*,\s*\(/, " (")
   end
 
   def parse_fraction(str)
