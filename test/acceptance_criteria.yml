@@ -262,8 +262,11 @@ cards:
     title: Grocery list for any shopping period
     criteria:
       "62.1": The grocery list can cover any date range up to 42 days, and shows the meals planned in it.
-      "62.2": Presets (this week, next week, from today, this month, next month) and previous/next arrows move between periods.
+      "62.2": Presets (this shop, next shop, this week, next week, from today, this month, next month) and previous/next arrows move between periods.
       "62.3": A recipe planned on two days counts its ingredients twice.
       "62.4": The planner's week and month views link to the grocery list for that week or month.
       "62.5": Old per-plan grocery links still open that plan's week.
       "62.6": Another household's meals never appear on a grocery list.
+      "62.7": An organizer chooses how often the household shops (weekly, every 2 weeks, monthly) and a day it shops; other members cannot.
+      "62.8": The Groceries tab opens to the current shopping period, which stays the same until the next shopping day; the This shop and Next shop chips and the arrows follow the shopping periods.
+      "62.9": Households shop weekly on Saturday until an organizer changes it.

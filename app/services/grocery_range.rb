@@ -4,6 +4,8 @@ class GroceryRange
   MAX_DAYS = 42
 
   PRESETS = [
+    [ :this_shop, "This shop" ],
+    [ :next_shop, "Next shop" ],
     [ :this_week, "This week" ],
     [ :next_week, "Next week" ],
     [ :from_today, "From today" ],
@@ -11,25 +13,28 @@ class GroceryRange
     [ :next_month, "Next month" ]
   ].freeze
 
-  attr_reader :from, :to, :today
+  attr_reader :from, :to, :today, :schedule
 
-  # The range shown when the address names none. The one place to change it.
-  def self.default(today)
-    new(today.beginning_of_week, today.beginning_of_week + 6.days, today: today)
+  # The range shown when the address names none: the household's current
+  # shopping period. The one place to change it.
+  def self.default(today, schedule = ShoppingSchedule::DEFAULT)
+    period = schedule.period(today)
+    new(period.begin, period.end, today: today, schedule: schedule)
   end
 
   # Builds from request params. Anything unusable falls back to the default; a
   # range longer than MAX_DAYS is cut to MAX_DAYS from its first day (see #clamped?).
-  def self.from_params(from_param, to_param, today:)
+  def self.from_params(from_param, to_param, today:, schedule: ShoppingSchedule::DEFAULT)
     from = MealPlanSlot.parse_date(from_param)
     to = MealPlanSlot.parse_date(to_param)
-    return default(today) if from.nil? || to.nil? || to < from
+    return default(today, schedule) if from.nil? || to.nil? || to < from
 
-    new(from, to, today: today)
+    new(from, to, today: today, schedule: schedule)
   end
 
-  def initialize(from, to, today:)
+  def initialize(from, to, today:, schedule: ShoppingSchedule::DEFAULT)
     @today = today
+    @schedule = schedule
     @requested_to = to
     @from = from
     @to = [ to, from + (MAX_DAYS - 1).days ].min
@@ -63,9 +68,11 @@ class GroceryRange
 
   def preset(key)
     case key
+    when :this_shop then span_of(schedule.period(today))
+    when :next_shop then span_of(schedule.next_period(today))
     when :this_week then span(today.beginning_of_week, today.beginning_of_week + 6.days)
     when :next_week then span(today.beginning_of_week + 7.days, today.beginning_of_week + 13.days)
-    when :from_today then span(today, today.beginning_of_week + 6.days)
+    when :from_today then span(today, schedule.period(today).end)
     when :this_month then span(today.beginning_of_month, today.end_of_month)
     when :next_month then span((today + 1.month).beginning_of_month, (today + 1.month).end_of_month)
     end
@@ -85,12 +92,23 @@ class GroceryRange
     from == from.beginning_of_month && to == from.end_of_month
   end
 
+  # Exactly one of the household's shopping periods.
+  def shopping_period?
+    schedule.period(from) == to_range
+  end
+
   def previous
-    calendar_month? ? month_at(from << 1) : shifted(-days)
+    if shopping_period? then span_of(schedule.previous_period(from))
+    elsif calendar_month? then month_at(from << 1)
+    else shifted(-days)
+    end
   end
 
   def following
-    calendar_month? ? month_at(from >> 1) : shifted(days)
+    if shopping_period? then span_of(schedule.next_period(from))
+    elsif calendar_month? then month_at(from >> 1)
+    else shifted(days)
+    end
   end
 
   def ==(other)
@@ -100,7 +118,11 @@ class GroceryRange
   private
 
   def span(from, to)
-    self.class.new(from, to, today: today)
+    self.class.new(from, to, today: today, schedule: schedule)
+  end
+
+  def span_of(period)
+    span(period.begin, period.end)
   end
 
   def month_at(date)

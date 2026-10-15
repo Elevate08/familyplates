@@ -30,7 +30,9 @@ module Admin
         :time_zone,
         :breakfast_time,
         :lunch_time,
-        :dinner_time
+        :dinner_time,
+        :shopping_frequency,
+        :shopping_anchor_on
       )
     end
   end
