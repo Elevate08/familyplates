@@ -95,20 +95,33 @@
           How often you shop. The Groceries tab opens to the current shopping period, from one shopping day to the day before the next.
         </p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <% monthly = @household.shopping_frequency == "monthly" %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-controller="shopping-day">
           <div>
             <%= f.label :shopping_frequency, "How often", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1" %>
             <%= f.select :shopping_frequency,
                   [ [ "Every week", "weekly" ], [ "Every 2 weeks", "fortnightly" ], [ "Every month", "monthly" ] ],
                   {},
-                  class: "themed-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                  class: "themed-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500",
+                  data: { shopping_day_target: "frequency", action: "change->shopping-day#toggle" } %>
           </div>
 
           <div>
-            <%= f.label :shopping_anchor_on, "A day you shop", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1" %>
-            <%= f.date_field :shopping_anchor_on, required: true,
-                  class: "w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
-            <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 block">Weekly: we use its weekday. Every 2 weeks: shopping days fall every 14 days from it. Monthly: its day of the month.</span>
+            <div data-shopping-day-target="weekday" <% if monthly %>hidden<% end %>>
+              <%= f.label :shopping_wday, "A day you shop", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1" %>
+              <%= f.select :shopping_wday, ShoppingSchedule.weekday_choices, {},
+                    disabled: monthly,
+                    class: "themed-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 block">Every week, the list runs from this day to the day before it next week. Every 2 weeks, you shop this same day, every other week.</span>
+            </div>
+
+            <div data-shopping-day-target="monthday" <% unless monthly %>hidden<% end %>>
+              <%= f.label :shopping_month_day, "A day you shop", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1" %>
+              <%= f.select :shopping_month_day, ShoppingSchedule.month_day_choices, {},
+                    disabled: !monthly,
+                    class: "themed-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 block">The list runs from this day of the month to the day before it next month. A 29th, 30th, or 31st falls on the last day of a shorter month.</span>
+            </div>
           </div>
         </div>
       </div>

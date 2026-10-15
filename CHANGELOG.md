@@ -2,6 +2,10 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [Unreleased]
+
+* **A day you shop is a weekday.** Household & Meal Schedule asks which day of the week you shop (Monday–Sunday) instead of a calendar date. Every week, the grocery list runs from that weekday to the day before it next week. Every 2 weeks keeps that weekday every other week: the 14-day rhythm stays put when the weekday does not change, and slides by a few days when it does. Every month still uses a day of the month (1st–31st), and a 29th, 30th or 31st falls on the last day of a shorter month. Households already set to shop weekly on Saturday stay on Saturday.
+
 ## [v1.4.0] - 2026-10-15
 
 Grocery lists follow how the household actually shops, and the hosted service bills $5 a month or $50 a year after a 14-day trial.

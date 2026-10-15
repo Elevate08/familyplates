@@ -14,6 +14,42 @@ class ShoppingScheduleTest < ActiveSupport::TestCase
     assert_equal 6, ShoppingSchedule::DEFAULT.anchor.wday
   end
 
+  test "weekday choices run Monday to Sunday" do
+    assert_equal %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday],
+      ShoppingSchedule.weekday_choices.map(&:first)
+    assert_equal %w[1 2 3 4 5 6 0], ShoppingSchedule.weekday_choices.map(&:last)
+  end
+
+  test "a weekly weekday lands on the default anchor's week and a matching one stays put" do
+    assert_equal d("2026-01-03"), ShoppingSchedule.anchor_on_weekday(6, current: d("2026-05-04"), frequency: "weekly")
+    assert_equal d("2026-01-09"), ShoppingSchedule.anchor_on_weekday(5, current: d("2026-01-03"), frequency: "weekly")
+    assert_equal d("2026-01-04"), ShoppingSchedule.anchor_on_weekday(0, current: d("2026-01-03"), frequency: "weekly")
+    assert_equal d("2026-10-17"), ShoppingSchedule.anchor_on_weekday(6, current: d("2026-10-17"), frequency: "weekly")
+  end
+
+  test "a fortnightly weekday slides by at most three days and keeps the 14-day step" do
+    anchor = ShoppingSchedule.anchor_on_weekday(5, current: d("2026-10-03"), frequency: "fortnightly")
+    assert_equal d("2026-10-02"), anchor
+
+    schedule = ShoppingSchedule.new("fortnightly", anchor)
+    assert_equal [ "2026-10-02", "2026-10-15" ], period(schedule, "2026-10-14")
+    assert_equal [ "2026-10-16", "2026-10-29" ], period(schedule, "2026-10-16")
+    assert_equal [ "2026-09-18", "2026-10-01" ], period(schedule, "2026-10-01")
+
+    assert_equal d("2026-10-03"), ShoppingSchedule.anchor_on_weekday(6, current: d("2026-10-03"), frequency: "fortnightly")
+    assert_equal d("2026-09-30"), ShoppingSchedule.anchor_on_weekday(3, current: d("2026-10-03"), frequency: "fortnightly")
+  end
+
+  test "a month-day choice stores that day and still clamps shorter months" do
+    assert_equal d("2026-02-28"), ShoppingSchedule.anchor_on_month_day(28, current: d("2026-02-28"))
+
+    anchor = ShoppingSchedule.anchor_on_month_day(31, current: d("2026-01-20"))
+    assert_equal d("2026-01-31"), anchor
+    monthly = ShoppingSchedule.new("monthly", anchor)
+    assert_equal [ "2027-02-28", "2027-03-30" ], period(monthly, "2027-03-15")
+    assert_equal [ "2028-02-29", "2028-03-30" ], period(monthly, "2028-02-29")
+  end
+
   # @card-62.8
   test "weekly periods start on the anchor's weekday, today included" do
     weekly = ShoppingSchedule.new("weekly", d("2026-01-03")) # Saturday

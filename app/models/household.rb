@@ -24,6 +24,35 @@ class Household < ApplicationRecord
   validates :shopping_anchor_on, presence: true
   validate :time_zone_is_recognised
 
+  before_validation :apply_shopping_day_choice
+
+  # The settings form collects a weekday, or a day of the month when the
+  # household shops monthly. Both are written onto shopping_anchor_on, which
+  # is what the period math reads. Leaving them unset (a name-only save) does
+  # not move the anchor.
+  def shopping_wday
+    chosen_shopping_input(:@shopping_wday_input) || shopping_anchor_on&.wday&.to_s
+  end
+
+  def shopping_wday=(value)
+    @shopping_wday_input = value
+  end
+
+  def shopping_month_day
+    chosen_shopping_input(:@shopping_month_day_input) || shopping_anchor_on&.day&.to_s
+  end
+
+  def shopping_month_day=(value)
+    @shopping_month_day_input = value
+  end
+
+  def self.human_attribute_name(attr, options = {})
+    case attr.to_sym
+    when :shopping_wday, :shopping_month_day then "A day you shop"
+    else super
+    end
+  end
+
   # IANA zone for "today" and "dinner at 6pm". Stored times stay UTC so DST
   # never shifts a row. Blank means UTC until someone sets a zone.
   def time_zone_object
@@ -119,5 +148,51 @@ class Household < ApplicationRecord
 
   def generate_join_code
     self.join_code ||= unique_join_code
+  end
+
+  def apply_shopping_day_choice
+    return unless ShoppingSchedule::FREQUENCIES.include?(shopping_frequency)
+
+    if shopping_frequency == "monthly"
+      apply_shopping_month_day if instance_variable_defined?(:@shopping_month_day_input)
+    elsif instance_variable_defined?(:@shopping_wday_input)
+      apply_shopping_wday
+    end
+  end
+
+  def apply_shopping_wday
+    wday = integer_in(@shopping_wday_input, 0..6)
+    if wday.nil?
+      errors.add(:shopping_wday, "must be a day of the week")
+      return
+    end
+
+    self.shopping_anchor_on = ShoppingSchedule.anchor_on_weekday(
+      wday, current: shopping_anchor_on, frequency: shopping_frequency
+    )
+  end
+
+  def apply_shopping_month_day
+    day = integer_in(@shopping_month_day_input, 1..31)
+    if day.nil?
+      errors.add(:shopping_month_day, "must be a day of the month")
+      return
+    end
+
+    self.shopping_anchor_on = ShoppingSchedule.anchor_on_month_day(day, current: shopping_anchor_on)
+  end
+
+  def integer_in(value, range)
+    text = value.to_s
+    return if text.blank? || !text.match?(/\A\d+\z/)
+
+    number = text.to_i
+    number if range.cover?(number)
+  end
+
+  def chosen_shopping_input(ivar)
+    return unless instance_variable_defined?(ivar)
+
+    instance_variable_get(ivar).to_s.presence
   end
 end

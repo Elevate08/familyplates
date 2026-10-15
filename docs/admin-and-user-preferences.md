@@ -56,6 +56,6 @@ The Admin Control Center is restricted to Organizers with PIN verification:
 2. **Household & Meal Schedule (`/admin/household/edit`):**
    * Household / Family Kitchen display name.
    * Default breakfast, lunch, and dinner start times (used when creating calendar events).
-   * Shopping: how often the household shops (every week, every 2 weeks, every month) and "A day you shop". Weekly uses that date's weekday, every 2 weeks counts 14-day steps from it, monthly uses its day of the month (the last day of shorter months). The Groceries tab opens to the current shopping period. New and existing households start as weekly on Saturday.
+   * Shopping: how often the household shops (every week, every 2 weeks, every month) and "A day you shop". Every week and every 2 weeks, that is a weekday (Monday–Sunday). The grocery list runs from that weekday to the day before the next shop; every 2 weeks is the same weekday every other week, and changing the weekday slides the existing rhythm by a few days instead of jumping to the other week. Every month asks for a day of the month (1st–31st); a 29th, 30th or 31st falls on the last day of a shorter month. The Groceries tab opens to the current shopping period. New and existing households start as weekly on Saturday.
 3. **Calendar Subscriptions (`/admin/calendar/edit`):**
    * Manage household calendar feed links, test 1-tap Apple/Google subscriptions, and rotate feed security tokens.
