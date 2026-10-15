@@ -4,6 +4,15 @@ All notable changes to FamilyPlates are documented in this file.
 
 ## [Unreleased]
 
+## [v1.5.0] - 2026-10-15
+
+The kitchen wears the Hearth palette, and the day a household shops is a weekday.
+
+### ⚠️ Upgrading from v1.4.0
+* **No database migration.** Nothing is added or rewritten. Replace the image (and the worker container, if you run one) and the app boots on the same volume.
+* **Households already set to shop weekly on Saturday stay on Saturday.** The stored shopping day is left alone until an organizer changes it. Every month still uses a day of the month.
+* **Headings load Lora from Google Fonts.** The Content Security Policy allows `fonts.googleapis.com` (the stylesheet) and `fonts.gstatic.com` (the font files). With no outbound network, or if a proxy blocks those hosts, headings use Georgia. Cook Mode stays dark.
+
 ### 🛒 Shopping
 * **A day you shop is a weekday.** Household & Meal Schedule asks which day of the week you shop (Monday–Sunday) instead of a calendar date. Every week, the grocery list runs from that weekday to the day before it next week. Every 2 weeks keeps that weekday every other week: the 14-day rhythm stays put when the weekday does not change, and slides by a few days when it does. Every month still uses a day of the month (1st–31st), and a 29th, 30th or 31st falls on the last day of a shorter month. Households already set to shop weekly on Saturday stay on Saturday.
 
