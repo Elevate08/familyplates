@@ -118,7 +118,7 @@
 
           <div class="space-y-2.5">
             <% items.each do |item| %>
-              <%# Stable across reloads and ranges: the same ingredient keeps its tick. %>
+              <%# Stable across reloads (not the loop index), so a saved tick finds its row again. %>
               <% base_id = [ aisle, item[:name], item[:unit] ].map { |part| part.to_s.parameterize }.join("_") %>
               <% item_id = base_id %>
               <% item_id = "#{base_id}_#{used_item_ids.size}" while used_item_ids.include?(item_id) %>
