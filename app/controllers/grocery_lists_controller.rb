@@ -1,6 +1,7 @@
 class GroceryListsController < ApplicationController
   def show
-    @range = GroceryRange.from_params(params[:from], params[:to], today: household_today)
+    @range = GroceryRange.from_params(params[:from], params[:to], today: household_today,
+                                    schedule: current_household.shopping_schedule)
 
     @aggregation = IngredientAggregator.call(current_household, @range.to_range)
     @aisles = @aggregation[:aisles]

@@ -62,4 +62,49 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal old_code, @household.reload.join_code
     assert_match(/\A[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}\z/, @household.join_code)
   end
+
+  # @card-62.7
+  test "an organizer chooses how often and on which day the household shops" do
+    sign_in_as(@admin)
+
+    get edit_admin_household_url
+    assert_select "select[name='household[shopping_frequency]'] option", count: 3
+    assert_select "input[type=date][name='household[shopping_anchor_on]']"
+
+    patch admin_household_url, params: { household: { shopping_frequency: "monthly", shopping_anchor_on: "2026-02-28" } }
+
+    assert_redirected_to admin_root_url
+    @household.reload
+    assert_equal "monthly", @household.shopping_frequency
+    assert_equal Date.new(2026, 2, 28), @household.shopping_anchor_on
+  end
+
+  # @card-62.7
+  test "an unknown shopping frequency or a missing day is rejected" do
+    sign_in_as(@admin)
+
+    patch admin_household_url, params: { household: { shopping_frequency: "daily" } }
+    assert_response :unprocessable_entity
+    assert_equal "weekly", @household.reload.shopping_frequency
+
+    patch admin_household_url, params: { household: { shopping_anchor_on: "" } }
+    assert_response :unprocessable_entity
+    assert_equal Date.new(2026, 1, 3), @household.reload.shopping_anchor_on
+  end
+
+  # @card-62.7
+  test "a member cannot change the shopping schedule" do
+    sign_in_as(@member)
+
+    patch admin_household_url, params: { household: { shopping_frequency: "monthly" } }
+
+    assert_redirected_to root_url
+    assert_equal "weekly", @household.reload.shopping_frequency
+  end
+
+  # @card-62.9
+  test "households shop weekly on Saturday until changed" do
+    assert_equal "weekly", @household.shopping_frequency
+    assert_equal 6, @household.shopping_anchor_on.wday
+  end
 end

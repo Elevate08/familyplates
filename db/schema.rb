@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -163,6 +163,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
     t.datetime "onboarded_at"
     t.string "operational_tags", default: "", null: false
     t.string "promotion_code"
+    t.date "shopping_anchor_on", default: "2026-01-03", null: false
+    t.string "shopping_frequency", default: "weekly", null: false
     t.datetime "suspended_at"
     t.string "suspension_reason"
     t.string "time_zone"
