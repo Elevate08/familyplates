@@ -42,7 +42,7 @@ class SubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".text-4xl", text: "$5"
     assert_select ".text-4xl", text: "$50"
     assert_select "button", text: "Subscribe Monthly ($5/mo)"
-    assert_select "button", text: "Subscribe Annually ($50/yr)"
+    assert_select "button", text: "Subscribe Annual ($50/yr)"
   end
 
   # @card-23.10
