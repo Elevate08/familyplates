@@ -147,6 +147,7 @@ async function run() {
   results.postIntercepted = (await dispatch(worker, fakeRequest("/recipes", { method: "POST" }))).intercepted;
   results.crossOriginIntercepted = (await dispatch(worker, fakeRequest("/recipes", { origin: "https://cdn.example.com" }))).intercepted;
   results.exportIntercepted = (await dispatch(worker, fakeRequest("/account_data/export", { accept: "*/*", mode: "cors" }))).intercepted;
+  results.groceryTicksIntercepted = (await dispatch(worker, fakeRequest("/grocery_ticks?from=2026-10-12&to=2026-10-18", { accept: "application/json", mode: "cors" }))).intercepted;
 
   // A redirect to another page (for example /grocery_list bounced to sign-in) is never kept.
   const bounced = boot(fakeNetwork({ "/grocery_list": "/session/new", "/recipes": "/session/new", "/": "/session/new" }));

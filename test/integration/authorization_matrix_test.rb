@@ -208,7 +208,12 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "DELETE /meal_plan_slots/:id" => [ :organizer, {}, :not_found ],
     "GET /grocery_list" => [ :household ],
     # Redirects to the plan's week for an own plan (a redirect is :ok here); 404 for another household's.
-    "GET /grocery_list/:meal_plan_id" => [ :household, {}, :not_found ]
+    "GET /grocery_list/:meal_plan_id" => [ :household, {}, :not_found ],
+    # Shared ticks. Any profile reads them; only organizers tick or reset, like the checkboxes.
+    # They take dates and an item key, not record ids, and are scoped to the household in the session.
+    "GET /grocery_ticks" => [ :household ],
+    "PUT /grocery_ticks" => [ :organizer ],
+    "DELETE /grocery_ticks" => [ :organizer ]
   }.merge(HOSTED ? HOSTED::ROWS : {}).freeze
 
   # Routes the matrix does not drive, and why. Each is either not the app's

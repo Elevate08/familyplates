@@ -270,3 +270,8 @@ cards:
       "62.7": An organizer chooses how often the household shops (weekly, every 2 weeks, monthly) and a day it shops; other members cannot.
       "62.8": The Groceries tab opens to the current shopping period, which stays the same until the next shopping day; the This shop and Next shop chips and the arrows follow the shopping periods.
       "62.9": Households shop weekly on Saturday until an organizer changes it.
+      "62.10": A tick made on one device shows on another device for the same list.
+      "62.11": Ticks made offline are saved once the device is back online.
+      "62.12": Reset clears the list's ticks for everyone.
+      "62.13": Only organizers can tick; other members see the ticks read-only.
+      "62.14": Another household's ticks can never be read or changed.

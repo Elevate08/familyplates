@@ -53,6 +53,7 @@ The Grocery List aggregates all ingredients required across the breakfast, lunch
 * **Aisle-Grouped Walk Order:** Categorized by Produce, Meat & Seafood, Dairy & Refrigerated, Bakery, Pantry & Grains, Spices & Baking, Frozen, and Other.
 * **Unit Normalization & Aggregation:** Automatically sums matching ingredients (e.g. `2 tbsp olive oil` + `3 tbsp olive oil` = `5 tbsp olive oil`).
 * **Interactive Mobile Checklist:** Checkbox that works offline (see below), with instant strikethrough, remaining item counter, and recipe source attribution. Ticks are remembered separately for each period.
+* **Shared Ticks:** Ticks are shared by every device in the household, so two people can split the shopping and a tick made on one phone shows on the other (the list updates when you return to the tab or reopen the page; there is no live push). Only organizers can tick items or **Reset** the list (Reset clears the ticks for everyone); other members see the same ticks read-only. The same dates are the same list: a different period has its own ticks. A tick made without a connection is kept on that device and sent when it is back online; if two people change the same item, the later change wins. Ticks are not part of the household export.
 * **Plain Text Copy:** 1-click clipboard export, headed with the period's dates, for messaging family members or pasting into store pickup apps.
 
 ## 📶 Using FamilyPlates Offline

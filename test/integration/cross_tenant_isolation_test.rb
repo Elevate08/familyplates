@@ -70,6 +70,31 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # Shared grocery ticks are keyed by dates and an item key, not an id, so the
+  # attack is the same list and key in the other household.
+  # @card-62.14
+  test "another household's grocery ticks can be neither read, changed nor reset" do
+    from = @other.today.beginning_of_week
+    to = from + 6.days
+    theirs = GroceryTick.record!(household: @other, from: from, to: to, item_key: "produce_carrots_lb",
+                                 checked: true, changed_at: 1.hour.ago, family_member: @other_member)
+
+    get grocery_ticks_url, params: { from: from.iso8601, to: to.iso8601 }, as: :json
+    assert_response :success
+    assert_empty response.parsed_body["ticks"]
+
+    put grocery_ticks_url, params: { from: from.iso8601, to: to.iso8601, item_key: "produce_carrots_lb",
+                                     checked: false, changed_at: Time.current.iso8601(3) }, as: :json
+    assert_response :success
+    assert_equal true, theirs.reload.checked
+    assert_equal 1, households(:one).grocery_ticks.count
+
+    delete grocery_ticks_url, params: { from: from.iso8601, to: to.iso8601 }, as: :json
+    assert_response :success
+    assert GroceryTick.exists?(theirs.id)
+    assert_equal 0, households(:one).grocery_ticks.count
+  end
+
   # Writing to another household's records.
   # @card-21.4
   test "a signed-in organizer cannot edit another household's recipe" do

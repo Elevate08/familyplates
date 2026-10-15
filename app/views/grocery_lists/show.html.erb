@@ -5,6 +5,7 @@
      data-checklist-from-value="<%= @range.from.iso8601 %>"
      data-checklist-to-value="<%= @range.to.iso8601 %>"
      data-checklist-range-label-value="<%= @range.label %>"
+     data-checklist-ticks-url-value="<%= grocery_ticks_path %>"
      data-checklist-read-only-value="<%= !is_admin %>">
   <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 sticky top-16 sm:top-20 z-30">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -123,6 +124,9 @@
               <% item_id = base_id %>
               <% item_id = "#{base_id}_#{used_item_ids.size}" while used_item_ids.include?(item_id) %>
               <% used_item_ids << item_id %>
+              <%# A tick saved for this list (from any of the household's devices) beats the default; staples default to checked. %>
+              <% ticked = @ticks.key?(item_id) %>
+              <% checked = ticked ? @ticks[item_id] : item[:is_staple] %>
               <% row_style = if item[:restock]
                    "bg-rose-50/40 dark:bg-rose-950/25 border-rose-200 dark:border-rose-900 hover:border-rose-300 dark:hover:border-rose-800"
                  elsif item[:is_staple]
@@ -142,12 +146,12 @@
                      data-mark-low-url="<%= mark_low_pantry_item_path(item[:pantry_item_id]) %>"
                    <% end %>
                    <% if is_admin %>data-action="click->checklist#toggle"<% end %>
-                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all <%= is_admin ? 'cursor-pointer' : 'cursor-default select-none' %> <%= row_style %>">
+                   class="flex items-center justify-between p-3.5 rounded-2xl border transition-all <%= is_admin ? 'cursor-pointer' : 'cursor-default select-none' %> <%= row_style %> <%= 'opacity-50' if ticked && checked %>">
                 
                 <div class="flex items-center gap-3">
                   <input type="checkbox" 
                          value="<%= item_id %>"
-                         <%= 'checked' if item[:is_staple] %>
+                         <%= 'checked' if checked %>
                          <%= 'disabled' unless is_admin %>
                          id="grocery_item_<%= item_id %>"
                          aria-labelledby="grocery_item_<%= item_id %>_name"
@@ -161,7 +165,7 @@
                     </div>
                     <div>
                       <div class="flex items-center gap-2">
-                        <span id="grocery_item_<%= item_id %>_name" class="item-label text-sm font-bold text-slate-800 dark:text-slate-200 <%= 'line-through text-slate-400 dark:text-slate-500' if item[:is_staple] %> transition-all">
+                        <span id="grocery_item_<%= item_id %>_name" class="item-label text-sm font-bold text-slate-800 dark:text-slate-200 <%= 'line-through text-slate-400 dark:text-slate-500' if checked %> transition-all">
                           <%= item[:name] %>
                         </span>
                         <% if item[:restock] %>

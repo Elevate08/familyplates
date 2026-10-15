@@ -42,6 +42,7 @@ class PwaControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, result["postIntercepted"]
     assert_equal false, result["crossOriginIntercepted"]
     assert_equal false, result["exportIntercepted"], "non-asset GETs such as exports must go straight to the network"
+    assert_equal false, result["groceryTicksIntercepted"], "shared grocery ticks are live JSON and must never come from a cache"
     assert_empty result["signInRedirectCached"], "a redirect to the sign-in page must never be kept"
 
     # Offline: every kept page comes back

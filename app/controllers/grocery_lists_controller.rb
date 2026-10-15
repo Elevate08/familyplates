@@ -9,6 +9,7 @@ class GroceryListsController < ApplicationController
     @total_pantry_count = @aggregation[:total_pantry_count]
     @total_restock_count = @aggregation[:total_restock_count]
     @meal_count = @aggregation[:meal_count]
+    @ticks = current_household.grocery_ticks.for_list(@range.from, @range.to).checked_map
   end
 
   # The old per-plan address: opens the list for that plan's week.

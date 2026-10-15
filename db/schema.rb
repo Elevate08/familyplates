@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
   create_table "account_deletion_requests", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "household_id", null: false
@@ -149,6 +149,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
     t.string "user_id"
     t.index ["household_id", "user_id"], name: "index_family_members_on_household_id_and_user_id", unique: true, where: "user_id IS NOT NULL"
     t.index ["household_id"], name: "index_family_members_on_household_id"
+  end
+
+  create_table "grocery_ticks", force: :cascade do |t|
+    t.datetime "changed_at", null: false
+    t.boolean "checked", null: false
+    t.datetime "created_at", null: false
+    t.string "family_member_id"
+    t.string "household_id", null: false
+    t.string "item_key", null: false
+    t.date "list_from", null: false
+    t.date "list_to", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_member_id"], name: "index_grocery_ticks_on_family_member_id"
+    t.index ["household_id", "list_from", "list_to", "item_key"], name: "index_grocery_ticks_on_list_and_item", unique: true
   end
 
   create_table "households", id: :string, force: :cascade do |t|
@@ -593,6 +607,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
   add_foreign_key "device_grants", "users", on_delete: :cascade
   add_foreign_key "family_members", "households"
   add_foreign_key "family_members", "users", on_delete: :nullify
+  add_foreign_key "grocery_ticks", "family_members", on_delete: :nullify
+  add_foreign_key "grocery_ticks", "households"
   add_foreign_key "households", "users", column: "billing_owner_user_id", on_delete: :nullify
   add_foreign_key "identities", "users", on_delete: :cascade
   add_foreign_key "ingredient_aisle_mappings", "households"
