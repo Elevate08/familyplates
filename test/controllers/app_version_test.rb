@@ -20,8 +20,9 @@ class AppVersionTest < ActionDispatch::IntegrationTest
   test "the CHANGELOG's newest entry matches the VERSION file" do
     # Release drift is silent otherwise: the tag, the changelog heading and the
     # number on the page have to agree, and only this notices when they stop.
+    # An "[Unreleased]" section above it collects changes for the next release.
     heading = File.readlines(Rails.root.join("CHANGELOG.md"))
-                  .find { |line| line.start_with?("## [") }
+                  .find { |line| line.start_with?("## [") && !line.start_with?("## [Unreleased]") }
 
     assert heading, "precondition: the CHANGELOG has a versioned heading"
     assert_includes heading, "[v#{HomeMealPlanner::VERSION}]",

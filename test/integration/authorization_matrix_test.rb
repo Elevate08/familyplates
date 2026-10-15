@@ -207,6 +207,7 @@ class AuthorizationMatrixTest < ActionDispatch::IntegrationTest
     "PUT /meal_plan_slots/:id" => [ :organizer, {}, :not_found ],
     "DELETE /meal_plan_slots/:id" => [ :organizer, {}, :not_found ],
     "GET /grocery_list" => [ :household ],
+    # Redirects to the plan's week for an own plan (a redirect is :ok here); 404 for another household's.
     "GET /grocery_list/:meal_plan_id" => [ :household, {}, :not_found ]
   }.merge(HOSTED ? HOSTED::ROWS : {}).freeze
 

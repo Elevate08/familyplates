@@ -284,6 +284,24 @@ async function run() {
   }
   results.offlineNonNavigation = scripted;
 
+  // A grocery list for a chosen period is kept and served offline; the old per-plan address redirects to one.
+  const range = (n) => `/grocery_list?from=2026-10-${String(n).padStart(2, "0")}&to=2026-10-${String(n + 6).padStart(2, "0")}`;
+  const periods = boot(fakeNetwork({ "/grocery_list/3": range(12) }));
+  await dispatch(periods, fakeRequest(range(1)));
+  await dispatch(periods, fakeRequest("/grocery_list/3"));
+  await dispatch(periods, fakeRequest(range(12)));
+  await dispatch(periods, fakeRequest("/grocery_list?from=2026-10-01&to=2026-10-07&view=x"));
+  await dispatch(periods, fakeRequest("/grocery_list?from=evil&to=2026-10-07"));
+  results.periodKept = [...periods.stores.values()].flatMap((store) => [...store.keys()].map((key) => new URL(key).pathname + new URL(key).search)).sort();
+  goOffline(periods);
+  results.periodOffline = await text(await dispatch(periods, fakeRequest(range(1))));
+  results.periodRedirectOffline = (await dispatch(periods, fakeRequest("/grocery_list/3"))).response.status;
+
+  // Only the newest few periods are kept.
+  const many = boot(fakeNetwork());
+  for (let n = 1; n <= 12; n++) await dispatch(many, fakeRequest(range(n)));
+  results.manyKept = [...many.stores.values()].flatMap((store) => [...store.keys()].map((key) => new URL(key).search)).sort();
+
   // Activate deletes older cache versions and keeps its own.
   const upgraded = boot(online);
   for (const old of ["familyplates-v1", "familyplates-v2", "familyplates-v3", "familyplates-v4"]) await upgraded.caches.open(old);
