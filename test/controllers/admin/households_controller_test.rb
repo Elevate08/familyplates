@@ -64,19 +64,58 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
   end
 
   # @card-62.7
-  test "an organizer chooses how often and on which day the household shops" do
+  test "an organizer chooses how often and which weekday the household shops" do
     sign_in_as(@admin)
 
     get edit_admin_household_url
     assert_select "select[name='household[shopping_frequency]'] option", count: 3
-    assert_select "input[type=date][name='household[shopping_anchor_on]']"
+    assert_select "input[type=date][name='household[shopping_anchor_on]']", count: 0
+    assert_select "select[name='household[shopping_wday]'] option", count: 7
+    assert_equal %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday],
+      css_select("select[name='household[shopping_wday]'] option").map(&:text)
+    assert_select "select[name='household[shopping_wday]'] option[selected]", text: "Saturday"
+    assert_select "select[name='household[shopping_wday]']:not([disabled])"
+    assert_select "[data-shopping-day-target=monthday][hidden] select[name='household[shopping_month_day]'][disabled]"
+    assert_select "span", text: /Every week, the list runs from this day/
+    assert_select "span", text: /we use its weekday/, count: 0
 
-    patch admin_household_url, params: { household: { shopping_frequency: "monthly", shopping_anchor_on: "2026-02-28" } }
+    patch admin_household_url, params: { household: { shopping_frequency: "weekly", shopping_wday: "5" } }
 
     assert_redirected_to admin_root_url
     @household.reload
+    assert_equal "weekly", @household.shopping_frequency
+    assert_equal Date.new(2026, 1, 9), @household.shopping_anchor_on
+    assert_equal 5, @household.shopping_anchor_on.wday
+  end
+
+  # @card-62.7
+  test "monthly shopping asks for a day of the month and keeps one already stored" do
+    sign_in_as(@admin)
+    @household.update!(shopping_frequency: "monthly", shopping_anchor_on: Date.new(2026, 2, 28))
+
+    get edit_admin_household_url
+    assert_select "[data-shopping-day-target=weekday][hidden] select[name='household[shopping_wday]'][disabled]"
+    assert_select "select[name='household[shopping_month_day]']:not([disabled]) option[selected]", text: "28th"
+    assert_select "span", text: /day of the month/
+
+    patch admin_household_url, params: { household: { shopping_frequency: "monthly", shopping_month_day: "28" } }
+    assert_redirected_to admin_root_url
+    assert_equal Date.new(2026, 2, 28), @household.reload.shopping_anchor_on
+
+    patch admin_household_url, params: { household: { shopping_frequency: "monthly", shopping_month_day: "31" } }
+    assert_equal 31, @household.reload.shopping_anchor_on.day
     assert_equal "monthly", @household.shopping_frequency
-    assert_equal Date.new(2026, 2, 28), @household.shopping_anchor_on
+  end
+
+  # @card-62.7
+  test "fortnightly slides onto the chosen weekday without flipping weeks" do
+    sign_in_as(@admin)
+    @household.update!(shopping_frequency: "fortnightly", shopping_anchor_on: Date.new(2026, 10, 3))
+
+    patch admin_household_url, params: { household: { shopping_frequency: "fortnightly", shopping_wday: "5" } }
+
+    assert_redirected_to admin_root_url
+    assert_equal Date.new(2026, 10, 2), @household.reload.shopping_anchor_on
   end
 
   # @card-62.7
@@ -87,8 +126,18 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_equal "weekly", @household.reload.shopping_frequency
 
-    patch admin_household_url, params: { household: { shopping_anchor_on: "" } }
+    patch admin_household_url, params: { household: { shopping_wday: "" } }
     assert_response :unprocessable_entity
+    assert_equal Date.new(2026, 1, 3), @household.reload.shopping_anchor_on
+    assert_match "A day you shop must be a day of the week", response.body
+
+    patch admin_household_url, params: { household: { shopping_frequency: "monthly", shopping_month_day: "32" } }
+    assert_response :unprocessable_entity
+    assert_equal "weekly", @household.reload.shopping_frequency
+    assert_equal Date.new(2026, 1, 3), @household.shopping_anchor_on
+
+    patch admin_household_url, params: { household: { shopping_anchor_on: "2026-06-15", shopping_wday: "6" } }
+    assert_redirected_to admin_root_url
     assert_equal Date.new(2026, 1, 3), @household.reload.shopping_anchor_on
   end
 

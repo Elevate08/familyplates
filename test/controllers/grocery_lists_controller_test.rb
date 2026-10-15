@@ -211,6 +211,18 @@ class GroceryListsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "choosing Friday makes the list run Friday to Thursday" do
+    households(:one).update!(shopping_wday: "5")
+    assert_equal Date.new(2026, 1, 9), households(:one).shopping_anchor_on
+
+    travel_to Time.utc(2026, 10, 14, 12) do # a Wednesday inside Fri Oct 9 – Thu Oct 15
+      get grocery_list_url
+      assert_select "[data-checklist-from-value=?]", "2026-10-09"
+      assert_select "[data-checklist-to-value=?]", "2026-10-15"
+      assert_equal [ "This shop" ], active_chip
+    end
+  end
+
   # @card-62.8
   test "a monthly household's list opens to its month of shopping days" do
     set_schedule("monthly", Date.new(2026, 1, 20))

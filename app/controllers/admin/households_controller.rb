@@ -32,7 +32,8 @@ module Admin
         :lunch_time,
         :dinner_time,
         :shopping_frequency,
-        :shopping_anchor_on
+        :shopping_wday,
+        :shopping_month_day
       )
     end
   end

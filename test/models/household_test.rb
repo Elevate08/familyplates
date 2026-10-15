@@ -70,6 +70,24 @@ class HouseholdTest < ActiveSupport::TestCase
     assert household.calendar_feed_token.present?
   end
 
+  test "choosing Saturday again leaves a weekly Saturday anchor on 2026-01-03" do
+    household = households(:one)
+
+    household.update!(shopping_wday: "6")
+
+    assert_equal "weekly", household.shopping_frequency
+    assert_equal Date.new(2026, 1, 3), household.shopping_anchor_on
+    assert_equal "6", household.shopping_wday
+  end
+
+  test "a name-only save does not move the shopping anchor" do
+    household = households(:one)
+
+    household.update!(name: "Spencer Family Kitchen")
+
+    assert_equal Date.new(2026, 1, 3), household.shopping_anchor_on
+  end
+
   test "email prefers an admin family member's user via a join" do
     household = households(:one)
     admin_user = User.create!(email: "admin-parent@example.com")
