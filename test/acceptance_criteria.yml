@@ -257,3 +257,21 @@ cards:
       "50.2": Once a dish's leftovers are used up, the planner stops offering it for later slots.
       "50.3": Leftovers past their shelf life are no longer offered.
       "50.4": A leftover slot remembers which cooked meal it came from.
+
+  62:
+    title: Grocery list for any shopping period
+    criteria:
+      "62.1": The grocery list can cover any date range up to 42 days, and shows the meals planned in it.
+      "62.2": Presets (this shop, next shop, this week, next week, from today, this month, next month) and previous/next arrows move between periods.
+      "62.3": A recipe planned on two days counts its ingredients twice.
+      "62.4": The planner's week and month views link to the grocery list for that week or month.
+      "62.5": Old per-plan grocery links still open that plan's week.
+      "62.6": Another household's meals never appear on a grocery list.
+      "62.7": An organizer chooses how often the household shops (weekly, every 2 weeks, monthly) and a day it shops; other members cannot.
+      "62.8": The Groceries tab opens to the current shopping period, which stays the same until the next shopping day; the This shop and Next shop chips and the arrows follow the shopping periods.
+      "62.9": Households shop weekly on Saturday until an organizer changes it.
+      "62.10": A tick made on one device shows on another device for the same list.
+      "62.11": Ticks made offline are saved once the device is back online.
+      "62.12": Reset clears the list's ticks for everyone.
+      "62.13": Only organizers can tick; other members see the ticks read-only.
+      "62.14": Another household's ticks can never be read or changed.

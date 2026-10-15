@@ -147,6 +147,7 @@ async function run() {
   results.postIntercepted = (await dispatch(worker, fakeRequest("/recipes", { method: "POST" }))).intercepted;
   results.crossOriginIntercepted = (await dispatch(worker, fakeRequest("/recipes", { origin: "https://cdn.example.com" }))).intercepted;
   results.exportIntercepted = (await dispatch(worker, fakeRequest("/account_data/export", { accept: "*/*", mode: "cors" }))).intercepted;
+  results.groceryTicksIntercepted = (await dispatch(worker, fakeRequest("/grocery_ticks?from=2026-10-12&to=2026-10-18", { accept: "application/json", mode: "cors" }))).intercepted;
 
   // A redirect to another page (for example /grocery_list bounced to sign-in) is never kept.
   const bounced = boot(fakeNetwork({ "/grocery_list": "/session/new", "/recipes": "/session/new", "/": "/session/new" }));
@@ -283,6 +284,24 @@ async function run() {
     scripted[path] = { error: reply.error, intercepted: reply.intercepted, response: reply.response === null };
   }
   results.offlineNonNavigation = scripted;
+
+  // A grocery list for a chosen period is kept and served offline; the old per-plan address redirects to one.
+  const range = (n) => `/grocery_list?from=2026-10-${String(n).padStart(2, "0")}&to=2026-10-${String(n + 6).padStart(2, "0")}`;
+  const periods = boot(fakeNetwork({ "/grocery_list/3": range(12) }));
+  await dispatch(periods, fakeRequest(range(1)));
+  await dispatch(periods, fakeRequest("/grocery_list/3"));
+  await dispatch(periods, fakeRequest(range(12)));
+  await dispatch(periods, fakeRequest("/grocery_list?from=2026-10-01&to=2026-10-07&view=x"));
+  await dispatch(periods, fakeRequest("/grocery_list?from=evil&to=2026-10-07"));
+  results.periodKept = [...periods.stores.values()].flatMap((store) => [...store.keys()].map((key) => new URL(key).pathname + new URL(key).search)).sort();
+  goOffline(periods);
+  results.periodOffline = await text(await dispatch(periods, fakeRequest(range(1))));
+  results.periodRedirectOffline = (await dispatch(periods, fakeRequest("/grocery_list/3"))).response.status;
+
+  // Only the newest few periods are kept.
+  const many = boot(fakeNetwork());
+  for (let n = 1; n <= 12; n++) await dispatch(many, fakeRequest(range(n)));
+  results.manyKept = [...many.stores.values()].flatMap((store) => [...store.keys()].map((key) => new URL(key).search)).sort();
 
   // Activate deletes older cache versions and keeps its own.
   const upgraded = boot(online);

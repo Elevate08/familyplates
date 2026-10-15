@@ -42,6 +42,7 @@ class PwaControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, result["postIntercepted"]
     assert_equal false, result["crossOriginIntercepted"]
     assert_equal false, result["exportIntercepted"], "non-asset GETs such as exports must go straight to the network"
+    assert_equal false, result["groceryTicksIntercepted"], "shared grocery ticks are live JSON and must never come from a cache"
     assert_empty result["signInRedirectCached"], "a redirect to the sign-in page must never be kept"
 
     # Offline: every kept page comes back
@@ -118,6 +119,19 @@ class PwaControllerTest < ActionDispatch::IntegrationTest
     ], result["photoCached"]
     assert_equal "network /rails/active_storage/blobs/redirect/abc/photo.jpg", result["photoOffline"]
     assert_match(/offline/, result["photoNeverSeenOffline"].to_s, "a photo that was never seen gets the network error")
+  end
+
+  # @card-62.1
+  test "service worker keeps a visited grocery list period and serves it offline" do
+    result = run_service_worker
+
+    assert_equal [ "/grocery_list?from=2026-10-01&to=2026-10-07", "/grocery_list?from=2026-10-12&to=2026-10-18" ], result["periodKept"],
+      "a period is kept under its own address; the redirecting per-plan address, extra parameters and bad dates are not"
+    assert_equal "network /grocery_list?from=2026-10-01&to=2026-10-07", result["periodOffline"]
+    assert_equal 503, result["periodRedirectOffline"], "an unvisited per-plan address falls back to the notice page"
+    assert_equal 8, result["manyKept"].size, "only the newest eight periods are kept"
+    assert_includes result["manyKept"], "?from=2026-10-12&to=2026-10-18"
+    assert_not_includes result["manyKept"], "?from=2026-10-01&to=2026-10-07"
   end
 
   test "service worker drops the kept copy of a page or file the server says is gone" do

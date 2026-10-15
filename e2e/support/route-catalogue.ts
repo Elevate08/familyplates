@@ -56,6 +56,7 @@ export const VARIANTS: Record<string, string[]> = {
 export const SKIPPED: Record<string, string> = {
   "GET /up": "Load-balancer health check. Plain text, not a page.",
   "GET /manifest": "PWA manifest JSON, not a page (pwa_controller_test).",
+  "GET /grocery_ticks": "JSON for the grocery checklist script, not a page (grocery_ticks_controller_test).",
   "GET /service-worker": "Service worker JavaScript, not a page (pwa_controller_test).",
   "GET /account_data/export": "Sends a JSON attachment the browser downloads instead of rendering (account_data_controller_test).",
   "GET /calendars/feed/:token": "iCalendar feed for calendar apps, not a page (calendar_feeds_controller_test).",

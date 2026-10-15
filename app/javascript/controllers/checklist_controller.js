@@ -1,23 +1,42 @@
 import { Controller } from "@hotwired/stimulus"
 
+// The grocery checklist. Ticks are shared by the household's devices: the server
+// renders the saved ticks, every tick is sent to the server, and the page asks for
+// the list's ticks again whenever it is shown or regains focus. localStorage keeps
+// an offline copy and the queue of changes the server has not acknowledged yet.
+const PENDING_KEY = "familyplates_pending_ticks"
+
 export default class extends Controller {
   static targets = ["item", "checkbox", "remaining", "offlineBadge", "copyButton", "copyButtonText"]
-  static values = { planId: String, readOnly: Boolean }
+  static values = { from: String, to: String, rangeLabel: String, readOnly: Boolean, ticksUrl: String }
 
   connect() {
-    this.storageKey = `familyplates_checklist_${this.planIdValue || "current"}`
-    this.restoreCheckedState()
+    this.storageKey = `familyplates_checklist_${this.fromValue}_${this.toValue}`
+    this.changeCount = 0
+    this.flushing = false
+
+    // Online, the server-rendered ticks are the truth. Offline, the page may be an old
+    // saved copy, so the ticks this device last saw are laid over it.
+    if (!navigator.onLine) this.restoreCheckedState()
+    this.applyPending()
     this.updateProgress()
 
-    this.boundUpdateNetworkStatus = this.updateNetworkStatus.bind(this)
-    window.addEventListener("online", this.boundUpdateNetworkStatus)
-    window.addEventListener("offline", this.boundUpdateNetworkStatus)
+    this.boundOnline = () => { this.updateNetworkStatus(); this.sync() }
+    this.boundOffline = () => this.updateNetworkStatus()
+    this.boundShown = () => { if (document.visibilityState === "visible") this.sync() }
+    window.addEventListener("online", this.boundOnline)
+    window.addEventListener("offline", this.boundOffline)
+    window.addEventListener("focus", this.boundShown)
+    document.addEventListener("visibilitychange", this.boundShown)
     this.updateNetworkStatus()
+    this.sync()
   }
 
   disconnect() {
-    window.removeEventListener("online", this.boundUpdateNetworkStatus)
-    window.removeEventListener("offline", this.boundUpdateNetworkStatus)
+    window.removeEventListener("online", this.boundOnline)
+    window.removeEventListener("offline", this.boundOffline)
+    window.removeEventListener("focus", this.boundShown)
+    document.removeEventListener("visibilitychange", this.boundShown)
   }
 
   updateNetworkStatus() {
@@ -42,10 +61,160 @@ export default class extends Controller {
       checkbox.checked = !checkbox.checked
     }
 
+    this.changeCount++
     this.applyRowState(row, checkbox.checked)
     this.syncPantryStock(row, checkbox.checked)
     this.saveState()
     this.updateProgress()
+    this.enqueue({
+      from: this.fromValue, to: this.toValue, item_key: checkbox.value,
+      checked: checkbox.checked, changed_at: new Date().toISOString()
+    })
+    this.flush()
+  }
+
+  // ---- Shared ticks ----
+
+  jsonHeaders() {
+    return {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "X-CSRF-Token": document.querySelector("meta[name='csrf-token']")?.content || ""
+    }
+  }
+
+  readPending() {
+    try {
+      const list = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]")
+      return Array.isArray(list) ? list : []
+    } catch (e) {
+      return []
+    }
+  }
+
+  writePending(list) {
+    try {
+      if (list.length) localStorage.setItem(PENDING_KEY, JSON.stringify(list))
+      else localStorage.removeItem(PENDING_KEY)
+    } catch (e) {
+      console.warn("Could not save pending grocery ticks", e)
+    }
+  }
+
+  sameItem(a, b) {
+    return a.from === b.from && a.to === b.to && a.item_key === b.item_key
+  }
+
+  // One queued change per item and list: a newer change replaces an unsent older one.
+  enqueue(change) {
+    this.writePending(this.readPending().filter((c) => !this.sameItem(c, change)).concat(change))
+  }
+
+  // Only the exact change that was sent: one made since stays queued.
+  dequeue(change) {
+    this.writePending(this.readPending().filter((c) => !(this.sameItem(c, change) && c.changed_at === change.changed_at)))
+  }
+
+  pendingForThisList() {
+    return this.readPending().filter((c) => c.from === this.fromValue && c.to === this.toValue)
+  }
+
+  applyPending() {
+    if (this.readOnlyValue) return
+    const byKey = new Map(this.pendingForThisList().map((c) => [c.item_key, c.checked]))
+    this.checkboxTargets.forEach((cb) => {
+      if (byKey.has(cb.value)) this.setChecked(cb, byKey.get(cb.value))
+    })
+  }
+
+  setChecked(checkbox, isChecked) {
+    if (checkbox.checked === isChecked) return
+    checkbox.checked = isChecked
+    const row = checkbox.closest("[data-checklist-target='item']")
+    if (row) this.applyRowState(row, isChecked)
+  }
+
+  // Send what is waiting, then fetch the list's current ticks.
+  async sync() {
+    await this.flush()
+    await this.refresh()
+  }
+
+  // Sends queued changes in order. A network failure or server error leaves the rest queued
+  // (they are retried on the next online / visible event); a refusal (403, 422) can never
+  // succeed, so it is dropped.
+  async flush() {
+    if (this.readOnlyValue || this.flushing || !this.ticksUrlValue || !navigator.onLine) return
+    this.flushing = true
+    const tried = new Set()
+    try {
+      for (;;) {
+        const change = this.readPending().find((c) => !tried.has(`${c.from}|${c.to}|${c.item_key}|${c.changed_at}`))
+        if (!change) break
+        tried.add(`${change.from}|${change.to}|${change.item_key}|${change.changed_at}`)
+
+        let response
+        try {
+          response = await fetch(this.ticksUrlValue, {
+            method: "PUT", headers: this.jsonHeaders(), credentials: "same-origin", body: JSON.stringify(change)
+          })
+        } catch (e) {
+          break
+        }
+        if (response.ok) {
+          this.dequeue(change)
+          await this.adoptServerAnswer(change, response)
+        } else if (response.status === 403 || response.status === 422) {
+          this.dequeue(change)
+        } else {
+          break
+        }
+      }
+    } finally {
+      this.flushing = false
+    }
+  }
+
+  // If a newer change from another device won, show what stands (unless this device has changed it again).
+  async adoptServerAnswer(change, response) {
+    if (change.from !== this.fromValue || change.to !== this.toValue) return
+    try {
+      const answer = await response.json()
+      if (this.pendingForThisList().some((c) => c.item_key === change.item_key)) return
+      const checkbox = this.checkboxTargets.find((cb) => cb.value === change.item_key)
+      if (checkbox && typeof answer.checked === "boolean") {
+        this.setChecked(checkbox, answer.checked)
+        this.saveState()
+        this.updateProgress()
+      }
+    } catch (e) {}
+  }
+
+  // Applies the server's ticks for this list. An item with no tick goes back to its default (staples are on hand).
+  async refresh() {
+    if (!this.ticksUrlValue || !navigator.onLine) return
+    const startedAt = this.changeCount
+    try {
+      const query = new URLSearchParams({ from: this.fromValue, to: this.toValue })
+      const response = await fetch(`${this.ticksUrlValue}?${query}`, {
+        headers: { "Accept": "application/json" }, credentials: "same-origin"
+      })
+      if (!response.ok) return
+      const { ticks } = await response.json()
+      // A tick made while this was in flight is newer than the answer.
+      if (!ticks || startedAt !== this.changeCount) return
+
+      const pending = new Set(this.pendingForThisList().map((c) => c.item_key))
+      this.checkboxTargets.forEach((cb) => {
+        if (pending.has(cb.value)) return
+        const value = Object.prototype.hasOwnProperty.call(ticks, cb.value) ? ticks[cb.value] : cb.dataset.isStaple === "true"
+        this.setChecked(cb, value)
+      })
+      this.saveState()
+      this.updateProgress()
+    } catch (e) {
+      // Offline or the server is away: keep what is shown.
+    }
   }
 
   // Ticking a restock line means the staple was bought and can shield itself again.
@@ -83,6 +252,7 @@ export default class extends Controller {
     }
   }
 
+  // The offline copy: what this device last showed for the list.
   saveState() {
     if (this.readOnlyValue) return
 
@@ -104,9 +274,7 @@ export default class extends Controller {
       const checkedMap = JSON.parse(saved)
       this.checkboxTargets.forEach(cb => {
         if (Object.prototype.hasOwnProperty.call(checkedMap, cb.value)) {
-          cb.checked = checkedMap[cb.value]
-          const row = cb.closest("[data-checklist-target='item']")
-          if (row) this.applyRowState(row, cb.checked)
+          this.setChecked(cb, checkedMap[cb.value])
         }
       })
     } catch (e) {
@@ -117,12 +285,24 @@ export default class extends Controller {
   resetAll() {
     if (this.readOnlyValue) return
 
-    const performReset = () => {
+    // Clears the list on the server first: the ticks go for everyone, and a reset
+    // that never reached the server would come straight back on the next refresh.
+    const performReset = async () => {
+      try {
+        const response = await fetch(this.ticksUrlValue, {
+          method: "DELETE", headers: this.jsonHeaders(), credentials: "same-origin",
+          body: JSON.stringify({ from: this.fromValue, to: this.toValue })
+        })
+        if (!response.ok) throw new Error(`reset refused: ${response.status}`)
+      } catch (e) {
+        alert("Couldn't reset the list. Check your connection and try again.")
+        return
+      }
+
+      this.changeCount++
+      this.writePending(this.readPending().filter((c) => !(c.from === this.fromValue && c.to === this.toValue)))
       this.checkboxTargets.forEach(cb => {
-        const isStaple = cb.dataset.isStaple === "true"
-        cb.checked = isStaple
-        const row = cb.closest("[data-checklist-target='item']")
-        if (row) this.applyRowState(row, cb.checked)
+        this.setChecked(cb, cb.dataset.isStaple === "true")
       })
       try {
         localStorage.removeItem(this.storageKey)
@@ -131,7 +311,7 @@ export default class extends Controller {
     }
 
     if (window.showConfirmDialog) {
-      window.showConfirmDialog("Reset all checkboxes for this grocery list?", {
+      window.showConfirmDialog("Reset all checkboxes for this grocery list? This clears them for everyone in the household.", {
         title: "Reset Grocery List",
         confirmText: "Reset Checklist",
         icon: "🔄"
@@ -139,7 +319,7 @@ export default class extends Controller {
         if (confirmed) performReset()
       })
     } else {
-      if (confirm("Reset all checkboxes for this grocery list?")) {
+      if (confirm("Reset all checkboxes for this grocery list? This clears them for everyone in the household.")) {
         performReset()
       }
     }
@@ -154,8 +334,7 @@ export default class extends Controller {
 
   copyList() {
     const lines = []
-    const subtitleEl = this.element.querySelector("p.text-xs")
-    const weekLabel = subtitleEl ? subtitleEl.textContent.split("•")[0].trim() : "Shopping List"
+    const weekLabel = this.rangeLabelValue || "Shopping List"
     lines.push(`GROCERY LIST (${weekLabel})`)
     lines.push("")
 

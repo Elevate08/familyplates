@@ -7,6 +7,8 @@ class HouseholdExport
     @household = household
   end
 
+  # Not exported: grocery ticks (GroceryTick). They are transient shopping state
+  # for one date range, not household content a person would take elsewhere.
   def call
     {
       export_version: 1,

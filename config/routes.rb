@@ -157,7 +157,12 @@ Rails.application.routes.draw do
 
   # Grocery List (current active or specific plan)
   get "grocery_list" => "grocery_lists#show", as: :grocery_list
-  get "grocery_list/:meal_plan_id" => "grocery_lists#show", as: :plan_grocery_list
+  get "grocery_list/:meal_plan_id" => "grocery_lists#plan", as: :plan_grocery_list
+
+  # Ticks on the grocery list, shared by the household's devices (JSON, for the checklist).
+  get "grocery_ticks", to: "grocery_ticks#index"
+  put "grocery_ticks", to: "grocery_ticks#update"
+  delete "grocery_ticks", to: "grocery_ticks#destroy"
 
   # Dashboard & Landing
   root "home#index"
