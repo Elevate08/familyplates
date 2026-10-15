@@ -2,6 +2,17 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [Unreleased]
+
+### Added
+* **Grocery list for any shopping period.** The Groceries tab is no longer fixed to the current week. Pick This week, Next week, From today, This month or Next month, step with the previous/next arrows (a whole month when the list covers one calendar month), or enter your own dates, up to 42 days. The planner's week and month views each have a Grocery list link for the period they show. The checklist ticks are saved per period, and a period you have opened works offline.
+
+### Fixed
+* **A recipe planned on several days was counted once on the grocery list.** Every cooked meal now adds its ingredients, so a soup planned on Monday and Thursday lists double the carrots. Leftover meals still add nothing.
+
+### Changed
+* The old `/grocery_list/<plan number>` address now opens the grocery list for that plan's week.
+
 ## [v1.3.1] - 2026-10-11
 
 Fixes the upgrade from v1.2.0, which crash-looped the appliance image on boot. Fresh installs of v1.3.0 were not affected.

@@ -2,10 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["item", "checkbox", "remaining", "offlineBadge", "copyButton", "copyButtonText"]
-  static values = { planId: String, readOnly: Boolean }
+  static values = { from: String, to: String, rangeLabel: String, readOnly: Boolean }
 
   connect() {
-    this.storageKey = `familyplates_checklist_${this.planIdValue || "current"}`
+    this.storageKey = `familyplates_checklist_${this.fromValue}_${this.toValue}`
     this.restoreCheckedState()
     this.updateProgress()
 
@@ -154,8 +154,7 @@ export default class extends Controller {
 
   copyList() {
     const lines = []
-    const subtitleEl = this.element.querySelector("p.text-xs")
-    const weekLabel = subtitleEl ? subtitleEl.textContent.split("•")[0].trim() : "Shopping List"
+    const weekLabel = this.rangeLabelValue || "Shopping List"
     lines.push(`GROCERY LIST (${weekLabel})`)
     lines.push("")
 

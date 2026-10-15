@@ -157,7 +157,7 @@ Rails.application.routes.draw do
 
   # Grocery List (current active or specific plan)
   get "grocery_list" => "grocery_lists#show", as: :grocery_list
-  get "grocery_list/:meal_plan_id" => "grocery_lists#show", as: :plan_grocery_list
+  get "grocery_list/:meal_plan_id" => "grocery_lists#plan", as: :plan_grocery_list
 
   # Dashboard & Landing
   root "home#index"

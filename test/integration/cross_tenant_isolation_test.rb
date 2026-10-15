@@ -62,6 +62,9 @@ class CrossTenantIsolationTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # The old per-plan address redirects for an own plan, so the 404 is the proof
+  # that a foreign plan is not found at all (no redirect to its dates).
+  # @card-62.6
   test "a signed-in organizer cannot read another household's grocery list" do
     get plan_grocery_list_url(@other_meal_plan)
     assert_response :not_found
