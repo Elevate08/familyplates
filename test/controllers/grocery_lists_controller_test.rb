@@ -80,7 +80,8 @@ class GroceryListsControllerTest < ActionDispatch::IntegrationTest
   test "an unreadable or reversed range falls back to the current week" do
     [ { from: "nonsense", to: "2026-10-25" },
       { from: "2026-10-25" },
-      { from: "2026-10-25", to: "2026-10-19" } ].each do |bad|
+      { from: "2026-10-25", to: "2026-10-19" },
+      { from: "2026-10-19", to: "1" * 200 } ].each do |bad|
       get grocery_list_url(bad)
       assert_response :success
       assert_select "[data-checklist-from-value=?]", this_monday.iso8601
