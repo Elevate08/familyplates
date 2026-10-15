@@ -21,7 +21,7 @@
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs">
+  <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs">
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+  <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex items-center gap-2 pb-4 mb-6 border-b border-slate-100 dark:border-slate-800">
       <span class="text-xl">🎨</span>
       <div>
@@ -104,7 +104,7 @@
       <div>
         <%= f.label :name, "Display Name / Nickname", class: "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5" %>
         <%= f.text_field :name, placeholder: "e.g. Dad, Sarah, Little Chef", required: true,
-              class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
 
       <div>
@@ -126,21 +126,8 @@
 
       <div>
         <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2.5">Kitchen Theme Accent Color</span>
-        <div class="grid grid-cols-4 sm:grid-cols-6 gap-x-3 gap-y-4">
-          <% [
-            ["#F97316", "Carrot"],
-            ["#3B82F6", "Ocean"],
-            ["#10B981", "Sage"],
-            ["#F59E0B", "Amber"],
-            ["#EF4444", "Chili"],
-            ["#8B5CF6", "Plum"],
-            ["#EC4899", "Berry"],
-            ["#14B8A6", "Mint"],
-            ["#6366F1", "Twilight"],
-            ["#84CC16", "Olive"],
-            ["#06B6D4", "Sky"],
-            ["#64748B", "Graphite"]
-          ].each do |hex, label| %>
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-x-3 gap-y-4">
+          <% FamilyMember::AVATAR_COLOR_NAMES.each do |hex, label| %>
             <label class="cursor-pointer group flex flex-col items-center">
               <%= f.radio_button :avatar_color, hex, class: "sr-only peer" %>
               <div class="w-10 h-10 rounded-xl shadow-2xs border border-black/10 dark:border-white/10 peer-checked:ring-2 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-900 peer-checked:ring-slate-900 dark:peer-checked:ring-white transition-all flex items-center justify-center group-hover:scale-105"
@@ -169,7 +156,7 @@
             </p>
             <div class="max-w-xs relative">
               <input type="password" name="current_pin" id="current_pin" maxlength="4" placeholder="••••" pattern="[0-9]*" inputmode="numeric" autocomplete="current-password" required
-                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
 
@@ -195,7 +182,7 @@
               <div class="max-w-xs relative" data-controller="configured-field">
                 <%= f.password_field :pin, value: nil, maxlength: 4, placeholder: "••••", pattern: "[0-9]*", inputmode: "numeric", autocomplete: "new-password",
                       data: { configured_field_target: "input", action: "focus->configured-field#hide blur->configured-field#update input->configured-field#update" },
-                      class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+                      class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500" %>
                 <% if @family_member.pin_digest.present? %>
                   <span data-configured-field-target="indicator"
                         class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
@@ -210,13 +197,13 @@
 
       <div class="pt-4 flex items-center justify-end border-t border-slate-100 dark:border-slate-800">
         <%= f.submit "Save Preferences", 
-              class: "px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all hover:scale-105" %>
+              class: "px-6 py-2.5 rounded-full bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-sm cursor-pointer transition-all hover:scale-105" %>
       </div>
     <% end %>
   </div>
 
   <% if current_user && !Current.session&.kiosk? %>
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
+    <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -288,14 +275,14 @@
 
             <div class="flex flex-wrap gap-2 pt-2">
               <% if FamilyPlates.config.google_auth_enabled? && current_user.identities.where(provider: "google").none? %>
-                <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
                   <%= icon_tag("google", css_class: "w-3.5 h-3.5") %>
                   <span>+ Connect Google</span>
                 <% end %>
               <% end %>
 
               <% if FamilyPlates.config.oidc_enabled? && current_user.identities.where(provider: "oidc").none? %>
-                <%= button_to auth_request_path(provider: :oidc), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
+                <%= button_to auth_request_path(provider: :oidc), method: :post, data: { turbo: false }, class: "px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-2 shadow-2xs" do %>
                   <span>+ Connect <%= FamilyPlates.config.oidc_display_name %></span>
                 <% end %>
               <% end %>
@@ -306,7 +293,7 @@
     </div>
   <% end %>
 
-  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+  <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">

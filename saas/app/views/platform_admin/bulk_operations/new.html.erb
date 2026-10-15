@@ -8,7 +8,7 @@
   </div>
 
   <%= form_with url: preview_platform_admin_bulk_operations_path, method: :post, local: true, data: { turbo: false }, class: "space-y-8" do |form| %>
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
+    <div class="rounded-3xl border border-slate-200 bg-cream p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-5">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">1. Select Target Scope</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter the households to include in this bulk operation.</p>
@@ -22,7 +22,7 @@
                 ["Active Households Only", "active"],
                 ["Suspended Households Only", "suspended"],
                 ["Trialing Households Only", "trialing"]
-              ], @filter_params[:status]), {}, class: "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
+              ], @filter_params[:status]), {}, class: "w-full rounded-xl border border-slate-300 bg-cream px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
         </div>
 
         <div>
@@ -31,22 +31,22 @@
                 ["Any Promotion Status", ""],
                 ["Without Any Promotion Code", "without_promo"],
                 ["With A Promotion Code Applied", "with_promo"]
-              ], @filter_params[:promo_filter]), {}, class: "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
+              ], @filter_params[:promo_filter]), {}, class: "w-full rounded-xl border border-slate-300 bg-cream px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
         </div>
 
         <div>
           <%= form.label "filter_params[tag]", "Filter by Existing Tag (Optional)", class: "block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5" %>
-          <%= form.text_field "filter_params[tag]", value: @filter_params[:tag], placeholder: "e.g. beta_tester", class: "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
+          <%= form.text_field "filter_params[tag]", value: @filter_params[:tag], placeholder: "e.g. beta_tester", class: "w-full rounded-xl border border-slate-300 bg-cream px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
         </div>
 
         <div>
           <%= form.label "filter_params[search]", "Search Filter (Optional)", class: "block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5" %>
-          <%= form.text_field "filter_params[search]", value: @filter_params[:search], placeholder: "Match name or email query", class: "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
+          <%= form.text_field "filter_params[search]", value: @filter_params[:search], placeholder: "Match name or email query", class: "w-full rounded-xl border border-slate-300 bg-cream px-3 py-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" %>
         </div>
       </div>
     </div>
 
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-cream p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">2. Choose Action & Parameters</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Select what operation to perform on the eligible matching households.</p>
@@ -111,7 +111,7 @@
       </div>
     </div>
 
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+    <div class="rounded-3xl border border-slate-200 bg-cream p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
       <div class="border-b border-slate-100 pb-4 dark:border-slate-800">
         <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">3. Operational Justification</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">A clear reason is required for platform auditing and accountability.</p>

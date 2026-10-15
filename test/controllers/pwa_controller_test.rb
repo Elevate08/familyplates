@@ -9,7 +9,7 @@ class PwaControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert_equal "FamilyPlates", json["name"]
     assert_equal "standalone", json["display"]
-    assert_equal "#ea580c", json["theme_color"]
+    assert_equal "#A64730", json["theme_color"]
   end
 
   test "should get service worker" do

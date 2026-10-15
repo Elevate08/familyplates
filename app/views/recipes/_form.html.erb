@@ -10,44 +10,44 @@
     </div>
   <% end %>
 
-  <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
+  <div class="bg-cream dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
     <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">Recipe Details</h2>
 
     <div>
       <%= f.label :title, "Recipe Title", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
       <%= f.text_field :title, placeholder: "e.g. Crispy Honey Garlic Chicken", required: true,
-            class: "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+            class: "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500" %>
     </div>
 
     <div>
       <%= f.label :description, "Short Description", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
       <%= f.text_area :description, rows: 2, placeholder: "Why your family loves this dish...",
-            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div>
         <%= f.label :prep_time, "Prep Time (mins)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
-        <%= f.number_field :prep_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <%= f.number_field :prep_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
       <div>
         <%= f.label :cook_time, "Cook Time (mins)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
-        <%= f.number_field :cook_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <%= f.number_field :cook_time, min: 0, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
       <div>
         <%= f.label :total_time, "Total Time (mins)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
-        <%= f.number_field :total_time, min: 0, placeholder: "Auto or exact", class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <%= f.number_field :total_time, min: 0, placeholder: "Auto or exact", class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
       <div>
         <%= f.label :servings, "Servings", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
-        <%= f.number_field :servings, min: 1, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+        <%= f.number_field :servings, min: 1, class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
     </div>
 
     <div>
       <%= f.label :equipment, "Equipment & Materials Needed (optional)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
       <%= f.text_field :equipment, placeholder: "e.g. 8x8-inch baking pan, Dutch oven, 6-qt slow cooker, cast iron skillet",
-            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+            class: "w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Baking dish sizes, special pans, or appliances required for this recipe.</p>
     </div>
 
@@ -85,14 +85,14 @@
         <div>
           <%= f.label :leftover_capacity, "Extra Meals Yielded", class: "block text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider mb-1" %>
           <%= f.number_field :leftover_capacity, min: 1, max: 10, step: 1, value: recipe.effective_leftover_capacity,
-                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
+                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-cream dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
           <p class="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Extra meal slots this dish can cover as leftovers (1–10).</p>
         </div>
 
         <div>
           <%= f.label :leftover_shelf_life_days, "Good For (Days)", class: "block text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider mb-1" %>
           <%= f.number_field :leftover_shelf_life_days, min: 1, max: 14, step: 1, value: recipe.effective_leftover_shelf_life_days,
-                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
+                class: "w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-700 bg-cream dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" %>
           <p class="text-[11px] text-purple-600 dark:text-purple-400 mt-1">Days leftovers remain fresh after cooking (1–14, default 3).</p>
         </div>
       </div>
@@ -102,7 +102,7 @@
       <div>
         <%= f.label :image, "Upload Custom Image (optional)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
         <%= f.file_field :image, accept: "image/*",
-              class: "w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-50 dark:file:bg-primary-950/60 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/60 cursor-pointer" %>
+              class: "w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-50 dark:file:bg-primary-950/60 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/60 cursor-pointer" %>
         <% if recipe.image.attached? %>
           <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">✓ Custom image currently uploaded</p>
         <% end %>
@@ -110,14 +110,14 @@
       <div>
         <%= f.label :image_url, "Or Image URL (optional)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
         <%= f.url_field :image_url, placeholder: "https://images.unsplash.com/... or blog photo URL",
-              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
       </div>
     </div>
 
     <div>
       <%= f.label :source_url, "Original Web Link (optional)", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1" %>
       <%= f.url_field :source_url, placeholder: "https://example.com/recipe",
-            class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+            class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
     </div>
 
     <div data-controller="tag-picker" 
@@ -130,7 +130,7 @@
 
       <%= f.hidden_field :tags, data: { "tag-picker-target": "hiddenInput" } %>
 
-      <div class="min-h-[46px] p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all flex flex-wrap items-center gap-1.5 shadow-2xs">
+      <div class="min-h-[46px] p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all flex flex-wrap items-center gap-1.5 shadow-2xs">
         
         <div data-tag-picker-target="badgesContainer" class="flex flex-wrap items-center gap-1.5"></div>
 
@@ -145,7 +145,7 @@
       </div>
 
       <div data-tag-picker-target="suggestionsMenu"
-           class="hidden absolute left-0 top-full mt-1.5 z-30 w-72 max-w-full overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 p-2 animate-in fade-in zoom-in-95 duration-100">
+           class="hidden absolute left-0 top-full mt-1.5 z-30 w-72 max-w-full overflow-hidden rounded-2xl bg-cream dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 p-2 animate-in fade-in zoom-in-95 duration-100">
         
         <div data-tag-picker-target="createOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
           <button type="button"
@@ -167,7 +167,7 @@
   <div data-controller="recipe-ingredients-form"
        data-ingredient-catalogue
        data-ingredient-catalogue-ingredients="<%= (@available_ingredients || IngredientAisleMapping.available_ingredients_with_aisles(current_household)).to_json %>"
-       data-ingredient-catalogue-units="<%= (@available_units || RecipeIngredient.available_units(current_household)).to_json %>" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+       data-ingredient-catalogue-units="<%= (@available_units || RecipeIngredient.available_units(current_household)).to_json %>" class="bg-cream dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
       <div>
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Ingredients</h2>
@@ -217,16 +217,16 @@
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+  <div class="bg-cream dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
     <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">Cooking Instructions</h2>
     <div>
       <%= f.text_area :instructions, rows: 6, placeholder: "1. Heat oil in skillet...\n2. Add garlic and onions...\n3. Simmer for 15 minutes.",
-            class: "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
+            class: "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" %>
     </div>
   </div>
 
   <div class="flex items-center justify-end gap-3 pt-4">
     <%= link_to "Cancel", recipes_path, class: "px-5 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
-    <%= f.submit "Save Recipe to Vault", class: "py-3 px-6 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>
+    <%= f.submit "Save Recipe to Vault", class: "py-3 px-6 rounded-full bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm shadow-md shadow-primary-500/20 cursor-pointer transition-all hover:scale-105" %>
   </div>
 <% end %>

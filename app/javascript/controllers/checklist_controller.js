@@ -246,7 +246,7 @@ export default class extends Controller {
         row.classList.add("bg-amber-50/40")
       } else {
         row.classList.remove("bg-slate-50")
-        row.classList.add("bg-white")
+        row.classList.add("bg-cream")
       }
       if (textLabel) textLabel.classList.remove("line-through", "text-slate-400")
     }

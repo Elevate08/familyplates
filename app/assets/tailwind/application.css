@@ -3,17 +3,57 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary-50: color-mix(in srgb, var(--user-accent, #ea580c) 10%, white);
-  --color-primary-100: color-mix(in srgb, var(--user-accent, #ea580c) 20%, white);
-  --color-primary-200: color-mix(in srgb, var(--user-accent, #ea580c) 35%, white);
-  --color-primary-300: color-mix(in srgb, var(--user-accent, #ea580c) 50%, white);
-  --color-primary-400: color-mix(in srgb, var(--user-accent, #ea580c) 75%, white);
-  --color-primary-500: var(--user-accent, #ea580c);
-  --color-primary-600: color-mix(in srgb, var(--user-accent, #ea580c) 85%, black);
-  --color-primary-700: color-mix(in srgb, var(--user-accent, #ea580c) 70%, black);
-  --color-primary-800: color-mix(in srgb, var(--user-accent, #ea580c) 55%, black);
-  --color-primary-900: color-mix(in srgb, var(--user-accent, #ea580c) 40%, black);
-  --color-primary-950: color-mix(in srgb, var(--user-accent, #ea580c) 20%, black);
+  --color-primary-50: color-mix(in srgb, var(--user-accent, #A64730) 10%, white);
+  --color-primary-100: color-mix(in srgb, var(--user-accent, #A64730) 20%, white);
+  --color-primary-200: color-mix(in srgb, var(--user-accent, #A64730) 35%, white);
+  --color-primary-300: color-mix(in srgb, var(--user-accent, #A64730) 50%, white);
+  --color-primary-400: color-mix(in srgb, var(--user-accent, #A64730) 75%, white);
+  --color-primary-500: var(--user-accent, #A64730);
+  --color-primary-600: color-mix(in srgb, var(--user-accent, #A64730) 85%, black);
+  --color-primary-700: color-mix(in srgb, var(--user-accent, #A64730) 70%, black);
+  --color-primary-800: color-mix(in srgb, var(--user-accent, #A64730) 55%, black);
+  --color-primary-900: color-mix(in srgb, var(--user-accent, #A64730) 40%, black);
+  --color-primary-950: color-mix(in srgb, var(--user-accent, #A64730) 20%, black);
+
+  /* Hearth palette, for markup that should not follow the member accent. */
+  --color-oat: #F7F0E5;        /* page surface */
+  --color-cream: #FFFCF7;      /* card surface, a step lighter than oat */
+  --color-line: #E3D6C3;       /* thin warm border (= slate-200 below) */
+  --color-terracotta: #A64730; /* brand primary */
+  --color-forest: #304C3C;     /* secondary accent, headings, success */
+  --color-sage: #8CA692;       /* supporting */
+  --color-honey: #E3B86B;      /* highlights */
+
+  /* slate-* is redefined as Hearth's warm neutrals so the ~3,900 existing
+     slate utilities pick up oat/cream in light mode and warm charcoal in dark
+     without rewriting every view. "slate" here no longer means blue-grey. */
+  --color-slate-50: #F7F0E5;
+  --color-slate-100: #EFE6D8;
+  --color-slate-200: #E3D6C3;
+  --color-slate-300: #CDBCA5;
+  --color-slate-400: #A0907D;
+  --color-slate-500: #7A6B5F;
+  --color-slate-600: #5B4E45;
+  --color-slate-700: #453B34;
+  --color-slate-800: #2E2724;
+  --color-slate-900: #221C1A;
+  --color-slate-950: #171312;
+
+  /* emerald-* becomes a forest ramp, so success and "done" states read as
+     Hearth's forest rather than a bright mint. */
+  --color-emerald-50: #EEF3EF;
+  --color-emerald-100: #DDE7DF;
+  --color-emerald-200: #BFD1C4;
+  --color-emerald-300: #8CA692;
+  --color-emerald-400: #6F8F78;
+  --color-emerald-500: #4A6B57;
+  --color-emerald-600: #3B5B49;
+  --color-emerald-700: #304C3C;
+  --color-emerald-800: #263D30;
+  --color-emerald-900: #1D2F25;
+  --color-emerald-950: #111C16;
+
+  --font-display: "Lora", ui-serif, Georgia, Cambria, "Times New Roman", serif;
 }
 
 /* Date and time picker popups follow the app theme. */
@@ -23,6 +63,14 @@
 
 .dark {
   color-scheme: dark;
+}
+
+@layer base {
+  /* Soft serif for headings. Uppercase h2/h3 are small section labels
+     ("PRODUCE", "INGREDIENTS"), which stay in the sans like the mockups. */
+  :where(h1, h2, h3):not(.uppercase) {
+    font-family: var(--font-display);
+  }
 }
 
 @layer components {
@@ -63,7 +111,7 @@
   /* Bordered select with a chevron instead of the platform arrow. */
   .themed-select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237A6B5F' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
     background-position: right 0.75rem center;
     background-repeat: no-repeat;
     background-size: 1rem 1rem;
@@ -71,12 +119,12 @@
   }
 
   .dark .themed-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23A0907D' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
   }
 
   /* Popup colours. Shape stays the platform's. Safari and macOS Chromium ignore these and rely on color-scheme. */
   .themed-select option {
-    background-color: white;
+    background-color: var(--color-cream);
     color: var(--color-slate-900);
     font-weight: 600;
     padding-block: 0.35rem;

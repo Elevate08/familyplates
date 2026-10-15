@@ -15,7 +15,9 @@ stripe_origins = defined?(FamilyPlatesSaas) ? [ "https://checkout.stripe.com", "
 Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src :self
-    policy.font_src    :self, :data
+    # Lora, the Hearth heading face, comes from Google Fonts: the stylesheet
+    # from fonts.googleapis.com, the font files from fonts.gstatic.com.
+    policy.font_src    :self, :data, "https://fonts.gstatic.com"
     # blob: for the image preview on the recipe form, which shows a chosen file
     # via URL.createObjectURL before it is uploaded.
     policy.img_src     :self, :data, :blob, :https
@@ -28,7 +30,7 @@ Rails.application.configure do
     # mechanism - allowing them means either this or moving every colour to a
     # custom property, which is a larger change than it is worth here. Style
     # injection is a far weaker primitive than script injection.
-    policy.style_src   :self, :unsafe_inline
+    policy.style_src   :self, :unsafe_inline, "https://fonts.googleapis.com"
 
     policy.base_uri    :self
 

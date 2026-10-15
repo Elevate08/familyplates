@@ -35,7 +35,7 @@
       <% end %>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+    <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
       <%= form_with url: platform_admin_audit_events_path, method: :get, class: "space-y-3" do |f| %>
         <%= f.hidden_field :category, value: @category %>
 
@@ -84,7 +84,7 @@
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-cream shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <div class="divide-y divide-slate-100 dark:divide-slate-800">
       <% @events.each do |event| %>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
