@@ -12,7 +12,7 @@
     <%= link_to "← Admin Dashboard", admin_root_path, class: "text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
+  <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
@@ -50,7 +50,7 @@
 
       <a href="<%= gcal_web_url %>" target="_blank" rel="noopener noreferrer"
          class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700 flex items-center gap-3 transition-all hover:scale-[1.02] shadow-2xs group">
-        <div class="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center shadow-xs shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-cream dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center shadow-xs shrink-0">
           <%= icon_tag("google", css_class: "w-5 h-5") %>
         </div>
         <div class="min-w-0">
@@ -72,7 +72,7 @@
                value="<%= feed_url %>"
                class="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 select-all focus:outline-none focus:ring-2 focus:ring-primary-500">
         <button type="button" data-action="click->clipboard#copy"
-                class="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5">
+                class="px-4 py-2.5 rounded-full bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5">
           <%= icon_tag("copy", css_class: "w-3.5 h-3.5") %>
           <span data-clipboard-target="feedback">Copy</span>
         </button>
@@ -95,7 +95,7 @@
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-4">
+  <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-4">
     <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
       <span>💡</span>
       <span>How Calendar Subscriptions Work</span>

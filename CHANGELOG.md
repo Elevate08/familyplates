@@ -4,7 +4,11 @@ All notable changes to FamilyPlates are documented in this file.
 
 ## [Unreleased]
 
+### 🛒 Shopping
 * **A day you shop is a weekday.** Household & Meal Schedule asks which day of the week you shop (Monday–Sunday) instead of a calendar date. Every week, the grocery list runs from that weekday to the day before it next week. Every 2 weeks keeps that weekday every other week: the 14-day rhythm stays put when the weekday does not change, and slides by a few days when it does. Every month still uses a day of the month (1st–31st), and a 29th, 30th or 31st falls on the last day of a shorter month. Households already set to shop weekly on Saturday stay on Saturday.
+
+### 🎨 Design
+* **Hearth visual refresh.** Pages sit on warm oat instead of cool slate, cards are cream with thin warm borders, primary actions are terracotta and success states forest green. Headings use the Lora serif (from Google Fonts; Georgia when offline) over the existing sans. Each family member's accent colour still recolours buttons and highlights, and the default accent is now terracotta. Terracotta and Forest join the profile colour choices. Dark mode is a warm charcoal and still follows the theme toggle; Cook Mode stays dark. No features, routes, prices or behaviour changed.
 
 ## [v1.4.0] - 2026-10-15
 

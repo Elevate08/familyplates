@@ -1,7 +1,7 @@
 <div class="max-w-4xl mx-auto py-6 sm:py-10 space-y-8">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
     <div class="flex items-center gap-3.5">
-      <div class="w-12 h-12 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20">
+      <div class="w-12 h-12 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20">
         <%= icon_tag("sparkles", css_class: "w-6 h-6 text-white") %>
       </div>
       <div>
@@ -51,7 +51,7 @@
   <% end %>
 
   <% if @subscription.present? %>
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
+    <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
       <div class="flex items-center justify-between">
         <div>
           <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Current Plan</span>
@@ -85,14 +85,14 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl border <%= @household.subscription_plan_key == :monthly ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-slate-200/80 dark:border-slate-800' %> p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+      <div class="bg-cream dark:bg-slate-900 rounded-3xl border <%= @household.subscription_plan_key == :monthly ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-slate-200/80 dark:border-slate-800' %> p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
         <div>
           <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Monthly</span>
             <span class="text-lg">🗓️</span>
           </div>
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black text-slate-900 dark:text-white"><%= @offers[:monthly].price %></span>
+            <span class="font-display text-4xl font-bold text-slate-900 dark:text-white"><%= @offers[:monthly].price %></span>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ month</span>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Full family kitchen access with flexible month-to-month billing.</p>
@@ -131,7 +131,7 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-slate-900 rounded-3xl border-2 <%= @household.subscription_plan_key == :annual ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-primary-500 dark:border-primary-600' %> p-6 sm:p-8 flex flex-col justify-between shadow-md relative">
+      <div class="bg-cream dark:bg-slate-900 rounded-3xl border-2 <%= @household.subscription_plan_key == :annual ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-primary-500 dark:border-primary-600' %> p-6 sm:p-8 flex flex-col justify-between shadow-md relative">
         <div class="absolute -top-3 right-6 bg-primary-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm">
           Save <%= @offers[:annual].savings_percent_against(@offers[:monthly]) %>%
         </div>
@@ -142,7 +142,7 @@
             <span class="text-lg">⭐</span>
           </div>
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black text-slate-900 dark:text-white"><%= @offers[:annual].price %></span>
+            <span class="font-display text-4xl font-bold text-slate-900 dark:text-white"><%= @offers[:annual].price %></span>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ year (<%= @offers[:annual].monthly_equivalent %>/mo)</span>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Best value for households. Billed once a year and renews yearly until you cancel.</p>
@@ -170,7 +170,7 @@
             </button>
           <% elsif household_billing_owner_session? %>
             <%= render "subscriptions/consent_form", offer: @offers[:annual],
-                  button_class: "w-full py-3 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
+                  button_class: "w-full py-3 px-4 rounded-full bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs shadow-md shadow-primary-500/20 transition-all hover:scale-[1.02] cursor-pointer text-center" %>
           <% else %>
             <p class="text-center text-xs text-slate-400 font-medium"><%= billing_owner_hint %></p>
           <% end %>

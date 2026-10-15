@@ -1,7 +1,7 @@
 class FamilyMember < ApplicationRecord
   attribute :id, default: -> { SecureRandom.uuid }
 
-  DEFAULT_COLOR = "#F97316"
+  DEFAULT_COLOR = "#A64730"
   DEFAULT_ICON = "chef-hat"
 
   belongs_to :household
@@ -13,7 +13,9 @@ class FamilyMember < ApplicationRecord
   has_many :meal_plan_slots, dependent: :nullify
 
   AVATAR_COLORS = [
-    "#F97316", # Orange (Warm Carrot / Brand)
+    "#A64730", # Terracotta (Hearth / Brand)
+    "#304C3C", # Forest
+    "#F97316", # Orange (Warm Carrot)
     "#3B82F6", # Blue (Ocean)
     "#10B981", # Emerald (Sage)
     "#F59E0B", # Amber (Golden)
@@ -30,7 +32,7 @@ class FamilyMember < ApplicationRecord
   # What a screen reader announces for each swatch, which is otherwise only a
   # colour. The names match the ones on the preferences page.
   AVATAR_COLOR_NAMES = AVATAR_COLORS.zip(
-    %w[Carrot Ocean Sage Amber Chili Plum Berry Mint Twilight Olive Sky Graphite]
+    %w[Terracotta Forest Carrot Ocean Sage Amber Chili Plum Berry Mint Twilight Olive Sky Graphite]
   ).to_h.freeze
 
   AVATAR_ICONS = %w[chef-hat utensils heart star smile flame sparkles award].freeze

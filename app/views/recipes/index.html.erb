@@ -15,19 +15,19 @@
     </div>
 
     <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-      <%= link_to new_recipe_import_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
+      <%= link_to new_recipe_import_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-cream dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors" do %>
         <%= icon_tag("link", css_class: "w-4 h-4 text-primary-500") %>
         <span>Import URL</span>
       <% end %>
 
-      <%= link_to new_recipe_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs sm:text-sm font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
+      <%= link_to new_recipe_path, class: "inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-primary-600 hover:bg-primary-500 text-white text-xs sm:text-sm font-bold shadow-sm shadow-primary-500/20 transition-all hover:scale-105" do %>
         <%= icon_tag("plus", css_class: "w-4 h-4") %>
         <span>Add Recipe</span>
       <% end %>
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-4">
+  <div class="bg-cream dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-4">
     <%
       active_filter_label = if params[:filter] == "breakfast"
         "☀️ Breakfast"
@@ -58,7 +58,7 @@
       </button>
 
       <div data-dropdown-target="menu" 
-           class="hidden absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
+           class="hidden absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-3xl bg-cream dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
         
         <div class="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div class="relative">
@@ -68,7 +68,7 @@
                    data-dropdown-target="searchInput"
                    data-action="input->dropdown#filter keydown.esc->dropdown#hide"
                    placeholder="Type to filter categories & tags..."
-                   class="w-full pl-8 pr-7 py-2 rounded-xl bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-2xs">
+                   class="w-full pl-8 pr-7 py-2 rounded-xl bg-cream dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-2xs">
             <div class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
@@ -171,7 +171,7 @@
               <span>🏷️ <%= current_tag_active.present? ? current_tag_active : "Tags" %></span>
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div data-dropdown-target="menu" class="hidden absolute left-0 mt-2 w-56 overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div data-dropdown-target="menu" class="hidden absolute left-0 mt-2 w-56 overflow-hidden rounded-3xl bg-cream dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div class="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <input type="text"
                        id="recipe_tag_filter"
@@ -179,7 +179,7 @@
                        data-dropdown-target="searchInput"
                        data-action="input->dropdown#filter keydown.esc->dropdown#hide"
                        placeholder="Filter tags..."
-                       class="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                       class="w-full px-2.5 py-1 rounded-lg bg-cream dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500">
               </div>
               <div class="max-h-60 overflow-y-auto themed-scrollbar p-1.5 overscroll-contain">
                 <% @available_tags.each do |tag| %>
@@ -209,7 +209,7 @@
           <%= hidden_field_tag :view, current_view, id: nil %>
           <div class="relative">
             <%= text_field_tag :query, params[:query], placeholder: "Search recipes or tags...", 
-                  class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
+                  class: "w-full pl-3 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100" %>
             <% if params[:query].present? %>
               <%= link_to "&times;".html_safe, recipes_path(filter: params[:filter], tag: params[:tag], view: current_view), class: "absolute right-2.5 top-1.5 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" %>
             <% end %>
@@ -248,7 +248,7 @@
     </div>
 
     <% if current_family_member&.admin? && @recipes.any? %>
-      <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
+      <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cream dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 cursor-pointer shadow-2xs select-none">
         <input type="checkbox"
                id="recipes_select_all"
                data-bulk-select-target="selectAllCheckbox"
@@ -288,7 +288,7 @@
 
         <button type="button"
                 data-action="click->bulk-select#confirmBulkDelete"
-                class="px-3 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1">
+                class="px-3 py-1.5 rounded-full bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1">
           <span>🗑️</span>
           <span>Delete</span>
         </button>
@@ -318,7 +318,7 @@
       </div>
     <% end %>
   <% else %>
-    <div class="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-6 sm:p-8">
+    <div class="text-center py-16 bg-cream dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-6 sm:p-8">
       <div class="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-500 dark:text-primary-400 flex items-center justify-center mx-auto mb-3">
         <%= icon_tag("book-open", css_class: "w-6 h-6") %>
       </div>
@@ -362,7 +362,7 @@
 
         <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
           <button type="button" data-action="click->bulk-select#closeMealTypesModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-          <%= f.submit "Save Meal Types", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
+          <%= f.submit "Save Meal Types", class: "px-5 py-2 rounded-full bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
         </div>
       <% end %>
     <% end %>
@@ -392,7 +392,7 @@
           <%= hidden_field_tag :tags, "", 
                 data: { "bulk-select-target": "tagsInput", "tag-picker-target": "hiddenInput" } %>
 
-          <div class="min-h-[46px] p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all flex flex-wrap items-center gap-1.5 shadow-2xs">
+          <div class="min-h-[46px] p-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-cream dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all flex flex-wrap items-center gap-1.5 shadow-2xs">
             <div data-tag-picker-target="badgesContainer" class="flex flex-wrap items-center gap-1.5"></div>
             <div class="flex-1 min-w-[140px] relative">
               <input type="text"
@@ -407,7 +407,7 @@
           </div>
 
           <div data-tag-picker-target="suggestionsMenu"
-               class="hidden absolute left-0 right-0 top-full mt-1.5 z-30 overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 p-2 animate-in fade-in zoom-in-95 duration-100">
+               class="hidden absolute left-0 right-0 top-full mt-1.5 z-30 overflow-hidden rounded-2xl bg-cream dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 p-2 animate-in fade-in zoom-in-95 duration-100">
             <div data-tag-picker-target="createOption" class="hidden mb-1 pb-1 border-b border-slate-100 dark:border-slate-800">
               <button type="button"
                       data-action="click->tag-picker#createCustomTag"
@@ -430,7 +430,7 @@
 
         <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
           <button type="button" data-action="click->bulk-select#closeTagsModal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-          <%= f.submit "Save Tags", class: "px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
+          <%= f.submit "Save Tags", class: "px-5 py-2 rounded-full bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-primary-500/20" %>
         </div>
       <% end %>
     <% end %>

@@ -1,10 +1,10 @@
 <div class="relative" data-controller="dropdown">
   <button type="button" 
           data-action="click->dropdown#toggle click@window->dropdown#hide"
-          class="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-semibold transition-all border border-slate-200/80 dark:border-slate-700 cursor-pointer shadow-2xs hover:shadow-xs"
+          class="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-cream dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-semibold transition-all border border-slate-200/80 dark:border-slate-700 cursor-pointer shadow-2xs hover:shadow-xs"
           title="Active Profile & Kitchen Settings">
     <% if current_family_member %>
-      <span class="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-white shadow-xs shrink-0"
+      <span class="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white shadow-xs shrink-0"
             style="background-color: <%= current_family_member.safe_avatar_color %>">
         <%= icon_tag(current_family_member.safe_avatar_icon, css_class: "w-4 h-4 sm:w-4.5 sm:h-4.5") %>
       </span>
@@ -22,7 +22,7 @@
   </button>
 
   <div data-dropdown-target="menu" 
-       class="hidden absolute right-0 mt-2 w-72 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200/90 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+       class="hidden absolute right-0 mt-2 w-72 rounded-3xl bg-cream dark:bg-slate-800 shadow-2xl border border-slate-200/90 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-100">
     
     <div class="border-b border-slate-100 dark:border-slate-700/80">
       <%= link_to select_profile_path, class: "group block px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" do %>
@@ -33,9 +33,9 @@
           </span>
         </div>
         <div class="flex items-center gap-2.5">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-2xl text-white shadow-sm shrink-0"
-                style="background-color: <%= current_family_member&.safe_avatar_color || '#ea580c' %>">
-            <%= icon_tag(current_family_member&.safe_avatar_icon || "chef-hat", css_class: "w-5 h-5") %>
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-full text-white shadow-sm shrink-0"
+                style="background-color: <%= current_family_member&.safe_avatar_color || '#A64730' %>">
+            <%= icon_tag(current_family_member&.safe_avatar_icon, css_class: "w-5 h-5") %>
           </span>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">

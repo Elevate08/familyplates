@@ -20,7 +20,7 @@
       <% if FamilyPlates.config.any_oauth_enabled? %>
         <div class="space-y-2.5 mb-3">
           <% if FamilyPlates.config.google_auth_enabled? %>
-            <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "w-full py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-3" do %>
+            <%= button_to auth_request_path(provider: :google), method: :post, data: { turbo: false }, class: "w-full py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-3" do %>
               <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -32,7 +32,7 @@
           <% end %>
 
           <% if FamilyPlates.config.oidc_enabled? %>
-            <%= button_to auth_request_path(provider: :oidc), method: :post, data: { turbo: false }, class: "w-full py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-3" do %>
+            <%= button_to auth_request_path(provider: :oidc), method: :post, data: { turbo: false }, class: "w-full py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-3" do %>
               <span>🛡️</span>
               <span>Sign In with <%= FamilyPlates.config.oidc_display_name %></span>
             <% end %>
@@ -61,7 +61,7 @@
         <%= f.label :email, "Email Address", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5" %>
         <%= f.email_field :email, value: params[:email], required: true, autofocus: true, autocomplete: "email",
               placeholder: "you@example.com",
-              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" %>
+              class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" %>
       </div>
 
       <% unless FamilyPlates.config.hosted? %>
@@ -69,7 +69,7 @@
           <%= f.label :password, "Password", class: "block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5" %>
           <%= f.password_field :password, required: true, autocomplete: "current-password",
                 placeholder: "••••••••",
-                class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" %>
+                class: "w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-cream dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" %>
         </div>
       <% end %>
 

@@ -18,7 +18,7 @@ window.showConfirmDialog = function(message, options = {}) {
       return
     }
 
-    const themeColor = getComputedStyle(document.documentElement).getPropertyValue("--user-accent").trim() || "#ea580c"
+    const themeColor = getComputedStyle(document.documentElement).getPropertyValue("--user-accent").trim() || "#A64730"
 
     titleEl.textContent = options.title || (message.toLowerCase().includes("delete") || message.toLowerCase().includes("remove") ? "Confirm Deletion" : "Are You Sure?")
     messageEl.textContent = message
