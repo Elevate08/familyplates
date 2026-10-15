@@ -82,7 +82,7 @@ be saved again. The URL importer only fetches from ports 80, 443, 8080 and 8443.
   challenge such as The Mediterranean Dish, and Allrecipes, Serious Eats and
   Simply Recipes. When a site turns the importer away, it tries once more with
   an honest FamilyPlates user agent, through the same outbound URL checks.
-- **Hosted service:** public sign-up, Stripe billing (14-day trial, $4/month or
+- **Hosted service:** public sign-up, Stripe billing (14-day trial, $5/month or
   $50/year), and an operator console at `/platform_admin` behind its own
   password, TOTP and rate limit.
 

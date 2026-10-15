@@ -10,7 +10,7 @@ module Household::Billing
   PLANS = {
     monthly: {
       name: "Monthly",
-      price: "$4",
+      price: "$5",
       interval: "month",
       stripe_price_id: ENV["STRIPE_MONTHLY_PRICE_ID"].presence || "price_monthly",
       description: "Full family kitchen access, billed monthly"
