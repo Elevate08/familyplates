@@ -51,7 +51,7 @@
 
     <style>
       :root {
-        --user-accent: <%= (respond_to?(:current_family_member) && current_family_member&.avatar_color) || '#ea580c' %>;
+        --user-accent: <%= (respond_to?(:current_family_member) && current_family_member&.safe_avatar_color) || '#ea580c' %>;
       }
       /* Prevent iOS tap highlight gray box */
       * {
@@ -118,9 +118,13 @@
       <%= render "shared/navbar" %>
 
       <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
+        <%= hosted_render "terms_notice" if FamilyPlates.config.hosted? %>
+        <%= hosted_render "trial_banner" if FamilyPlates.config.hosted? && authenticated? %>
         <%= render "shared/flash" %>
         <%= yield %>
       </main>
+
+      <%= hosted_render "legal_footer" if FamilyPlates.config.hosted? %>
 
       <%= render "shared/nav_pin_modal" %>
       <%= render "shared/confirm_modal" %>

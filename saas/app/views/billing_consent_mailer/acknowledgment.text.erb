@@ -1,0 +1,25 @@
+Hello,
+
+Thank you for subscribing to FamilyPlates. Keep this email: it confirms the subscription terms you agreed to and the payment Stripe took.
+
+Plan: FamilyPlates <%= @consent.plan_name %>, <%= @consent.price_label %>, renewing automatically until you cancel.
+Agreed on: <%= @consent.accepted_at.utc.to_formatted_s(:long) %> UTC
+Terms of Service version: <%= @consent.terms_version %> (<%= @terms_url %>)
+
+Your payment:
+Amount paid: <%= @consent.paid_label %> on <%= @consent.paid_at.utc.to_date.to_formatted_s(:long) %><% if @consent.paid_discount_label %>, after a discount of <%= @consent.paid_discount_label %><% end %>
+Paid period: <%= @consent.paid_period_start.utc.to_date.to_formatted_s(:long) %> to <%= @consent.paid_period_end.utc.to_date.to_formatted_s(:long) %>
+<% if @consent.next_renewal_at -%>
+Next renewal: <%= @consent.next_renewal_at.utc.to_date.to_formatted_s(:long) %>, unless you cancel before then
+<% else -%>
+Next renewal: none, your subscription is set to end
+<% end -%>
+
+What you agreed to:
+<%= raw @consent.disclosure %>
+
+Refunds:
+<%= BillingOffer::REFUND_REQUEST %>
+
+How to cancel:
+Sign in to FamilyPlates, open Subscription & Billing (<%= @subscription_url %>) and choose Cancel Subscription. Only the household's billing owner can cancel. Canceling stops the next renewal, and you keep access until the end of the period you have paid for.

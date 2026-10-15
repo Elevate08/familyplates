@@ -23,7 +23,7 @@ class PantryRestockCycleTest < ActionDispatch::IntegrationTest
   end
 
   def aggregate
-    IngredientAggregator.call(@plan.reload)
+    IngredientAggregator.call(@plan.household, @plan.week_start_date..(@plan.week_start_date + 6.days))
   end
 
   def item_named(name)

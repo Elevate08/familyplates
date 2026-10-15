@@ -65,3 +65,12 @@ tmp/screenshots/
 *.swp
 *~
 .claude/
+
+# Internal planning, launch, review and context documents: kept on disk,
+# never published in this repository.
+/tasks/
+/notes/
+/docs/ideas/
+/CONTEXT.md
+/saas/DEPLOY.md
+/script/hermes-review

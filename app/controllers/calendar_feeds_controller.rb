@@ -2,6 +2,8 @@ class CalendarFeedsController < ApplicationController
   allow_unauthenticated_access
   skip_before_action :handle_revoked_session
   skip_before_action :set_current_family_member
+  # The feed token is the credential, not whoever's cookie rides along.
+  allow_without_current_terms
 
   before_action :set_household
 
@@ -21,9 +23,19 @@ class CalendarFeedsController < ApplicationController
 
   private
 
+  # The feed skips the sign-in chain, so it repeats the hosted edition's
+  # checks itself. A suspended household's feed is gone (404). The feed is
+  # household content, so it also stops with the household's access: a hosted
+  # household past its trial or paid term gets 403, not 404, so calendar apps
+  # keep the subscription; its meals are kept and the same link works again
+  # once it subscribes.
   def set_household
     @household = Household.find_by(calendar_feed_token: params[:token])
-    head :not_found unless @household
+    if @household.nil? || (@household.respond_to?(:suspended?) && @household.suspended?)
+      head :not_found
+    elsif !household_content_available?(@household)
+      head :forbidden
+    end
   end
 
   def render_feed(member: nil)

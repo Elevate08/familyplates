@@ -60,7 +60,7 @@
           <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex items-center gap-4">
             <div data-onboarding-avatar-target="previewColor"
                  class="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-xl transition-all"
-                 style="background-color: <%= params.dig(:admin_member, :avatar_color) || FamilyMember::DEFAULT_COLOR %>">
+                 style="background-color: <%= FamilyMember.safe_color(params.dig(:admin_member, :avatar_color)) %>">
               <% FamilyMember::AVATAR_ICONS.each_with_index do |icon_name, idx| %>
                 <span data-icon-name="<%= icon_name %>" class="<%= (params.dig(:admin_member, :avatar_icon) || 'chef-hat') == icon_name ? '' : 'hidden' %>">
                   <%= icon_tag(icon_name, css_class: "w-7 h-7") %>

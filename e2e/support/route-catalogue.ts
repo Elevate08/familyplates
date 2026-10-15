@@ -13,6 +13,7 @@ export type Route = { verb: string; path: string; controller: string | null; act
 export type CrawlRecords = {
   household: string;
   recipe: number;
+  recipe_import: string;
   meal_plan: number;
   family_member: string;
   support_thread: string;
@@ -33,6 +34,7 @@ export const PARAMETERISED: Record<string, (r: CrawlRecords) => string> = {
   "GET /admin/family_members/:id/edit": (r) => `/admin/family_members/${r.family_member}/edit`,
   "GET /platform_admin/households/:id": (r) => `/platform_admin/households/${r.household}`,
   "GET /platform_admin/support_threads/:id": (r) => `/platform_admin/support_threads/${r.support_thread}`,
+  "GET /recipe_imports/:id": (r) => `/recipe_imports/${r.recipe_import}`,
   "GET /recipes/:id": (r) => `/recipes/${r.recipe}`,
   "GET /recipes/:id/edit": (r) => `/recipes/${r.recipe}/edit`,
   "GET /recipes/:id/cook": (r) => `/recipes/${r.recipe}/cook`,
@@ -54,6 +56,7 @@ export const VARIANTS: Record<string, string[]> = {
 export const SKIPPED: Record<string, string> = {
   "GET /up": "Load-balancer health check. Plain text, not a page.",
   "GET /manifest": "PWA manifest JSON, not a page (pwa_controller_test).",
+  "GET /grocery_ticks": "JSON for the grocery checklist script, not a page (grocery_ticks_controller_test).",
   "GET /service-worker": "Service worker JavaScript, not a page (pwa_controller_test).",
   "GET /account_data/export": "Sends a JSON attachment the browser downloads instead of rendering (account_data_controller_test).",
   "GET /calendars/feed/:token": "iCalendar feed for calendar apps, not a page (calendar_feeds_controller_test).",

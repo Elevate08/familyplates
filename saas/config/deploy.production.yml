@@ -1,0 +1,78 @@
+# bin/kamal <command> -d production. Merged over saas/config/deploy.yml.
+#
+# familyplates.org: Stripe live mode, the production SMTP account, real mail.
+# Every deployer variable read here or in saas/.kamal/secrets.production is
+# named FAMILYPLATES_PRODUCTION_*, so staging's settings cannot leak in.
+
+service: familyplates-production
+image: familyplates-production
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SERVER") %>
+    # Caps so a runaway process cannot starve staging if both share a server.
+    options:
+      memory: 1536m
+      cpus: 1.5
+      pids-limit: 512
+
+  # Every background job, recipe imports included, runs here and not inside
+  # Puma (SOLID_QUEUE_IN_PUMA is off): an import fetches a stranger's page, and
+  # a hostile one can send an endless response header that Net::HTTP buffers
+  # until the 20 second fetch deadline (SA-12). The memory cap stops that fetch
+  # in a container that serves no traffic. bin/jobs is Solid Queue's supervisor,
+  # which also runs the dispatcher and the recurring-task scheduler, so each
+  # runs once. A role without a proxy key takes no traffic. memory-swap equal to
+  # memory leaves no swap to absorb the runaway; 512m is unvalidated, so watch
+  # `docker stats` after the first deploy. Env and volume are the shared ones below.
+  job:
+    hosts:
+      - <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SERVER") %>
+    cmd: bin/jobs
+    options:
+      memory: 512m
+      memory-swap: 512m
+      cpus: 0.5
+      pids-limit: 256
+
+ssh:
+  user: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SSH_USER", "root") %>
+
+# kamal-proxy terminates TLS with a Let's Encrypt certificate.
+proxy:
+  ssl: true
+  host: familyplates.org
+  healthcheck:
+    path: /up
+
+env:
+  clear:
+    FAMILYPLATES_DEPLOY_TARGET: production
+    RAILS_ENV: production
+    APP_HOST: familyplates.org
+    # kamal-proxy speaks HTTPS to the browser and HTTP to the app.
+    ASSUME_SSL: true
+    SMTP_ADDRESS: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_ADDRESS") %>
+    SMTP_PORT: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_SMTP_PORT", "587") %>
+    MAILER_DEFAULT_FROM: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_MAILER_DEFAULT_FROM", "FamilyPlates <no-reply@familyplates.org>") %>
+    STRIPE_MONTHLY_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_STRIPE_MONTHLY_PRICE_ID") %>
+    STRIPE_ANNUAL_PRICE_ID: <%= ENV.fetch("FAMILYPLATES_PRODUCTION_STRIPE_ANNUAL_PRICE_ID") %>
+    # Live webhooks only. The app refuses to boot as production otherwise.
+    STRIPE_WEBHOOK_RECEIVE_TEST_EVENTS: "false"
+  secret:
+    - SECRET_KEY_BASE
+    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - STRIPE_PRIVATE_KEY
+    - STRIPE_SIGNING_SECRET
+
+# The SQLite databases and uploaded images. Nothing else is mounted. The host
+# folder sits on a separate data disk mounted at /srv/familyplates-production, so the
+# server can be replaced or resized without moving the data, and the disk is
+# snapshotted on its own schedule. Create storage/ owned by 1000:1000 (the
+# container's rails user) before the first `kamal setup`.
+volumes:
+  - "/srv/familyplates-production/storage:/rails/storage"

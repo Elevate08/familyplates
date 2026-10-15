@@ -1,8 +1,8 @@
 <div id="member-<%= member.id %>" class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex items-center justify-between gap-4 transition-all">
   <div class="flex items-center gap-3.5">
     <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs font-bold"
-         style="background-color: <%= member.avatar_color %>">
-      <%= icon_tag(member.avatar_icon.presence || "chef-hat", css_class: "w-6 h-6") %>
+         style="background-color: <%= member.safe_avatar_color %>">
+      <%= icon_tag(member.safe_avatar_icon, css_class: "w-6 h-6") %>
     </div>
     <div>
       <div class="flex items-center gap-2">

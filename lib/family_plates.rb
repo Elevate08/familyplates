@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "ipaddr"
+
 module FamilyPlates
   class Error < StandardError; end
   class AdminPasswordRequiredError < Error; end
@@ -50,24 +52,19 @@ module FamilyPlates
     end
 
     attr_accessor :google_client_id, :google_client_secret
-    attr_accessor :apple_client_id, :apple_team_id, :apple_key_id, :apple_private_key, :apple_client_secret
-    attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_display_name, :oidc_scope
-    attr_accessor :forward_auth_trusted_proxies, :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
-    attr_writer :google_auth_enabled, :apple_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
+    attr_accessor :oidc_issuer, :oidc_client_id, :oidc_client_secret, :oidc_auth_url, :oidc_token_url, :oidc_userinfo_url, :oidc_jwks_url, :oidc_display_name, :oidc_scope
+    attr_accessor :forward_auth_email_headers, :forward_auth_user_headers, :forward_auth_name_headers, :forward_auth_logout_url
+    attr_writer :google_auth_enabled, :oidc_auth_enabled, :forward_auth_enabled
 
     def google_auth_enabled?
       enabled = @google_auth_enabled.nil? ? (ENV["AUTH_GOOGLE_ENABLED"] == "true") : @google_auth_enabled
       enabled && google_client_id.present? && google_client_secret.present?
     end
 
-    def apple_auth_enabled?
-      enabled = @apple_auth_enabled.nil? ? (ENV["AUTH_APPLE_ENABLED"] == "true") : @apple_auth_enabled
-      enabled && apple_client_id.present? && (apple_client_secret.present? || (apple_private_key.present? && apple_key_id.present? && apple_team_id.present?))
-    end
-
     def oidc_enabled?
       enabled = @oidc_auth_enabled.nil? ? (ENV["AUTH_OIDC_ENABLED"] == "true") : @oidc_auth_enabled
-      enabled && oidc_client_id.present? && oidc_client_secret.present? && (oidc_issuer.present? || (oidc_auth_url.present? && oidc_token_url.present?))
+      # The issuer is required: every id_token is checked against it.
+      enabled && oidc_client_id.present? && oidc_client_secret.present? && oidc_issuer.present?
     end
 
     def forward_auth_enabled?
@@ -79,7 +76,7 @@ module FamilyPlates
     end
 
     def any_oauth_enabled?
-      google_auth_enabled? || apple_auth_enabled? || oidc_enabled?
+      google_auth_enabled? || oidc_enabled?
     end
 
     def google_client_id
@@ -88,26 +85,6 @@ module FamilyPlates
 
     def google_client_secret
       @google_client_secret || ENV["GOOGLE_CLIENT_SECRET"]
-    end
-
-    def apple_client_id
-      @apple_client_id || ENV["APPLE_CLIENT_ID"]
-    end
-
-    def apple_team_id
-      @apple_team_id || ENV["APPLE_TEAM_ID"]
-    end
-
-    def apple_key_id
-      @apple_key_id || ENV["APPLE_KEY_ID"]
-    end
-
-    def apple_private_key
-      @apple_private_key || ENV["APPLE_PRIVATE_KEY"]
-    end
-
-    def apple_client_secret
-      @apple_client_secret || ENV["APPLE_CLIENT_SECRET"]
     end
 
     def oidc_issuer
@@ -134,6 +111,11 @@ module FamilyPlates
       @oidc_userinfo_url || ENV["OIDC_USERINFO_URL"]
     end
 
+    # Only for a provider without discovery; otherwise read from discovery.
+    def oidc_jwks_url
+      @oidc_jwks_url || ENV["OIDC_JWKS_URL"]
+    end
+
     def oidc_display_name
       @oidc_display_name || ENV["OIDC_DISPLAY_NAME"].presence || "Single Sign-On"
     end
@@ -146,16 +128,52 @@ module FamilyPlates
       @forward_auth_trusted_proxies || (ENV["FORWARD_AUTH_TRUSTED_PROXIES"].presence || "127.0.0.1,::1").split(",").map(&:strip)
     end
 
-    def forward_auth_email_headers
-      @forward_auth_email_headers || (ENV["FORWARD_AUTH_EMAIL_HEADERS"].presence || ENV["FORWARD_AUTH_EMAIL_HEADER"].presence || "Remote-Email,X-Forwarded-Email,Tailscale-User-Login").split(",").map(&:strip)
+    def forward_auth_trusted_proxies=(value)
+      @forward_auth_proxies = nil
+      @forward_auth_trusted_proxies = value
     end
 
+    # The single-host addresses in forward_auth_trusted_proxies, parsed once.
+    # A network range would make every client inside it a trusted hop, so range
+    # entries (and entries that are not an IP address) are ignored.
+    ForwardAuthProxies = Struct.new(:hosts, :ignored)
+
+    def forward_auth_proxies
+      @forward_auth_proxies ||= begin
+        hosts = []
+        ignored = []
+        forward_auth_trusted_proxies.map(&:strip).compact_blank.each do |entry|
+          hosts << FamilyPlates.single_ip(entry)
+        rescue IPAddr::InvalidPrefixError
+          ignored << "#{entry} (range)"
+        rescue IPAddr::Error
+          ignored << "#{entry} (not an IP address)"
+        end
+        ForwardAuthProxies.new(hosts.freeze, ignored.freeze).freeze
+      end
+    end
+
+    # Called once at boot, so an operator can see why forward-auth sign-in stopped.
+    def log_ignored_forward_auth_proxies(logger)
+      return unless forward_auth_enabled?
+
+      proxies = forward_auth_proxies
+      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: #{proxies.ignored.join(', ')}") if proxies.ignored.any?
+      logger.warn("[auth] FORWARD_AUTH_TRUSTED_PROXIES has no usable address; forward-auth will not sign anyone in") if proxies.hosts.empty?
+    end
+
+    def forward_auth_email_headers
+      forward_auth_headers(@forward_auth_email_headers, "EMAIL", "Remote-Email")
+    end
+
+    # No default: with none set, the user ID is the email. A client can add any
+    # header a proxy neither sets nor strips, so a default name would be one more.
     def forward_auth_user_headers
-      @forward_auth_user_headers || (ENV["FORWARD_AUTH_USER_HEADERS"].presence || ENV["FORWARD_AUTH_USER_HEADER"].presence || "Remote-User,X-Forwarded-User").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_user_headers, "USER", "")
     end
 
     def forward_auth_name_headers
-      @forward_auth_name_headers || (ENV["FORWARD_AUTH_NAME_HEADERS"].presence || ENV["FORWARD_AUTH_NAME_HEADER"].presence || "Remote-Name,X-Forwarded-Name,X-Forwarded-Preferred-Username").split(",").map(&:strip)
+      forward_auth_headers(@forward_auth_name_headers, "NAME", "Remote-Name")
     end
 
     def forward_auth_logout_url
@@ -168,12 +186,6 @@ module FamilyPlates
       @google_auth_enabled = nil
       @google_client_id = nil
       @google_client_secret = nil
-      @apple_auth_enabled = nil
-      @apple_client_id = nil
-      @apple_team_id = nil
-      @apple_key_id = nil
-      @apple_private_key = nil
-      @apple_client_secret = nil
       @oidc_auth_enabled = nil
       @oidc_issuer = nil
       @oidc_client_id = nil
@@ -181,19 +193,52 @@ module FamilyPlates
       @oidc_auth_url = nil
       @oidc_token_url = nil
       @oidc_userinfo_url = nil
+      @oidc_jwks_url = nil
       @oidc_display_name = nil
       @oidc_scope = nil
       @forward_auth_enabled = nil
       @forward_auth_trusted_proxies = nil
+      @forward_auth_proxies = nil
       @forward_auth_email_headers = nil
       @forward_auth_user_headers = nil
       @forward_auth_name_headers = nil
       @forward_auth_logout_url = nil
     end
+
+    private
+
+    # The header names for one forward-auth identity field: the value set in
+    # code, else FORWARD_AUTH_<KIND>_HEADERS (or the older singular name), else the default.
+    def forward_auth_headers(configured, kind, default)
+      configured || (ENV["FORWARD_AUTH_#{kind}_HEADERS"].presence || ENV["FORWARD_AUTH_#{kind}_HEADER"].presence || default).split(",").map(&:strip)
+    end
   end
 
   def self.config
     @config ||= Config.new
+  end
+
+  # An IPv4-mapped IPv6 address (or range, such as ::ffff:172.18.0.0/112)
+  # becomes the IPv4 one, so it compares equal to the same IPv4 address.
+  def self.native_ip(ip)
+    return ip unless ip.ipv4_mapped? && ip.prefix >= 96
+
+    ip.native.mask(ip.prefix - 96)
+  end
+
+  # A single host address; a value that parses as a range is not one.
+  def self.host_address?(ip)
+    ip.prefix == (ip.ipv4? ? 32 : 128)
+  end
+
+  # The one address in a setting such as TRUSTED_PROXIES, with an IPv4-mapped
+  # IPv6 address as IPv4. Raises IPAddr::InvalidPrefixError for a range and
+  # IPAddr::InvalidAddressError for anything that is not an IP address.
+  def self.single_ip(address)
+    ip = native_ip(IPAddr.new(address.to_s.strip))
+    raise IPAddr::InvalidPrefixError, "#{address.inspect} is a range" unless host_address?(ip)
+
+    ip
   end
 
   # True when the hosted edition's engine is loaded (Gemfile.saas).
@@ -226,6 +271,35 @@ module FamilyPlates
     return false unless target_household
 
     target_household.can_require_login?
+  end
+
+  # The addresses that may sit between a client and the app, for
+  # config.action_dispatch.trusted_proxies. Rails' default trusts every private
+  # range, so on an appliance (a LAN, or the Docker bridge) any client could name
+  # its own address in X-Forwarded-For and dodge the per-IP sign-in and PIN
+  # limits. An appliance trusts only loopback (Thruster, in the image) and the
+  # single addresses in TRUSTED_PROXIES, so remote_ip is the last hop that is not
+  # one of them: the address Thruster, or the operator's proxy, saw. The image
+  # keeps Puma on loopback, so nothing reaches it without passing Thruster.
+  #
+  # While TRUSTED_PROXIES lists nothing and forward-auth is on, the single
+  # addresses in FORWARD_AUTH_TRUSTED_PROXIES stand in for it: an install already
+  # behind a proxy that names it there keeps seeing each client's own address.
+  #
+  # Returns nil for the hosted edition, which keeps Rails' default. Its clients
+  # arrive from public addresses, and kamal-proxy reaches the app from a private
+  # one: narrowing the list would give every user kamal-proxy's address.
+  def self.trusted_proxies(hosted: config.hosted?, extra: ENV["TRUSTED_PROXIES"])
+    return if hosted
+
+    listed = extra.to_s.split(",").map(&:strip).compact_blank.map do |address|
+      single_ip(address)
+    rescue IPAddr::Error
+      raise ArgumentError, "TRUSTED_PROXIES must list single IP addresses, comma-separated; #{address.inspect} is not one."
+    end
+    listed = config.forward_auth_proxies.hosts if listed.empty? && config.forward_auth_enabled?
+
+    %w[127.0.0.0/8 ::1].map { |address| IPAddr.new(address) } + listed
   end
 
   # Hostname operators set for a public deploy. Blank on a LAN appliance.

@@ -144,4 +144,39 @@ class FamilyMemberTest < ActiveSupport::TestCase
     member.pin = "4321"
     assert member.valid?
   end
+
+  # FP-APPSEC-014
+  test "avatar color and icon must be on the allowlists" do
+    member = family_members(:two)
+    member.avatar_color = "red;} body{display:none"
+    assert_not member.valid?
+    assert member.errors[:avatar_color].any?
+
+    member.avatar_color = FamilyMember::DEFAULT_COLOR
+    member.avatar_icon = "<script>"
+    assert_not member.valid?
+    assert member.errors[:avatar_icon].any?
+  end
+
+  test "safe readers fall back to defaults and legacy rows are normalized on save" do
+    member = family_members(:two)
+    bad = "x\"; </style><script>alert(1)</script>"
+    member.update_columns(avatar_color: bad, avatar_icon: "evil'icon")
+
+    member = FamilyMember.find(member.id)
+    assert_equal FamilyMember::DEFAULT_COLOR, member.safe_avatar_color
+    assert_equal FamilyMember::DEFAULT_ICON, member.safe_avatar_icon
+    assert_equal bad, member.avatar_color, "reading must not persist anything"
+
+    member.update!(name: "Renamed")
+    member.reload
+    assert_equal FamilyMember::DEFAULT_COLOR, member.avatar_color
+    assert_equal FamilyMember::DEFAULT_ICON, member.avatar_icon
+  end
+
+  test "a save that sets an invalid color is rejected rather than normalized" do
+    member = family_members(:two)
+    assert_not member.update(avatar_color: "javascript:alert(1)")
+    assert_not_equal "javascript:alert(1)", member.reload.avatar_color
+  end
 end

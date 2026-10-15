@@ -6,7 +6,8 @@ FamilyPlates comes in two editions, built from one codebase the way [Fizzy](http
 | :--- | :--- | :--- |
 | Who runs it | Anyone, on their own hardware | David Spencer, one deployment |
 | Households | One kitchen | Many, each isolated from the others |
-| Sign-in | Profiles and PINs, optional passwords, passkeys, and optionally Google, Apple, OIDC or a forward-auth proxy | Email sign-in codes, passkeys, Google and Apple |
+| Sign-in | Profiles and PINs, optional passwords, passkeys, and optionally Google, OIDC or a forward-auth proxy | Email sign-in codes, passkeys, Google |
+| Email | Optional: no SMTP needed, and an account's email is not verified | Required: hosted mode won't start without `SMTP_ADDRESS`, and sign-up verifies the email with a code |
 | Cost | Free, always entitled | 14-day trial, then a Stripe subscription |
 | Image | `ghcr.io/elevate08/familyplates` (published on every release) | Built at deploy time, never published |
 | Gemfile | `Gemfile` | `Gemfile.saas` (the core `Gemfile` plus the engine) |

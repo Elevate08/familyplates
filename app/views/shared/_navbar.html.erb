@@ -5,11 +5,11 @@
       <div class="flex items-center gap-4 sm:gap-8 my-auto">
         <%= link_to root_path, class: "flex items-center gap-2.5 group my-auto" do %>
           <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 shrink-0"
-               style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>">
+               style="background-color: <%= current_family_member&.safe_avatar_color || '#ea580c' %>">
             <%= icon_tag("chef-hat", css_class: "w-5 h-5 sm:w-6 sm:h-6") %>
           </div>
           <div class="flex flex-col justify-center">
-            <span class="font-black text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white leading-tight">Family<span style="color: <%= current_family_member&.avatar_color || '#ea580c' %>">Plates</span></span>
+            <span class="font-black text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white leading-tight">Family<span style="color: <%= current_family_member&.safe_avatar_color || '#ea580c' %>">Plates</span></span>
             <% if authenticated? && current_household %>
               <span class="hidden md:inline-block text-[10.5px] font-semibold text-slate-400 dark:text-slate-500 truncate">
                 <%= current_household.name %>
@@ -98,8 +98,8 @@
       <% is_pref = request.path.start_with?('/preferences') %>
       <%= link_to preferences_path, class: "min-w-[58px] min-h-[44px] px-2 py-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 #{is_pref ? 'text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-950/70 border border-primary-100 dark:border-primary-900/60 shadow-2xs scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'}" do %>
         <span class="inline-flex items-center justify-center w-5 h-5 rounded-md text-white shadow-2xs"
-              style="background-color: <%= current_family_member&.avatar_color || '#ea580c' %>">
-          <%= current_family_member ? icon_tag(current_family_member.avatar_icon.presence || "chef-hat", css_class: "w-3.5 h-3.5") : "👤" %>
+              style="background-color: <%= current_family_member&.safe_avatar_color || '#ea580c' %>">
+          <%= current_family_member ? icon_tag(current_family_member.safe_avatar_icon, css_class: "w-3.5 h-3.5") : "👤" %>
         </span>
         <span class="text-[10px] tracking-tight">Profile</span>
       <% end %>

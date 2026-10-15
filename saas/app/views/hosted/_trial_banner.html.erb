@@ -1,0 +1,63 @@
+<%# Where an unpaid household's free trial stands. Shown on every household
+    page until the household pays; then never again. The end is one UTC
+    instant shown in the household's zone (UTC when it has none), with the
+    zone named. Static text, not a ticking countdown, so a screen reader is
+    not interrupted. Only the billing owner, on their own profile and not a
+    kitchen display, is offered Subscribe; everyone else is asked to go to
+    them. Nothing here is a billing control. %>
+<% household = current_household %>
+<% state = household && household.trial_banner_state %>
+<% if state %>
+  <% zone = household.time_zone_object %>
+  <% ends_at = household.trial_ends_at %>
+  <% local_end = ends_at.in_time_zone(zone) %>
+  <% owner = household_billing_owner_session? %>
+  <% offer_link = owner && controller_name != "subscriptions" %>
+  <% time_tag_html = capture do %><time datetime="<%= ends_at.utc.iso8601 %>"><%= local_end.strftime("%B %-d, %Y at %-l:%M %p %Z") %></time><% end %>
+  <% if state == :pending %>
+    <section aria-label="Subscription payment status" data-testid="trial-banner" data-trial-banner-state="pending"
+             class="mb-6 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/60 px-4 py-3 text-sm text-sky-900 dark:text-sky-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p>
+          <strong class="font-bold">Payment pending.</strong>
+          We are confirming whether your subscription payment went through.
+          <% if household.trial_active? %>
+            Your free trial still ends <%= time_tag_html %>.
+          <% else %>
+            Your household opens again as soon as the payment is confirmed.
+          <% end %>
+        </p>
+        <% if offer_link %>
+          <%= link_to "View subscription", subscription_path,
+                class: "inline-flex items-center justify-center shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 font-semibold underline focus:ring-2 focus:ring-primary-500" %>
+        <% end %>
+      </div>
+    </section>
+  <% else %>
+    <section aria-label="Free trial status" data-testid="trial-banner" data-trial-banner-state="<%= state %>"
+             class="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p>
+          <% if state == :trial %>
+            <span class="inline-flex items-center rounded-lg bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300 tabular-nums">
+              <%= household.trial_less_than_one_day_left? ? "Less than 1 day left" : "#{pluralize(household.trial_days_left, "day")} left" %>
+            </span>
+            Your free trial ends <%= time_tag_html %>.
+          <% else %>
+            Your free trial ended <%= time_tag_html %>.
+          <% end %>
+          <% if owner %>
+            Subscribe to keep using your household.
+          <% else %>
+            Ask your household owner to subscribe to keep using your household.
+          <% end %>
+          <strong class="font-bold">Payment not setup.</strong>
+        </p>
+        <% if offer_link %>
+          <%= link_to "Subscribe", subscription_path,
+                class: "inline-flex items-center justify-center shrink-0 whitespace-nowrap rounded-lg bg-amber-700 hover:bg-amber-800 px-3 py-1.5 font-semibold text-white focus:ring-2 focus:ring-primary-500" %>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+<% end %>

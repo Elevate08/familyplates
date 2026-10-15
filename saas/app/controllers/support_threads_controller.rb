@@ -1,6 +1,9 @@
 class SupportThreadsController < ApplicationController
   allow_suspended_access
 
+  # Support is a customer-account conversation, not something a shared kitchen display does.
+  before_action :forbid_kiosk_support_access
+
   before_action :set_support_thread, only: %i[show resolve]
 
   def index

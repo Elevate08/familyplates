@@ -1,0 +1,13 @@
+<%# In-app notice of a changed Terms version the signed-in person has not
+    yet accepted. Shown until they accept it; the gate takes over once its
+    notice period has ended. %>
+<% if current_user && TermsAssent.pending_change?(current_user) && controller_name != "terms_acceptances" %>
+  <% enforcement_at = TermsNotice.enforcement_at_for(current_user) %>
+  <div role="status" data-testid="terms-change-notice" class="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+    The Terms of Service have changed.
+    <% if enforcement_at %>
+      Please accept the new version before <%= enforcement_at.utc.to_formatted_s(:long) %> UTC.
+    <% end %>
+    <%= link_to "Review and accept", terms_acceptance_path, class: "font-semibold underline" %>
+  </div>
+<% end %>

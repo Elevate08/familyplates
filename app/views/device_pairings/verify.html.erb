@@ -71,10 +71,14 @@
       <div class="pt-2 flex flex-col gap-2.5">
         <%= f.submit "Approve Pairing",
               class: "w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer" %>
-
-        <%= button_to "Deny Request", deny_pair_path(user_code: @grant.user_code), method: :post,
-              class: "w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs transition-colors cursor-pointer" %>
       </div>
     <% end %>
+
+    <%# Deny must live outside the approve form: HTML drops nested forms, so inside it the button would submit approval. %>
+    <div class="pt-2.5">
+      <%= button_to "Deny Request", deny_pair_path(user_code: @grant.user_code), method: :post,
+            form_class: "w-full",
+            class: "w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs transition-colors cursor-pointer" %>
+    </div>
 <% end %>
 <% end %>

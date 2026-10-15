@@ -29,12 +29,16 @@ threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
-port ENV.fetch("PORT", 3000)
+# BINDING picks the address, as it does for `rails server` (the Docker image sets it to
+# 127.0.0.1, so only Thruster reaches Puma); unset, Puma listens on all addresses.
+port ENV.fetch("PORT", 3000), ENV["BINDING"].presence
 
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
 # Run the Solid Queue supervisor inside of Puma for single-server deployments.
+# Neither edition sets this: both run jobs in a memory-capped worker (bin/jobs),
+# and setting it as well would run imports in an uncapped second supervisor (SA-12).
 plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.

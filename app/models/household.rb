@@ -11,6 +11,8 @@ class Household < ApplicationRecord
   has_many :meal_plan_slots, through: :meal_plans
   has_many :device_grants, dependent: :nullify
   has_many :activity_events, dependent: :delete_all
+  has_many :recipe_imports, dependent: :delete_all
+  has_many :grocery_ticks, dependent: :delete_all
 
   has_secure_token :calendar_feed_token
 
@@ -18,6 +20,8 @@ class Household < ApplicationRecord
 
   validates :name, presence: true
   validates :join_code, presence: true, uniqueness: true
+  validates :shopping_frequency, inclusion: { in: ShoppingSchedule::FREQUENCIES }
+  validates :shopping_anchor_on, presence: true
   validate :time_zone_is_recognised
 
   # IANA zone for "today" and "dinner at 6pm". Stored times stay UTC so DST
@@ -25,6 +29,10 @@ class Household < ApplicationRecord
   def time_zone_object
     ActiveSupport::TimeZone[time_zone.to_s.presence || DEFAULT_TIME_ZONE] ||
       ActiveSupport::TimeZone[DEFAULT_TIME_ZONE]
+  end
+
+  def shopping_schedule
+    ShoppingSchedule.new(shopping_frequency, shopping_anchor_on || ShoppingSchedule::DEFAULT_ANCHOR)
   end
 
   def current_time

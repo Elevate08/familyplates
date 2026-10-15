@@ -158,6 +158,9 @@ export default defineConfig({
       RAILS_ENV: "test",
       BUNDLE_GEMFILE: process.env.BUNDLE_GEMFILE,
       TEST_DATABASE_PATH: `storage/e2e-${index}.sqlite3`,
+      // Jobs run in the server's own process; the test environment otherwise
+      // only records them. A recipe import's waiting page needs its job to run.
+      E2E_RUN_JOBS: "1",
       ENABLE_REAL_STRIPE_TESTS: process.env.ENABLE_REAL_STRIPE_TESTS || "",
       STRIPE_PRIVATE_KEY: process.env.STRIPE_PRIVATE_KEY || "",
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",

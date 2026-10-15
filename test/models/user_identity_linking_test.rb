@@ -8,6 +8,7 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
         provider: "google",
         uid: "google-uid-1",
         email: "newchef@example.com",
+        email_verified: true,
         name: "New Chef"
       )
 
@@ -23,13 +24,34 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
     assert_no_difference -> { User.count } do
       assert_difference -> { Identity.count } => 1 do
         user = User.find_or_create_from_identity(
-          provider: "apple",
-          uid: "apple-sub-1",
-          email: "Existing@Example.com"
+          provider: "google",
+          uid: "google-sub-1",
+          email: "Existing@Example.com",
+          email_verified: "true"
         )
 
         assert_equal existing_user.id, user.id
-        assert existing_user.identities.exists?(provider: "apple", uid: "apple-sub-1")
+        assert existing_user.identities.exists?(provider: "google", uid: "google-sub-1")
+      end
+    end
+  end
+
+  test "does not link identity to existing user when email is unverified or flag omitted" do
+    User.create!(email: "victim@example.com", password: "password123")
+
+    [ { email_verified: false }, { email_verified: "false" }, {} ].each do |extra|
+      assert_no_difference [ "User.count", "Identity.count" ] do
+        assert_raises(ActiveRecord::RecordInvalid) do
+          User.find_or_create_from_identity(provider: "oidc", uid: "attacker-uid", email: "victim@example.com", **extra)
+        end
+      end
+    end
+  end
+
+  test "does not create new user when email is unverified" do
+    assert_no_difference [ "User.count", "Identity.count" ] do
+      assert_raises(ActiveRecord::RecordInvalid) do
+        User.find_or_create_from_identity(provider: "google", uid: "g-1", email: "fresh@example.com", email_verified: false)
       end
     end
   end
@@ -63,6 +85,7 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
 
   # @card-20.5
   test "can_disconnect_identity? requires at least one other credential" do
+    enable_google_and_oidc!
     user = User.create!(email: "user@example.com")
     identity1 = user.identities.create!(provider: "google", uid: "uid-1")
 
@@ -75,7 +98,7 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
 
     # Removing password but adding a second identity allows disconnecting
     user.update_column(:password_digest, nil)
-    identity2 = user.identities.create!(provider: "apple", uid: "uid-2")
+    identity2 = user.identities.create!(provider: "oidc", uid: "uid-2")
     assert user.can_disconnect_identity?(identity1)
     assert user.can_disconnect_identity?(identity2)
 
@@ -83,5 +106,55 @@ class UserIdentityLinkingTest < ActiveSupport::TestCase
     other_user = User.create!(email: "other@example.com")
     other_identity = other_user.identities.create!(provider: "google", uid: "uid-other")
     assert_not user.can_disconnect_identity?(other_identity)
+  ensure
+    FamilyPlates.config.reset!
+  end
+
+  # Apple sign-in is removed, and a provider can be switched off: an identity
+  # nobody can sign in with is not a way back into the account.
+  test "an identity for a provider that cannot sign in does not count as another way in" do
+    enable_google_and_oidc!
+    user = User.create!(email: "apple-left@example.com")
+    google = user.identities.create!(provider: "google", uid: "g-left")
+    user.identities.create!(provider: "apple", uid: "apple-left")
+    assert_not user.can_disconnect_identity?(google)
+
+    oidc = user.identities.create!(provider: "oidc", uid: "o-left")
+    assert user.can_disconnect_identity?(google)
+
+    FamilyPlates.config.oidc_auth_enabled = false
+    assert_not user.can_disconnect_identity?(google), "OIDC is switched off, so only Google still signs in"
+    assert user.can_disconnect_identity?(oidc), "an unusable identity can always be removed while Google remains"
+  ensure
+    FamilyPlates.config.reset!
+  end
+
+  # SA-04 review: the forward-auth email check is in the forward-auth sign-in,
+  # not here, so a Google or OIDC account keeps signing in by its uid after the
+  # provider reports a new email address.
+  test "a google or oidc identity is found by uid even when the provider now reports another email" do
+    %w[google oidc].each do |provider|
+      user = User.create!(email: "#{provider}-original@example.com")
+      user.identities.create!(provider: provider, uid: "#{provider}-stable")
+
+      found = User.find_or_create_from_identity(
+        provider: provider, uid: "#{provider}-stable", email: "#{provider}-changed@example.com", email_verified: true
+      )
+
+      assert_equal user, found
+    end
+  end
+
+  private
+
+  def enable_google_and_oidc!
+    config = FamilyPlates.config
+    config.google_auth_enabled = true
+    config.google_client_id = "google-client"
+    config.google_client_secret = "google-secret"
+    config.oidc_auth_enabled = true
+    config.oidc_client_id = "oidc-client"
+    config.oidc_client_secret = "oidc-secret"
+    config.oidc_issuer = "https://auth.example.com"
   end
 end

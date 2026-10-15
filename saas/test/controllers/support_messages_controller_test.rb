@@ -20,4 +20,26 @@ class SupportMessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "We could not send that reply. Please try again.", flash[:alert]
     assert_not_equal "Your reply has been sent.", flash[:notice]
   end
+
+  test "organizer session can still reply" do
+    assert_difference -> { @thread.messages.count }, 1 do
+      post support_thread_messages_path(@thread), params: { support_message: { body: "Thanks" } }
+    end
+    assert_redirected_to support_thread_path(@thread)
+  end
+
+  # FP-APPSEC-008
+  test "kiosk session cannot read support threads or post messages" do
+    @user.sessions.last.update_columns(kind: "kiosk")
+
+    assert_no_difference -> { SupportMessage.count } do
+      post support_thread_messages_path(@thread), params: { support_message: { body: "From the kiosk" } }
+    end
+    assert_redirected_to root_path
+
+    get support_threads_path
+    assert_redirected_to root_path
+    get support_thread_path(@thread)
+    assert_redirected_to root_path
+  end
 end

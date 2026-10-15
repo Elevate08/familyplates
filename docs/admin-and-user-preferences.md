@@ -20,7 +20,7 @@ FamilyPlates provides distinct permission levels tailored for family organizers 
 | **4-Digit PIN Protection** | **Mandatory** | ❌ *(1-Tap Instant Switch)* |
 | **Access Admin Control Center (`/admin`)** | ✅ | ❌ |
 | **Household Roster Management** (Add members, change roles, reset PINs) | ✅ | ❌ |
-| **Household Branding & Meal Schedule** (Household name, meal start times) | ✅ | ❌ |
+| **Household Branding & Meal Schedule** (Household name, meal start times, shopping schedule) | ✅ | ❌ |
 | **Calendar Subscriptions & Feed Tokens** (Feed URLs, token rotation) | ✅ | ❌ |
 
 ---
@@ -56,5 +56,6 @@ The Admin Control Center is restricted to Organizers with PIN verification:
 2. **Household & Meal Schedule (`/admin/household/edit`):**
    * Household / Family Kitchen display name.
    * Default breakfast, lunch, and dinner start times (used when creating calendar events).
+   * Shopping: how often the household shops (every week, every 2 weeks, every month) and "A day you shop". Weekly uses that date's weekday, every 2 weeks counts 14-day steps from it, monthly uses its day of the month (the last day of shorter months). The Groceries tab opens to the current shopping period. New and existing households start as weekly on Saturday.
 3. **Calendar Subscriptions (`/admin/calendar/edit`):**
    * Manage household calendar feed links, test 1-tap Apple/Google subscriptions, and rotate feed security tokens.

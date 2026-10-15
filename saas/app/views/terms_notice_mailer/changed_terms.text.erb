@@ -1,0 +1,14 @@
+<%# Factual notice of a Terms change. Draft wording: not reviewed by an attorney. %>
+Hello,
+
+We have updated the FamilyPlates Terms of Service.
+
+New version: <%= @notice.terms_version %>
+Version you agreed to: <%= @notice.previous_terms_version %>
+Applies to you from: <%= @notice.stated_enforcement_at.utc.to_formatted_s(:long) %> UTC
+
+Read the updated Terms: <%= @terms_url %>
+
+Before that date you can review and accept them at <%= @acceptance_url %>. From that date you will be asked to accept them before using your household. Without accepting, you can still sign in and out, read the Terms and Privacy Policy, contact support, and manage or cancel your subscription (<%= @subscription_url %>).
+
+Questions: <%= @support_email %>

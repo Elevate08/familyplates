@@ -1,21 +1,24 @@
 class IngredientAggregator
-  attr_reader :meal_plan, :household
+  attr_reader :household, :range
 
   AISLE_ORDER = PantryItem::CATEGORIES
 
-  def self.call(meal_plan)
-    new(meal_plan).aggregate
+  # The list for every meal the household plans to cook on a date in the range,
+  # whichever weekly plan holds it.
+  def self.call(household, range)
+    new(household, range).aggregate
   end
 
-  def initialize(meal_plan)
-    @meal_plan = meal_plan
-    @household = meal_plan.household
+  def initialize(household, range)
+    @household = household
+    @range = range
   end
 
   def aggregate
     shielded = shielded_staple_names
     low_staples = low_staples_by_name
     raw_ingredients = collect_ingredients
+    meal_count = cooked_slots.count
 
     aggregated = {}
 
@@ -24,8 +27,10 @@ class IngredientAggregator
       key = "#{norm_name}_#{ing.unit.to_s.downcase}"
       entry = aggregated[key]
 
+      times = recipe_counts.fetch(ing.recipe_id)
+
       if entry
-        entry[:quantity] += (ing.quantity || 1.0)
+        entry[:quantity] += (ing.quantity || 1.0) * times
         entry[:sources] << ing.recipe.title unless entry[:sources].include?(ing.recipe.title)
       else
         match_key = normalize_for_match(norm_name)
@@ -35,7 +40,7 @@ class IngredientAggregator
 
         aggregated[key] = {
           name: norm_name,
-          quantity: ing.quantity || 1.0,
+          quantity: (ing.quantity || 1.0) * times,
           unit: ing.unit,
           aisle_category: aisle,
           emoji: emoji,
@@ -66,15 +71,26 @@ class IngredientAggregator
       aisles: grouped_all_by_aisle,
       total_shopping_count: shopping_items.count,
       total_pantry_count: pantry_items.count,
-      total_restock_count: restock_items.count
+      total_restock_count: restock_items.count,
+      meal_count: meal_count
     }
   end
 
   private
 
+  # Every cooked slot counts: a recipe on two days is bought for twice.
+  # Leftover slots eat what an earlier slot already cooked.
+  def cooked_slots
+    household.meal_plan_slots.where(date: range, is_leftover: false).where.not(recipe_id: nil)
+  end
+
+  # recipe_id => how many slots in the range cook it
+  def recipe_counts
+    @recipe_counts ||= cooked_slots.group(:recipe_id).count
+  end
+
   def collect_ingredients
-    recipe_ids = meal_plan.meal_plan_slots.where.not(recipe_id: nil).where(is_leftover: false).pluck(:recipe_id)
-    RecipeIngredient.where(recipe_id: recipe_ids).includes(:recipe)
+    RecipeIngredient.where(recipe_id: recipe_counts.keys).includes(:recipe)
   end
 
   def sort_rank(item)

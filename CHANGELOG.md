@@ -2,6 +2,38 @@
 
 All notable changes to FamilyPlates are documented in this file.
 
+## [v1.4.0] - 2026-10-15
+
+Grocery lists follow how the household actually shops, and the hosted service bills $5 a month or $50 a year after a 14-day trial.
+
+### ⚠️ Upgrading from v1.3.1
+* **Back up the database first.** Migrations run on boot (`bin/docker-entrypoint` calls `rails db:prepare`). They add tables and columns — grocery ticks, the shopping schedule, billing consent, recipe imports — and do not rewrite the tables v1.3.0 already converted to UUIDs.
+* **Recipe imports need the worker container.** Pasting a recipe link starts a job and shows a waiting page. The job runs in its own container, capped at 512 MB, so a hostile page cannot exhaust the web server's memory. Appliance installs must run the second container: the `worker` service in `docker-compose.yml`, or the extra `docker run` in the [getting started guide](docs/getting-started.md). Without it, imports stay queued and the waiting page reports that import is busy. The worker shares the web container's image, `familyplates_data` volume and settings; start or update both together. On the hosted service each destination has a `job` Kamal role (`bin/jobs`, 512 MB) and `SOLID_QUEUE_IN_PUMA` is removed.
+* **Appliances behind a reverse proxy must set `TRUSTED_PROXIES`.** The app records a client's address from the last hop that is not loopback or listed there, instead of trusting a client-supplied `X-Forwarded-For`. Set `TRUSTED_PROXIES` to the proxy's single address as the app container sees it (comma-separated for more than one; ranges are refused at boot). Until you do, and only while forward-auth is on, the single addresses in `FORWARD_AUTH_TRUSTED_PROXIES` are trusted instead. Any other install behind a proxy has every client sharing the proxy's address for rate limits. The image keeps Puma on the container's loopback (`BINDING=127.0.0.1`); anything that connected to port 3000 inside the container must use port 80 (Thruster). Appliances with no reverse proxy, and the hosted edition, need no other change.
+* **Forward-auth checks the reverse proxy's own address, and reads one identity header by default.** `FORWARD_AUTH_TRUSTED_PROXIES` must list the proxy's single address, not a client or LAN range. Range entries are ignored, with an `[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries` warning at startup. The app reads `Remote-Email` and `Remote-Name` (what Authelia sends) and no user ID header unless `FORWARD_AUTH_USER_HEADERS` is set. **Upgrading Authelia: set `FORWARD_AUTH_USER_HEADERS=Remote-User`. Upgrading oauth2-proxy: set `FORWARD_AUTH_EMAIL_HEADERS=X-Forwarded-Email` and `FORWARD_AUTH_USER_HEADERS=X-Forwarded-User`.** If you do not set the user ID header, each person gets a second forward-auth sign-in identity, keyed by their email, the first time they sign in. That is the same account. See [Getting started](docs/getting-started.md).
+* **Sign in with Apple is removed.** Leftover `AUTH_APPLE_ENABLED` / `APPLE_*` settings are ignored, and existing Apple identity rows are kept. Google sign-in, and OIDC on the hosted service, now require the provider to report the email as verified; an appliance's own OIDC provider may leave that claim out, but not set it to false.
+* **OIDC needs `OIDC_ISSUER`.** Every ID token's signature, issuer and nonce are checked. A provider without a discovery document also needs `OIDC_JWKS_URL`.
+* **Grocery ticks saved only in the browser are not carried over.** From this version the household's ticks live in the database. A list you ticked before upgrading starts unticked.
+* **Existing households shop weekly on Saturday** until an organizer changes the shopping schedule under Household & Meal Schedule.
+
+### 🚀 Highlights
+* **Grocery list for any shopping period.** The Groceries tab is no longer fixed to the current week. Pick This week, Next week, From today, This month or Next month, step with the previous and next arrows (a whole month when the list covers one calendar month), or enter your own dates, up to 42 days. The planner's week and month views each link to the grocery list for the period they show. A period you have opened works offline.
+* **Household shopping schedule.** Organizers choose how often the household shops (every week, every 2 weeks, every month) and which day. The Groceries tab opens on the current shopping period and keeps it until the next shopping day. This shop and Next shop replace the week chips, From today runs to the end of the shopping period, and the arrows step by shopping period.
+* **Grocery ticks are shared across the household's devices.** Tick an item on one phone and it shows ticked on every other device that opens the same list. Only organizers can tick items or Reset; other members see the ticks read-only. Reset clears the list for everyone. A tick made offline is sent when the device is back online, and the later change wins if two people change the same item.
+* **Hosted pricing is a 14-day trial, then $5/month or $50/year.** Subscribing asks the billing owner to agree to the renewal terms for that price before Checkout. The appliance stays free.
+
+### 🐛 Correctness
+* **A recipe planned on several days was counted once on the grocery list.** Every cooked meal now adds its ingredients. Leftover meals still add nothing.
+* A date parameter longer than 128 characters on the grocery list or the planner no longer causes a server error.
+* The old `/grocery_list/<plan number>` address opens the grocery list for that plan's week.
+
+### 🔐 Security
+* **Active Storage direct uploads and disk uploads are refused.** The direct-upload endpoint had no sign-in check, so an anonymous client could fill the disk or host files on the domain. Recipe images still upload through the recipe form.
+* Forward-auth no longer trusts a client-supplied address or the first identity header it finds. See the upgrade notes above.
+
+### 🧹 Dependencies
+* Rails 8.1.4, solid_cable 4.1.0, thruster 0.1.27, image_processing 2.2, and selenium-webdriver 4.50.
+
 ## [v1.3.1] - 2026-10-11
 
 Fixes the upgrade from v1.2.0, which crash-looped the appliance image on boot. Fresh installs of v1.3.0 were not affected.

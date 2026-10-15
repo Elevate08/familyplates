@@ -20,6 +20,9 @@ class TestSupportController < ActionController::Base
     CLOCK.travel_back
     CLOCK.travel_to(Time.iso8601(params[:now])) if params[:now].present?
 
+    # Before the fixtures, which replace the family members these rows point at.
+    RecipeImport.delete_all
+
     ActiveRecord::FixtureSet.reset_cache
     ActiveRecord::FixtureSet.create_fixtures(
       Rails.root.join("test/fixtures"),
@@ -36,6 +39,10 @@ class TestSupportController < ActionController::Base
     # Children first: a charge points at its subscription and customer, so
     # clearing subscriptions ahead of charges fails the foreign key the first
     # time a test really pays.
+    # A Checkout a previous test left open would hold the household and
+    # refuse the next test's Subscribe.
+    BillingConsent.delete_all if defined?(BillingConsent)
+
     if defined?(Pay::Customer)
       Pay::Charge.delete_all
       Pay::PaymentMethod.delete_all
@@ -55,6 +62,16 @@ class TestSupportController < ActionController::Base
     member = FamilyMember.find_by(name: params[:name]) || FamilyMember.where(role: "admin").first
     user = member.user || User.find_or_create_by!(email: "#{member.name.downcase.gsub(/[^a-z0-9]/, '')}@household.test")
     member.update!(user: user) unless member.user_id == user.id
+    # Stands in for someone who signed up, so accepted the hosted Terms then.
+    if defined?(TermsAssent) && FamilyPlates.config.hosted? && !TermsAssent.current?(user)
+      user.update!(terms_version: TermsAssent.current_version, terms_accepted_at: Time.current)
+    end
+    # Signup makes the household's creator its billing owner; an organizer
+    # signed in here stands in for that creator when nobody owns billing yet.
+    household = member.household
+    if FamilyPlates.config.hosted? && member.admin? && household.respond_to?(:billing_owner_user_id) && household.billing_owner_user_id.nil?
+      household.update_columns(billing_owner_user_id: user.id)
+    end
 
     session_record = user.sessions.create!(
       token: SecureRandom.hex(32),
@@ -75,14 +92,20 @@ class TestSupportController < ActionController::Base
   end
 
   # The records the Playwright route crawl puts into parameterised paths. The
-  # fixtures carry no support thread, so the hosted edition makes one;
-  # everything else is the primary household's fixture data.
+  # fixtures carry no support thread or recipe import, so those are made here
+  # (the support thread by the hosted edition only); everything else is the
+  # primary household's fixture data. The import is a finished one, so its page
+  # is the pre-filled recipe form rather than a page that reloads itself.
   def crawl_records
     household = Household.find_by!(name: "Spencer Family")
     member = household.family_members.find_by!(role: "member")
     records = {
       household: household.id,
       recipe: household.recipes.order(:id).first!.id,
+      recipe_import: household.recipe_imports.create!(
+        url: "https://example.com/route-crawl", status: "succeeded",
+        data: { title: "Route Crawl Casserole", servings: 4, ingredients: [] }
+      ).id,
       meal_plan: household.meal_plans.order(:id).first!.id,
       family_member: member.id,
       transfer_token: member.transfer_id

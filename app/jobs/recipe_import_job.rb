@@ -1,0 +1,34 @@
+# Fetches the page behind a RecipeImport, saves the recipe it finds into the
+# household's recipe box and records the result on the import; the waiting page
+# (RecipeImportsController#show) reads it from there.
+#
+# Jobs run on a memory-capped worker (bin/jobs: the `worker` service in
+# docker-compose.yml, the `job` role in the Kamal deploy files), never inside Puma,
+# because a hostile page can send an endless response header, which Net::HTTP
+# buffers without limit until the fetch deadline (SA-12). Inside it the `imports`
+# queue has a worker process of its own with one thread (config/queue.yml), so one
+# fetch at a time grows it and a kill by the memory cap leaves the other jobs
+# running. One import per household at a time, so one household cannot hold that
+# thread with a backlog of its own (SA-13). Not retried: a page that failed once is not fetched
+# again unasked. An import already failed as stalled is not started
+# (RecipeImport#claim!).
+class RecipeImportJob < ApplicationJob
+  queue_as :imports
+
+  limits_concurrency to: 1, key: ->(import) { import.household_id }
+
+  # The import went away (its household was deleted, or it expired) while it waited.
+  discard_on ActiveJob::DeserializationError
+
+  def perform(import)
+    return unless import.claim!
+
+    result = RecipeScraper.fetch(import.url)
+    result.success? ? import.succeed!(result.recipe) : import.fail!(result.error)
+  rescue StandardError
+    # A bug, not a bad link. Fail the import so the person is not left waiting,
+    # and raise so the bug is not swallowed.
+    import.fail!(:failed) # does nothing if the import was finished, failed as stalled, or deleted
+    raise
+  end
+end

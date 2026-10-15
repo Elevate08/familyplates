@@ -77,12 +77,34 @@ class FamilyPlatesTest < ActiveSupport::TestCase
   # @card-20.1
   test "external identity providers and forward auth are disabled by default" do
     assert_equal false, FamilyPlates.config.google_auth_enabled?
-    assert_equal false, FamilyPlates.config.apple_auth_enabled?
+    assert_not_includes ExternalAuth.enabled_providers, "apple"
+    assert_not FamilyPlates.config.respond_to?(:apple_auth_enabled?)
     assert_equal false, FamilyPlates.config.oidc_enabled?
     assert_equal false, FamilyPlates.config.forward_auth_enabled?
     assert_equal false, FamilyPlates.config.any_oauth_enabled?
     assert_equal [ "127.0.0.1", "::1" ], FamilyPlates.config.forward_auth_trusted_proxies
     assert_equal "Single Sign-On", FamilyPlates.config.oidc_display_name
+  end
+
+  test "forward-auth reads Remote-Email and Remote-Name by default, no user ID header, and any can be listed" do
+    keys = %w[FORWARD_AUTH_EMAIL_HEADERS FORWARD_AUTH_EMAIL_HEADER FORWARD_AUTH_USER_HEADERS
+              FORWARD_AUTH_USER_HEADER FORWARD_AUTH_NAME_HEADERS FORWARD_AUTH_NAME_HEADER]
+    original = keys.to_h { |key| [ key, ENV[key] ] }
+    keys.each { |key| ENV.delete(key) }
+
+    assert_equal [ "Remote-Email" ], FamilyPlates.config.forward_auth_email_headers
+    assert_empty FamilyPlates.config.forward_auth_user_headers
+    assert_equal [ "Remote-Name" ], FamilyPlates.config.forward_auth_name_headers
+
+    ENV["FORWARD_AUTH_EMAIL_HEADERS"] = "X-Forwarded-Email, Tailscale-User-Login"
+    ENV["FORWARD_AUTH_USER_HEADERS"] = "X-Forwarded-User"
+    ENV["FORWARD_AUTH_NAME_HEADERS"] = "X-Forwarded-Preferred-Username"
+
+    assert_equal %w[X-Forwarded-Email Tailscale-User-Login], FamilyPlates.config.forward_auth_email_headers
+    assert_equal [ "X-Forwarded-User" ], FamilyPlates.config.forward_auth_user_headers
+    assert_equal [ "X-Forwarded-Preferred-Username" ], FamilyPlates.config.forward_auth_name_headers
+  ensure
+    original&.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 
   test "enabling google auth requires credentials" do

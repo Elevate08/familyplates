@@ -1,0 +1,10 @@
+<%# Draft wording: not reviewed by an attorney. %>
+Extra confirmation is needed to process your payment
+
+Your <%= Pay.application_name %> subscription payment needs your confirmation before it can be processed.
+
+Confirm your payment: <%= pay.payment_url(params[:payment_intent_id]) %>
+
+Questions? Write to <%= BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.
+
+The <%= Pay.application_name %> team

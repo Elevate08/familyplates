@@ -78,6 +78,8 @@ class V110AttackChainTest < ActionDispatch::IntegrationTest
       "ftp://example.com/secrets" ].each do |url|
       assert_no_difference "Recipe.count" do
         post recipe_imports_url, params: { url: url }
+        perform_enqueued_jobs
+        get recipe_import_url(RecipeImport.order(:created_at).last)
       end
       assert_equal "Could not fetch recipe from that web address. Please check the link or add manually.",
                    flash[:alert], "#{url} should have been refused"

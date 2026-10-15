@@ -154,7 +154,8 @@ class MealPlanSlot < ApplicationRecord
     return nil if value.blank?
 
     Date.parse(value.to_s)
-  rescue Date::Error
+  # Date::Error for nonsense; a plain ArgumentError for input over Date's 128-character limit.
+  rescue ArgumentError
     nil
   end
 

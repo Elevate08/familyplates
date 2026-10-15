@@ -1,0 +1,10 @@
+<%# Draft wording: not reviewed by an attorney. %>
+<h3>Your payment was declined</h3>
+<p>We were unable to charge your payment method for your <%= Pay.application_name %> subscription.</p>
+<p>
+  Your household keeps access for <%= Household::Billing::PAST_DUE_GRACE_DAYS %> days while we try again. Please
+  update your payment method before then.
+</p>
+<p><%= link_to "Update your payment method", subscription_url %></p>
+<p>Questions? Write to <%= mail_to BillingOffer::SUPPORT_EMAIL %> rather than replying to this message.</p>
+<p>The <%= Pay.application_name %> team</p>

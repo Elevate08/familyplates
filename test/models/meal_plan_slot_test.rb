@@ -61,7 +61,7 @@ class MealPlanSlotTest < ActiveSupport::TestCase
       is_leftover: true
     )
 
-    agg = IngredientAggregator.call(plan)
+    agg = IngredientAggregator.call(plan.household, plan.week_start_date..(plan.week_start_date + 6.days))
     # The ingredients should only be counted once from the fresh slot
     sample_ingredient = recipe.recipe_ingredients.first
     if sample_ingredient

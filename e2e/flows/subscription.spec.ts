@@ -38,6 +38,8 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       }
     });
 
+    // Subscribing needs the automatic-renewal terms agreed to, beside the button.
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeButton = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeButton.click();
 
@@ -83,12 +85,13 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
     test.setTimeout(90_000);
 
     // Reset database into hosted mode
-    await resetDatabase(request, { mode: "hosted" });
+    await resetDatabase(request, { mode: "hosted", freezeTime: false });
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
 
     // Click subscribe to launch real Stripe checkout session
+    await page.locator("#accept_renewal_terms_annual").check();
     const subscribeAnnual = page.locator('input[value*="Annual"], button:has-text("Annual")').first();
     await subscribeAnnual.click();
 
@@ -203,7 +206,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
       code
     });
 
-    await resetDatabase(request, { mode: "hosted" });
+    await resetDatabase(request, { mode: "hosted", freezeTime: false });
     expect((await page.request.post("/__test/sign_in_platform_admin")).ok()).toBeTruthy();
 
     await page.goto("/platform_admin/promotion_programs");
@@ -224,6 +227,7 @@ test.describe("Stripe & Subscriptions (Hosted Mode)", () => {
 
     await fastSignIn(page, "Dad");
     await page.goto("/subscription");
+    await page.locator("#accept_renewal_terms_annual").check();
     await page.locator('input[value*="Annual"], button:has-text("Annual")').first().click();
     await page.waitForURL((url) => url.hostname.includes("stripe.com"), { timeout: 15_000 });
 

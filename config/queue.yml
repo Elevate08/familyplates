@@ -3,7 +3,20 @@ default: &default
     - polling_interval: 1
       batch_size: 500
   workers:
-    - queues: "*"
+    # Recipe imports fetch a stranger's page, and a hostile one can send an endless
+    # response header that Net::HTTP buffers in memory (SA-12). One thread, so at
+    # most one fetch grows the process at a time, and a process of its own: if the
+    # container's memory cap kills it, the supervisor starts a new one and the other
+    # jobs keep running. The queue name is listed only here.
+    - queues: imports
+      threads: 1
+      processes: 1
+      polling_interval: 1
+    # Everything else. Listed by name because a worker cannot say "all but imports":
+    # "*" would take the imports queue as well. Rails jobs, mailers, Active Storage,
+    # Pay and the other engines all use "default"; recurring tasks run on
+    # "solid_queue_recurring". A test fails when a job uses a queue named nowhere here.
+    - queues: [ default, solid_queue_recurring ]
       threads: 3
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
       polling_interval: 1

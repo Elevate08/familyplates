@@ -37,6 +37,22 @@ class PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "flame", @regular_member.avatar_icon
   end
 
+  # FP-APPSEC-014
+  test "an avatar color or icon outside the allowlist is not persisted" do
+    sign_in_as(@regular_member)
+    original_color = @regular_member.avatar_color
+    original_icon = @regular_member.avatar_icon
+
+    patch preferences_url, params: {
+      family_member: { name: "Chef Mom", avatar_color: "red;} body{display:none", avatar_icon: "<script>" }
+    }
+
+    @regular_member.reload
+    assert_equal original_color, @regular_member.avatar_color
+    assert_equal original_icon, @regular_member.avatar_icon
+    assert_not_equal "Chef Mom", @regular_member.name
+  end
+
   test "should allow admin member to update their 4-digit PIN when providing current PIN" do
     sign_in_as(@admin_member)
 

@@ -27,8 +27,12 @@ class StoredXssTest < ActionDispatch::IntegrationTest
       name: "Hostile #{TEXT_PAYLOAD}"
     )
 
-    @admin.update!(name: "Organizer #{TEXT_PAYLOAD}", avatar_color: ATTR_PAYLOAD, avatar_icon: TEXT_PAYLOAD)
-    family_members(:two).update!(name: "Kid #{TEXT_PAYLOAD}", avatar_icon: TEXT_PAYLOAD)
+    @admin.update!(name: "Organizer #{TEXT_PAYLOAD}")
+    family_members(:two).update!(name: "Kid #{TEXT_PAYLOAD}")
+    # Validation now refuses hostile avatar values, so plant them as a legacy row
+    # would have them: the safe readers must still keep them off every page.
+    @admin.update_columns(avatar_color: ATTR_PAYLOAD, avatar_icon: TEXT_PAYLOAD)
+    family_members(:two).update_columns(avatar_icon: TEXT_PAYLOAD)
 
     @household.pantry_items.create!(
       name: "Hostile #{TEXT_PAYLOAD}", aisle_category: "Other", emoji: TEXT_PAYLOAD, is_staple: true

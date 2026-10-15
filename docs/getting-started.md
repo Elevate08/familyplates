@@ -19,17 +19,39 @@ FamilyPlates is packaged as a lightweight, production-ready container powered by
        restart: unless-stopped
        ports:
          - "3000:80"
-       environment:
+       environment: &environment
          - RAILS_ENV=production
          - "SECRET_KEY_BASE=${SECRET_KEY_BASE:?required - generate one with openssl rand -hex 64}"
          - RAILS_SERVE_STATIC_FILES=true
          - RAILS_LOG_TO_STDOUT=true
        volumes:
          - familyplates_data:/rails/storage
+       healthcheck:
+         test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+         interval: 10s
+         timeout: 5s
+         retries: 5
+         start_period: 30s
+
+     worker:
+       image: ghcr.io/elevate08/familyplates:latest
+       container_name: familyplates-worker
+       command: ["./bin/jobs"]
+       restart: unless-stopped
+       depends_on:
+         familyplates:
+           condition: service_healthy
+       environment: *environment
+       volumes:
+         - familyplates_data:/rails/storage
+       mem_limit: 512m
+       memswap_limit: 512m
 
    volumes:
      familyplates_data:
    ```
+
+   **Why two containers.** The `worker` container runs background jobs, which today means recipe imports. An import fetches a page from a website you do not control, and a hostile page can make the fetch use more and more memory before it gives up. The worker has a 512 MB memory limit, so a runaway fetch is stopped there and never touches the web container. Imports run one at a time in a process of their own inside the worker, so stopping one leaves the other background jobs running, and the worker starts a new import process by itself. Both containers use the same image, the same `familyplates_data` volume and the same settings, so anything you add under `environment` (such as `APP_HOST`) goes in the shared list. The worker starts after the web container reports healthy, because starting the web container is what prepares and updates the databases. Without the worker, a pasted recipe link is never fetched: the import page waits and then reports that import is busy.
 
 2. **Generate a Secret Key:**
    ```bash
@@ -49,22 +71,36 @@ FamilyPlates is packaged as a lightweight, production-ready container powered by
 
 ### Method 2: Docker CLI (`docker run`)
 
-Run FamilyPlates with persistent storage mounted to a local volume:
+Run FamilyPlates with persistent storage mounted to a local volume. Use one secret key for both containers, so generate it once. The second container is the background worker (see Method 1 for why it exists); start it after the first is up, because the first one prepares the databases.
 
 ```bash
 docker volume create familyplates_data
+export SECRET_KEY_BASE=$(openssl rand -hex 64)
 
 docker run -d \
   --name familyplates \
   --restart unless-stopped \
   -p 3000:80 \
   -e RAILS_ENV=production \
-  -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  -e SECRET_KEY_BASE \
   -e RAILS_SERVE_STATIC_FILES=true \
   -e RAILS_LOG_TO_STDOUT=true \
   -v familyplates_data:/rails/storage \
   ghcr.io/elevate08/familyplates:latest
+
+docker run -d \
+  --name familyplates-worker \
+  --restart unless-stopped \
+  --memory 512m --memory-swap 512m \
+  -e RAILS_ENV=production \
+  -e SECRET_KEY_BASE \
+  -e RAILS_LOG_TO_STDOUT=true \
+  -v familyplates_data:/rails/storage \
+  ghcr.io/elevate08/familyplates:latest \
+  ./bin/jobs
 ```
+
+Keep `SECRET_KEY_BASE` somewhere safe: you need the same value whenever you recreate either container.
 
 ---
 
@@ -83,6 +119,7 @@ docker run -d \
 | `SMTP_USER_NAME` | *(None)* | Mail server username, when the server requires one. |
 | `SMTP_PASSWORD` | *(None)* | Mail server password. Required when a username is set. |
 | `MAILER_DEFAULT_FROM` | `noreply@familyplates.app` | From address on sign-in mail. |
+| `TRUSTED_PROXIES` | *(None)* | Appliance only. Your TLS or reverse proxy's own address (a single IP, as the app container sees it), comma-separated if there is more than one. The app already trusts loopback, which is where the image's Thruster connects from. List the proxy so client addresses are recorded correctly: the sign-in and PIN limits are per client address, so without it every client shares the proxy's address. While this is unset and forward-auth is on, the single addresses in `FORWARD_AUTH_TRUSTED_PROXIES` are trusted in its place, so a forward-auth install that already lists its proxy there keeps working; setting this replaces that. Not a client or LAN range: a range is refused at boot. |
 
 ### Public hostname and email
 
@@ -108,25 +145,47 @@ The published image is the **appliance** edition. It doesn't include the hosted 
 
 ### External Authentication & Single Sign-On (Optional)
 
-All external identity providers are disabled by default. Configure these variables to enable Google, Apple, generic OpenID Connect, or trusted reverse proxy headers:
+All external identity providers are disabled by default. Configure these variables to enable Google, generic OpenID Connect, or trusted reverse proxy headers:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `AUTH_GOOGLE_ENABLED` | `false` | Enable Google OAuth sign-in (`true` / `false`). |
 | `GOOGLE_CLIENT_ID` | *(None)* | Google OAuth 2.0 Client ID. |
 | `GOOGLE_CLIENT_SECRET` | *(None)* | Google OAuth 2.0 Client Secret. |
-| `AUTH_APPLE_ENABLED` | `false` | Enable Sign in with Apple (`true` / `false`). |
-| `APPLE_CLIENT_ID` | *(None)* | Apple Services ID (e.g. `com.example.familyplates.auth`). |
-| `APPLE_CLIENT_SECRET` | *(None)* | Apple generated secret, or set `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY`. |
 | `AUTH_OIDC_ENABLED` | `false` | Enable generic OpenID Connect / SSO (`true` / `false`). |
-| `OIDC_ISSUER` | *(None)* | OIDC Issuer URL for discovery (e.g. `https://auth.example.com`). |
+| `OIDC_ISSUER` | *(None)* | OIDC Issuer URL (e.g. `https://auth.example.com`). Required: sign-in checks every ID token against it, and endpoints are discovered from it. |
+| `OIDC_JWKS_URL` | *(None)* | The provider's signing-key URL. Only needed when the provider has no discovery document. |
 | `OIDC_CLIENT_ID` | *(None)* | OIDC Client ID. |
 | `OIDC_CLIENT_SECRET` | *(None)* | OIDC Client Secret. |
 | `OIDC_DISPLAY_NAME` | `Single Sign-On` | Button label for SSO on sign-in screen (e.g. `Authentik` or `Authelia`). |
 | `AUTH_FORWARD_AUTH_ENABLED` | `false` | Enable trusted reverse proxy forward-auth (`true` / `false`). |
-| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | Comma-separated trusted reverse proxy IPs or CIDR subnets (e.g. `10.0.0.0/8`). |
-| `FORWARD_AUTH_EMAIL_HEADERS` | `Remote-Email,X-Forwarded-Email,Tailscale-User-Login` | Headers checked for user email from trusted proxies. |
+| `FORWARD_AUTH_TRUSTED_PROXIES` | `127.0.0.1,::1` | The reverse proxy's own address (a single IP), comma-separated if there is more than one. Network ranges (such as `10.0.0.0/8`) are ignored, and logged at startup. See the note below. |
+| `FORWARD_AUTH_EMAIL_HEADERS` | `Remote-Email` | The header that carries the user's email. `Remote-Email` is what Authelia sends; other proxies use other names (see the table below), so set this to your proxy's header. To accept several, list them comma-separated; the first one present is used. The proxy must overwrite or strip every header the app reads. See the note below. |
+| `FORWARD_AUTH_USER_HEADERS` | *(None)* | The header that carries a stable user ID. By default no user ID header is read and the email is the ID. Set it only if your proxy sends a stable ID header (see the table below). The proxy must overwrite or strip every header listed. |
+| `FORWARD_AUTH_NAME_HEADERS` | `Remote-Name` | The header that carries the display name. Same rule: the proxy must overwrite or strip every header listed. |
 | `FORWARD_AUTH_LOGOUT_URL` | *(None)* | Optional URL to redirect to on sign-out (e.g. proxy SSO logout page). |
+
+**Headers each proxy sends.** These are the names in each project's own documentation (checked October 2026; check them again against your proxy's version). Authelia's email and name headers are the app's defaults; no proxy's user ID header is, so set `FORWARD_AUTH_USER_HEADERS` if you want one.
+
+| Proxy | `FORWARD_AUTH_EMAIL_HEADERS` | `FORWARD_AUTH_USER_HEADERS` | `FORWARD_AUTH_NAME_HEADERS` |
+| :--- | :--- | :--- | :--- |
+| [Authelia](https://www.authelia.com/integration/trusted-header-sso/introduction/) | `Remote-Email` (default) | `Remote-User` (not read unless set) | `Remote-Name` (default) |
+| [authentik](https://docs.goauthentik.io/add-secure-apps/providers/proxy/) proxy provider | `X-authentik-email` | `X-authentik-uid` (a hashed ID) or `X-authentik-username` | `X-authentik-name` |
+| [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview) | `X-Forwarded-Email` | `X-Forwarded-User` (not read unless set) | `X-Forwarded-Preferred-Username` |
+| [Tailscale Serve](https://tailscale.com/kb/1312/serve) | `Tailscale-User-Login` | none sent (leave unset; the email is the ID) | `Tailscale-User-Name` |
+
+- **authentik does not send `Remote-*` headers.** Earlier versions of this guide said it did. If you used authentik with the defaults, forward-auth never signed anyone in, because `Remote-Email` was never set. Set the three variables above.
+- **Upgrading: Authelia and oauth2-proxy installs.** Earlier versions read `Remote-User` (and `X-Forwarded-User`) as the user ID by default; this version reads no user ID header unless you set one. Set `FORWARD_AUTH_USER_HEADERS=Remote-User` for Authelia, or `FORWARD_AUTH_EMAIL_HEADERS=X-Forwarded-Email` together with `FORWARD_AUTH_USER_HEADERS=X-Forwarded-User` for oauth2-proxy, to keep each person's existing sign-in identity. If you do not, each person gets a second sign-in identity the first time they sign in after the upgrade, keyed by their email. That is harmless: it is the same account (matched by email), sign-in works as before, and the person sees one extra forward-auth entry under their connected sign-in methods. The old identity is simply no longer used. A user ID header is optional: skip it, and the email is the ID.
+- **Tailscale** sends identity headers only for requests from your tailnet (not Funnel), and removes any it finds on an incoming request. It sends no user ID header, so leave `FORWARD_AUTH_USER_HEADERS` unset.
+- **Changing a person's email.** When the user ID header names an identity the app already linked to an account, and that account's email (compared without regard to case) is not the email the proxy sent, the sign-in is refused and `[auth] forward_auth_identity_email_mismatch` is logged, without any address. This applies only if you set `FORWARD_AUTH_USER_HEADERS`. Sign-in stays refused while the app account's email and the provider's email differ, and no order of changes avoids that gap, so change both together, and expect the person to be refused in between. Without a user ID header the email is the ID, so a changed email at the provider signs the person into a new account instead.
+
+**Forward-auth trusted proxies.** The app does not use `request.remote_ip` for this check, because that value comes from `X-Forwarded-For`, which a client can set. It checks the hop that connected to the app: the TCP peer address, except when that peer is the loopback address and the request has an `X-Forwarded-For` header, in which case it checks the last entry of that header. A blank or unreadable entry, or one that is an address range, is not trusted. Identity headers from a hop that is not trusted are ignored: the request goes on through normal sign-in.
+
+- **Docker image.** Forward-auth is supported with the Docker image, where requests arrive through Thruster: the TCP peer is loopback, and Thruster adds the address that connected to it as the last `X-Forwarded-For` entry. Puma listens on the container's loopback only (the image sets `BINDING=127.0.0.1`), so nothing reaches it without passing through Thruster. Set `FORWARD_AUTH_TRUSTED_PROXIES` to your reverse proxy's single address as the app container sees it (give the proxy container a fixed IP), not a network range: a range includes the bridge gateway and every other container on that network. Range entries (any prefix shorter than `/32` for IPv4 or `/128` for IPv6) are ignored, and the app logs `[auth] FORWARD_AUTH_TRUSTED_PROXIES ignored entries: <entry> (range)` at startup (an entry that is not an IP address, such as a hostname, is ignored and logged the same way, as `(not an IP address)`), so an install that still lists one stops accepting forward-auth until the proxy's single address is listed. A bare address, or one with an explicit `/32` or `/128`, works. Keep the app's ports reachable only from the proxy.
+- **Proxy on the Docker host.** Publish the port on loopback only (`127.0.0.1:3000:80`). Find the address the container sees for the proxy from the Docker side (for example with `docker network inspect`, or the gateway of the network the container is on) and trust that single address. The `forward_auth_untrusted_peer peer=<ip>` log line only confirms which address requests from the proxy arrive with; do not trust an address just because it appears there, since any client's request can be the one logged. Connections relayed by Docker's userland proxy share that address, so do not publish the port on other interfaces while forward-auth is on. Trusting the bridge gateway address trusts every process on the Docker host, and any container whose traffic reaches the app through that gateway, so do this only on a host where every local user and service is trusted. Otherwise run the proxy as a container with a fixed address.
+- **No Thruster.** Running `rails server` directly behind a proxy on the same host is not supported for forward-auth. The last `X-Forwarded-For` entry is then whatever the proxy forwarded, which can be the client's address.
+- **Identity headers.** The proxy must overwrite or strip every identity header the app reads (the email, user ID and name headers above, whichever names you set), not only the ones it sets. A user who is signed in to the proxy can add headers to their own request. By default the app reads one header each for email, user ID and name and ignores any other, but a header it does read that the proxy does not set or strip is one a user can choose the value of. If you list several headers in one variable, the first one present wins, so the proxy must set or strip every listed header. If you set a user ID header the proxy does not set, a user can add it: the app refuses a sign-in when the user ID names an account whose email differs from the email the proxy sent, but have the proxy strip it anyway.
+- **Ignored identity headers.** When identity headers arrive from a hop that is not trusted, the app ignores them and logs `[auth] forward_auth_untrusted_peer peer=<ip>` (`peer=unparseable` if the address could not be read, `peer=range:<address>/<prefix>` if it was an address range). It never logs header values.
 
 ## Running the tests
 

@@ -19,13 +19,17 @@ class User < ApplicationRecord
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }
 
+  # Only while another way in remains: a password, a passkey, or another
+  # identity whose provider can still sign in. An old Apple identity, or one
+  # for a provider switched off, is not a way in.
   def can_disconnect_identity?(identity)
     return false unless identities.exists?(id: identity.id)
 
-    password_digest.present? || passkeys.exists? || identities.where.not(id: identity.id).exists?
+    password_digest.present? || passkeys.exists? ||
+      identities.where.not(id: identity.id).where(provider: ExternalAuth.enabled_providers).exists?
   end
 
-  def self.find_or_create_from_identity(provider:, uid:, email: nil, name: nil)
+  def self.find_or_create_from_identity(provider:, uid:, email: nil, email_verified: false, name: nil)
     provider = provider.to_s
     uid = uid.to_s
 
@@ -33,6 +37,13 @@ class User < ApplicationRecord
     return identity.user if identity
 
     normalized_email = email.to_s.strip.downcase
+    verified = email_verified == true || email_verified.to_s == "true"
+
+    # Never link to or create an account from an email the provider has not verified.
+    if normalized_email.present? && !verified
+      raise ActiveRecord::RecordInvalid.new(User.new), "Email address is not verified by the identity provider."
+    end
+
     if normalized_email.present?
       user = User.find_by("LOWER(email) = ?", normalized_email)
       if user

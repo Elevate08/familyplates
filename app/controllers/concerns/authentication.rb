@@ -1,5 +1,8 @@
+require "ipaddr"
+
 module Authentication
   extend ActiveSupport::Concern
+  include ClearsSiteData
 
   included do
     before_action :require_installation
@@ -10,6 +13,7 @@ module Authentication
     before_action :handle_suspended_household
     before_action :require_active_family_member
     before_action :ensure_household_entitled!
+    before_action :require_current_terms
     helper_method :authenticated?, :current_household, :current_family_member, :current_user
   end
 
@@ -27,10 +31,20 @@ module Authentication
       skip_before_action :require_installation, **options
     end
 
+    # Also reachable by someone who has yet to accept changed hosted Terms:
+    # the same pages a suspended household keeps (signing out, the legal
+    # documents, support, account data) are the ones they must keep.
     def allow_suspended_access(**options)
       skip_before_action :handle_suspended_household, **options
       skip_before_action :require_active_family_member, **options
       skip_before_action :ensure_household_entitled!, **options, raise: false
+      skip_before_action :require_current_terms, **options, raise: false
+    end
+
+    # Pages a signed-in user can reach before accepting the hosted Terms:
+    # signing in, and the flows that ask for acceptance themselves.
+    def allow_without_current_terms(**options)
+      skip_before_action :require_current_terms, **options, raise: false
     end
   end
 
@@ -55,8 +69,8 @@ module Authentication
   end
 
   def set_current_user
-    if forward_auth_active?
-      authenticate_via_forward_auth
+    if (email = trusted_forward_auth_email)
+      authenticate_via_forward_auth(email)
       return if Current.user.present?
     end
 
@@ -88,6 +102,8 @@ module Authentication
 
   def handle_revoked_session
     return unless @session_revoked
+
+    clear_site_data
 
     target_path = signed_out_path(kind: @revoked_kiosk ? "kiosk" : "browser")
     message = @revoked_kiosk ? "This kitchen display's access has been revoked." : "Device access has been revoked."
@@ -167,6 +183,30 @@ module Authentication
   def ensure_household_entitled!
   end
 
+  # Whether a household found some other way than the signed-in profile
+  # (a calendar feed token) may have its content served. Always, here.
+  def household_content_available?(_household)
+    true
+  end
+
+  # Hosted Terms of Service acceptance, filled in by HostedAccess. An
+  # appliance has no Terms: nothing is required, checked or recorded.
+  def require_current_terms
+  end
+
+  # Why the submitted Terms acceptance cannot be used, or nil when none is
+  # needed or it is valid. For joining a household and claiming a profile.
+  def terms_assent_problem
+  end
+
+  # The response status for a terms_assent_problem.
+  def terms_assent_problem_status(_problem)
+    :unprocessable_entity
+  end
+
+  def record_terms_assent!(context:, household:)
+  end
+
   def after_authentication_url
     session.delete(:return_to_after_authenticating) || root_url
   end
@@ -194,6 +234,10 @@ module Authentication
   end
 
   def start_new_session_for(member)
+    # The service worker's pages are addressed by per-household numbers (/recipes/12), so another
+    # household's must not stay in the browser under the same address.
+    clear_site_data if Current.household && Current.household.id != member.household_id
+
     Current.family_member = member
     Current.household = member.household
     write_permanent_signed_cookie(:active_family_member_id, member.id)
@@ -211,20 +255,53 @@ module Authentication
     cookies.delete(:active_family_member_id)
 
     session[:forward_auth_signed_out] = true
+    clear_site_data
   end
 
-  def forward_auth_active?
-    return false unless FamilyPlates.config.forward_auth_enabled?
-    return false if session[:forward_auth_signed_out]
-    return false unless trusted_forward_auth_proxy?(request.remote_ip)
+  # The identity email from the proxy's headers, or nil unless forward-auth is
+  # on and the connecting hop is a trusted proxy.
+  def trusted_forward_auth_email
+    return unless FamilyPlates.config.forward_auth_enabled?
+    return if session[:forward_auth_signed_out]
 
-    extract_forward_auth_email.present?
-  end
-
-  def authenticate_via_forward_auth
     email = extract_forward_auth_email
     return if email.blank?
 
+    peer = forward_auth_peer_ip
+    return email if trusted_forward_auth_proxy?(peer)
+
+    Rails.logger.warn("[auth] forward_auth_untrusted_peer peer=#{forward_auth_peer_label(peer)}")
+    nil
+  end
+
+  # The address that connected to the app, not request.remote_ip: remote_ip is
+  # read from X-Forwarded-For, which any client on a private network can set.
+  # In the Docker image, requests normally arrive through Thruster, so the TCP
+  # peer is loopback and Thruster appends the address that connected to it as
+  # the last X-Forwarded-For entry. That entry is the hop to check. Outside the
+  # image (rails server run directly), a connection has its own address and is
+  # checked as is.
+  def forward_auth_peer_ip
+    peer = parse_peer_ip(request.remote_addr)
+    forwarded = request.get_header("HTTP_X_FORWARDED_FOR")
+    return peer unless peer && FamilyPlates.host_address?(peer) && peer.loopback? && !forwarded.nil?
+
+    parse_peer_ip(forwarded.split(",", -1).last)
+  end
+
+  def parse_peer_ip(value)
+    FamilyPlates.native_ip(IPAddr.new(value.to_s.strip))
+  rescue IPAddr::Error
+    nil
+  end
+
+  def forward_auth_peer_label(peer)
+    return "unparseable" if peer.nil?
+
+    FamilyPlates.host_address?(peer) ? peer.to_s : "range:#{peer}/#{peer.prefix}"
+  end
+
+  def authenticate_via_forward_auth(email)
     email = email.strip.downcase
     uid = extract_forward_auth_uid || email
     name = extract_forward_auth_name
@@ -240,28 +317,37 @@ module Authentication
       end
     end
 
+    return if forward_auth_identity_email_mismatch?(uid, email)
+
     user = User.find_or_create_from_identity(
       provider: "forward_auth",
       uid: uid,
       email: email,
+      # Identity headers are only used after trusted_forward_auth_email confirmed the
+      # trusted proxy sent them; the proxy has already authenticated the user.
+      email_verified: true,
       name: name
     )
     start_new_session_for_user(user)
   end
 
-  def trusted_forward_auth_proxy?(remote_ip)
-    return false if remote_ip.blank?
+  # The user ID header is not always set by the proxy: when only the email header
+  # is, a client can add a user ID header naming someone else's identity. An
+  # identity found by that ID belongs to the user the proxy's email names, or the
+  # request is refused. Logged without any address or ID.
+  def forward_auth_identity_email_mismatch?(uid, email)
+    identity = Identity.includes(:user).find_by(provider: "forward_auth", uid: uid)
+    return false if identity.nil? || identity.user.email.casecmp?(email)
 
-    require "ipaddr"
-    proxies = FamilyPlates.config.forward_auth_trusted_proxies
-    client_ip = IPAddr.new(remote_ip)
-    proxies.any? do |trusted|
-      IPAddr.new(trusted.strip).include?(client_ip)
-    rescue IPAddr::Error
-      false
-    end
-  rescue IPAddr::Error
-    false
+    Rails.logger.warn("[auth] forward_auth_identity_email_mismatch the user ID header named an identity whose account email differs from the proxy's email header; sign-in refused")
+    true
+  end
+
+  def trusted_forward_auth_proxy?(peer)
+    # Load-bearing: IPAddr#== ignores the prefix, so a range hop must be refused here.
+    return false if peer.nil? || !FamilyPlates.host_address?(peer)
+
+    FamilyPlates.config.forward_auth_proxies.hosts.include?(peer)
   end
 
   def extract_forward_auth_email

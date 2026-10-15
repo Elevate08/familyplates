@@ -8,8 +8,9 @@ module FamilyPlatesSaas
     # Hosted-only associations and behaviour, added to the core models.
     config.to_prepare do
       Household.include Household::Billing, Household::Operations, Household::Support
-      User.include User::Support
+      User.include User::Support, User::Billing
       ApplicationController.include HostedAccess
+      Pay::Subscription.include BillingConsent::SubscriptionHook
     end
   end
 end

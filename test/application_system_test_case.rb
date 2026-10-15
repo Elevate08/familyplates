@@ -24,6 +24,11 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   IGNORED_CONSOLE = [
     /preloaded using link preload but not used/,      # Propshaft emits these in dev and test
     /favicon\.ico/,
+    # Chrome fetches the site icon for the blank page it resets to between
+    # tests and its private-network check can refuse that fetch; the error
+    # then lands in the next test's log. A browser fetch, not the app's.
+    %r{/icon\.(svg|png) - Failed to load resource},
+    %r{\Aabout:blank - Access to resource at '[^']*/icon\.(svg|png)' from origin 'null' has been blocked by CORS policy},
     /Autofocus processing was blocked/
   ].freeze
 
@@ -42,8 +47,8 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Current.household from the member.
   #
   # Browser flows start signed out, so they get the production shape: one
-  # household. See the note in tasks/plan.md - Household.first is a latent
-  # landmine even with the fixtures fixed.
+  # household. Household.first is a latent landmine even with the fixtures
+  # fixed.
   setup do
     retries = 0
     begin
@@ -81,6 +86,42 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Opt out for a test that deliberately provokes an error.
   def allow_browser_errors!
     @assert_console_clean = false
+  end
+
+  # Controllers are imported asynchronously after the page renders, so a click
+  # or keystroke that lands before its controller connects is silently lost:
+  # the profile picker's PIN modal never opens, an autocomplete never answers.
+  # Under a parallel run the imports are slow enough for that to happen often,
+  # so every visit waits until each controller the importmap declares and the
+  # page uses has connected. Identifiers with no module are ignored; a
+  # controller that never connects fails here rather than in a later step.
+  STIMULUS_READY_JS = <<~JS
+    (() => {
+      const app = window.Stimulus
+      const map = document.querySelector("script[type=importmap]")
+      if (!map) return true
+      if (!app) return false
+      const declared = new Set(Object.keys(JSON.parse(map.textContent).imports)
+        .map((name) => name.match(/^controllers\\/(.+)_controller$/))
+        .filter(Boolean)
+        .map((match) => match[1].replace(/\\//g, "--").replace(/_/g, "-")))
+      return Array.from(document.querySelectorAll("[data-controller]")).every((element) =>
+        element.dataset.controller.split(/\\s+/).filter((id) => declared.has(id))
+          .every((id) => app.getControllerForElementAndIdentifier(element, id)))
+    })()
+  JS
+
+  def visit(...)
+    super
+    wait_for_stimulus
+  end
+
+  def wait_for_stimulus(timeout: 10)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+    until page.evaluate_script(STIMULUS_READY_JS)
+      flunk "Stimulus controllers did not connect within #{timeout}s on #{page.current_path}" if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+      sleep 0.05
+    end
   end
 
   # Signs in through the real profile picker, the way a person does.

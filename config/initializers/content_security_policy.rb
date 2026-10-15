@@ -33,7 +33,7 @@ Rails.application.configure do
     policy.base_uri    :self
 
     # External form actions permitted for OAuth providers and Stripe Checkout redirects
-    allowed_form_actions = [ :self, "https://accounts.google.com", "https://appleid.apple.com", *stripe_origins ]
+    allowed_form_actions = [ :self, "https://accounts.google.com", *stripe_origins ]
     if (oidc_url = ENV["OIDC_ISSUER"].presence || ENV["OIDC_AUTH_URL"].presence)
       begin
         uri = URI.parse(oidc_url)

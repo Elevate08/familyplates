@@ -34,6 +34,15 @@ class CalendarFeedsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.headers["Cache-Control"].to_s, "public"
   end
 
+  test "appliance serves a normal feed regardless of hosted-only hooks" do
+    FamilyPlates.config.reset!
+
+    get calendar_feed_url(token: @token, format: :ics)
+
+    assert_response :success
+    assert_includes response.body, "BEGIN:VCALENDAR"
+  end
+
   # @card-38.4
   test "renders member-filtered calendar feed" do
     get calendar_member_feed_url(token: @token, member_id: @member.id, format: :ics)

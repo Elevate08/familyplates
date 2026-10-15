@@ -105,7 +105,7 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     form_action = response.headers["Content-Security-Policy"][/form-action ([^;]*)/, 1]
     assert form_action.present?, "the policy sets no form-action"
 
-    allowed = %w['self' https://accounts.google.com https://appleid.apple.com]
+    allowed = %w['self' https://accounts.google.com]
     stripe = %w[https://checkout.stripe.com https://billing.stripe.com]
     allowed += stripe if FamilyPlates.saas?
     allowed.each { |origin| assert_includes form_action.split, origin }

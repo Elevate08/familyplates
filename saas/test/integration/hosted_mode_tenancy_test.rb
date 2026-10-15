@@ -49,7 +49,8 @@ class HostedModeTenancyTest < ActionDispatch::IntegrationTest
         household_name: "The Bakers",
         organizer_name: "Sarah Baker",
         email: "sarah@bakers.test",
-        pin: "5678"
+        pin: "5678",
+        **terms_assent_params
       }
     end
 
