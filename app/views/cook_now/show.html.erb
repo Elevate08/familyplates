@@ -1,13 +1,23 @@
 <% content_for :title, "Cook Now | FamilyPlates" %>
 
-<%# Only reached when the clock could not pick a meal - nothing is planned for
-    today. The way out matters more than the message, so both are large. %>
+<%# Only reached when the clock could not pick a meal - nothing is planned to
+    cook today. The way out matters more than the message, so both are large. %>
 <div class="hearth-cook-now flex min-h-dvh flex-col items-center justify-center px-6 py-12 text-center">
   <p class="text-sm font-black uppercase tracking-[0.2em] text-primary-400">Cook Now</p>
 
-  <h1 class="mt-4 max-w-2xl text-3xl font-semibold leading-tight text-oat sm:text-4xl">
-    Nothing is planned for <%= Time.current.strftime("%A") %> yet.
-  </h1>
+  <% if @leftovers_today.any? %>
+    <h1 class="mt-4 max-w-2xl text-3xl font-semibold leading-tight text-oat sm:text-4xl">
+      Nothing to cook <%= household_today.strftime("%A") %> &mdash; it is leftovers.
+    </h1>
+
+    <p class="mt-4 max-w-xl text-base text-slate-400">
+      Ready to heat: <%= @leftovers_today.map { |slot| "#{slot.display_title} (#{slot.meal_type})" }.to_sentence %>.
+    </p>
+  <% else %>
+    <h1 class="mt-4 max-w-2xl text-3xl font-semibold leading-tight text-oat sm:text-4xl">
+      Nothing is planned for <%= Time.current.strftime("%A") %> yet.
+    </h1>
+  <% end %>
 
   <% if @upcoming.any? %>
     <p class="mt-4 text-base text-slate-400">Here is what is coming up.</p>

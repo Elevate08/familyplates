@@ -21,6 +21,15 @@ class MealPlanSlotCookingWindowTest < ActiveSupport::TestCase
     )
   end
 
+  # A leftover of a meal cooked earlier the same day, so the source is always
+  # on the same plan whatever the weekday.
+  def leftover_for(meal_type, source:)
+    @plan.meal_plan_slots.create!(
+      date: source.date, meal_type: meal_type, recipe: source.recipe,
+      is_leftover: true, leftover_source_slot: source
+    )
+  end
+
   def at(hour, minute = 0, on: Date.current)
     Time.zone.local(on.year, on.month, on.day, hour, minute, 0)
   end
@@ -140,5 +149,75 @@ class MealPlanSlotCookingWindowTest < ActiveSupport::TestCase
     tomorrow = slot_for("breakfast", date: Date.current + 1)
 
     assert_equal [ lunch, dinner, tomorrow ], MealPlanSlot.upcoming_planned(@household, at: at(11, 0))
+  end
+
+  # --- Leftovers were cooked at their source meal ---------------------------
+
+  test "only fresh planned meals with a recipe are cookable" do
+    breakfast = slot_for("breakfast")
+    leftover = leftover_for("lunch", source: breakfast)
+    empty = slot_for("dinner", recipe: nil)
+
+    cookable = @household.meal_plan_slots.cookable
+    assert_includes cookable, breakfast
+    assert_not_includes cookable, leftover
+    assert_not_includes cookable, empty
+  end
+
+  test "a leftover is never the meal being cooked" do
+    breakfast = slot_for("breakfast")
+    leftover_for("dinner", source: breakfast)
+
+    assert_nil MealPlanSlot.cooking_now(@household, at: at(17, 0))
+  end
+
+  test "a fresh meal whose window is open wins over a leftover due sooner" do
+    breakfast = slot_for("breakfast")
+    leftover_for("lunch", source: breakfast)                 # 12:30, window 10:30-14:00
+    early_dinner = slot_for("dinner", scheduled_time: "14:00", # window 12:00-15:30
+                            recipe: @household.recipes.create!(title: "Fresh Dinner", instructions: "1. Cook."))
+
+    assert_equal early_dinner, MealPlanSlot.cooking_now(@household, at: at(12, 30))
+  end
+
+  test "the fallback skips a nearer leftover for the fresh meal still to cook" do
+    breakfast = slot_for("breakfast")
+    leftover_for("lunch", source: breakfast)
+    dinner = slot_for("dinner", recipe: @household.recipes.create!(title: "Fresh Dinner", instructions: "1. Cook."))
+
+    # 10am: lunch is nearer, but it is leftovers. Dinner is what needs cooking.
+    assert_nil MealPlanSlot.cooking_now(@household, at: at(10, 0))
+    assert_equal dinner, MealPlanSlot.next_planned(@household, at: at(10, 0))
+  end
+
+  test "the fallback offers nothing when what is left today is leftovers" do
+    breakfast = slot_for("breakfast")
+    leftover_for("dinner", source: breakfast)
+
+    # 3pm: breakfast is served and dinner is leftovers. The fallback may settle
+    # for the served breakfast, but never for the leftover dinner.
+    assert_equal breakfast, MealPlanSlot.next_planned(@household, at: at(15, 0))
+  end
+
+  test "a day of nothing but leftovers has nothing to cook" do
+    source_date = Date.current - 1
+    source_plan = @household.current_meal_plan(source_date.beginning_of_week)
+    source = source_plan.meal_plan_slots.create!(date: source_date, meal_type: "dinner", recipe: @recipe)
+    @plan.meal_plan_slots.create!(
+      date: Date.current, meal_type: "lunch", recipe: @recipe,
+      is_leftover: true, leftover_source_slot: source
+    )
+
+    assert_nil MealPlanSlot.cooking_now(@household, at: at(12, 0))
+    assert_nil MealPlanSlot.next_planned(@household, at: at(12, 0))
+    assert_empty MealPlanSlot.upcoming_planned(@household, at: at(9, 0))
+  end
+
+  test "upcoming meals to cook leave leftovers out" do
+    breakfast = slot_for("breakfast")
+    leftover_for("lunch", source: breakfast)
+    dinner = slot_for("dinner")
+
+    assert_equal [ dinner ], MealPlanSlot.upcoming_planned(@household, at: at(9, 0))
   end
 end
