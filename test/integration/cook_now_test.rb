@@ -24,6 +24,20 @@ class CookNowTest < ActionDispatch::IntegrationTest
     )
   end
 
+  def plan_leftover(meal_type, source:, date: source.date)
+    @household.current_meal_plan(date.beginning_of_week).meal_plan_slots.create!(
+      date: date, meal_type: meal_type, recipe: source.recipe,
+      is_leftover: true, leftover_source_slot: source
+    )
+  end
+
+  # Yesterday's dinner, on whichever week's plan holds yesterday.
+  def cooked_yesterday(recipe)
+    yesterday = Date.current - 1
+    @household.current_meal_plan(yesterday.beginning_of_week)
+              .meal_plan_slots.create!(date: yesterday, meal_type: "dinner", recipe: recipe)
+  end
+
   def at(hour, minute = 0)
     Time.zone.local(Date.current.year, Date.current.month, Date.current.day, hour, minute, 0)
   end
@@ -162,6 +176,81 @@ class CookNowTest < ActionDispatch::IntegrationTest
       get cook_now_url
       assert_response :success
       assert_not_includes response.body, "Not Yours"
+    end
+  end
+
+  # --- Leftovers were already cooked ----------------------------------------
+
+  test "a leftover is passed over for the fresh meal still to cook" do
+    breakfast = plan_meal("breakfast", @pancakes)
+    plan_leftover("lunch", source: breakfast)
+    plan_meal("dinner", @ribs)
+
+    sign_in_as(@admin)
+
+    travel_to at(12, 0) do
+      get cook_now_url
+      assert_redirected_to cook_recipe_path(@ribs)
+    end
+  end
+
+  test "a day of leftovers says so instead of opening Cook Mode on them" do
+    plan_leftover("dinner", source: cooked_yesterday(@pancakes), date: Date.current)
+
+    sign_in_as(@admin)
+
+    travel_to at(17, 0) do
+      get cook_now_url
+
+      assert_response :success
+      assert_includes response.body, "it is leftovers"
+      assert_includes response.body, "Buttermilk Pancakes (dinner)"
+      assert_not_includes response.body, "Nothing is planned"
+    end
+  end
+
+  test "the leftovers are not offered as upcoming meals to cook" do
+    plan_leftover("lunch", source: cooked_yesterday(@pancakes), date: Date.current + 1)
+    plan_meal("dinner", @ribs, date: Date.current + 2)
+
+    sign_in_as(@admin)
+
+    travel_to at(9, 0) do
+      get cook_now_url
+
+      assert_response :success
+      assert_select "a[href=?]", cook_recipe_path(@ribs)
+      assert_select "a[href=?]", cook_recipe_path(@pancakes), false
+    end
+  end
+
+  test "the banner is not raised for a leftover, which the planner still shows as one" do
+    plan_leftover("dinner", source: cooked_yesterday(@pancakes), date: Date.current)
+    sign_in_as(@admin)
+
+    travel_to at(17, 0) do
+      get meal_plan_url(@plan)
+
+      assert_response :success
+      assert_not_includes response.body, "Cooking now"
+      assert_not_includes response.body, "Up next"
+      assert_select "a[href=?]", cook_now_path, false
+      assert_select "span", text: "Leftover"
+      assert_includes response.body, "Buttermilk Pancakes"
+    end
+  end
+
+  test "the banner names the fresh meal, not a nearer leftover" do
+    breakfast = plan_meal("breakfast", @pancakes)
+    plan_leftover("lunch", source: breakfast)
+    plan_meal("dinner", @ribs)
+    sign_in_as(@admin)
+
+    travel_to at(10, 0) do
+      get meal_plan_url(@plan)
+
+      assert_includes response.body, "Up next · Dinner"
+      assert_includes response.body, "Braised Short Ribs"
     end
   end
 end

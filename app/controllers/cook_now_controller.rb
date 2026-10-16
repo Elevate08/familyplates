@@ -9,9 +9,14 @@ class CookNowController < ApplicationController
 
     return redirect_to cook_recipe_path(slot.recipe) if slot
 
-    # Nothing planned for today. Rather than bounce back to the plan, say so and
-    # offer what is coming up.
+    # Nothing to cook today. Rather than bounce back to the plan, say so and
+    # offer what is coming up. A day of leftovers is planned, just not cooked,
+    # so it is named as such instead of called empty.
     @upcoming = MealPlanSlot.upcoming_planned(current_household, at: at)
+    @leftovers_today = current_household.meal_plan_slots.leftovers
+                                        .includes(:recipe)
+                                        .where(date: household_today)
+                                        .sort_by { |slot| MealPlanSlot.meal_type_rank(slot.meal_type) }
     render layout: "cook"
   end
 end

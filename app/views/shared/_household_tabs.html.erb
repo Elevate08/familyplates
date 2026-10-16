@@ -1,0 +1,5 @@
+<nav aria-label="Family settings" class="hearth-household-tabs flex gap-2 mb-6">
+  <% [["Household", edit_admin_household_path], ["Roster", admin_family_members_path], ["Feeds", edit_admin_calendar_path]].each do |label, path| %>
+    <%= link_to label, path, aria: { current: (current_page?(path) ? "page" : nil) }, class: "flex-1 text-center rounded-2xl border border-slate-200 dark:border-slate-700 px-3 py-3 text-sm font-semibold" %>
+  <% end %>
+</nav>

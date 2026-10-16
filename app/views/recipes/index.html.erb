@@ -1,10 +1,10 @@
 <% current_view = params[:view] == "list" ? "list" : "grid" %>
 
-<div class="max-w-6xl mx-auto py-2 sm:py-6" data-controller="bulk-select">
+<div class="hearth-library max-w-6xl mx-auto py-2 sm:py-6" data-controller="bulk-select">
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 sm:mb-6">
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-        <span>Family Recipe Vault</span>
+        <span>Recipes</span>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-100 dark:bg-primary-950/80 text-primary-800 dark:text-primary-300">
           <%= @recipes.count %> <%= "recipe".pluralize(@recipes.count) %>
         </span>

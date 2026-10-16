@@ -4,6 +4,9 @@ All notable changes to FamilyPlates are documented in this file.
 
 ## [Unreleased]
 
+* **Leftovers are no longer offered as the next thing to cook.** Cook Now, the planner's Cooking now / Up next banner and Cook Now's list of upcoming meals skip leftover slots, which were cooked at their source meal. When a day holds only leftovers, Cook Now says so instead of opening Cook Mode on them. The planner still shows leftovers with their Leftover badge, and grocery lists are unchanged.
+* Deeper Hearth visual rebuild toward the mockups: cookbook meal rows and recipe cards, cream navigation, spacious family settings and groceries, and warm Cook Mode panels. Existing routes, member accents, shopping weekday chips and hosted pricing are preserved.
+
 ## [v1.5.0] - 2026-10-15
 
 The kitchen wears the Hearth palette, and the day a household shops is a weekday.

@@ -10,7 +10,7 @@ test.describe("Visual Regression: Core Pages", () => {
     await page.goto("/select_profile");
     await preparePageForSnapshot(page);
 
-    await expect(page.locator("h1")).toContainText("Who's in the kitchen today?");
+    await expect(page.locator("h1")).toContainText("Who's cooking?");
     await expect(page).toHaveScreenshot("profile-selection.png");
   });
 
@@ -28,7 +28,7 @@ test.describe("Visual Regression: Core Pages", () => {
     await page.goto("/recipes");
     await preparePageForSnapshot(page);
 
-    await expect(page.locator("h1")).toContainText("Family Recipe Vault");
+    await expect(page.locator("h1")).toContainText("Recipes");
     await expect(page).toHaveScreenshot("recipes-directory.png");
   });
 

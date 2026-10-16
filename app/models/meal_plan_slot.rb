@@ -32,6 +32,9 @@ class MealPlanSlot < ApplicationRecord
   scope :leftovers, -> { where(is_leftover: true) }
   scope :fresh_meals, -> { where(is_leftover: false) }
   scope :with_recipe, -> { where.not(recipe_id: nil) }
+  # What someone could be sent to the stove for. A leftover was cooked at its
+  # source meal, so it is never a cook target - the planner still shows it.
+  scope :cookable, -> { fresh_meals.with_recipe }
 
   after_save :fulfill_recipe_requests_if_passed
   after_save :reset_leftover_source_association
@@ -89,7 +92,7 @@ class MealPlanSlot < ApplicationRecord
     from = local_date(household, at)
 
     household.meal_plan_slots
-             .with_recipe
+             .cookable
              .includes(:recipe)
              .where(date: from..(from + within.in_days.to_i))
              .sort_by(&:scheduled_at)
@@ -109,7 +112,7 @@ class MealPlanSlot < ApplicationRecord
     on_date = local_date(household, at)
 
     household.meal_plan_slots
-             .with_recipe
+             .cookable
              .includes(:recipe)
              .where(date: (on_date - 1)..(on_date + 1))
              .to_a

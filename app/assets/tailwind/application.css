@@ -174,3 +174,113 @@
     }
   }
 }
+
+/* Hearth compositions. These hooks belong to views, rather than remapping the
+   legacy utility palette: spacing, hierarchy and image treatment are deliberate. */
+.hearth-app { --hearth-surface: #FFFCF7; --hearth-border: #E3D6C3; --hearth-heading: #304C3C; }
+.dark .hearth-app { --hearth-surface: #2E2724; --hearth-border: #453B34; --hearth-heading: #DDE7DF; }
+.hearth-app h1 { color: var(--hearth-heading); font-weight: 600; font-size: clamp(2rem, 4vw, 2.8rem); line-height: 1.18; }
+.hearth-app h2:not(.uppercase) { color: var(--hearth-heading); font-weight: 600; }
+.hearth-app :is(a, button, input[type=submit]).bg-primary-600 { background-color: var(--user-accent, #A64730); }
+.hearth-app :is(a, button, input[type=submit]).bg-primary-600:hover { background-color: var(--color-primary-600); }
+.hearth-nav { background: var(--hearth-surface); box-shadow: 0 4px 20px #453B3408; }
+.hearth-nav a.group > div:first-child { background: transparent !important; color: var(--hearth-heading); box-shadow: none; width: 2rem; }
+.hearth-nav .fixed.bottom-0 { background: var(--hearth-surface); padding-top: .75rem; }
+.hearth-nav .fixed.bottom-0 > a { border-radius: 0; background: transparent; gap: .35rem; position: relative; }
+.hearth-nav .fixed.bottom-0 > a.font-semibold::after { content: ''; position: absolute; bottom: -.4rem; width: 2rem; height: 3px; border-radius: 2px; background: currentColor; }
+.hearth-nav .fixed.bottom-0 svg { width: 1.5rem; height: 1.5rem; }
+.hearth-nav .fixed.bottom-0 span.text-\[10px\] { font-size: .7rem; }
+.hearth-page-heading { padding: .5rem 0 1.75rem; }
+.hearth-page-heading > p:last-child { margin-top: .65rem; color: var(--color-slate-600); }
+.dark .hearth-page-heading > p:last-child { color: var(--color-slate-400); }
+.hearth-eyebrow { color: var(--color-primary-600); text-transform: uppercase; letter-spacing: .2em; font-size: .7rem; font-weight: 700; margin-bottom: .6rem; }
+.dark .hearth-eyebrow { color: var(--color-primary-300); }
+.hearth-planner-toolbar { padding: 1rem 0 1.4rem; background: transparent; box-shadow: none; border: 0; border-bottom: 1px solid var(--hearth-border); border-radius: 0; min-width: 0; max-width: 100%; }
+/* Enlarged pills are the Hearth look once the toolbar has a row to spare.
+   On a phone they sit beside Grocery list, Subscribe, and Print, and the extra
+   padding widens the layout viewport enough to drop the fixed tab bar below
+   the screen. Compact chips below sm; the action row wraps rather than grow. */
+@media (min-width: 40rem) {
+  .hearth-planner-toolbar a.rounded-full { padding: .65rem 1.3rem; font-size: .9rem; }
+}
+.hearth-day { box-shadow: 0 4px 16px #453B3408; padding: 1rem; border-radius: 1.5rem; }
+.hearth-day > div:first-child { padding-bottom: .8rem; }
+.hearth-day > div:first-child span:first-child { font-family: var(--font-display); font-size: 1.3rem; text-transform: none; letter-spacing: 0; }
+.hearth-meal { background: var(--hearth-surface); border-width: 1px; border-color: var(--hearth-border); border-radius: 1rem; min-height: 120px; padding: 1rem; }
+.hearth-meal-photo { float: left; width: 88px; height: 88px; overflow: hidden; border-radius: .8rem; margin: 0 1rem .75rem 0; }
+.hearth-meal-photo img { width: 100%; height: 100%; object-fit: cover; }
+.hearth-meal:has(.hearth-meal-photo) { display: block; }
+.hearth-meal .line-clamp-2 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; }
+@media (min-width: 900px) {
+  .hearth-day { display: grid; grid-template-columns: 90px repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 1rem; }
+  .hearth-day > div:first-child { border-bottom: 0; flex-direction: column; justify-content: center; align-items: start; gap: .5rem; }
+}
+.hearth-library > div:first-child { padding: .5rem 0 1.2rem; }
+.hearth-recipe-card { padding: .5rem; box-shadow: 0 5px 20px #453B3409; border-radius: 1.5rem; }
+.hearth-recipe-card > div:first-child { border-radius: 1rem; }
+.hearth-recipe-card > div:first-child > a > .bg-gradient-to-t { display: none; }
+.hearth-recipe-card h3 { font-size: 1.35rem; color: var(--hearth-heading); font-weight: 600; }
+.hearth-recipe-card p { font-size: .875rem; }
+.hearth-recipe-card > div:last-child { padding: 1rem .65rem .65rem; }
+.hearth-recipe-row { padding: .75rem; border-radius: 1.5rem; }
+.hearth-recipe-row img, .hearth-recipe-row [data-image-fallback-target=placeholder] { width: 100px; height: 110px; border-radius: 1rem; }
+.hearth-recipe-row a.truncate { font-family: var(--font-display); font-size: 1.15rem; white-space: normal; }
+.hearth-recipe-detail > div:nth-child(2) { padding: .65rem; box-shadow: 0 8px 25px #453B340a; }
+.hearth-recipe-detail > div:nth-child(2) > div:first-child { border-radius: 1.2rem; }
+.hearth-import { padding-top: 2rem; }
+.hearth-import > div:first-child { text-align: left; border-bottom: 1px solid var(--hearth-border); padding-bottom: 1.5rem; }
+.hearth-import > div:last-child { padding: 1.5rem; box-shadow: 0 6px 25px #453B3408; }
+.hearth-profile-heading { max-width: 40rem; }
+.hearth-profile-heading > div { background: transparent; box-shadow: none; }
+.hearth-profiles { background: var(--hearth-surface); border: 1px solid var(--hearth-border); border-radius: 2rem; padding: 1.5rem .5rem; box-shadow: 0 8px 32px #453B340a; }
+.hearth-profiles button > div { outline: 1px solid var(--hearth-border); outline-offset: 5px; }
+.hearth-profiles button > span { font-family: var(--font-display); font-size: 1rem; }
+.hearth-groceries > div:first-child { position: relative; top: auto; background: transparent; box-shadow: none; padding: 0 0 1.5rem; border: 0; border-radius: 0; }
+.hearth-aisle { box-shadow: 0 4px 16px #453B3408; padding: 1.25rem 1.5rem; }
+.hearth-aisle h2 { letter-spacing: .18em; color: var(--hearth-heading); }
+.hearth-grocery-item { border: 0; border-bottom: 1px solid var(--hearth-border); border-radius: 0; background: transparent; padding: 1rem 0; min-height: 64px; }
+.hearth-grocery-item .item-label { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; }
+.hearth-grocery-item input[type=checkbox] { width: 1.5rem; height: 1.5rem; accent-color: var(--user-accent, #A64730); }
+.hearth-preference-form > div:not(:last-child) { border: 1px solid var(--hearth-border); background: var(--hearth-surface); padding: 1.25rem; border-radius: 1.25rem; }
+.hearth-preference-form label > div { border-radius: 999px; }
+.hearth-preference-form input[type=submit] { width: 100%; padding: 1rem; font-size: 1rem; }
+:is(.hearth-settings, .hearth-family, .hearth-preferences) > div { border-radius: 1.5rem; }
+.hearth-settings form > .space-y-6 { padding-block: 1rem; }
+.hearth-auth { padding: 2rem; border-radius: 2rem; box-shadow: 0 12px 40px #453B3410; }
+.hearth-auth input:not([type=radio], [type=checkbox], [type=submit]) { min-height: 48px; border-radius: .8rem; }
+.hearth-pricing > div:nth-last-child(2) > div.grid > div { border-radius: 1.75rem; box-shadow: 0 8px 30px #453B340a; }
+.hearth-pricing .font-display.text-4xl { font-size: 3.5rem; }
+/* Cook Mode intentionally retains its always-dark, distraction-free shell. */
+.hearth-cook { background: #221C1A; }
+.hearth-cook header, .hearth-cook footer { background: #2E2724; border-color: #5B4E45; }
+.hearth-cook-step { background: #2E2724; border: 1px solid #5B4E45; border-radius: 2rem; padding: clamp(1.5rem, 4vw, 3rem); box-shadow: 0 12px 40px #17131230; }
+.hearth-cook-step > p:not(.uppercase) { font-family: var(--font-display); font-weight: 500; line-height: 1.35; }
+.hearth-cook .cook-timer-face { border-color: #A64730; background: #A6473026; border-radius: 1.5rem; min-width: 210px; }
+.hearth-cook .cook-timer-face [data-step-timer-target=display] { font-size: 3.5rem; }
+.hearth-cook [data-cook-mode-target=nextButton] { background: #A64730; }
+@media (max-width: 639px) {
+  .hearth-recipe-card { flex-direction: row; gap: .75rem; }
+  .hearth-recipe-card > div:first-child { width: 35%; height: auto; min-height: 180px; }
+  .hearth-recipe-card > div:last-child { min-width: 0; padding: .5rem .4rem .5rem 0; }
+  .hearth-recipe-card h3 { font-size: 1.15rem; }
+  .hearth-recipe-card > div:first-child > a.absolute { display: none; }
+  .hearth-recipe-card > div:last-child > div:last-child { flex-wrap: wrap; gap: .5rem; }
+  .hearth-groceries h1 { font-size: 2rem; }
+}
+.hearth-recipe-detail .absolute h1 { color: #FFFCF7; }
+.hearth-settings > div:first-of-type { align-items: start; gap: 1rem; flex-wrap: wrap; padding-block: 1rem 1.5rem; }
+.hearth-settings > div:first-of-type > div { align-items: start; }
+.hearth-settings h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); }
+.hearth-settings > div:not(:first-child), .hearth-family > div:not(:first-child) { box-shadow: 0 6px 24px #453B3408; }
+.hearth-household-tabs a { background: var(--hearth-surface); color: var(--hearth-heading); }
+.hearth-household-tabs a[aria-current=page] { background: var(--user-accent, #A64730); color: white; border-color: transparent; }
+.hearth-month { padding: 1.25rem; box-shadow: 0 8px 30px #453B3408; }
+.hearth-month > .grid { gap: 0; }
+.hearth-month-day { border-radius: 0; border-color: var(--hearth-border); padding: .8rem; min-height: 150px; }
+.hearth-month-day > div:first-child > span:first-child { font-family: var(--font-display); font-size: 1.15rem; }
+.hearth-month-day .ring-2 { box-shadow: none; }
+.hearth-month-day .text-center { text-align: left; background: transparent; border: 0; box-shadow: none; }
+/* A filtered ancestor traps fixed descendants in its own containing block.
+   Keep the mobile tab bar anchored to the viewport, outside the sticky header. */
+.hearth-nav { backdrop-filter: none; }
+@media (max-width: 639px) { .hearth-mobile-tags { display: flex; } }

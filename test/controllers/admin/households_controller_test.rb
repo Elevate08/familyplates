@@ -70,11 +70,9 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     get edit_admin_household_url
     assert_select "select[name='household[shopping_frequency]'] option", count: 3
     assert_select "input[type=date][name='household[shopping_anchor_on]']", count: 0
-    assert_select "select[name='household[shopping_wday]'] option", count: 7
-    assert_equal %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday],
-      css_select("select[name='household[shopping_wday]'] option").map(&:text)
-    assert_select "select[name='household[shopping_wday]'] option[selected]", text: "Saturday"
-    assert_select "select[name='household[shopping_wday]']:not([disabled])"
+    assert_select "input[type=radio][name='household[shopping_wday]']", count: 7
+    assert_select "input[name='household[shopping_wday]'][value='6'][checked]"
+    assert_select "input[name='household[shopping_wday]']:not([disabled])", count: 7
     assert_select "[data-shopping-day-target=monthday][hidden] select[name='household[shopping_month_day]'][disabled]"
     assert_select "span", text: /Every week, the list runs from this day/
     assert_select "span", text: /we use its weekday/, count: 0
@@ -94,7 +92,7 @@ class Admin::HouseholdsControllerTest < ActionDispatch::IntegrationTest
     @household.update!(shopping_frequency: "monthly", shopping_anchor_on: Date.new(2026, 2, 28))
 
     get edit_admin_household_url
-    assert_select "[data-shopping-day-target=weekday][hidden] select[name='household[shopping_wday]'][disabled]"
+    assert_select "[data-shopping-day-target=weekday][hidden] input[name='household[shopping_wday]'][disabled]"
     assert_select "select[name='household[shopping_month_day]']:not([disabled]) option[selected]", text: "28th"
     assert_select "span", text: /day of the month/
 

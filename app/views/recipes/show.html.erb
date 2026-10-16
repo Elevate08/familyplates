@@ -1,9 +1,9 @@
-<div class="max-w-4xl mx-auto py-6">
+<div class="hearth-recipe-detail max-w-4xl mx-auto py-6">
   <div class="flex items-center justify-between mb-6">
     <%= link_to "← Back to Recipe Box", recipes_path, class: "text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" %>
     <div class="flex items-center gap-2">
       <%# Open to every profile, kiosks included - see RecipesController#cook. %>
-      <%= link_to cook_recipe_path(@recipe), class: "inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors" do %>
+      <%= link_to cook_recipe_path(@recipe), class: "inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-colors" do %>
         <%= icon_tag("chef-hat", css_class: "w-4 h-4") %>
         <span>Cook Mode</span>
       <% end %>
