@@ -88,7 +88,7 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+    <div class="flex flex-wrap items-center justify-between gap-2 min-w-0 max-w-full w-full sm:w-auto sm:justify-end">
       <div class="flex items-center bg-cream dark:bg-slate-900 p-1 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
         <%= link_to "Week", meal_plan_path(@meal_plan, view: "week"), 
               class: "px-3 py-1.5 rounded-full text-xs font-bold transition-colors #{@view == 'week' ? 'bg-primary-600 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}" %>
