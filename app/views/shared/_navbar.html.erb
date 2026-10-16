@@ -1,4 +1,4 @@
-<nav class="bg-oat/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-40 pt-[env(safe-area-inset-top,0px)] shadow-[0_1px_0_rgb(70_50_30/0.04)]">
+<nav class="hearth-nav bg-oat/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-40 pt-[env(safe-area-inset-top,0px)] shadow-[0_1px_0_rgb(70_50_30/0.04)]">
   <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between min-h-[4rem] sm:min-h-[4.5rem] py-2 sm:py-2.5">
       
@@ -6,10 +6,10 @@
         <%= link_to root_path, class: "flex items-center gap-2.5 group my-auto" do %>
           <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 shrink-0"
                style="background-color: <%= current_family_member&.safe_avatar_color || '#A64730' %>">
-            <%= icon_tag("chef-hat", css_class: "w-5 h-5 sm:w-6 sm:h-6") %>
+            <%= render("shared/hearth_sprig") %>
           </div>
           <div class="flex flex-col justify-center">
-            <span class="font-display font-bold text-lg sm:text-xl tracking-[-0.01em] text-slate-900 dark:text-white leading-tight">Family<span style="color: <%= current_family_member&.safe_avatar_color || '#A64730' %>">Plates</span></span>
+            <span class="font-display font-bold text-2xl sm:text-3xl tracking-[-0.01em] text-slate-900 dark:text-white leading-tight">Family<span style="color: <%= current_family_member&.safe_avatar_color || '#A64730' %>">Plates</span></span>
             <% if authenticated? && current_household %>
               <span class="hidden md:inline-block text-[10.5px] font-semibold text-slate-400 dark:text-slate-500 truncate">
                 <%= current_household.name %>
@@ -101,7 +101,7 @@
               style="background-color: <%= current_family_member&.safe_avatar_color || '#A64730' %>">
           <%= current_family_member ? icon_tag(current_family_member.safe_avatar_icon, css_class: "w-3.5 h-3.5") : "👤" %>
         </span>
-        <span class="text-[10px] tracking-tight">Profile</span>
+        <span class="text-[10px] tracking-tight">Family</span>
       <% end %>
     </div>
   <% end %>

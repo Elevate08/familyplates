@@ -1,5 +1,6 @@
-<div class="max-w-7xl mx-auto py-2 sm:py-4">
-  <div class="bg-cream dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div class="hearth-planner max-w-7xl mx-auto py-2 sm:py-4">
+  <header class="hearth-page-heading"><p class="hearth-eyebrow">Around the table</p><h1>Your family meal plan</h1><p>A little planning. More time together.</p></header>
+  <div class="hearth-planner-toolbar bg-cream dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <% prev_target = (@view == "month" ? meal_plan_path(@meal_plan, view: "month", month: @prev_month) : meal_plans_path(week: @prev_week)) %>
     <% next_target = (@view == "month" ? meal_plan_path(@meal_plan, view: "month", month: @next_month) : meal_plans_path(week: @next_week)) %>
     <% active_label = (@view == "month" ? @month_date.strftime("%B %Y") : @meal_plan.week_label) %>
@@ -118,7 +119,7 @@
 
   <% if @view == "month" %>
     <div class="overflow-x-auto -mx-3.5 px-3.5 sm:mx-0 sm:px-0 mb-8 pb-2">
-      <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs min-w-[640px]">
+      <div class="bg-cream dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs min-w-[640px] hearth-month">
         <div class="grid grid-cols-7 gap-2 pb-3 mb-3 border-b border-slate-100 dark:border-slate-800 text-center">
           <% %w[Mon Tue Wed Thu Fri Sat Sun].each do |dname| %>
             <div class="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500"><%= dname %></div>
@@ -218,10 +219,10 @@
     </div>
 
   <% else %>
-    <div class="grid grid-cols-1 md:grid-cols-7 gap-3 sm:gap-4 mb-8">
+    <div class="hearth-week grid grid-cols-1 gap-3 sm:gap-4 mb-8">
       <% @meal_plan.days.each do |day| %>
         <% is_today = (day == household_today) %>
-        <div class="flex flex-col gap-2 p-3 sm:p-3.5 rounded-3xl bg-cream dark:bg-slate-900 border <%= is_today ? 'border-primary-400 ring-2 ring-primary-200/50 dark:ring-primary-900/50 shadow-md' : 'border-slate-200/80 dark:border-slate-800 shadow-2xs' %>">
+        <div class="hearth-day flex flex-col gap-2 p-3 sm:p-3.5 rounded-3xl bg-cream dark:bg-slate-900 border <%= is_today ? 'border-primary-400 ring-2 ring-primary-200/50 dark:ring-primary-900/50 shadow-md' : 'border-slate-200/80 dark:border-slate-800 shadow-2xs' %>">
           
           <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div>

@@ -13,6 +13,12 @@
         <span class="sr-only">Leave cook mode</span>
       <% end %>
 
+      <% if @recipe.has_image? %>
+        <div class="hidden sm:block" data-controller="image-fallback">
+          <img src="<%= @recipe.display_image_url %>" alt="" class="h-20 w-24 rounded-2xl object-cover" referrerpolicy="no-referrer" data-image-fallback-target="image" data-action="error->image-fallback#failed">
+          <div hidden data-image-fallback-target="placeholder"></div>
+        </div>
+      <% end %>
       <div class="min-w-0 flex-1">
         <h1 class="truncate text-lg font-semibold text-oat sm:text-2xl"><%= @recipe.title %></h1>
         <p data-cook-mode-target="counter" class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
@@ -54,7 +60,7 @@
       </div>
     <% else %>
       <% @steps.each_with_index do |step, index| %>
-        <section data-cook-mode-target="step" <%= "hidden" if index.positive? %> class="mx-auto w-full max-w-3xl">
+        <section data-cook-mode-target="step" <%= "hidden" if index.positive? %> class="hearth-cook-step mx-auto w-full max-w-3xl">
           <% if step.section? %>
             <p class="mb-4 text-sm font-black uppercase tracking-[0.2em] text-primary-400"><%= step.section %></p>
           <% end %>

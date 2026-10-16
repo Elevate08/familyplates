@@ -13,15 +13,15 @@ class HouseholdShoppingDayTest < ApplicationSystemTestCase
     visit edit_admin_household_path
 
     assert_no_selector "input[type=date][name='household[shopping_anchor_on]']"
-    weekday = find("select[name='household[shopping_wday]']")
-    assert_equal "6", weekday.value
+    assert_selector "input[type=radio][name='household[shopping_wday]']", count: 7, visible: :all
+    assert_selector "input[name='household[shopping_wday]'][value='6']:checked", visible: :all
     assert_equal [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ],
-      weekday.all("option").map(&:text)
+      all("input[name='household[shopping_wday]']", visible: :all).map { |input| input["aria-label"] }
     assert_text "Every week, the list runs from this day"
     assert_no_text "we use its weekday"
     assert_selector "select[name='household[shopping_month_day]']", visible: :hidden
 
-    select "Friday", from: "household_shopping_wday"
+    choose "household_shopping_wday_5", visible: :all, allow_label_click: true
     click_on "Save Household Settings"
 
     assert_current_path admin_root_path
@@ -30,7 +30,7 @@ class HouseholdShoppingDayTest < ApplicationSystemTestCase
     visit edit_admin_household_path
     select "Every month", from: "How often"
     assert_selector "select[name='household[shopping_month_day]']", visible: :visible
-    assert_selector "select[name='household[shopping_wday]']", visible: :hidden
+    assert_selector "input[type=radio][name='household[shopping_wday]']", visible: :hidden
     assert_text "day of the month"
     assert_equal "9", find("select[name='household[shopping_month_day]']").value
 
@@ -48,7 +48,7 @@ class HouseholdShoppingDayTest < ApplicationSystemTestCase
     @household.update!(shopping_frequency: "fortnightly", shopping_anchor_on: Date.new(2026, 10, 3))
 
     visit edit_admin_household_path
-    select "Friday", from: "household_shopping_wday"
+    choose "household_shopping_wday_5", visible: :all, allow_label_click: true
     click_on "Save Household Settings"
     assert_current_path admin_root_path
 

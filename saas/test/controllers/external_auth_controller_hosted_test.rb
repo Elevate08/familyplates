@@ -67,7 +67,7 @@ class ExternalAuthControllerHostedTest < ActionDispatch::IntegrationTest
 
       follow_redirect!
       assert_response :success
-      assert_select "h1", text: /Create Your Family Kitchen/i
+      assert_select "h1", text: /Make room at your table/i
       assert_nil flash[:alert]
     end
   end

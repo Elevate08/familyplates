@@ -1,4 +1,4 @@
-<div class="max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
+<div class="hearth-preferences max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
     <div class="flex items-center gap-3.5">
       <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md font-black text-lg transition-colors shrink-0"
@@ -7,7 +7,7 @@
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Family Hub & Settings</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Your preferences</h1>
           <% if @family_member.admin? %>
             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 uppercase">
               Admin
@@ -89,7 +89,7 @@
       </div>
     </div>
 
-    <%= form_with model: @family_member, url: preferences_path, method: :patch, class: "space-y-6" do |f| %>
+    <%= form_with model: @family_member, url: preferences_path, method: :patch, class: "hearth-preference-form space-y-6" do |f| %>
       <% if @family_member.errors.any? %>
         <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs">
           <p class="font-bold mb-1">Please fix the following:</p>

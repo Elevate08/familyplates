@@ -4,6 +4,8 @@ All notable changes to FamilyPlates are documented in this file.
 
 ## [Unreleased]
 
+* Deeper Hearth visual rebuild toward the mockups: cookbook meal rows and recipe cards, cream navigation, spacious family settings and groceries, and warm Cook Mode panels. Existing routes, member accents, shopping weekday chips and hosted pricing are preserved.
+
 ## [v1.5.0] - 2026-10-15
 
 The kitchen wears the Hearth palette, and the day a household shops is a weekday.

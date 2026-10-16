@@ -1,17 +1,17 @@
 <%= render layout: "shared/centered_page", locals: { padding: "px-2 sm:px-4", shell_controller: "dropdown" } do %>
-  <div class="text-center mb-8 sm:mb-10">
+  <div class="hearth-profile-heading text-center mb-8 sm:mb-10">
     <div class="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 mb-3 sm:mb-4 shadow-sm">
       <%= icon_tag("chef-hat", css_class: "w-7 h-7 sm:w-8 sm:h-8") %>
     </div>
     <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-      Who's in the kitchen today?
+      Who's cooking?
     </h1>
     <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2">
       Select your profile to customize your planner theme and submit cravings
     </p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 max-w-3xl w-full justify-items-center mb-8">
+  <div class="hearth-profiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 max-w-3xl w-full justify-items-center mb-8">
     <% @family_members.each do |member| %>
       <div class="group relative flex flex-col items-center w-full max-w-[160px]">
         <% if member.requires_pin? %>

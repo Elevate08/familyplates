@@ -12,7 +12,7 @@ class SignupsControllerTest < ActionDispatch::IntegrationTest
   test "new renders signup form" do
     get new_signup_path
     assert_response :success
-    assert_select "h1", text: /Create Your Family Kitchen/i
+    assert_select "h1", text: /Make room at your table/i
   end
 
   test "create rejects missing parameters" do

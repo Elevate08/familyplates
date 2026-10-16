@@ -64,7 +64,7 @@
     </style>
   </head>
 
-  <body class="min-h-full flex flex-col font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 selection:bg-primary-500 selection:text-white <%= controller_path.start_with?('platform_admin') ? '' : 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12' %> transition-colors duration-150">
+  <body class="hearth-app min-h-full flex flex-col font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 selection:bg-primary-500 selection:text-white <%= controller_path.start_with?('platform_admin') ? '' : 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-12' %> transition-colors duration-150">
     <% if controller_path.start_with?("platform_admin") %>
       <% if respond_to?(:platform_admin_authenticated?) && platform_admin_authenticated? %>
         <div class="min-h-screen flex flex-col lg:flex-row" data-controller="mobile-sidebar">
