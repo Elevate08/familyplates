@@ -70,4 +70,4 @@ end
 
 gem "rqrcode", "~> 3.2"
 
-gem "webauthn", "~> 3.4"
+gem "webauthn", "~> 3.5"
